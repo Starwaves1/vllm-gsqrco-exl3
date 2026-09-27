@@ -1,0 +1,31 @@
+#!/bin/bash
+# Run a heavy command (build, test, conversion) under the Phase A resource caps:
+#   - one heavy command at a time on this host (flock on /tmp/gsq-heavy.lock)
+#   - wait until MemAvailable >= GSQ_MIN_AVAIL_GB (default 8)
+#   - cgroup scope: MemoryMax=6G, no swap, CPUQuota=200%; nice 19; idle IO class
+#   - no GPU: CUDA_VISIBLE_DEVICES="" and MAX_JOBS=2 for torch/ninja builds
+# usage: tools/capped <cmd> [args...]
+# GSQ_LIGHT=1: light job (python script reading GGUF headers, CPU tests): no lock,
+#   MemoryMax=2G, CPUQuota=100%. Still waits for MemAvailable.
+set -euo pipefail
+MIN_GB=${GSQ_MIN_AVAIL_GB:-8}
+export CUDA_VISIBLE_DEVICES=""
+export MAX_JOBS=${MAX_JOBS:-2}
+export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-2}
+
+MEM=6G CPU=200%
+if [ "${GSQ_LIGHT:-0}" = 1 ]; then
+  MEM=2G CPU=100%
+else
+  exec 9>/tmp/gsq-heavy.lock
+  flock 9
+fi
+while :; do
+  avail=$(awk '/^MemAvailable:/{print int($2/1048576)}' /proc/meminfo)
+  [ "$avail" -ge "$MIN_GB" ] && break
+  echo "capped: MemAvailable ${avail} GB < ${MIN_GB} GB; waiting" >&2
+  sleep 30
+done
+exec systemd-run --user --scope -q \
+  -p MemoryMax=$MEM -p MemorySwapMax=0 -p CPUQuota=$CPU \
+  nice -n 19 ionice -c3 "$@"
