@@ -9,7 +9,7 @@ Scope change from Garrett during the run: **deliverable 5 (kernel porting: multi
 | Branch | What |
 |---|---|
 | `main` | everything: `plugin/` (git subtree of vllm-project/vllm-gguf-plugin at e2b8ad5 plus our commits), tools, HF config dir, env records, this file |
-| `swift-gsq-rco` | the plugin fork itself, `git subtree split --prefix=plugin`: upstream history through e2b8ad5, plus our adapter commit (7794689). Push this to a GitHub fork for an upstream PR. Regenerate after new plugin commits: `git subtree split --prefix=plugin -b swift-gsq-rco` |
+| `swift-gsq-rco` | the plugin fork itself, `git subtree split --prefix=plugin`: upstream history through e2b8ad5, plus our adapter commit (7794689). Kept as a clean split because Garrett intends to send it upstream later; don't push it or open a PR. Regenerate after new plugin commits: `git subtree split --prefix=plugin -b swift-gsq-rco` |
 
 Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
 
