@@ -225,19 +225,17 @@ std::unique_ptr<ggml_cuda_pool> ggml_backend_cuda_context::new_pool_for_device(
   GGML_ABORT("lcpp shim: pool must be installed by the caller");
 }
 
-// Every allocation is a zero-filled torch tensor (caching allocator, stream
-// ordered, CUDA-graph safe) with a zeroed guard tail of 128 block_q8_1_mmq
-// (18 KiB). Same fix as Maxwell-Lyu/vllm-gguf-plugin f1d38ffdd0: MMQ reads
-// full J-column tiles of the quantized activations past the logical end
-// (upstream's J_max tail is 0 for fewer than 8 columns), and garbage there
-// gave IMAs / NaNs. 128 is the largest J mul_mat_q_switch_J selects.
-static constexpr size_t kGuardTailBytes = 128 * sizeof(block_q8_1_mmq);
-
+// Every allocation is an uninitialised torch tensor (caching allocator, so
+// scratch is reused across calls; stream ordered; CUDA-graph safe). Nothing is
+// zero-filled: the quantizers write every byte of their q8 buffer (zeros past
+// ne00), and stream-k tmp_fixup is written before it is read. Upstream's ggml
+// pool doesn't zero either. The one exception, the MMQ read tail, is zeroed in
+// mul_mat_q below.
 struct TorchPool final : public ggml_cuda_pool {
   explicit TorchPool(const Tensor& like) : like_(like) {}
   void* alloc(size_t size, size_t* actual_size) override {
-    const int64_t n = (int64_t)((std::max<size_t>(size, 1) + kGuardTailBytes + 3) / 4);
-    owners_.push_back(torch::stable::new_zeros(like_, {n}, ScalarType::Int));
+    const int64_t n = (int64_t)((std::max<size_t>(size, 1) + 3) / 4);
+    owners_.push_back(torch::stable::new_empty(like_, {n}, ScalarType::Int));
     *actual_size = (size_t)n * 4;
     return owners_.back().data_ptr();
   }
@@ -262,11 +260,17 @@ static void mul_mat_q(ggml_backend_cuda_context& ctx, const ggml_tensor* src0,
   const bool fallback = ne01 % 128 != 0;
   const int64_t ne10_padded = GGML_PAD(ne10, MATRIX_ROW_PADDING);
 
-  // Upstream's own J_max tail; the pool adds the zeroed 18 KiB guard on top.
-  const size_t nbytes_q8 =
-      ne11 * ne10_padded * sizeof(block_q8_1_mmq) / QK8_1_MMQ +
-      ggml_cuda_mmq_get_J_max(src0->type, fallback, cc, ne11) * sizeof(block_q8_1_mmq);
-  ggml_cuda_pool_alloc<char> q8(ctx.pool(), nbytes_q8);
+  // MMQ reads full J-column tiles of q8 past the last quantized column.
+  // Upstream sizes that tail as J_max blocks, but J_max is 0 below 8 columns,
+  // and garbage there gave IMAs / NaNs (Maxwell-Lyu/vllm-gguf-plugin
+  // f1d38ffdd0). So add 128 block_q8_1_mmq (18 KiB; 128 is the largest J
+  // mul_mat_q_switch_J selects) and zero everything past the quantized data:
+  // one small memset, not the whole buffer.
+  const size_t nbytes_quant = ne11 * ne10_padded * sizeof(block_q8_1_mmq) / QK8_1_MMQ;
+  const size_t nbytes_tail =
+      (ggml_cuda_mmq_get_J_max(src0->type, fallback, cc, ne11) + 128) * sizeof(block_q8_1_mmq);
+  ggml_cuda_pool_alloc<char> q8(ctx.pool(), nbytes_quant + nbytes_tail);
+  CUDA_CHECK(cudaMemsetAsync(q8.get() + nbytes_quant, 0, nbytes_tail, stream));
 
   const int64_t s11 = src1->nb[1] / sizeof(float);
   quantize_mmq_q8_1_cuda((const float*)src1->data, nullptr, q8.get(), src0->type,
@@ -383,7 +387,14 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, bool mmvq) {
   const DeviceGuard guard(device);
   const cudaStream_t stream = torch_stream(device);
 
-  // The quantizers read fp32 rows with vector loads.
+  // The vendored quantizers (quantize_row_q8_1_cuda, quantize_mmq_q8_1_cuda)
+  // take const float* only, and MMVQ/MMQ write fp32 dst only, so 16-bit X
+  // costs one cast in and one cast out. Removing them means editing vendored
+  // code or owning a 16-bit quantizer. Launches per call with 16-bit X:
+  //   MMVQ: cast X, quantize_q8_1, mul_mat_vec_q, cast Y           = 4
+  //   MMQ:  cast X, tail memset, quantize_mmq_q8_1, mul_mat_q,
+  //         [stream-k fixup], cast Y                                = 5 or 6
+  // fp32 X: two fewer.
   Tensor xf = X.scalar_type() == ScalarType::Float
                   ? X
                   : torch::stable::to(X, std::optional<ScalarType>(ScalarType::Float));
