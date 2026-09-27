@@ -32,7 +32,7 @@ fi
 ln -sf libcudart.so.13 "$T/lib/libcudart.so"
 ln -sfn lib "$T/lib64"
 
-glibc=$(ldd --version | head -1 | grep -oE '[0-9]+\.[0-9]+$')
+glibc=$(ldd --version | awk 'NR == 1 {print $NF}')   # awk drains the pipe: head -1 would SIGPIPE ldd under pipefail
 H=$T/include/crt/math_functions.h
 if [ "$(printf '%s\n2.41\n' "$glibc" | sort -V | head -1)" = 2.41 ] \
    && ! grep -q 'GSQ glibc>=2.41' "$H"; then
