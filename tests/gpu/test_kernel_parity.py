@@ -80,7 +80,13 @@ def test_dequantize(tensors_by_type, name, dtype):
     out = ops.ggml_dequantize(w, qt, ref.shape[0], ref.shape[1], getattr(torch, dtype)).cpu()
     torch.cuda.synchronize()
     exp = ref.to(getattr(torch, dtype))
-    if dtype == "float32":
+    if name in ("Q2_K", "Q4_K", "Q6_K"):
+        # dequantize.cuh does K-quants in fp16, ggml in fp32: not bit-exact. Same bound as the
+        # strict xfail + test_cuda_kquant_dequant_error_is_fp16_sized in tests/cpu/test_dequant_fixtures.py
+        # (2**-9 of the row's absmax), plus half an output ulp for the final rounding.
+        tol = 2.0**-9 * ref.abs().amax(dim=1, keepdim=True) + torch.finfo(out.dtype).eps / 2 * ref.abs()
+        assert ((out.float() - ref).abs() <= tol).all(), ((out.float() - ref).abs() / tol).max()
+    elif dtype == "float32":
         # same float math on both sides; allow only 1-ulp ordering differences
         torch.testing.assert_close(out, exp, rtol=2e-7, atol=0)
     else:
