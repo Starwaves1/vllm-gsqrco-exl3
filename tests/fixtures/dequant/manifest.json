@@ -1,0 +1,857 @@
+{
+ "gguf": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+ "types": [
+  "IQ1_M",
+  "IQ2_S",
+  "IQ2_XS",
+  "IQ2_XXS",
+  "IQ3_S",
+  "IQ3_XXS",
+  "IQ4_XS",
+  "Q2_K",
+  "Q4_K",
+  "Q6_K"
+ ],
+ "fixtures": [
+  {
+   "file": "IQ1_M__blk.13.ffn_gate.weight__r0.npz",
+   "type": "IQ1_M",
+   "tensor": "blk.13.ffn_gate.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ1_M__blk.13.ffn_gate.weight__r8704.npz",
+   "type": "IQ1_M",
+   "tensor": "blk.13.ffn_gate.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ1_M__blk.13.ffn_gate.weight__r17407.npz",
+   "type": "IQ1_M",
+   "tensor": "blk.13.ffn_gate.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__token_embd.weight__r0.npz",
+   "type": "IQ2_S",
+   "tensor": "token_embd.weight",
+   "row": 0,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__token_embd.weight__r124160.npz",
+   "type": "IQ2_S",
+   "tensor": "token_embd.weight",
+   "row": 124160,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__token_embd.weight__r248319.npz",
+   "type": "IQ2_S",
+   "tensor": "token_embd.weight",
+   "row": 248319,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.12.ffn_gate.weight__r0.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.12.ffn_gate.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.12.ffn_gate.weight__r8704.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.12.ffn_gate.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.12.ffn_gate.weight__r17407.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.12.ffn_gate.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.48.attn_gate.weight__r0.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.48.attn_gate.weight",
+   "row": 0,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.48.attn_gate.weight__r3072.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.48.attn_gate.weight",
+   "row": 3072,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_S__blk.48.attn_gate.weight__r6143.npz",
+   "type": "IQ2_S",
+   "tensor": "blk.48.attn_gate.weight",
+   "row": 6143,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.0.ffn_gate.weight__r0.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.0.ffn_gate.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.0.ffn_gate.weight__r8704.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.0.ffn_gate.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.0.ffn_gate.weight__r17407.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.0.ffn_gate.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.12.ffn_up.weight__r0.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.12.ffn_up.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.12.ffn_up.weight__r8704.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.12.ffn_up.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.12.ffn_up.weight__r17407.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.12.ffn_up.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.17.ffn_down.weight__r0.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.17.ffn_down.weight",
+   "row": 0,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.17.ffn_down.weight__r2560.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.17.ffn_down.weight",
+   "row": 2560,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "IQ2_XS__blk.17.ffn_down.weight__r5119.npz",
+   "type": "IQ2_XS",
+   "tensor": "blk.17.ffn_down.weight",
+   "row": 5119,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.0.ffn_up.weight__r0.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.0.ffn_up.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.0.ffn_up.weight__r8704.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.0.ffn_up.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.0.ffn_up.weight__r17407.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.0.ffn_up.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.3.attn_q.weight__r0.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.3.attn_q.weight",
+   "row": 0,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.3.attn_q.weight__r6144.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.3.attn_q.weight",
+   "row": 6144,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.3.attn_q.weight__r12287.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.3.attn_q.weight",
+   "row": 12287,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.58.attn_qkv.weight__r0.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.58.attn_qkv.weight",
+   "row": 0,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.58.attn_qkv.weight__r5120.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.58.attn_qkv.weight",
+   "row": 5120,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ2_XXS__blk.58.attn_qkv.weight__r10239.npz",
+   "type": "IQ2_XXS",
+   "tensor": "blk.58.attn_qkv.weight",
+   "row": 10239,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.1.attn_qkv.weight__r0.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.1.attn_qkv.weight",
+   "row": 0,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.1.attn_qkv.weight__r5120.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.1.attn_qkv.weight",
+   "row": 5120,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.1.attn_qkv.weight__r10239.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.1.attn_qkv.weight",
+   "row": 10239,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.30.attn_qkv.weight__r0.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.30.attn_qkv.weight",
+   "row": 0,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.30.attn_qkv.weight__r5120.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.30.attn_qkv.weight",
+   "row": 5120,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.30.attn_qkv.weight__r10239.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.30.attn_qkv.weight",
+   "row": 10239,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.63.attn_v.weight__r0.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.63.attn_v.weight",
+   "row": 0,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.63.attn_v.weight__r512.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.63.attn_v.weight",
+   "row": 512,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_S__blk.63.attn_v.weight__r1023.npz",
+   "type": "IQ3_S",
+   "tensor": "blk.63.attn_v.weight",
+   "row": 1023,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.1.attn_gate.weight__r0.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.1.attn_gate.weight",
+   "row": 0,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.1.attn_gate.weight__r3072.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.1.attn_gate.weight",
+   "row": 3072,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.1.attn_gate.weight__r6143.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.1.attn_gate.weight",
+   "row": 6143,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.20.ffn_up.weight__r0.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.20.ffn_up.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.20.ffn_up.weight__r8704.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.20.ffn_up.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.20.ffn_up.weight__r17407.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.20.ffn_up.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.61.attn_qkv.weight__r0.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.61.attn_qkv.weight",
+   "row": 0,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.61.attn_qkv.weight__r5120.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.61.attn_qkv.weight",
+   "row": 5120,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ3_XXS__blk.61.attn_qkv.weight__r10239.npz",
+   "type": "IQ3_XXS",
+   "tensor": "blk.61.attn_qkv.weight",
+   "row": 10239,
+   "shape": [
+    10240,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.0.attn_gate.weight__r0.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.0.attn_gate.weight",
+   "row": 0,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.0.attn_gate.weight__r3072.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.0.attn_gate.weight",
+   "row": 3072,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.0.attn_gate.weight__r6143.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.0.attn_gate.weight",
+   "row": 6143,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.44.attn_gate.weight__r0.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.44.attn_gate.weight",
+   "row": 0,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.44.attn_gate.weight__r3072.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.44.attn_gate.weight",
+   "row": 3072,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.44.attn_gate.weight__r6143.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.44.attn_gate.weight",
+   "row": 6143,
+   "shape": [
+    6144,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.63.ffn_up.weight__r0.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.63.ffn_up.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.63.ffn_up.weight__r8704.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.63.ffn_up.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "IQ4_XS__blk.63.ffn_up.weight__r17407.npz",
+   "type": "IQ4_XS",
+   "tensor": "blk.63.ffn_up.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.7.attn_q.weight__r0.npz",
+   "type": "Q2_K",
+   "tensor": "blk.7.attn_q.weight",
+   "row": 0,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.7.attn_q.weight__r6144.npz",
+   "type": "Q2_K",
+   "tensor": "blk.7.attn_q.weight",
+   "row": 6144,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.7.attn_q.weight__r12287.npz",
+   "type": "Q2_K",
+   "tensor": "blk.7.attn_q.weight",
+   "row": 12287,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.15.attn_q.weight__r0.npz",
+   "type": "Q2_K",
+   "tensor": "blk.15.attn_q.weight",
+   "row": 0,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.15.attn_q.weight__r6144.npz",
+   "type": "Q2_K",
+   "tensor": "blk.15.attn_q.weight",
+   "row": 6144,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.15.attn_q.weight__r12287.npz",
+   "type": "Q2_K",
+   "tensor": "blk.15.attn_q.weight",
+   "row": 12287,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.59.attn_q.weight__r0.npz",
+   "type": "Q2_K",
+   "tensor": "blk.59.attn_q.weight",
+   "row": 0,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.59.attn_q.weight__r6144.npz",
+   "type": "Q2_K",
+   "tensor": "blk.59.attn_q.weight",
+   "row": 6144,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q2_K__blk.59.attn_q.weight__r12287.npz",
+   "type": "Q2_K",
+   "tensor": "blk.59.attn_q.weight",
+   "row": 12287,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__output.weight__r0.npz",
+   "type": "Q4_K",
+   "tensor": "output.weight",
+   "row": 0,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__output.weight__r124160.npz",
+   "type": "Q4_K",
+   "tensor": "output.weight",
+   "row": 124160,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__output.weight__r248319.npz",
+   "type": "Q4_K",
+   "tensor": "output.weight",
+   "row": 248319,
+   "shape": [
+    248320,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.47.ffn_gate.weight__r0.npz",
+   "type": "Q4_K",
+   "tensor": "blk.47.ffn_gate.weight",
+   "row": 0,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.47.ffn_gate.weight__r8704.npz",
+   "type": "Q4_K",
+   "tensor": "blk.47.ffn_gate.weight",
+   "row": 8704,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.47.ffn_gate.weight__r17407.npz",
+   "type": "Q4_K",
+   "tensor": "blk.47.ffn_gate.weight",
+   "row": 17407,
+   "shape": [
+    17408,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.63.attn_q.weight__r0.npz",
+   "type": "Q4_K",
+   "tensor": "blk.63.attn_q.weight",
+   "row": 0,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.63.attn_q.weight__r6144.npz",
+   "type": "Q4_K",
+   "tensor": "blk.63.attn_q.weight",
+   "row": 6144,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q4_K__blk.63.attn_q.weight__r12287.npz",
+   "type": "Q4_K",
+   "tensor": "blk.63.attn_q.weight",
+   "row": 12287,
+   "shape": [
+    12288,
+    5120
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.attn_k.weight__r0.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.attn_k.weight",
+   "row": 0,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.attn_k.weight__r512.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.attn_k.weight",
+   "row": 512,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.attn_k.weight__r1023.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.attn_k.weight",
+   "row": 1023,
+   "shape": [
+    1024,
+    5120
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.ffn_down.weight__r0.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.ffn_down.weight",
+   "row": 0,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.ffn_down.weight__r2560.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.ffn_down.weight",
+   "row": 2560,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.ffn_down.weight__r5119.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.ffn_down.weight",
+   "row": 5119,
+   "shape": [
+    5120,
+    17408
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.nextn.eh_proj.weight__r0.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.nextn.eh_proj.weight",
+   "row": 0,
+   "shape": [
+    5120,
+    10240
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.nextn.eh_proj.weight__r2560.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.nextn.eh_proj.weight",
+   "row": 2560,
+   "shape": [
+    5120,
+    10240
+   ]
+  },
+  {
+   "file": "Q6_K__blk.64.nextn.eh_proj.weight__r5119.npz",
+   "type": "Q6_K",
+   "tensor": "blk.64.nextn.eh_proj.weight",
+   "row": 5119,
+   "shape": [
+    5120,
+    10240
+   ]
+  }
+ ]
+}
