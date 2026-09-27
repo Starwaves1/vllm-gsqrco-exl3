@@ -11,7 +11,8 @@
 # --repo: this repo (gsq-vllm). It is not hosted anywhere yet; the simplest transport is
 #   a bundle:  git -C ~/gsq-vllm bundle create /tmp/gsq-vllm.bundle main
 #              scp /tmp/gsq-vllm.bundle box:   ->   --repo ~/gsq-vllm.bundle
-# --commit: pinned commit of this repo (default below). The plugin fork is plugin/ at it.
+# --commit: commit of this repo to check out (default: PINNED_COMMIT below; the plugin
+#   fork is plugin/ at it). Bump it when plugin/ or the harnesses change.
 # --baseline (STATUS open question; default prod):
 #   prod  = production's W4A16 (-fast): HF Starw1/Qwen3.8-27B-absolute-heresy-W4A16, whose
 #           config.json / quantization_config.json / index are byte-identical to
@@ -25,7 +26,7 @@
 # Nothing here uses sudo or system packages. uv is installed per-user if missing.
 set -euo pipefail
 
-PINNED_COMMIT=${GSQ_COMMIT:-}              # filled in by the commit after this one
+PINNED_COMMIT=${GSQ_COMMIT:-b16541fb4dac8932a5f47d72bf01ee4f96ae54fe} # gsq-vllm main with the Phase B harnesses
 DEPLOY_REPO_URL=https://github.com/Starwaves1/qwen38-27b-rtx3090.git
 DEPLOY_COMMIT=2138d1ae8d9ba2075ed962ba9adb5e67b91a2fe6   # production's deploy repo (bench script, deploy-vllm.sh)
 VLLM_FORK_URL=https://github.com/Starwaves1/vllm.git
@@ -59,7 +60,7 @@ done
 die() { echo "bootstrap: $*" >&2; exit 2; }
 case $BASELINE in prod|swift) ;; *) die "--baseline prod|swift" ;; esac
 [ -n "$REPO" ] || die "--repo is required (URL or git bundle of gsq-vllm)"
-[ -n "$COMMIT" ] || die "--commit is required until PINNED_COMMIT is filled in"
+[ -n "$COMMIT" ] || die "--commit is required"
 [ "$BASELINE" = swift ] && [ -z "${GSQ_BASELINE_SRC:-}" ] && die "--baseline swift needs GSQ_BASELINE_SRC=<rsync source of Swift-1.5-Qwen3.8-27B-W4A16-AutoRound-prepared>"
 
 G=$W/gsq-vllm M=$W/models RES=$W/results
