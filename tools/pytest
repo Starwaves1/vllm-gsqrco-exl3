@@ -1,0 +1,7 @@
+#!/bin/bash
+# pytest from build/pytest (kept out of .venv so its package set stays identical
+# to production's). CPU tests: GSQ_LIGHT=1 tools/capped tools/pytest tests/cpu
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[ -d "$ROOT/build/pytest" ] || uv pip install --python "$ROOT/.venv/bin/python" --target "$ROOT/build/pytest" --no-deps pytest==8.4.2 pluggy==1.6.0 iniconfig==2.1.0 >&2
+export PYTHONPATH="$ROOT/build/pytest:$ROOT/tools${PYTHONPATH:+:$PYTHONPATH}"
+exec "$ROOT/.venv/bin/python" -m pytest "$@"
