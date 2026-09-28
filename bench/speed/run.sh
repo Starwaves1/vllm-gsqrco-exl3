@@ -57,6 +57,7 @@ M() { curl -s "$GSQ_URL/metrics" -H "Authorization: Bearer $GSQ_API_KEY"; }
 M | grep -E '^vllm:spec_decode' > "$OUT/spec_before.prom" || true
 
 export VLLM_API_KEY=$GSQ_API_KEY HOST=127.0.0.1 PORT=$GSQ_PORT MODEL=$TOKENIZER
+export OPENAI_API_KEY=$GSQ_API_KEY   # what vllm bench serve sends (the production script maps it too)
 {
   echo "# kind=$KIND url=$GSQ_URL tokenizer=$TOKENIZER $(date -u +%FT%TZ)"
   for pass in 1 2; do
