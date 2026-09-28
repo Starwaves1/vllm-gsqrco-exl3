@@ -1,0 +1,22 @@
+5 complete steps; per step: region | launched by | class | count | GPU ms
+  target  capped: MemAvailable 7 GB < 8 GB; waiting
+capped: MemAvailable 7 GB < 8 GB; waiting
+capped: MemAvailable 7 GB < 8 GB; waiting
+rget   cudaGraphLaunch        gemm_cublas       48.0    1.718
+  outside  cudaGraphLaunch        gemm_lcpp         15.0    1.327
+  target   cudaLaunchKernel       gemm_lcpp          1.0    1.070
+  target   cudaLaunchKernel       other            296.0    0.976
+  target   cuLaunchKernelEx       other             99.0    0.735
+  target   cudaGraphLaunch        q8_1 quantize    433.0    0.634
+  outside  cudaLaunchKernel       gemm_lcpp          3.0    0.408
+  outside  cudaLaunchKernel       other             63.0    0.225
+  target   cudaMemcpyAsync        other             94.0    0.114
+  outside  cudaGraphLaunch        other             45.0    0.100
+  outside  cudaMemcpyAsync        other             36.0    0.037
+  outside  cudaGraphLaunch        q8_1 quantize     15.0    0.020
+  outside  cuLaunchKernelEx       other              9.0    0.015
+  outside  cudaLaunchKernel       q8_1 quantize      3.0    0.005
+  outside  cudaMemsetAsync        other              5.0    0.003
+  target   cudaLaunchKernel       q8_1 quantize      1.0    0.002
+target: GPU busy per step 30.37 ms
+outside: GPU busy per step 2.14 ms

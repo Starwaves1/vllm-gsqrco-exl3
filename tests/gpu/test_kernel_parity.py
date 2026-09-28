@@ -267,6 +267,28 @@ def test_lcpp_mmq_odd_rows(tensors_by_type, name, n):
     _check(y, raw, name, x, mmq=True, lcpp=True)
 
 
+@pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
+@pytest.mark.parametrize("n", [1, 4, 9])
+@pytest.mark.parametrize("mmq", [False, True], ids=["q8_1", "mmq"])
+@pytest.mark.parametrize("name", LCPP_TYPES)
+def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
+    """The shim's own q8_1 quantizer (reads fp32/fp16/bf16 X) writes the same bytes as the
+    vendored fp32 quantizers (quantize.cu) on X.float(): every quant, scale and partial sum,
+    for MMVQ's block_q8_1 and in each type's MMQ ds layout (D4 / DS4 / D2S6)."""
+    import gguf
+    import torch
+
+    C = _lcpp()
+    k, qt = 5120, int(gguf.GGMLQuantizationType[name])
+    x = _x(n, k, "bfloat16" if x_kind == "rowstride" else x_kind, seed=900 + n).cuda()
+    if x_kind == "rowstride":
+        x = torch.cat([x, x[:, :512]], 1)[:, :k]  # row stride k + 512
+    ours = C.lcpp_quantize_q8_1(x, qt, mmq, False)
+    ref = C.lcpp_quantize_q8_1(x.float().contiguous(), qt, mmq, True)
+    torch.cuda.synchronize()
+    assert torch.equal(ours, ref)
+
+
 @pytest.mark.parametrize("op_n", [("mmvq", n) for n in (1, 4, 8)] + [("mmq", n) for n in (1, 5, 8, 9, 128, 512)],
                          ids=lambda p: f"{p[0]}-{p[1]}")
 @pytest.mark.parametrize("name", LCPP_TYPES)

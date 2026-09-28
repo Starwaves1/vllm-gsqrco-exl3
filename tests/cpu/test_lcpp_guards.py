@@ -74,7 +74,7 @@ for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):
     for t in (IQ3_S, Q4_K):
         CASES[f"{op}-valid-{t}"] = (_case(op, t, n=n), "must be CUDA tensors")
         CASES[f"{op}-row_strided-{t}"] = (
-            _case(op, t, n=n, stride=2 * K // 256 * TS[t]), "must be CUDA tensors")
+            _case(op, t, n=n, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
         CASES[f"{op}-w_narrow_view-{t}"] = (
             _case(op, t, n=n, stride=K // 256 * TS[t] + 256), "row stride")
     CASES[f"{op}-fp32_x"] = (_case(op, n=n, x_dtype="float32"), "must be CUDA tensors")

@@ -83,3 +83,20 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  (c) same kernels as 3a minus the pruning; not benchmarked on its own.
  (d) loader-only; tests/cpu/test_gdn_roundtrip.py (5 pass) incl. a new row-slice test; serve
      smoke ("2, 3, 5") on both runs.
+
+item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1 / c=2   parity      kept
+4     owned X -> q8_1 quantizer, no input cast 81.2       142.9      36.9 / 42.1          992 pass    yes
+ Shim kernels quantize_q8_1_x / quantize_mmq_q8_1_x: the vendored quantize_q8_1 and
+ quantize_mmq_q8_1 (2-D, no ids) line for line, templated on the input dtype (fp32/fp16/bf16;
+ 16-bit to float is exact). Bit-identity: test_lcpp_quantize_vs_vendored compares the q8 bytes
+ of the new path on bf16/fp16/fp32/row-strided X with the vendored fp32 path on X.float(), for
+ MMVQ's block_q8_1 and the MMQ D4/DS4/D2S6 layouts of all 9 types at 1/4/9 rows: 216/216 equal.
+ MMVQ now enters upstream's q8_1 entry point ggml_cuda_op_mul_mat_vec_q (same kernels, same
+ template instances in the profile), which indexes W rows by K, so W rows must be contiguous
+ (guard tightened; no caller passes strided rows since phase 2's contiguous shard layout).
+ The output cast stays: MMVQ/MMQ write fp32 dst only, a 16-bit dst needs vendored edits.
+ Tests: parity 992 pass / 16 skip (776 + 216), CPU guards 42, GPU guards 64/64, memcheck and
+ initcheck 0 errors on 18 cases without the caching allocator. Profile (item4/): casts
+ 1.82 -> 0.68 ms/step (451 output casts left), in-graph kernel boundaries 2290 -> 1843 per step.
+ Per-kernel GEMM times moved +1..5% against item 3's profile, the unchanged stock IQ1_M kernel
+ too (+4.7%): run-to-run SM clock (1740 vs 1755 MHz in the speed runs), not the change.

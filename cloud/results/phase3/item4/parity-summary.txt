@@ -1,0 +1,2 @@
+992 passed, 16 skipped, 15 warnings in 76.28s (0:01:16)
+rc=0

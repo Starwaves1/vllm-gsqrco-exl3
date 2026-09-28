@@ -21,9 +21,14 @@ Every numeric property is untested.
   - Ops `_C_gguf::lcpp_mul_mat_vec_q` (1..8 rows) and `lcpp_mul_mat_q` (any
     rows), signature `(W uint8[rows,bytes], X [n,K] f32/f16/bf16, type, row) ->
     [n,row]` in X's dtype.
+  - An owned fp32/fp16/bf16 → q8_1 quantizer (`quantize_x`, phase 3): the
+    vendored quantizers' arithmetic and layouts line for line, reading X in
+    its own dtype, so there is no input cast; its bytes equal the vendored
+    ones on X.float() (`test_lcpp_quantize_vs_vendored`). MMVQ runs through
+    upstream's q8_1 entry `ggml_cuda_op_mul_mat_vec_q`.
   - Guards (dtype, 2-D, supported type, row range, K = X cols, K % 512, W
-    inner stride 1, W row stride a multiple of the block size, 16-B alignment,
-    X inner stride 1, MMVQ ≤ 8 rows) all run before any launch. The ops are
+    inner stride 1, W rows contiguous, 16-B alignment, X inner stride 1,
+    MMVQ ≤ 8 rows) all run before any launch. The ops are
     registered for CPU too, where they run the guards and then reject.
 - Build: `VLLM_GGUF_BUILD_LCPP=1` in `plugin/setup.py`. The default build is
   unchanged.
@@ -44,23 +49,21 @@ Every numeric property is untested.
 Kernel launches per op call, counted from the code (VERIFIED by reading, not
 profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
 
-| | before | after |
-|---|---|---|
-| MMVQ, 16-bit X | 5: cast X, memset whole q8, quantize_q8_1, mul_mat_vec_q, cast Y | 4: cast X, quantize_q8_1, mul_mat_vec_q, cast Y |
-| MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup |
-| fp32 X | two fewer (no casts) | two fewer |
+| | before | after | phase 3 |
+|---|---|---|---|
+| MMVQ, 16-bit X | 5: cast X, memset whole q8, quantize_q8_1, mul_mat_vec_q, cast Y | 4: cast X, quantize_q8_1, mul_mat_vec_q, cast Y | 3: quantize_x, mul_mat_vec_q, cast Y |
+| MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup | 4: memset tail, quantize_x, mul_mat_q, cast Y; 5 with fixup |
+| fp32 X | two fewer (no casts) | two fewer | one fewer (no cast Y) |
 
 - Nothing is zero-filled except the MMQ tail. The quantizers write every byte
   of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is
   written by `mul_mat_q` before the fixup reads it. Upstream's ggml pool
   doesn't zero either. The MMQ tail memset is J_max+128 blocks (≤ 36 KiB),
   not the whole buffer.
-- The casts stay. At b11211 `quantize_row_q8_1_cuda` and
-  `quantize_mmq_q8_1_cuda` take `const float*` only, and MMVQ/MMQ assert or
-  write fp32 dst. Dropping either cast means editing vendored code or owning
-  a 16-bit→q8_1 quantizer. That is the next diet step if nsys shows the casts
-  matter. Quantizing X once per fused layer instead of once per type shard is
-  the other one.
+- The output cast stays: MMVQ and MMQ write fp32 dst only (`float * dst` in
+  both kernels' write-back), so a 16-bit Y needs vendored edits. Phase 3 took
+  the input cast out with the owned quantizer instead (1.8 → 0.7 ms of casts
+  per c=1 decode step).
 
 ## MMVQ decode reuse (SASS)
 
