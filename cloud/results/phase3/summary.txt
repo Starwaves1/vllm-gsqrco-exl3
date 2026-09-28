@@ -13,3 +13,28 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  (c) in-situ lm_head at 4 rows: MMQ 1119 us vs MMVQ 1077 us (item2/item1-eager-gemm.txt vs
      p2-eager-gemm.txt); the microbench (1151 vs 1377 us) overstated MMVQ for this weight.
      MTP acceptance unchanged: 0.688, mean length 3.06. Clocks 1740-1755 MHz, 346 W.
+
+item 2  host gaps (no code change). Traces: torch profiler, 6 engine steps at c=1 after 60, one
+greedy prompt, production argv; Route L (item 1 code) and the W4A16 baseline on the same box.
+Scripts box-scripts/p3phase.py, p3launch.py, p3eager.py; outputs item2/.
+ - CUDA graphs: vLLM runs both models PIECEWISE, not FULL: "FULL_AND_PIECEWISE is not supported
+   with spec-decode for attention backend FlashInferBackend ... setting cudagraph_mode=PIECEWISE"
+   (item2/cg.txt; FlashInfer is what fp8 KV selects). Per step: 65 graph launches for the target
+   (64 layers split at the GDN/attention ops) and 2 per draft pass, identical for both models.
+ - The Route L ops are inside the graphs: per step 415.3 of 416.1 target lcpp GEMMs and all 15
+   draft-layer GEMMs are graph-launched; the only eager GEMMs are the lm_head calls (1 target at
+   4 rows + 3 draft at 1 row), which vLLM runs outside graphs for both models (item2/*-launch.txt).
+   Nothing in the plugin breaks capture, and the draft passes are graphed.
+ - Idle per step is vLLM's host work at step boundaries and between graph pieces, not the
+   plugin. Wall (non-profiled, from TPOT x tok/step) minus GPU busy (profiled):
+                     wall np   wall prof   GPU busy   idle np   idle prof
+     W4A16 baseline   27.6      33.3        22.8       4.8       10.5
+     Route L (it. 1)  40.1      42.5        35.5       4.6        7.0
+   Same ~4.7 ms/step for both; the profiler inflates it (host-bound baseline: +5.7 ms). The
+   6.9 ms of phase 2 = this 4.6 + ~2.3 ms of profiler overhead.
+ - Consequence: at Route L's 3.1 tok/step, 94.3 tok/s needs ~33 ms/step, i.e. GPU busy near
+   28.5 ms, from 35.5. The gap is GPU time: lcpp GEMMs 28.1 ms/step, of which 3.5 ms are the
+   eager lm_head calls (target 1077 us via MMVQ + 3 x 809 us draft), vs 18.2 ms of Marlin in the baseline,
+   whose 3 draft heads are pruned to 40,960 rows (item2/*-trace.txt, *-eager-gemm.txt).
+ - Not done (config, affects production equally): FULL decode graphs need an attention backend
+   with UNIFORM_BATCH cudagraph support under spec decode; async scheduling is off in prod argv.

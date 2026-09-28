@@ -1,0 +1,4 @@
+5 complete steps, ms per step:
+  target: wall  28.42  busy  21.22  idle  7.20
+  rest:   wall   4.83  busy   1.55  idle  3.28
+  step:   wall  33.25  busy  22.77  idle 10.49

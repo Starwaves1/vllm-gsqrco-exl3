@@ -1,0 +1,26 @@
+trace /workspace/runs/p3-base-profile/trace/rank0.1790623072099184478.pt.trace.json
+8448 GPU activities over 198.9 ms wall, 136.9 ms busy; per step (/6):
+  other              898 launches   20.361 ms
+  gemm_cublas        201 launches    1.952 ms
+  copy/cast          174 launches    0.372 ms
+  memcpy             130 launches    0.132 ms
+  memset               5 launches    0.003 ms
+  shim casts (copy next to quantize/lcpp gemm): 0 launches 0.000 ms
+  lm_head MMVQ launches: 0.0 per step, 0.000 ms; durations us []
+  idle (wall - busy): 10.323 ms
+top 'other' kernels (ms per step):
+   18.162  void marlin::Marlin<1125899906909960l, 1125899907892224l, 1125899906909960l, 1125899906909
+    0.501  fused_sigmoid_gating_delta_rule_update_kernel
+    0.329  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::
+    0.311  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_ke
+    0.176  _causal_conv1d_update_kernel
+    0.104  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheD
+    0.100  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    0.087  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonym
+    0.060  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    0.051  triton_poi_fused_0
+    0.046  void flashinfer::PersistentVariableLengthMergeStatesKernel<8u, 32u, 4u, 4u, __nv_bfloat16,
+    0.046  triton_per_fused__to_copy_mean_pow_view_0
+    0.037  void at::native::index_elementwise_kernel<128, 4, at::native::gpu_index_kernel<at::native:
+    0.036  triton_poi_fused_7
+    0.034  triton_poi_fused_4
