@@ -8,10 +8,18 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
 1     lcpp MMQ from 8 rows (was >8)            77.8 (a)   135.5      40.1 / 45.9          776 pass    yes
 1b    lm_head MMQ from 4 rows                  76.8       (b)        40.2 / -             776 pass    no (c)
  (a) c=1 never reaches 8 rows, so its path is phase 2's; measured with 1b in: 76.8, 40.2 ms/step,
-     tok/step 3.09 vs 3.12 (greedy tokens shift with the lm_head's float order).
+     tok/step 3.09 vs 3.12 (greedy tokens shift with the lm_head's float order). The committed
+     rule was not run on its own: parity and speed ran with 1b in, and the kept rule differs only
+     for >65,536-row weights at 4-7 rows (the lm_head at c=1), i.e. it is phase 2's path there.
+     The 8-row cut was measured for IQ3_S, IQ3_XXS, IQ4_XS and Q4_K only (MMQ 10-40% faster at 8);
+     Q2_K, Q6_K and the IQ2 types follow it unmeasured, validated only by the end-to-end c=2 gain.
+     llama.cpp itself keeps MMVQ up to 8 rows (MMVQ_MAX_BATCH_SIZE); this deviates on the data.
  (b) c=2 runs the lm_head at 8 rows, which is MMQ with or without 1b.
  (c) in-situ lm_head at 4 rows: MMQ 1119 us vs MMVQ 1077 us (item2/item1-eager-gemm.txt vs
-     p2-eager-gemm.txt); the microbench (1151 vs 1377 us) overstated MMVQ for this weight.
+     p2-eager-gemm.txt; two profiled runs, same clocks: the draft MMVQ times 809 vs 810 us in
+     both). End to end 1b is a null (40.2 vs 40.1 ms/step). The microbench overstates MMVQ for
+     this weight only (1377 graph / 1312 eager vs 1077 in situ, while MMQ matches: 1151 vs 1119),
+     so it cannot rank kernels for the lm_head.
      MTP acceptance unchanged: 0.688, mean length 3.06. Clocks 1740-1755 MHz, 346 W.
 
 item 2  host gaps (no code change). Traces: torch profiler, 6 engine steps at c=1 after 60, one
@@ -21,20 +29,37 @@ Scripts box-scripts/p3phase.py, p3launch.py, p3eager.py; outputs item2/.
    with spec-decode for attention backend FlashInferBackend ... setting cudagraph_mode=PIECEWISE"
    (item2/cg.txt; FlashInfer is what fp8 KV selects). Per step: 65 graph launches for the target
    (64 layers split at the GDN/attention ops) and 2 per draft pass, identical for both models.
- - The Route L ops are inside the graphs: per step 415.3 of 416.1 target lcpp GEMMs and all 15
-   draft-layer GEMMs are graph-launched; the only eager GEMMs are the lm_head calls (1 target at
-   4 rows + 3 draft at 1 row), which vLLM runs outside graphs for both models (item2/*-launch.txt).
-   Nothing in the plugin breaks capture, and the draft passes are graphed.
- - Idle per step is vLLM's host work at step boundaries and between graph pieces, not the
-   plugin. Wall (non-profiled, from TPOT x tok/step) minus GPU busy (profiled):
+ - The Route L ops are inside the graphs: per complete step all 433 target lcpp GEMM kernels and
+   all 15 draft-layer ones are graph-launched; the only eager GEMMs are the lm_head calls (1 target
+   at 4 rows + 3 draft at 1 row), which vLLM runs outside graphs for both models
+   (item2/*-launch.txt). Nothing in the plugin breaks capture, and the draft passes are graphed.
+   Inside the graph replays the GPU idles 0.13 ms/step between Route L's 2290 kernel boundaries
+   (baseline 0.02 ms over 743): the shim's tiny kernels cost their run time (casts 1.8 ms, q8_1
+   quantize 0.7 ms per step), not launch gaps.
+ - The idle is vLLM's host work, not the plugin's. Wall (non-profiled, from TPOT x tok/step of the
+   benchmark cohort) minus GPU busy (profiled, one short greedy prompt; CUPTI can inflate busy a
+   little, more so for Route L's 2x kernel count, so these idle figures are lower bounds):
                      wall np   wall prof   GPU busy   idle np   idle prof
      W4A16 baseline   27.6      33.3        22.8       4.8       10.5
      Route L (it. 1)  40.1      42.5        35.5       4.6        7.0
-   Same ~4.7 ms/step for both; the profiler inflates it (host-bound baseline: +5.7 ms). The
-   6.9 ms of phase 2 = this 4.6 + ~2.3 ms of profiler overhead.
- - Consequence: at Route L's 3.1 tok/step, 94.3 tok/s needs ~33 ms/step, i.e. GPU busy near
-   28.5 ms, from 35.5. The gap is GPU time: lcpp GEMMs 28.1 ms/step, of which 3.5 ms are the
+   The comparison, not the absolute figure, is the finding: the same ~4.7 ms/step for both, while
+   GPU busy differs by 12.7 ms. The profiler inflates idle (host-bound baseline: +5.7 ms); phase
+   2's 6.9 ms = ~4.6 + ~2.3 ms of profiler overhead. Where the non-profiled idle sits inside the
+   step cannot be read from these traces (profiled: 5.7 ms in the target pass, 1.4 in the rest).
+ - Consequence: at Route L's 3.1 tok/step, the baseline's 94.1 tok/s (phase 1b, this box) needs
+   32.9 ms/step, i.e. GPU busy near 28.3 ms, from 35.5. The gap is GPU time: lcpp GEMMs 28.1 ms/step, of which 3.5 ms are the
    eager lm_head calls (target 1077 us via MMVQ + 3 x 809 us draft), vs 18.2 ms of Marlin in the baseline,
-   whose 3 draft heads are pruned to 40,960 rows (item2/*-trace.txt, *-eager-gemm.txt).
+   whose 3 draft heads are pruned to 40,960 rows (item2/*-trace.txt, *-eager-gemm.txt). About
+   2 ms/step of the busy gap is that pruning (item 3); the rest is 4-row IQ3 MMVQ efficiency
+   (~380 GB/s) plus the shim's casts and quantize (item 4).
  - Not done (config, affects production equally): FULL decode graphs need an attention backend
    with UNIFORM_BATCH cudagraph support under spec decode; async scheduling is off in prod argv.
+
+Review 1 (/check, Fable, after item 2): 10 findings. Fixed: p3launch.py divided 5 draft phases
+by 6 steps (window now ends at the last step's start: exact per-step counts, 433 target GEMMs);
+idle figures now called lower bounds with their method caveats and the "between graph pieces"
+attribution dropped; in-graph gaps measured (0.13 ms/step, not a lever; p3phase.py); the kept
+rule's untested-alone status, the unmeasured types and the micro's lm_head asymmetry stated;
+the draft-head share of the busy gap stated; one baseline figure (94.1) used throughout.
+Reviewer suggested, not done: FULL cudagraphs via another attention backend and async scheduling
+(config, affect production equally; for Garrett).

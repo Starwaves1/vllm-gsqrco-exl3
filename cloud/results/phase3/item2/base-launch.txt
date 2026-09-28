@@ -1,17 +1,17 @@
-6 steps; per step: region | launched by | class | count | GPU ms
-  target   cudaGraphLaunch        gemm_marlin      400.0   16.516
-  target   cudaGraphLaunch        gemm_cublas       48.0    1.590
-  target   cudaLaunchKernel       other            291.8    0.886
-  target   cudaGraphLaunch        other            320.8    0.735
-  outside  cudaGraphLaunch        gemm_marlin       20.0    0.722
-  target   cuLaunchKernelEx       other            100.0    0.685
-  target   cudaLaunchKernel       gemm_marlin        0.8    0.628
-  outside  cudaLaunchKernel       gemm_marlin        2.5    0.323
-  outside  cudaLaunchKernel       other             42.5    0.159
-  target   cudaMemcpyAsync        other             94.0    0.101
-  outside  cudaGraphLaunch        other             17.5    0.045
-  outside  cudaMemcpyAsync        other             30.0    0.026
-  outside  cuLaunchKernelEx       other             10.0    0.016
-  outside  cudaMemsetAsync        other              4.2    0.002
-target: GPU busy per step 21.14 ms
-outside: GPU busy per step 1.29 ms
+5 complete steps; per step: region | launched by | class | count | GPU ms
+  target   cudaGraphLaunch        gemm_marlin      400.0   16.509
+  target   cudaGraphLaunch        gemm_cublas       48.0    1.586
+  target   cudaLaunchKernel       other            292.0    0.883
+  outside  cudaGraphLaunch        gemm_marlin       24.0    0.866
+  target   cudaLaunchKernel       gemm_marlin        1.0    0.753
+  target   cudaGraphLaunch        other            321.0    0.733
+  target   cuLaunchKernelEx       other            100.0    0.683
+  outside  cudaLaunchKernel       gemm_marlin        3.0    0.388
+  outside  cudaLaunchKernel       other             51.0    0.191
+  target   cudaMemcpyAsync        other             94.0    0.100
+  outside  cudaGraphLaunch        other             21.0    0.055
+  outside  cudaMemcpyAsync        other             36.0    0.032
+  outside  cuLaunchKernelEx       other             12.0    0.019
+  outside  cudaMemsetAsync        other              5.0    0.003
+target: GPU busy per step 21.25 ms
+outside: GPU busy per step 1.55 ms

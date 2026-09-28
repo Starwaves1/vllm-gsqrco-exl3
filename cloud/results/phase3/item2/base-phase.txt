@@ -2,3 +2,4 @@
   target: wall  28.42  busy  21.22  idle  7.20
   rest:   wall   4.83  busy   1.55  idle  3.28
   step:   wall  33.25  busy  22.77  idle 10.49
+  in-graph gaps: 0.02 ms over 743 kernel boundaries per step

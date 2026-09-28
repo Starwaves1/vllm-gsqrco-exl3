@@ -7,7 +7,9 @@ rt = {e["args"]["correlation"]: (e["name"], e["ts"]) for e in ev
       if e.get("cat") in ("cuda_runtime", "cuda_driver") and "correlation" in e.get("args", {})}
 steps = sorted((e for e in ev if e.get("cat") == "user_annotation" and e["name"].startswith("execute_context")), key=lambda e: e["ts"])
 gpu = sorted((e for e in ev if e.get("cat") in ("kernel", "gpu_memcpy", "gpu_memset") and e.get("ph") == "X"), key=lambda e: e["ts"])
-t0 = steps[0]["ts"]; t1 = steps[-1]["ts"] + steps[-1]["dur"]
+# complete steps only: from the first target launch to the last step's start, so the window
+# holds n target forwards and n rest phases (drafts, lm_heads, sampling)
+t0 = steps[0]["ts"]; t1 = steps[-1]["ts"]; steps = steps[:-1]
 inside = lambda t: any(s["ts"] <= t < s["ts"] + s["dur"] for s in steps)
 def cls(n):
     if "mul_mat_vec_q" in n or "mul_mat_q<" in n or "stream_k_fixup" in n: return "gemm_lcpp"
@@ -18,13 +20,13 @@ def cls(n):
 agg = collections.defaultdict(lambda: [0, 0.0])
 first_last = collections.defaultdict(list)
 for e in gpu:
-    if not (t0 <= e["ts"] < t1): continue
     api, launched = rt.get(e.get("args", {}).get("correlation"), ("?", e["ts"]))
+    if not (t0 <= launched < t1): continue
     region = "target" if inside(launched) else "outside"  # by host launch time; the GPU lags
     k = (region, api, cls(e["name"]))
     agg[k][0] += 1; agg[k][1] += e["dur"]
 n = len(steps)
-print(f"{n} steps; per step: region | launched by | class | count | GPU ms")
+print(f"{n} complete steps; per step: region | launched by | class | count | GPU ms")
 for k in sorted(agg, key=lambda k: -agg[k][1]):
     print(f"  {k[0]:8} {k[1]:22} {k[2]:14} {agg[k][0]/n:7.1f} {agg[k][1]/n/1e3:8.3f}")
 for r in ("target", "outside"):

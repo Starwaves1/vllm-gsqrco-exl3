@@ -29,3 +29,11 @@ print(f"{n} complete steps, ms per step:")
 print(f"  target: wall {avg[0]:6.2f}  busy {avg[1]:6.2f}  idle {avg[0]-avg[1]:5.2f}")
 print(f"  rest:   wall {avg[2]:6.2f}  busy {avg[3]:6.2f}  idle {avg[2]-avg[3]:5.2f}")
 print(f"  step:   wall {avg[0]+avg[2]:6.2f}  busy {avg[1]+avg[3]:6.2f}  idle {avg[0]+avg[2]-avg[1]-avg[3]:5.2f}")
+# idle inside CUDA graph replays: gaps between consecutive kernels of the same cudaGraphLaunch
+# (kernels of one graph launch share its correlation id); the GPU's per-node cost, not the host's
+w0, w1 = steps[0]["ts"], steps[-1]["ts"]
+g = [e for e in gpu if w0 <= launch.get(e.get("args", {}).get("correlation"), -1) < w1]
+graph = {e["args"]["correlation"] for e in ev if e.get("cat") == "cuda_runtime" and e["name"] == "cudaGraphLaunch"}
+ig = [(b["ts"] - a["ts"] - a["dur"]) for a, b in zip(g, g[1:])
+      if a["args"].get("correlation") == b["args"].get("correlation") in graph]
+print(f"  in-graph gaps: {sum(max(0, x) for x in ig) / n / 1e3:.2f} ms over {len(ig) / n:.0f} kernel boundaries per step")

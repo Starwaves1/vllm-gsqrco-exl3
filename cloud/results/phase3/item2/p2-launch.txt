@@ -1,21 +1,21 @@
-6 steps; per step: region | launched by | class | count | GPU ms
-  target   cudaGraphLaunch        gemm_lcpp        415.3   22.119
-  target   cudaGraphLaunch        other           1301.2    2.785
-  outside  cudaLaunchKernel       gemm_lcpp          2.5    2.024
-  target   cudaGraphLaunch        gemm_cublas       46.2    1.644
-  outside  cudaGraphLaunch        gemm_lcpp         12.5    1.114
-  target   cudaLaunchKernel       other            286.5    0.943
-  target   cudaLaunchKernel       gemm_lcpp          0.8    0.898
-  target   cuLaunchKernelEx       other             95.0    0.701
-  target   cudaGraphLaunch        q8_1 quantize    415.3    0.613
-  outside  cudaLaunchKernel       other             50.0    0.186
-  outside  cudaGraphLaunch        other             50.0    0.116
-  target   cudaMemcpyAsync        other             92.0    0.111
-  outside  cudaMemcpyAsync        other             30.0    0.032
-  outside  cudaGraphLaunch        q8_1 quantize     12.5    0.018
-  outside  cuLaunchKernelEx       other              7.5    0.012
-  outside  cudaLaunchKernel       q8_1 quantize      2.5    0.004
-  outside  cudaMemsetAsync        other              4.2    0.003
-  target   cudaLaunchKernel       q8_1 quantize      0.8    0.001
-target: GPU busy per step 29.82 ms
-outside: GPU busy per step 3.51 ms
+5 complete steps; per step: region | launched by | class | count | GPU ms
+  target   cudaGraphLaunch        gemm_lcpp        433.0   22.963
+  target   cudaGraphLaunch        other           1357.0    2.898
+  outside  cudaLaunchKernel       gemm_lcpp          3.0    2.429
+  target   cudaGraphLaunch        gemm_cublas       48.0    1.706
+  outside  cudaGraphLaunch        gemm_lcpp         15.0    1.336
+  target   cudaLaunchKernel       gemm_lcpp          1.0    1.077
+  target   cudaLaunchKernel       other            297.0    0.979
+  target   cuLaunchKernelEx       other             99.0    0.730
+  target   cudaGraphLaunch        q8_1 quantize    433.0    0.638
+  outside  cudaLaunchKernel       other             60.0    0.223
+  outside  cudaGraphLaunch        other             60.0    0.139
+  target   cudaMemcpyAsync        other             94.0    0.114
+  outside  cudaMemcpyAsync        other             36.0    0.038
+  outside  cudaGraphLaunch        q8_1 quantize     15.0    0.022
+  outside  cuLaunchKernelEx       other              9.0    0.015
+  outside  cudaLaunchKernel       q8_1 quantize      3.0    0.005
+  outside  cudaMemsetAsync        other              5.0    0.004
+  target   cudaLaunchKernel       q8_1 quantize      1.0    0.002
+target: GPU busy per step 31.11 ms
+outside: GPU busy per step 4.21 ms
