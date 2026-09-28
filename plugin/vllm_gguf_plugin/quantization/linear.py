@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from itertools import groupby
+
 import gguf
 import torch
 from gguf import GGMLQuantizationType as WeightType
@@ -70,12 +72,23 @@ def _shard_weight(
 ) -> torch.Tensor:
     """Rows start:end, first `size` bytes, of a padded multi-shard weight.
 
-    With VLLM_GGUF_LCPP=1 each shard is stored contiguously at the start of its
-    region (see _create_padded_weight_param), so this is a view, not a copy."""
+    With VLLM_GGUF_LCPP=1 each run of adjacent same-type shards is stored
+    contiguously from the start of its first shard's region (see
+    _create_padded_weight_param), so for a run this is a view, not a copy."""
     if ops.LCPP_ENABLED:
         rows = end - start
         return weight[start:end].view(-1)[: rows * size].view(rows, size)
     return weight[start:end, :size].contiguous()
+
+
+def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
+    """(rows, type) for each run of adjacent same-type shards of a padded
+    multi-shard weight: one product per run instead of one per shard."""
+    offsets = weight.shard_offset_map
+    for weight_type, run in groupby(zip(shard_ids, weight_types), key=lambda p: p[1]):
+        ids = [idx for idx, _ in run]
+        start, _, size = offsets[ids[0]]
+        yield _shard_weight(weight, start, offsets[ids[-1]][1], size), weight_type
 
 
 def _fused_mul_mat_gguf_fake(
@@ -209,14 +222,20 @@ class GGUFLinearMethod(LinearMethodBase):
             )
             shard_offset_map = dict[str, tuple[int, int, int]]()
             ordered_shard_ids = _gguf_ordered_shard_ids(shard_id)
-            current_offset = 0
+            types = layer.weight_type.shard_weight_type
+            current_offset = run_start = 0
+            run_type = None
             for idx in ordered_shard_ids:
                 id_in_container = shard_id_map[idx]
                 start = current_offset
                 end = start + data_container[id_in_container].size(0)
                 size = data_container[id_in_container].size(1)
-                if ops.LCPP_ENABLED:  # contiguous shard, see _shard_weight
-                    padded_data[start:end].view(-1)[: (end - start) * size] = (
+                if ops.LCPP_ENABLED:  # same-type runs contiguous, see _shard_weight
+                    wtype = types.get(idx, layer.weight_type.weight_type)
+                    if wtype != run_type:
+                        run_start, run_type = start, wtype
+                    at = run_start * padded_side + (start - run_start) * size
+                    padded_data.view(-1)[at : at + (end - start) * size] = (
                         data_container[id_in_container].reshape(-1)
                     )
                 else:
@@ -268,18 +287,13 @@ class GGUFLinearMethod(LinearMethodBase):
                 if bias is not None:
                     out.add_(bias)
                 return out
-            result = []
-            for idx in shard_id:
-                start, end, offset = layer.weight.shard_offset_map[idx]
-                weight_type = layer.weight_type.shard_weight_type.get(
-                    idx, fallback_wtype
-                )
-                result.append(
-                    fused_mul_mat_gguf_op(
-                        x, _shard_weight(weight, start, end, offset), weight_type
-                    )
-                )
-            out = torch.cat(result, axis=1)
+            out = torch.cat(
+                [
+                    fused_mul_mat_gguf_op(x, w, t)
+                    for w, t in _shard_runs(weight, shard_id, shard_weight_types)
+                ],
+                axis=1,
+            )
         else:
             weight = layer.weight
             weight_type = layer.weight_type.weight_type

@@ -90,7 +90,8 @@ Tensor ggml_dequantize(Tensor W,  // quant weight
   const int32_t device_idx = W.get_device_index();
   const DeviceGuard device_guard(device_idx);
   const auto dtype_ = dtype.value_or(ScalarType::Half);
-  Tensor DW = torch::stable::new_zeros(W, {m, n}, dtype_);
+  // uninitialised: every dequantize kernel writes all m * n values (whole blocks)
+  Tensor DW = torch::stable::new_empty(W, {m, n}, dtype_);
   cudaStream_t stream = get_current_cuda_stream(device_idx);
 
   VLLM_DISPATCH_FLOATING_TYPES(DW.scalar_type(), "ggml_dequantize", [&] {

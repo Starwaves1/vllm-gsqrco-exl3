@@ -107,6 +107,7 @@ def test_dequantize(tensors_by_type, name, dtype):
     qt = int(gguf.GGMLQuantizationType[name])
     ref = _refs.dequant(raw, name)
     w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+    _poison_allocator()  # the output is uninitialised: an element left unwritten shows up
     out = ops.ggml_dequantize(w, qt, ref.shape[0], ref.shape[1], getattr(torch, dtype)).cpu()
     torch.cuda.synchronize()
     exp = ref.to(getattr(torch, dtype))
@@ -319,6 +320,39 @@ def test_lcpp_graph_replay(tensors_by_type, name, op_n):
     assert not torch.equal(fn(w, x1.cuda(), qt, w.shape[0]), ref)
 
 
+def _padded_layer(shards, qts, k, monkeypatch):
+    """A fused layer from GGUF shards through GGUFLinearMethod's padded-weight build."""
+    import torch
+    import vllm.model_executor.parameter as vparam  # GGUFWeightParameter asks for the TP rank
+
+    from vllm_gguf_plugin.quantization.linear import GGUFLinearMethod
+
+    monkeypatch.setattr(vparam, "get_tensor_model_parallel_rank", lambda: 0)
+    monkeypatch.setattr(vparam, "get_tensor_model_parallel_world_size", lambda: 1)
+    layer = torch.nn.Module()
+    w = torch.nn.Parameter(torch.empty(0, dtype=torch.uint8, device="cuda"), requires_grad=False)
+    ids = list(range(len(shards)))
+    w.data_container, w.shard_id, w.shard_id_map = list(shards), ids, {i: i for i in ids}
+    w.weight_loader, w.input_dim, w.output_dim = None, 1, 0
+    w.tensor_shape = (sum(s.shape[0] for s in shards), k)
+    layer.register_parameter("weight", w)
+    layer.weight_type = type("WT", (), {"weight_type": qts[0], "shard_weight_type": dict(zip(ids, qts))})()
+    method = GGUFLinearMethod(None)
+    method._create_padded_weight_param(layer)
+    return layer, method
+
+
+def _mixed_block(gguf_reader, a, b):
+    """First block whose tensors a and b have different Route L types."""
+    by_name = {t.name: t for t in gguf_reader.tensors}
+    for i in range(64):
+        ta, tb = by_name.get(f"blk.{i}.{a}.weight"), by_name.get(f"blk.{i}.{b}.weight")
+        if ta is not None and tb is not None and ta.tensor_type != tb.tensor_type \
+                and {ta.tensor_type.name, tb.tensor_type.name} <= set(LCPP_TYPES):
+            return i, ta, tb
+    pytest.skip(f"no block with a mixed-type {a}/{b} pair on Route L types")
+
+
 @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
 def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     """A fused gate/up layer whose shards have different quant types, through
@@ -329,36 +363,15 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     import torch
 
     from vllm_gguf_plugin import ops
-    from vllm_gguf_plugin.quantization.linear import GGUFLinearMethod
 
     C = _lcpp()
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
-    by_name = {t.name: t for t in gguf_reader.tensors}
-    blk = next((i for i in range(64) if by_name[f"blk.{i}.ffn_gate.weight"].tensor_type
-                != by_name[f"blk.{i}.ffn_up.weight"].tensor_type
-                and {by_name[f"blk.{i}.ffn_gate.weight"].tensor_type.name,
-                     by_name[f"blk.{i}.ffn_up.weight"].tensor_type.name} <= set(LCPP_TYPES)), None)
-    if blk is None:
-        pytest.skip("no mixed-type gate/up pair on Route L types")
-    ts = [by_name[f"blk.{blk}.ffn_{s}.weight"] for s in ("gate", "up")]
+    blk, *ts = _mixed_block(gguf_reader, "ffn_gate", "ffn_up")
     shards = [torch.from_numpy(np.ascontiguousarray(t.data)).cuda() for t in ts]
     qts = [int(t.tensor_type) for t in ts]
     assert shards[0].shape[1] != shards[1].shape[1]  # different row bytes: the padded case
-
-    import vllm.model_executor.parameter as vparam  # GGUFWeightParameter asks for the TP rank
-
-    monkeypatch.setattr(vparam, "get_tensor_model_parallel_rank", lambda: 0)
-    monkeypatch.setattr(vparam, "get_tensor_model_parallel_world_size", lambda: 1)
-    layer = torch.nn.Module()
-    w = torch.nn.Parameter(torch.empty(0, dtype=torch.uint8, device="cuda"), requires_grad=False)
-    w.data_container, w.shard_id, w.shard_id_map = list(shards), [0, 1], {0: 0, 1: 1}
-    w.weight_loader, w.input_dim, w.output_dim = None, 1, 0
-    w.tensor_shape = (sum(s.shape[0] for s in shards), int(ts[0].shape[0]))
-    layer.register_parameter("weight", w)
-    layer.weight_type = type("WT", (), {"weight_type": qts[0], "shard_weight_type": {0: qts[0], 1: qts[1]}})()
-    method = GGUFLinearMethod(None)
-    method._create_padded_weight_param(layer)
+    layer, method = _padded_layer(shards, qts, int(ts[0].shape[0]), monkeypatch)
 
     from vllm_gguf_plugin.quantization.linear import _shard_weight
 
@@ -375,3 +388,42 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     torch.cuda.synchronize()
     print(f"\nblk.{blk} gate {ts[0].tensor_type.name} + up {ts[1].tensor_type.name}, n={n}")
     assert torch.equal(y, ref)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, monkeypatch):
+    """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+    attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+    the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+    through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+    fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+    import numpy as np
+    import torch
+
+    from vllm_gguf_plugin import ops
+
+    C = _lcpp()
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    import _refs
+
+    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate")
+    qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+    z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+    shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+    qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+    layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+
+    x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+    fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+    y = method.apply(layer, x)
+    per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+    whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+    torch.cuda.synchronize()
+    print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+          f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+    assert torch.equal(y, whole)  # one product per run
+    if n < 8:
+        assert torch.equal(y, per_shard)
+    else:
+        assert _refs.rel_err(y, per_shard.double().cpu()) <= 1e-3

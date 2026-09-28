@@ -35,9 +35,10 @@ Every numeric property is untested.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
   - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ3_XXS/IQ3_S/IQ4_XS,
     <8 rows go to lcpp MMVQ and ≥8 to lcpp MMQ (phase 3 item 1). IQ1_M keeps the old path.
-  - Mixed-type fused layers: each shard is stored contiguously inside its
-    padded region, so `_shard_weight` returns a view and the per-forward
-    `.contiguous()` copy is gone.
+  - Mixed-type fused layers: each run of adjacent same-type shards is stored
+    contiguously from the start of its first shard's region, so
+    `_shard_weight` returns a view and the per-forward `.contiguous()` copy
+    is gone.
   - A row-strided view can't do this job. The padded byte stride is not a
     multiple of the narrower shard's block size (2200/98, 1480/66, 2880/84),
     and the kernels index rows in blocks.
@@ -63,7 +64,9 @@ profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
 - The output cast stays: MMVQ and MMQ write fp32 dst only (`float * dst` in
   both kernels' write-back), so a 16-bit Y needs vendored edits. Phase 3 took
   the input cast out with the owned quantizer instead (1.8 → 0.7 ms of casts
-  per c=1 decode step).
+  per c=1 decode step). Fused layers run one product per run of adjacent
+  same-type shards, e.g. GDN q/k/v (one attn_qkv tensor) + z: 2, not 4
+  (433 → 356 GEMMs per target pass).
 
 ## MMVQ decode reuse (SASS)
 
