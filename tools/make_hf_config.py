@@ -11,6 +11,10 @@ tokenizer as the GGUF):
   generation_config.json, tokenizer.json, tokenizer_config.json, vocab.json,
   merges.txt, preprocessor_config.json, processor_config.json,
   video_preprocessor_config.json      byte-identical copies
+  mtp_draft_vocab_ids.pt the 40,960 draft-head token ids production's pipeline
+                         made for Swift (build_draft_vocab.py --ids, in the
+                         W4A16 -prepared dir); with it, the vLLM overlay's MTP
+                         draft scores only these rows of the lm_head
   chat_template.jinja    production's template (--chat-template of the live
                          server). transformers prefers this file over the
                          chat_template entry in tokenizer_config.json
@@ -46,6 +50,7 @@ DEFAULT_GGUF = (
     / "Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf"
 )
 DEFAULT_OUT = ROOT / "hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp"
+DRAFT_IDS = MODELS / "Swift-1.5-Qwen3.8-27B-W4A16-AutoRound-prepared/mtp_draft_vocab_ids.pt"
 
 COPIED = [
     "generation_config.json",
@@ -82,6 +87,7 @@ def build(src: Path, template: Path, out: Path) -> None:
     for name in COPIED:
         shutil.copyfile(src / name, out / name)
     shutil.copyfile(template, out / "chat_template.jinja")
+    shutil.copyfile(DRAFT_IDS, out / DRAFT_IDS.name)
     provenance = {
         "source_dir": str(src),
         "chat_template_source": str(template),
@@ -92,7 +98,7 @@ def build(src: Path, template: Path, out: Path) -> None:
         "sources": {
             name: sha256(src / name) for name in ["config.json", *COPIED, "chat_template.jinja"]
         }
-        | {"production chat_template.jinja": sha256(template)},
+        | {"production chat_template.jinja": sha256(template), str(DRAFT_IDS): sha256(DRAFT_IDS)},
         "outputs": {p.name: sha256(p) for p in sorted(out.iterdir()) if p.name != "PROVENANCE.json"},
     }
     (out / "PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")

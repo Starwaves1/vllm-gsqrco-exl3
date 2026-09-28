@@ -36,6 +36,7 @@ TEXT = SimpleNamespace(
     linear_key_head_dim=DK, linear_value_head_dim=DV,
 )
 MODEL_CONFIG = SimpleNamespace(
+    model="/nonexistent",  # no mtp_draft_vocab_ids.pt: full-vocab draft head
     hf_config=SimpleNamespace(
         model_type="qwen3_5", get_text_config=lambda: TEXT,
         vision_config=SimpleNamespace(temporal_patch_size=2),
@@ -190,3 +191,16 @@ def test_mtp_norms_round_trip():
     assert set(out) == set(expect.values()), sorted(out)
     for suffix, vname in expect.items():
         assert torch.equal(out[vname], hf[f"model.layers.{MTP}.{suffix}"]), vname
+
+
+def test_mtp_draft_lm_head_rows(tmp_path):
+    """With mtp_draft_vocab_ids.pt in the model dir, the MTP adapter maps output.weight to
+    mtp.draft_lm_head.weight and keeps exactly those rows (raw GGUF blocks, in id order)."""
+    ids = torch.tensor([0, 3, 7, 8])
+    torch.save(ids, tmp_path / "mtp_draft_vocab_ids.pt")
+    cfg = SimpleNamespace(model=str(tmp_path), hf_config=MODEL_CONFIG.hf_config)
+    w = torch.arange(10 * 144, dtype=torch.int32).to(torch.uint8).view(10, 144)  # 10 Q4_K rows
+    weights = [("mtp.draft_lm_head.weight_type", torch.tensor(12)), ("mtp.draft_lm_head.weight", w)]
+    out = dict(Qwen35MtpGGUFAdapter().transform_weights(iter(weights), cfg))
+    assert torch.equal(out["mtp.draft_lm_head.weight"], w[ids])
+    assert int(out["mtp.draft_lm_head.weight_type"]) == 12

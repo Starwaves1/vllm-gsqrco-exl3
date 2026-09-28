@@ -1,0 +1,5 @@
+5 complete steps, ms per step:
+  target: wall  36.20  busy  30.48  idle  5.71
+  rest:   wall   4.06  busy   2.20  idle  1.86
+  step:   wall  40.26  busy  32.68  idle  7.58
+  in-graph gaps: 0.13 ms over 2290 kernel boundaries per step

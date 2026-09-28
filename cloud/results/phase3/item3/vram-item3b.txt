@@ -1,0 +1,6 @@
+MiB: load peak (target + draft weights) 21001, after load 16041, peak with KV cache 22429
+MiB after load+smoke: 23355
+Model loading took 12.29 GiB memory and 122.918373 seconds
+GPU KV cache size: 250,000 tokens
+Maximum concurrency for 200,000 tokens per request: 1.25x
+smoke:   2, 3, 5

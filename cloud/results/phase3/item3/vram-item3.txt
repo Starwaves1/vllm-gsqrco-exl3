@@ -1,0 +1,7 @@
+MiB: load peak (target + draft weights) 21001, after load 13171, peak with KV cache 22455
+MiB after load+smoke: 23381
+MTP drafter uses a 40960-token draft head
+Model loading took 12.41 GiB memory and 121.664822 seconds
+GPU KV cache size: 246,875 tokens
+Maximum concurrency for 200,000 tokens per request: 1.23x
+smoke:   2, 3, 5

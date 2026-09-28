@@ -1,0 +1,29 @@
+trace p3-item3.json
+17850 GPU activities over 241.0 ms wall, 196.4 ms busy; per step (/6):
+  gemm_lcpp          452 launches   25.324 ms
+  other              808 launches    2.734 ms
+  copy/cast         1076 launches    2.180 ms
+  gemm_cublas         48 launches    1.682 ms
+  shim_quantize      452 launches    0.654 ms
+  memcpy             130 launches    0.150 ms
+  dequant              4 launches    0.008 ms
+  memset               5 launches    0.003 ms
+  shim casts (copy next to quantize/lcpp gemm): 902 launches 1.784 ms
+  lm_head MMVQ launches: 4.0 per step, 1.477 ms; durations us [136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136]
+  idle (wall - busy): 7.439 ms
+top 'other' kernels (ms per step):
+    0.530  fused_sigmoid_gating_delta_rule_update_kernel
+    0.352  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::
+    0.302  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_ke
+    0.183  _causal_conv1d_update_kernel
+    0.149  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    0.115  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    0.114  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    0.111  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheD
+    0.091  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonym
+    0.068  triton_per_fused__to_copy__unsafe_view_add_clone_mean_mul_pow_rsqrt_silu_transpose_view_0
+    0.056  triton_poi_fused_0
+    0.050  triton_poi_fused_5
+    0.048  void flashinfer::PersistentVariableLengthMergeStatesKernel<8u, 32u, 4u, 4u, __nv_bfloat16,
+    0.041  triton_poi_fused_cat_2
+    0.040  void at::native::index_elementwise_kernel<128, 4, at::native::gpu_index_kernel<at::native:
