@@ -47,10 +47,12 @@ ln -sfn "$GSQ_VENV" "$STAGE/venv"
 SUM=$OUT/summary.txt
 
 SERVER_PID=
+# on any exit: stop a clock sampler left running by a failed step (it lives in a pipeline
+# subshell, so match it by command line), then the server if we started it
+trap 'pkill -f "nvidia-smi --query-gpu=timestamp,clocks.sm" || true; [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null; wait 2>/dev/null' EXIT
 if [ $START = 1 ]; then
   GSQ_LOG=$OUT/server.log "$GSQ_ROOT/scripts/serve-$KIND.sh" > /dev/null 2>&1 &
   SERVER_PID=$!
-  trap '[ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null; wait 2>/dev/null' EXIT
   gsq_wait_health 2400 "$SERVER_PID" || gsq_die "server did not come up; see $OUT/server.log"
 fi
 curl -sf -o /dev/null "$GSQ_URL/health" || gsq_die "no server on $GSQ_URL"

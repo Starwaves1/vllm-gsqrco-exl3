@@ -28,15 +28,23 @@ seq_002  0.01449                  0.00505                  0.9792          0.986
 seq_003  0.00352                  0.00186                  0.9792          0.9792
 seq_004  0.00825                  0.00238                  0.9896          0.9965
 seq_005  0.07194                  0.06073                  0.9826          0.9826
-On every sequence measured, vLLM is at least as close to llama.cpp CUDA as llama.cpp's own CPU
-backend is. Median KLD is 0.0001-0.002 for every pair; the means are set by a few near-tie
-positions (diag/seq000-outliers.txt: e.g. pos 900 CUDA 'c' 0.57 / '<|im_end|>' 0.43, CPU
-'<|im_end|>' 0.86), mostly inside the chat user turn (seq_000/001) where this model is
-uncertain. So on this GGUF the 0.001 / 99% gates sit below the reference's own backend spread;
-the stock kernels show no parity defect beyond that spread.
+On every sequence measured (seq_000-005, <= 8k tokens), vLLM is at least as close to llama.cpp
+CUDA as llama.cpp's own CPU backend is. Median KLD is 0.0001-0.002 for every pair; the means are set
+by a few high-entropy positions where the engines disagree (diag/seq000-outliers.txt): at seq_000
+pos 900 llama CUDA puts 0.57 on 'c', which is outside the top 3 of both llama CPU and vLLM (CUDA is the odd one out);
+at pos 987/1001 vLLM is the odd one out. On seq_005 the single max-10.8 position is a CUDA outlier:
+CPU||vLLM 0.010 vs CUDA||vLLM 0.061. These positions are mostly inside the chat user turn
+(seq_000/001), where this model is uncertain.
+Scope: no parity defect is detectable on <= 8k beyond llama.cpp's cross-backend spread. That
+spread is a loose yardstick (the CPU IQ path quantizes activations to Q8_K; CUDA and vLLM differ
+too, and vLLM runs bf16 where llama.cpp uses f16). The >= 100k floor was not measured, and seq_010
+(120k, KLD 0.0082, p99 0.125) is the worst non-chat sequence, so accumulation effects at long
+context are neither shown nor excluded.
 
-Rejected hypothesis: fp16 SSM state cache. seq_000 with --mamba-ssm-cache-dtype float32:
-KLD 0.1194 (fp16: 0.1165), diag/ssm32-compare.txt.
+Tested on seq_000 only: fp16 SSM state cache. --mamba-ssm-cache-dtype float32 gives KLD 0.1194
+(fp16: 0.1165), diag/ssm32-compare.txt. Not supported there, but seq_000's mean is outlier-driven,
+so this says nothing about the long sequences where state precision would matter.
+vLLM rows cover the full vocab on every probe (diag/vllm-finite-rows.txt).
 
 MTP acceptance, k=3, same 8 real prompts x 512 tokens (mtp/): llama-server b11211
 (bench/speed/serve-llamacpp.sh, q8_0 KV, CTX=32768) vs serve-gsq.sh (fp8 KV, production argv).
@@ -44,6 +52,9 @@ MTP acceptance, k=3, same 8 real prompts x 512 tokens (mtp/): llama-server b1121
   T=1.0 (model sampling)  0.6276  0.6657  +0.038 (vLLM higher; harness flags |delta| > 0.02)
   greedy                  0.6732  0.6650  -0.008 ok
   vLLM per position (T=1.0) 0.852 0.651 0.495; mean accepted length 3.00
-The sampled-temperature gap is in vLLM's favour; vLLM runs draft_sample_method=probabilistic
-(rejection sampling), so a different acceptance rule than llama.cpp's is the likely cause
-(not verified in llama.cpp source).
+The T=1.0 gap is in vLLM's favour and follows from the acceptance rules: llama-server b11211
+accepts a draft token only if it equals the token sampled from the target
+(common/sampling.cpp:685-693, used at tools/server/server-context.cpp:3916), while vLLM runs
+draft_sample_method=probabilistic (rejection sampling); at greedy the two rules coincide and the
+rates agree within 1 point. llama.cpp's drafted count varies per run (4248 vs 4055), vLLM's is
+fixed at k=3 per step, so the rates are close but not exactly like for like.

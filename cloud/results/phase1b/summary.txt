@@ -19,14 +19,19 @@ prefill 64k c=1         328       868        0.38          >= 0.8   FAIL
 prefill 64k c=2         384       839        0.46
 prefill 180k c=1        281       603        0.47          >= 0.8   FAIL
 
-GPU during the runs (nvidia-smi -l 1, median over samples with util >= 50%; clocks-*.csv):
-                       gsq                      baseline
-decode (pass 2)        1650 MHz  348.5 W  97%   1875 MHz  340.7 W  85%
-prefill 8k c=1         1755 MHz  347.1 W        1845 MHz  348.1 W
-prefill 64k c=1        1770 MHz  347.0 W        1860 MHz  348.3 W
-prefill 180k c=1       1785 MHz  346.3 W        1860 MHz  348.3 W
-memory clock 9501 MHz throughout. Both engines sit at the 350 W cap; gsq's decode kernels
-draw more power per step and run ~12% lower SM clock at the same cap.
+GPU during the runs (nvidia-smi -l 1, clocks-*.csv). Decode c=1/c=2 = samples inside the pass-2
+T=default cohort windows (cohort log mtime minus its benchmark duration); prefill = median over samples
+with util >= 50% (the ROW clocks lines in runs/*/summary.txt, which blend all pass-2 cohorts c=1..8
+for decode: gsq 1650 MHz 348.5 W, baseline 1875 MHz 340.7 W).
+                       gsq                        baseline
+decode c=1             1650 MHz  348.3 W  97%     1905 MHz  339.4 W  84%
+decode c=2             1605 MHz  348.7 W  97%     1875 MHz  338.9 W  83%
+prefill 8k c=1         1755 MHz  347.1 W          1845 MHz  348.1 W
+prefill 64k c=1        1770 MHz  347.0 W          1860 MHz  348.3 W
+prefill 180k c=1       1785 MHz  346.3 W          1860 MHz  348.3 W
+memory clock 9501 MHz throughout. gsq decode is power-limited (253/254 c=1 samples >= 345 W) and
+runs at ~1650 MHz; baseline decode stays below the cap (0/93 c=1 samples >= 345 W) at ~1900 MHz and
+84% utilization. Prefill runs at the cap for both engines (gsq 64k c=2 excepted: 340.6 W).
 
 MTP k=3 (vllm:spec_decode_* from /metrics, whole run incl. prefill ladder):
   gsq       acceptance rate 0.689, mean accepted length 3.07, per position 0.847 0.682 0.538
@@ -42,5 +47,6 @@ Note: production's argv has --long-prefill-token-threshold 128, so (per vLLM sch
 each long prompt advances at most 128 tokens per step for both engines; for gsq every such step
 is above the plugin's MMVQ cutoff (8-16 tokens), i.e. the IQ dequant + GEMM path.
 
-Parity and MTP vs llama.cpp: parity/summary.txt (stock kernels: gates FAIL at KLD 0.040 / top-1 98.0%,
-but inside llama.cpp's own CUDA-vs-CPU spread; MTP greedy within 1 point, T=1.0 vLLM +3.8 points).
+Parity and MTP vs llama.cpp: parity/summary.txt (stock kernels: gates FAIL at KLD 0.040 / top-1 98.0%;
+on seq_000-005 (<= 8k) vLLM is inside llama.cpp's own CUDA-vs-CPU spread, >= 100k floor not measured;
+MTP greedy within 1 point, T=1.0 vLLM +3.8 points).
