@@ -1,0 +1,139 @@
+# Route L: llama.cpp b11211 MMVQ/MMQ behind a shim (compile-only)
+
+Branch `route-l`. Built and checked on the CPU only. **No kernel has run.**
+Every numeric property is untested.
+
+## What is here
+
+- `plugin/vllm_gguf_plugin/csrc/lcpp/`: llama.cpp b11211 (d7fb90e8, MIT)
+  ggml-cuda files, byte-identical, with `VENDORED.md` (file list, sha256, why
+  `mmq.cu`/`mmid.cu` are not vendored). Nothing vendored is edited.
+- `plugin/vllm_gguf_plugin/csrc/lcpp_shim.cu`: all adaptation.
+  - ggml-base stubs; errors throw instead of `abort()`.
+  - `ggml_cuda_info()` from `cudaGetDeviceProperties`, filled lazily on the
+    first op call.
+  - A context that borrows torch's current stream.
+  - A torch-tensor pool: uninitialised caching-allocator tensors, so scratch
+    is reused across calls. MMQ adds a 128×`block_q8_1_mmq` (18 KiB) read tail
+    after upstream's J_max tail and zeroes only those two tails, per
+    Maxwell-Lyu f1d38ffdd0.
+  - A copy of the non-MoE q8_1 branch of upstream `ggml_cuda_mul_mat_q`.
+  - Ops `_C_gguf::lcpp_mul_mat_vec_q` (1..8 rows) and `lcpp_mul_mat_q` (any
+    rows), signature `(W uint8[rows,bytes], X [n,K] f32/f16/bf16, type, row) ->
+    [n,row]` in X's dtype.
+  - Guards (dtype, 2-D, supported type, row range, K = X cols, K % 512, W
+    inner stride 1, W row stride a multiple of the block size, 16-B alignment,
+    X inner stride 1, MMVQ ≤ 8 rows) all run before any launch. The ops are
+    registered for CPU too, where they run the guards and then reject.
+- Build: `VLLM_GGUF_BUILD_LCPP=1` in `plugin/setup.py`. The default build is
+  unchanged.
+- Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
+  - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ3_XXS/IQ3_S/IQ4_XS,
+    ≤8 rows go to lcpp MMVQ and >8 to lcpp MMQ. IQ1_M keeps the old path.
+  - Mixed-type fused layers: each shard is stored contiguously inside its
+    padded region, so `_shard_weight` returns a view and the per-forward
+    `.contiguous()` copy is gone.
+  - A row-strided view can't do this job. The padded byte stride is not a
+    multiple of the narrower shard's block size (2200/98, 1480/66, 2880/84),
+    and the kernels index rows in blocks.
+  - `diffusion_config.py` uses the same helper.
+- `tests/cpu/test_lcpp_guards.py`: 42 guard cases in a `no_gpu` subprocess.
+
+## Shim overhead
+
+Kernel launches per op call, counted from the code (VERIFIED by reading, not
+profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
+
+| | before | after |
+|---|---|---|
+| MMVQ, 16-bit X | 5: cast X, memset whole q8, quantize_q8_1, mul_mat_vec_q, cast Y | 4: cast X, quantize_q8_1, mul_mat_vec_q, cast Y |
+| MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup |
+| fp32 X | two fewer (no casts) | two fewer |
+
+- Nothing is zero-filled except the MMQ tail. The quantizers write every byte
+  of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is
+  written by `mul_mat_q` before the fixup reads it. Upstream's ggml pool
+  doesn't zero either. The MMQ tail memset is J_max+128 blocks (≤ 36 KiB),
+  not the whole buffer.
+- The casts stay. At b11211 `quantize_row_q8_1_cuda` and
+  `quantize_mmq_q8_1_cuda` take `const float*` only, and MMVQ/MMQ assert or
+  write fp32 dst. Dropping either cast means editing vendored code or owning
+  a 16-bit→q8_1 quantizer. That is the next diet step if nsys shows the casts
+  matter. Quantizing X once per fused layer instead of once per type shard is
+  the other one.
+
+## MMVQ decode reuse (SASS)
+
+**VERIFIED.** Checked with nvdisasm 13.3 on the sm_86 cubin of the built .so,
+kernels `mul_mat_vec_q<IQ3_S, ncols_dst, false, false, false>`. `c[0x4][0x38]`
+is the `iq3s_grid` relocation. Counts are for the main k-loop body of each
+kernel:
+
+| ncols_dst | rows/block | iq3s_grid loads | dp4a (IDP.4A) | LOP3 | y int loads | instructions |
+|---|---|---|---|---|---|---|
+| 1 | 1 | 8 | 8 | | | |
+| 2 | 2 | 16 | 32 | | | |
+| 4 | 2 | 16 | 64 | 128 | 32 | 477 |
+| 8 | 2 | 16 | 128 | 128 | 64 | 639 |
+
+- nvcc CSEs the IQ3_S decode across columns. Each iteration makes 8 grid
+  loads per weight block (8 × 2 rows = 16), the same at ncols 2, 4 and 8.
+- The qs/qh/signs/scales/d loads are the same: 14 U16 + 4 U8 at both 4 and 8.
+- The sign unpack (LOP3 = 128) is also identical at 4 and 8.
+- Only the per-column work grows: 8 y int loads + 1 ds load + 16 dp4a per
+  column, about 40 instructions for each added column.
+- This is legal because the loop has no stores and `vx` is `__restrict__`
+  const.
+- So "MMVQ re-decodes per column" (report 14 D4) is wrong for IQ3_S at
+  b11211/nvcc 13. At 4–8 rows, the decode-once argument for MMQ-small or
+  fastllm small-mmvq is weaker than assumed. Only a GPU measurement can say
+  whether IQ3 MMVQ is gather-latency-bound (16 dependent L1 gathers per
+  iteration).
+
+## Build (compile only)
+
+```
+source ~/gsq-vllm/tools/cuda-env.sh; export PATH=~/gsq-vllm/.venv/bin:$PATH
+cd plugin && VLLM_GGUF_BUILD_LCPP=1 MAX_JOBS=1 python setup.py build_ext --inplace
+```
+
+Use an in-place build. Don't use `build-plugin.sh` from a worktree: it would
+repoint the shared venv's editable install.
+
+Measured under MemoryMax=3G, CPUQuota=200%, nice 19, MAX_JOBS=1:
+
+- Clean build: 226 s wall.
+- Per-TU compile: mmvq.cu 32 s; each MMQ instance 16–19 s; quantize 3 s.
+- Peak cgroup memory: 0.90 GB.
+
+The .so is 28.9 MB, sm_86 only. It NEEDs libcudart.so.13 plus torch, and it
+resolves every ggml symbol.
+
+`cublas_v2.h` (declarations only, never linked) comes from the venv's
+`nvidia/cu13/include` via `-idirafter`.
+
+## Checked on the CPU
+
+- The .so loads under `no_gpu` and both ops register.
+- `import vllm_gguf_plugin.ops` works with `VLLM_GGUF_LCPP=1` and with it off,
+  and `torch.cuda.is_initialized()` stays False.
+- `tests/cpu`: 458 passed, 54 xfailed.
+
+## Untested: needs a GPU (sm86)
+
+1. Correctness per type: `tests/gpu/test_kernel_parity.py` and
+   `_guard_case.py`. They call `ops.ggml_mul_mat_*`; point them at
+   `torch.ops._C_gguf.lcpp_*`, or run through `_fused_mul_mat_gguf` with
+   `VLLM_GGUF_LCPP=1`.
+   - Check MMQ at n = 1..7, where upstream's J_max tail is 0 and only the
+     shim's 18 KiB tail protects the reads.
+   - Check non-multiple-of-128 rows (the fallback tiles).
+   - Run under compute-sanitizer (`GSQ_COMPUTE_SANITIZER`).
+2. CUDA-graph capture and replay (`graph_replay` case). Pool tensors are
+   stream-ordered torch allocations. `cudaFuncSetAttribute` runs on first use,
+   so warm up before capture.
+3. Speed: `bench/speed/` and per-layer microbenchmarks at 1/4/8/16/32/2048
+   rows against e2b8ad5.
+4. Parity: `bench/parity/` (KLD vs llama.cpp).
+5. An end-to-end serve with `VLLM_GGUF_LCPP=1` (`scripts/serve-gsq.sh`),
+   including the flat mixed-shard layout.
