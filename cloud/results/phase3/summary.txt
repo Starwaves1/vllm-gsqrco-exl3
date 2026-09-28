@@ -116,3 +116,26 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  bit-exact against one product over the same rows. ggml_dequantize (embedding rows, IQ1_M
  dequant + matmul) writes every element, so new_zeros -> new_empty; test_dequantize now
  poisons the allocator first (all pass). This one change sits outside the VLLM_GGUF_LCPP flag.
+
+item 5  decode-once kernel for 2-8 rows: NOT started (stop point). Data for the decision:
+ After items 1-4b: 83.5 / 146.7 tok/s c=1 / c=2 = 36.6 / 41.6 ms/step (baseline 94.1 / 194.4).
+ At ~3.05 tok/step, 94.1 tok/s needs ~32.5 ms/step: -4.1 ms at c=1; c=2 needs -10 ms.
+ Target pass at c=1 (4 rows, item4b/profile-pertype.txt; bytes from the GGUF header), per step:
+   type      GB     ms     GB/s      type      GB     ms     GB/s
+   IQ3_S    3.64   8.65    421       Q4_K     0.87   2.47    351
+   IQ3_XXS  2.08   5.14    403       IQ2_S    0.39   1.21    326
+   IQ4_XS   3.02   4.18    723       Q2_K     0.24   0.82    293
+   (IQ2_XS/IQ2_XXS 0.32 GB, 1.09 ms; IQ1_M stock 0.2 ms)   all: 10.56 GB, 23.6 ms, 448 GB/s
+ IQ3 at 4 rows runs at 58% of IQ4_XS's rate on the same kernel family. If a decode-once kernel
+ brought IQ3_S/IQ3_XXS to IQ4_XS's 723 GB/s at 4 rows, the target pass loses ~5.9 ms; at their
+ own 1-row rate (~550-590 GB/s) ~3.8 ms. So 94 tok/s at c=1 needs roughly the IQ4_XS-level
+ case; no remaining shim or routing item gets there. c=2 runs 8 rows through MMQ at ~300 GB/s
+ for IQ3 (below), where a decode-once kernel would matter more.
+ Microbench after item 4 (item4/micro.tsv; op time incl. q8_1 quantize and output cast, CUDA
+ graph, us and weight GB/s; phase 2 in brackets):
+   shape           op     IQ3_S 4 rows       IQ3_S 8 rows       IQ3_XXS 4 rows     IQ3_XXS 8 rows
+   17408 x 5120    MMVQ   97.9 (101.2) 391   145.5 (149.0) 263   91.7 (94.1) 372    133.6 (134.6) 255
+                   MMQ   123.0 (125.9) 311   124.1 (126.9) 309  109.3 (112.2) 312   110.2 (113.1) 310
+   5120 x 17408    MMVQ   95.8 (97.7)  400   146.1 (147.8) 262   89.6 (91.9) 381    140.9 (141.1) 242
+                   MMQ   129.3 (131.9) 296   130.0 (133.1) 295  111.7 (114.5) 305   111.9 (115.3) 305
+   (IQ4_XS 17408 x 5120 at 4 rows: MMVQ 73.6 us, 644 GB/s)

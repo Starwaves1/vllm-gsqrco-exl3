@@ -1,0 +1,9 @@
+('21', 'mmvq') 8.653 ms/step 127 calls void mul_mat_vec_q<(ggml_type)21, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('18', 'mmvq') 5.144 ms/step 65 calls void mul_mat_vec_q<(ggml_type)18, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('23', 'mmvq') 4.179 ms/step 86 calls void mul_mat_vec_q<(ggml_type)23, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('12', 'mmvq') 2.471 ms/step 35 calls void mul_mat_vec_q<(ggml_type)12, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('22', 'mmvq') 1.207 ms/step 16 calls void mul_mat_vec_q<(ggml_type)22, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('10', 'mmvq') 0.823 ms/step 13 calls void mul_mat_vec_q<(ggml_type)10, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('17', 'mmvq') 0.719 ms/step 9 calls void mul_mat_vec_q<(ggml_type)17, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('16', 'mmvq') 0.373 ms/step 5 calls void mul_mat_vec_q<(ggml_type)16, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, un
+('void mul_mat_vec_q<c10::BFloat16, 256, 8', 'mmvq') 0.200 ms/step 1 calls void mul_mat_vec_q<c10::BFloat16, 256, 8, block_iq1_m, 1, &_INTERNAL_860caf24_14_gguf_kernel_cu_a360aac4::vec_dot_iq1_m_q8_1>(void const*, void const*, c10::BFl
