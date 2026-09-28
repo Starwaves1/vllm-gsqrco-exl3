@@ -1,10 +1,9 @@
 """Summarise a vLLM torch-profiler trace of c=1 MTP decode steps: kernels per step, GEMM vs
 shim overhead (casts, q8_1 quantize, memsets) vs everything else, and the lm_head reads."""
-import collections, glob, json, re, sys
+import collections, glob, json, sys
 path = sys.argv[1] if len(sys.argv) > 1 else sorted(glob.glob("/workspace/runs/p2-profile/trace/**/*.json", recursive=True))[-1]
 ev = json.load(open(path))["traceEvents"]
 k = sorted((e for e in ev if e.get("cat") in ("kernel", "gpu_memset", "gpu_memcpy") and e.get("ph") == "X"), key=lambda e: e["ts"])
-steps = [e for e in ev if e.get("ph") == "X" and re.match(r"(execute_model|ProfilerStep#|.*model_executor)", e.get("name", ""))]
 def cls(e):
     n = e["name"]
     if e["cat"] == "gpu_memset": return "memset"
@@ -31,7 +30,7 @@ for i, e in enumerate(k):
 lm = [e for e in k if "mul_mat_vec_q" in e["name"] and (e.get("args", {}).get("grid") or [0])[0] > 40000]
 span = (k[-1]["ts"] + k[-1]["dur"] - k[0]["ts"]) if k else 0
 busy = sum(e["dur"] for e in k)
-nsteps = int(sys.argv[2]) if len(sys.argv) > 2 else 6
+nsteps = int(sys.argv[2]) if len(sys.argv) > 2 else 6  # --profiler-config max_iterations
 print(f"trace {path}\n{len(k)} GPU activities over {span/1e3:.1f} ms wall, {busy/1e3:.1f} ms busy; per step (/{nsteps}):")
 for c in sorted(tot, key=lambda c: -tot[c]):
     print(f"  {c:14} {cnt[c]/nsteps:7.0f} launches  {tot[c]/nsteps/1e3:7.3f} ms")

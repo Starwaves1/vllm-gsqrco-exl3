@@ -1,173 +1,173 @@
-IQ1_M n=1 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=2.86e-04 wround=1.12e-02
-IQ1_M n=1 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=2.18e-05 wround=1.08e-02
-IQ1_M n=2 torch.bfloat16 mmq=False lcpp=False: full=1.00e-02 q81=5.64e-04 wround=1.01e-02
-IQ1_M n=2 torch.float16 mmq=False lcpp=False: full=1.01e-02 q81=1.30e-04 wround=1.01e-02
-IQ1_M n=3 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=9.93e-04 wround=1.12e-02
-IQ1_M n=3 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=1.91e-04 wround=1.08e-02
-IQ1_M n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.26e-03 wround=1.10e-02
-IQ1_M n=4 torch.float16 mmq=False lcpp=False: full=1.03e-02 q81=1.98e-04 wround=1.03e-02
-IQ1_M n=8 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=1.22e-03 wround=1.13e-02
-IQ1_M n=8 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=1.57e-04 wround=1.08e-02
-IQ1_M n=16 torch.bfloat16 mmq=False lcpp=False: full=1.15e-02 q81=1.12e-03 wround=1.17e-02
-IQ1_M n=16 torch.float16 mmq=False lcpp=False: full=1.15e-02 q81=2.02e-04 wround=1.15e-02
-IQ2_S n=1 torch.bfloat16 mmq=False lcpp=False: full=9.93e-03 q81=1.31e-04 wround=1.00e-02
-IQ2_S n=1 torch.float16 mmq=False lcpp=False: full=9.99e-03 q81=4.96e-05 wround=9.99e-03
-IQ2_S n=2 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=7.04e-04 wround=1.10e-02
-IQ2_S n=2 torch.float16 mmq=False lcpp=False: full=1.06e-02 q81=6.24e-05 wround=1.06e-02
-IQ2_S n=3 torch.bfloat16 mmq=False lcpp=False: full=1.05e-02 q81=3.01e-04 wround=1.06e-02
-IQ2_S n=3 torch.float16 mmq=False lcpp=False: full=1.00e-02 q81=1.86e-05 wround=1.00e-02
-IQ2_S n=4 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=5.41e-04 wround=1.11e-02
-IQ2_S n=4 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=3.76e-05 wround=1.08e-02
-IQ2_S n=8 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=6.11e-04 wround=1.12e-02
-IQ2_S n=8 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=1.07e-04 wround=1.10e-02
-IQ2_S n=16 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=6.18e-04 wround=1.20e-02
-IQ2_S n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=1.04e-04 wround=1.18e-02
-IQ2_XS n=1 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=3.69e-04 wround=1.10e-02
-IQ2_XS n=1 torch.float16 mmq=False lcpp=False: full=1.06e-02 q81=8.75e-07 wround=1.06e-02
-IQ2_XS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=5.77e-04 wround=1.10e-02
-IQ2_XS n=2 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=1.36e-04 wround=1.07e-02
-IQ2_XS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=8.40e-04 wround=1.15e-02
-IQ2_XS n=3 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.00e-04 wround=1.12e-02
-IQ2_XS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.15e-02 q81=1.27e-03 wround=1.16e-02
-IQ2_XS n=4 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.04e-04 wround=1.12e-02
-IQ2_XS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.21e-03 wround=1.14e-02
-IQ2_XS n=8 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=1.56e-04 wround=1.08e-02
-IQ2_XS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.04e-03 wround=1.19e-02
-IQ2_XS n=16 torch.float16 mmq=False lcpp=False: full=1.19e-02 q81=2.19e-04 wround=1.19e-02
-IQ2_XXS n=1 torch.bfloat16 mmq=False lcpp=False: full=1.00e-02 q81=1.28e-04 wround=1.02e-02
-IQ2_XXS n=1 torch.float16 mmq=False lcpp=False: full=9.85e-03 q81=3.46e-06 wround=9.85e-03
-IQ2_XXS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=6.18e-04 wround=1.08e-02
-IQ2_XXS n=2 torch.float16 mmq=False lcpp=False: full=1.03e-02 q81=1.38e-04 wround=1.03e-02
-IQ2_XXS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=8.93e-04 wround=1.14e-02
-IQ2_XXS n=3 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=2.07e-04 wround=1.09e-02
-IQ2_XXS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.34e-03 wround=1.09e-02
+IQ1_M n=1 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=1.68e-03 wround=1.11e-02
+IQ1_M n=1 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=2.00e-04 wround=1.08e-02
+IQ1_M n=2 torch.bfloat16 mmq=False lcpp=False: full=1.01e-02 q81=1.61e-03 wround=1.02e-02
+IQ1_M n=2 torch.float16 mmq=False lcpp=False: full=1.01e-02 q81=2.12e-04 wround=1.01e-02
+IQ1_M n=3 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.72e-03 wround=1.12e-02
+IQ1_M n=3 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=1.99e-04 wround=1.08e-02
+IQ1_M n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.65e-03 wround=1.09e-02
+IQ1_M n=4 torch.float16 mmq=False lcpp=False: full=1.03e-02 q81=2.10e-04 wround=1.03e-02
+IQ1_M n=8 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=1.68e-03 wround=1.13e-02
+IQ1_M n=8 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=2.27e-04 wround=1.09e-02
+IQ1_M n=16 torch.bfloat16 mmq=False lcpp=False: full=1.16e-02 q81=1.75e-03 wround=1.17e-02
+IQ1_M n=16 torch.float16 mmq=False lcpp=False: full=1.15e-02 q81=2.18e-04 wround=1.15e-02
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=False: full=9.95e-03 q81=1.73e-03 wround=1.01e-02
+IQ2_S n=1 torch.float16 mmq=False lcpp=False: full=9.97e-03 q81=2.10e-04 wround=9.97e-03
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.65e-03 wround=1.10e-02
+IQ2_S n=2 torch.float16 mmq=False lcpp=False: full=1.06e-02 q81=2.09e-04 wround=1.06e-02
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=False: full=1.04e-02 q81=1.68e-03 wround=1.05e-02
+IQ2_S n=3 torch.float16 mmq=False lcpp=False: full=1.00e-02 q81=2.14e-04 wround=1.00e-02
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.72e-03 wround=1.10e-02
+IQ2_S n=4 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.13e-04 wround=1.07e-02
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=1.74e-03 wround=1.12e-02
+IQ2_S n=8 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=2.25e-04 wround=1.10e-02
+IQ2_S n=16 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.78e-03 wround=1.20e-02
+IQ2_S n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=2.23e-04 wround=1.18e-02
+IQ2_XS n=1 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.68e-03 wround=1.09e-02
+IQ2_XS n=1 torch.float16 mmq=False lcpp=False: full=1.06e-02 q81=2.11e-04 wround=1.05e-02
+IQ2_XS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.70e-03 wround=1.11e-02
+IQ2_XS n=2 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.14e-04 wround=1.07e-02
+IQ2_XS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.68e-03 wround=1.15e-02
+IQ2_XS n=3 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.21e-04 wround=1.12e-02
+IQ2_XS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.15e-02 q81=1.78e-03 wround=1.16e-02
+IQ2_XS n=4 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.26e-04 wround=1.12e-02
+IQ2_XS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.13e-02 q81=1.76e-03 wround=1.15e-02
+IQ2_XS n=8 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=2.16e-04 wround=1.08e-02
+IQ2_XS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.74e-03 wround=1.19e-02
+IQ2_XS n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=2.19e-04 wround=1.18e-02
+IQ2_XXS n=1 torch.bfloat16 mmq=False lcpp=False: full=9.90e-03 q81=1.61e-03 wround=1.00e-02
+IQ2_XXS n=1 torch.float16 mmq=False lcpp=False: full=9.91e-03 q81=2.08e-04 wround=9.91e-03
+IQ2_XXS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.06e-02 q81=1.76e-03 wround=1.08e-02
+IQ2_XXS n=2 torch.float16 mmq=False lcpp=False: full=1.03e-02 q81=2.26e-04 wround=1.03e-02
+IQ2_XXS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.68e-03 wround=1.13e-02
+IQ2_XXS n=3 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=2.13e-04 wround=1.09e-02
+IQ2_XXS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.78e-03 wround=1.09e-02
 IQ2_XXS n=4 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=2.20e-04 wround=1.05e-02
-IQ2_XXS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.36e-03 wround=1.11e-02
-IQ2_XXS n=8 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=1.60e-04 wround=1.09e-02
-IQ2_XXS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.14e-03 wround=1.14e-02
+IQ2_XXS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.75e-03 wround=1.11e-02
+IQ2_XXS n=8 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=2.19e-04 wround=1.09e-02
+IQ2_XXS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.71e-03 wround=1.15e-02
 IQ2_XXS n=16 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.29e-04 wround=1.12e-02
-IQ3_S n=1 torch.bfloat16 mmq=False lcpp=False: full=1.05e-02 q81=2.26e-04 wround=1.06e-02
-IQ3_S n=1 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=1.65e-05 wround=1.05e-02
-IQ3_S n=2 torch.bfloat16 mmq=False lcpp=False: full=1.06e-02 q81=5.41e-04 wround=1.08e-02
-IQ3_S n=2 torch.float16 mmq=False lcpp=False: full=1.04e-02 q81=1.32e-04 wround=1.04e-02
-IQ3_S n=3 torch.bfloat16 mmq=False lcpp=False: full=1.17e-02 q81=1.03e-03 wround=1.17e-02
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=False: full=1.04e-02 q81=1.58e-03 wround=1.05e-02
+IQ3_S n=1 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=2.14e-04 wround=1.05e-02
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.69e-03 wround=1.08e-02
+IQ3_S n=2 torch.float16 mmq=False lcpp=False: full=1.04e-02 q81=2.12e-04 wround=1.04e-02
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=False: full=1.16e-02 q81=1.74e-03 wround=1.15e-02
 IQ3_S n=3 torch.float16 mmq=False lcpp=False: full=1.14e-02 q81=2.18e-04 wround=1.14e-02
-IQ3_S n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.17e-03 wround=1.09e-02
-IQ3_S n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=2.11e-04 wround=1.11e-02
-IQ3_S n=8 torch.bfloat16 mmq=False lcpp=False: full=1.16e-02 q81=1.32e-03 wround=1.19e-02
-IQ3_S n=8 torch.float16 mmq=False lcpp=False: full=1.16e-02 q81=1.52e-04 wround=1.17e-02
-IQ3_S n=16 torch.bfloat16 mmq=False lcpp=False: full=1.15e-02 q81=1.20e-03 wround=1.18e-02
-IQ3_S n=16 torch.float16 mmq=False lcpp=False: full=1.16e-02 q81=2.07e-04 wround=1.16e-02
-IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=3.17e-04 wround=1.14e-02
-IQ3_XXS n=1 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=5.26e-06 wround=1.10e-02
-IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.00e-02 q81=4.92e-04 wround=1.02e-02
-IQ3_XXS n=2 torch.float16 mmq=False lcpp=False: full=1.01e-02 q81=1.11e-04 wround=1.01e-02
-IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=9.47e-04 wround=1.15e-02
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=1.75e-03 wround=1.09e-02
+IQ3_S n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=2.17e-04 wround=1.11e-02
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=False: full=1.17e-02 q81=1.74e-03 wround=1.19e-02
+IQ3_S n=8 torch.float16 mmq=False lcpp=False: full=1.16e-02 q81=2.18e-04 wround=1.16e-02
+IQ3_S n=16 torch.bfloat16 mmq=False lcpp=False: full=1.15e-02 q81=1.82e-03 wround=1.18e-02
+IQ3_S n=16 torch.float16 mmq=False lcpp=False: full=1.16e-02 q81=2.30e-04 wround=1.16e-02
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.65e-03 wround=1.14e-02
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=1.95e-04 wround=1.10e-02
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.02e-02 q81=1.75e-03 wround=1.03e-02
+IQ3_XXS n=2 torch.float16 mmq=False lcpp=False: full=1.01e-02 q81=2.07e-04 wround=1.01e-02
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.70e-03 wround=1.15e-02
 IQ3_XXS n=3 torch.float16 mmq=False lcpp=False: full=1.12e-02 q81=2.11e-04 wround=1.12e-02
-IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.23e-03 wround=1.13e-02
-IQ3_XXS n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=1.95e-04 wround=1.11e-02
-IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.28e-03 wround=1.10e-02
-IQ3_XXS n=8 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=1.30e-04 wround=1.11e-02
-IQ3_XXS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.15e-03 wround=1.14e-02
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.71e-03 wround=1.13e-02
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=2.15e-04 wround=1.11e-02
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=1.73e-03 wround=1.11e-02
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=2.18e-04 wround=1.11e-02
+IQ3_XXS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.77e-03 wround=1.14e-02
 IQ3_XXS n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=2.15e-04 wround=1.18e-02
-IQ4_XS n=1 torch.bfloat16 mmq=False lcpp=False: full=9.20e-03 q81=2.61e-04 wround=9.34e-03
-IQ4_XS n=1 torch.float16 mmq=False lcpp=False: full=9.45e-03 q81=4.61e-05 wround=9.47e-03
-IQ4_XS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.11e-02 q81=5.36e-04 wround=1.12e-02
-IQ4_XS n=2 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=1.22e-04 wround=1.08e-02
-IQ4_XS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=9.21e-04 wround=1.15e-02
-IQ4_XS n=3 torch.float16 mmq=False lcpp=False: full=1.14e-02 q81=2.03e-04 wround=1.14e-02
-IQ4_XS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.14e-03 wround=1.09e-02
+IQ4_XS n=1 torch.bfloat16 mmq=False lcpp=False: full=9.16e-03 q81=1.67e-03 wround=9.30e-03
+IQ4_XS n=1 torch.float16 mmq=False lcpp=False: full=9.34e-03 q81=2.21e-04 wround=9.36e-03
+IQ4_XS n=2 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.80e-03 wround=1.13e-02
+IQ4_XS n=2 torch.float16 mmq=False lcpp=False: full=1.08e-02 q81=2.14e-04 wround=1.08e-02
+IQ4_XS n=3 torch.bfloat16 mmq=False lcpp=False: full=1.13e-02 q81=1.72e-03 wround=1.14e-02
+IQ4_XS n=3 torch.float16 mmq=False lcpp=False: full=1.14e-02 q81=2.05e-04 wround=1.14e-02
+IQ4_XS n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=1.70e-03 wround=1.09e-02
 IQ4_XS n=4 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.14e-04 wround=1.07e-02
-IQ4_XS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.31e-02 q81=1.39e-03 wround=1.31e-02
-IQ4_XS n=8 torch.float16 mmq=False lcpp=False: full=1.22e-02 q81=1.45e-04 wround=1.22e-02
-IQ4_XS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.20e-02 q81=1.18e-03 wround=1.22e-02
-IQ4_XS n=16 torch.float16 mmq=False lcpp=False: full=1.17e-02 q81=2.05e-04 wround=1.17e-02
-Q2_K n=1 torch.bfloat16 mmq=False lcpp=False: full=1.13e-02 q81=2.21e-04 wround=1.15e-02
-Q2_K n=1 torch.float16 mmq=False lcpp=False: full=1.04e-02 q81=3.44e-05 wround=1.04e-02
-Q2_K n=2 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=3.90e-04 wround=1.13e-02
-Q2_K n=2 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=1.10e-04 wround=1.11e-02
-Q2_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=9.68e-04 wround=1.14e-02
+IQ4_XS n=8 torch.bfloat16 mmq=False lcpp=False: full=1.31e-02 q81=1.80e-03 wround=1.30e-02
+IQ4_XS n=8 torch.float16 mmq=False lcpp=False: full=1.22e-02 q81=2.17e-04 wround=1.22e-02
+IQ4_XS n=16 torch.bfloat16 mmq=False lcpp=False: full=1.20e-02 q81=1.76e-03 wround=1.22e-02
+IQ4_XS n=16 torch.float16 mmq=False lcpp=False: full=1.17e-02 q81=2.36e-04 wround=1.17e-02
+Q2_K n=1 torch.bfloat16 mmq=False lcpp=False: full=1.13e-02 q81=1.68e-03 wround=1.15e-02
+Q2_K n=1 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=2.08e-04 wround=1.05e-02
+Q2_K n=2 torch.bfloat16 mmq=False lcpp=False: full=1.10e-02 q81=1.67e-03 wround=1.12e-02
+Q2_K n=2 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=2.14e-04 wround=1.10e-02
+Q2_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.14e-02 q81=1.73e-03 wround=1.15e-02
 Q2_K n=3 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=2.14e-04 wround=1.09e-02
-Q2_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.05e-02 q81=1.11e-03 wround=1.06e-02
-Q2_K n=4 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=1.92e-04 wround=1.05e-02
-Q2_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.29e-03 wround=1.18e-02
-Q2_K n=8 torch.float16 mmq=False lcpp=False: full=1.21e-02 q81=1.48e-04 wround=1.21e-02
-Q2_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.16e-03 wround=1.20e-02
-Q2_K n=16 torch.float16 mmq=False lcpp=False: full=1.13e-02 q81=2.04e-04 wround=1.13e-02
-Q4_K n=1 torch.bfloat16 mmq=False lcpp=False: full=9.40e-03 q81=3.89e-04 wround=9.51e-03
-Q4_K n=1 torch.float16 mmq=False lcpp=False: full=9.18e-03 q81=9.72e-05 wround=9.19e-03
-Q4_K n=2 torch.bfloat16 mmq=False lcpp=False: full=9.92e-03 q81=2.61e-04 wround=1.01e-02
-Q4_K n=2 torch.float16 mmq=False lcpp=False: full=9.77e-03 q81=5.90e-05 wround=9.78e-03
-Q4_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=8.74e-04 wround=1.08e-02
-Q4_K n=3 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=1.91e-04 wround=1.07e-02
-Q4_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.10e-03 wround=1.13e-02
-Q4_K n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=1.70e-04 wround=1.10e-02
-Q4_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.18e-02 q81=1.06e-03 wround=1.18e-02
-Q4_K n=8 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=1.73e-04 wround=1.18e-02
-Q4_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.22e-02 q81=1.17e-03 wround=1.24e-02
-Q4_K n=16 torch.float16 mmq=False lcpp=False: full=1.23e-02 q81=2.05e-04 wround=1.23e-02
-Q6_K n=1 torch.bfloat16 mmq=False lcpp=False: full=1.01e-02 q81=1.28e-04 wround=1.02e-02
-Q6_K n=1 torch.float16 mmq=False lcpp=False: full=1.02e-02 q81=1.19e-04 wround=1.02e-02
-Q6_K n=2 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.69e-03 wround=1.08e-02
-Q6_K n=2 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=4.52e-05 wround=1.05e-02
-Q6_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=6.85e-04 wround=1.09e-02
-Q6_K n=3 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=1.53e-04 wround=1.07e-02
-Q6_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=9.23e-04 wround=1.08e-02
-Q6_K n=4 torch.float16 mmq=False lcpp=False: full=1.09e-02 q81=1.10e-04 wround=1.09e-02
-Q6_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=9.33e-04 wround=1.10e-02
-Q6_K n=8 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=1.73e-04 wround=1.07e-02
-Q6_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.19e-02 q81=1.01e-03 wround=1.20e-02
-Q6_K n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=1.63e-04 wround=1.18e-02
-Q2_K n=16 torch.bfloat16 mmq=True lcpp=False: full=1.25e-02 q81=1.51e-03 wround=1.27e-02
-Q2_K n=16 torch.float16 mmq=True lcpp=False: full=1.20e-02 q81=2.11e-04 wround=1.20e-02
-Q2_K n=64 torch.bfloat16 mmq=True lcpp=False: full=1.32e-02 q81=1.26e-03 wround=1.33e-02
-Q2_K n=64 torch.float16 mmq=True lcpp=False: full=1.30e-02 q81=2.11e-04 wround=1.30e-02
-Q2_K n=512 torch.bfloat16 mmq=True lcpp=False: full=1.30e-02 q81=1.35e-03 wround=1.30e-02
-Q2_K n=512 torch.float16 mmq=True lcpp=False: full=1.28e-02 q81=2.31e-04 wround=1.28e-02
-Q4_K n=16 torch.bfloat16 mmq=True lcpp=False: full=5.59e-02 q81=5.47e-02 wround=5.59e-02 xsum=8.54e-04
-Q4_K n=16 torch.float16 mmq=True lcpp=False: full=4.91e-02 q81=4.77e-02 wround=4.91e-02 xsum=2.20e-04
-Q4_K n=64 torch.bfloat16 mmq=True lcpp=False: full=5.06e-02 q81=4.60e-02 wround=5.06e-02 xsum=5.82e-04
-Q4_K n=64 torch.float16 mmq=True lcpp=False: full=5.10e-02 q81=4.94e-02 wround=5.10e-02 xsum=2.22e-04
-Q4_K n=512 torch.bfloat16 mmq=True lcpp=False: full=7.01e-02 q81=6.64e-02 wround=7.00e-02 xsum=9.93e-04
-Q4_K n=512 torch.float16 mmq=True lcpp=False: full=6.13e-02 q81=5.99e-02 wround=6.13e-02 xsum=2.31e-04
-Q6_K n=16 torch.bfloat16 mmq=True lcpp=False: full=1.24e-02 q81=1.23e-03 wround=1.27e-02
-Q6_K n=16 torch.float16 mmq=True lcpp=False: full=1.24e-02 q81=1.69e-04 wround=1.24e-02
-Q6_K n=64 torch.bfloat16 mmq=True lcpp=False: full=1.20e-02 q81=2.07e-03 wround=1.22e-02
-Q6_K n=64 torch.float16 mmq=True lcpp=False: full=1.21e-02 q81=2.29e-04 wround=1.21e-02
-Q6_K n=512 torch.bfloat16 mmq=True lcpp=False: full=1.22e-02 q81=2.18e-03 wround=1.23e-02
-Q6_K n=512 torch.float16 mmq=True lcpp=False: full=1.20e-02 q81=2.63e-04 wround=1.20e-02
+Q2_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.05e-02 q81=1.69e-03 wround=1.06e-02
+Q2_K n=4 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=2.02e-04 wround=1.05e-02
+Q2_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.19e-02 q81=1.79e-03 wround=1.19e-02
+Q2_K n=8 torch.float16 mmq=False lcpp=False: full=1.21e-02 q81=2.33e-04 wround=1.21e-02
+Q2_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.17e-02 q81=1.73e-03 wround=1.20e-02
+Q2_K n=16 torch.float16 mmq=False lcpp=False: full=1.13e-02 q81=2.25e-04 wround=1.13e-02
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=False: full=9.35e-03 q81=1.76e-03 wround=9.45e-03
+Q4_K n=1 torch.float16 mmq=False lcpp=False: full=9.18e-03 q81=2.13e-04 wround=9.19e-03
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=False: full=1.00e-02 q81=1.71e-03 wround=1.02e-02
+Q4_K n=2 torch.float16 mmq=False lcpp=False: full=9.76e-03 q81=2.16e-04 wround=9.77e-03
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.07e-02 q81=1.70e-03 wround=1.09e-02
+Q4_K n=3 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.17e-04 wround=1.07e-02
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.12e-02 q81=1.67e-03 wround=1.13e-02
+Q4_K n=4 torch.float16 mmq=False lcpp=False: full=1.11e-02 q81=2.15e-04 wround=1.11e-02
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.19e-02 q81=1.75e-03 wround=1.19e-02
+Q4_K n=8 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=2.15e-04 wround=1.18e-02
+Q4_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.22e-02 q81=1.80e-03 wround=1.25e-02
+Q4_K n=16 torch.float16 mmq=False lcpp=False: full=1.22e-02 q81=2.26e-04 wround=1.23e-02
+Q6_K n=1 torch.bfloat16 mmq=False lcpp=False: full=1.01e-02 q81=1.61e-03 wround=1.01e-02
+Q6_K n=1 torch.float16 mmq=False lcpp=False: full=1.02e-02 q81=2.29e-04 wround=1.02e-02
+Q6_K n=2 torch.bfloat16 mmq=False lcpp=False: full=1.08e-02 q81=2.14e-03 wround=1.08e-02
+Q6_K n=2 torch.float16 mmq=False lcpp=False: full=1.05e-02 q81=2.07e-04 wround=1.05e-02
+Q6_K n=3 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=1.67e-03 wround=1.09e-02
+Q6_K n=3 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.38e-04 wround=1.07e-02
+Q6_K n=4 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=1.82e-03 wround=1.09e-02
+Q6_K n=4 torch.float16 mmq=False lcpp=False: full=1.10e-02 q81=2.19e-04 wround=1.10e-02
+Q6_K n=8 torch.bfloat16 mmq=False lcpp=False: full=1.09e-02 q81=1.74e-03 wround=1.09e-02
+Q6_K n=8 torch.float16 mmq=False lcpp=False: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+Q6_K n=16 torch.bfloat16 mmq=False lcpp=False: full=1.19e-02 q81=1.84e-03 wround=1.19e-02
+Q6_K n=16 torch.float16 mmq=False lcpp=False: full=1.18e-02 q81=2.29e-04 wround=1.18e-02
+Q2_K n=16 torch.bfloat16 mmq=True lcpp=False: full=1.26e-02 q81=1.80e-03 wround=1.28e-02
+Q2_K n=16 torch.float16 mmq=True lcpp=False: full=1.20e-02 q81=2.16e-04 wround=1.20e-02
+Q2_K n=64 torch.bfloat16 mmq=True lcpp=False: full=1.30e-02 q81=1.80e-03 wround=1.31e-02
+Q2_K n=64 torch.float16 mmq=True lcpp=False: full=1.30e-02 q81=2.28e-04 wround=1.30e-02
+Q2_K n=512 torch.bfloat16 mmq=True lcpp=False: full=1.29e-02 q81=1.88e-03 wround=1.29e-02
+Q2_K n=512 torch.float16 mmq=True lcpp=False: full=1.28e-02 q81=2.36e-04 wround=1.28e-02
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=False: full=5.55e-02 q81=5.55e-02 wround=5.55e-02 xsum=1.75e-03
+Q4_K n=16 torch.float16 mmq=True lcpp=False: full=4.90e-02 q81=4.80e-02 wround=4.90e-02 xsum=2.21e-04
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=False: full=5.02e-02 q81=4.84e-02 wround=5.02e-02 xsum=1.80e-03
+Q4_K n=64 torch.float16 mmq=True lcpp=False: full=5.05e-02 q81=4.91e-02 wround=5.05e-02 xsum=2.24e-04
+Q4_K n=512 torch.bfloat16 mmq=True lcpp=False: full=7.03e-02 q81=6.92e-02 wround=7.02e-02 xsum=1.87e-03
+Q4_K n=512 torch.float16 mmq=True lcpp=False: full=6.13e-02 q81=6.02e-02 wround=6.13e-02 xsum=2.29e-04
+Q6_K n=16 torch.bfloat16 mmq=True lcpp=False: full=1.24e-02 q81=1.91e-03 wround=1.26e-02
+Q6_K n=16 torch.float16 mmq=True lcpp=False: full=1.24e-02 q81=2.29e-04 wround=1.24e-02
+Q6_K n=64 torch.bfloat16 mmq=True lcpp=False: full=1.21e-02 q81=2.52e-03 wround=1.22e-02
+Q6_K n=64 torch.float16 mmq=True lcpp=False: full=1.21e-02 q81=3.17e-04 wround=1.21e-02
+Q6_K n=512 torch.bfloat16 mmq=True lcpp=False: full=1.21e-02 q81=2.51e-03 wround=1.22e-02
+Q6_K n=512 torch.float16 mmq=True lcpp=False: full=1.20e-02 q81=2.85e-04 wround=1.20e-02
 IQ1_M rows=17408 n=1: rel err vs full 1.08e-02
 IQ1_M rows=17408 n=4: rel err vs full 1.05e-02
 IQ1_M rows=17408 n=8: rel err vs full 1.12e-02
-IQ1_M rows=17408 n=9: rel err vs full 2.69e-03
+IQ1_M rows=17408 n=9: rel err vs full 2.68e-03
 IQ1_M rows=17408 n=16: rel err vs full 2.75e-03
 IQ1_M rows=17408 n=32: rel err vs full 2.40e-03
 IQ1_M rows=17408 n=128: rel err vs full 2.77e-03
 IQ1_M rows=17408 n=512: rel err vs full 2.40e-03
-IQ2_S rows=17408 n=1: rel err vs full 1.07e-02
+IQ2_S rows=17408 n=1: rel err vs full 1.08e-02
 IQ2_S rows=5120 n=1: rel err vs full 1.01e-02
 IQ2_S rows=17408 n=4: rel err vs full 1.05e-02
 IQ2_S rows=5120 n=4: rel err vs full 1.08e-02
-IQ2_S rows=17408 n=8: rel err vs full 1.14e-02
+IQ2_S rows=17408 n=8: rel err vs full 1.13e-02
 IQ2_S rows=5120 n=8: rel err vs full 1.08e-02
 IQ2_S rows=17408 n=9: rel err vs full 1.11e-02
 IQ2_S rows=5120 n=9: rel err vs full 1.11e-02
 IQ2_S rows=17408 n=16: rel err vs full 1.15e-02
-IQ2_S rows=5120 n=16: rel err vs full 1.24e-02
-IQ2_S rows=17408 n=32: rel err vs full 1.14e-02
+IQ2_S rows=5120 n=16: rel err vs full 1.23e-02
+IQ2_S rows=17408 n=32: rel err vs full 1.15e-02
 IQ2_S rows=5120 n=32: rel err vs full 1.10e-02
 IQ2_S rows=17408 n=128: rel err vs full 1.17e-02
 IQ2_S rows=5120 n=128: rel err vs full 1.16e-02
 IQ2_S rows=17408 n=512: rel err vs full 1.19e-02
-IQ2_S rows=5120 n=512: rel err vs full 1.25e-02
+IQ2_S rows=5120 n=512: rel err vs full 1.26e-02
 IQ2_XS rows=17408 n=1: rel err vs full 1.06e-02
 IQ2_XS rows=5120 n=1: rel err vs full 1.02e-02
 IQ2_XS rows=17408 n=4: rel err vs full 1.08e-02
 IQ2_XS rows=5120 n=4: rel err vs full 1.05e-02
 IQ2_XS rows=17408 n=8: rel err vs full 1.12e-02
-IQ2_XS rows=5120 n=8: rel err vs full 1.10e-02
+IQ2_XS rows=5120 n=8: rel err vs full 1.09e-02
 IQ2_XS rows=17408 n=9: rel err vs full 1.11e-02
-IQ2_XS rows=5120 n=9: rel err vs full 1.09e-02
+IQ2_XS rows=5120 n=9: rel err vs full 1.08e-02
 IQ2_XS rows=17408 n=16: rel err vs full 1.16e-02
 IQ2_XS rows=5120 n=16: rel err vs full 1.12e-02
 IQ2_XS rows=17408 n=32: rel err vs full 1.16e-02
@@ -202,7 +202,7 @@ IQ3_S rows=10240 n=512: rel err vs full 1.18e-02
 IQ3_S rows=5120 n=512: rel err vs full 1.15e-02
 IQ3_XXS rows=6144 n=1: rel err vs full 1.10e-02
 IQ3_XXS rows=5120 n=1: rel err vs full 1.04e-02
-IQ3_XXS rows=6144 n=4: rel err vs full 1.06e-02
+IQ3_XXS rows=6144 n=4: rel err vs full 1.05e-02
 IQ3_XXS rows=5120 n=4: rel err vs full 1.08e-02
 IQ3_XXS rows=6144 n=8: rel err vs full 1.15e-02
 IQ3_XXS rows=5120 n=8: rel err vs full 1.08e-02
@@ -217,58 +217,58 @@ IQ3_XXS rows=5120 n=128: rel err vs full 1.13e-02
 IQ3_XXS rows=6144 n=512: rel err vs full 1.18e-02
 IQ3_XXS rows=5120 n=512: rel err vs full 1.14e-02
 IQ4_XS rows=10240 n=1: rel err vs full 1.18e-02
-IQ4_XS rows=5120 n=1: rel err vs full 9.89e-03
+IQ4_XS rows=5120 n=1: rel err vs full 9.86e-03
 IQ4_XS rows=10240 n=4: rel err vs full 1.08e-02
-IQ4_XS rows=5120 n=4: rel err vs full 1.10e-02
+IQ4_XS rows=5120 n=4: rel err vs full 1.11e-02
 IQ4_XS rows=10240 n=8: rel err vs full 1.07e-02
 IQ4_XS rows=5120 n=8: rel err vs full 1.15e-02
-IQ4_XS rows=10240 n=9: rel err vs full 1.09e-02
-IQ4_XS rows=5120 n=9: rel err vs full 1.14e-02
+IQ4_XS rows=10240 n=9: rel err vs full 1.08e-02
+IQ4_XS rows=5120 n=9: rel err vs full 1.17e-02
 IQ4_XS rows=10240 n=16: rel err vs full 1.29e-02
-IQ4_XS rows=5120 n=16: rel err vs full 1.47e-02
+IQ4_XS rows=5120 n=16: rel err vs full 1.48e-02
 IQ4_XS rows=10240 n=32: rel err vs full 1.32e-02
 IQ4_XS rows=5120 n=32: rel err vs full 1.29e-02
-IQ4_XS rows=10240 n=128: rel err vs full 1.31e-02
-IQ4_XS rows=5120 n=128: rel err vs full 1.39e-02
+IQ4_XS rows=10240 n=128: rel err vs full 1.29e-02
+IQ4_XS rows=5120 n=128: rel err vs full 1.38e-02
 IQ4_XS rows=10240 n=512: rel err vs full 1.32e-02
-IQ4_XS rows=5120 n=512: rel err vs full 1.44e-02
+IQ4_XS rows=5120 n=512: rel err vs full 1.42e-02
 Q2_K rows=12288 n=1: rel err vs full 1.06e-02
 Q2_K rows=5120 n=1: rel err vs full 1.01e-02
 Q2_K rows=12288 n=4: rel err vs full 1.05e-02
 Q2_K rows=5120 n=4: rel err vs full 1.09e-02
 Q2_K rows=12288 n=8: rel err vs full 1.16e-02
 Q2_K rows=5120 n=8: rel err vs full 1.09e-02
-Q2_K rows=12288 n=9: rel err vs full 3.78e-02
-Q2_K rows=5120 n=9: rel err vs full 3.55e-02
-Q2_K rows=12288 n=16: rel err vs full 4.02e-02
-Q2_K rows=5120 n=16: rel err vs full 4.69e-02
-Q2_K rows=12288 n=32: rel err vs full 6.60e-02
-Q2_K rows=5120 n=32: rel err vs full 4.47e-02
-Q2_K rows=12288 n=128: rel err vs full 6.79e-02
-Q2_K rows=5120 n=128: rel err vs full 4.36e-02
-Q2_K rows=12288 n=512: rel err vs full 6.52e-02
-Q2_K rows=5120 n=512: rel err vs full 6.24e-02
+Q2_K rows=12288 n=9: rel err vs full 3.41e-02
+Q2_K rows=5120 n=9: rel err vs full 3.51e-02
+Q2_K rows=12288 n=16: rel err vs full 4.04e-02
+Q2_K rows=5120 n=16: rel err vs full 4.72e-02
+Q2_K rows=12288 n=32: rel err vs full 6.57e-02
+Q2_K rows=5120 n=32: rel err vs full 4.31e-02
+Q2_K rows=12288 n=128: rel err vs full 6.61e-02
+Q2_K rows=5120 n=128: rel err vs full 4.47e-02
+Q2_K rows=12288 n=512: rel err vs full 6.54e-02
+Q2_K rows=5120 n=512: rel err vs full 6.36e-02
 Q4_K rows=6144 n=1: rel err vs full 1.04e-02
 Q4_K rows=5120 n=1: rel err vs full 9.47e-03
 Q4_K rows=6144 n=4: rel err vs full 1.05e-02
 Q4_K rows=5120 n=4: rel err vs full 1.16e-02
 Q4_K rows=6144 n=8: rel err vs full 1.11e-02
 Q4_K rows=5120 n=8: rel err vs full 1.12e-02
-Q4_K rows=6144 n=9: rel err vs full 4.80e-02
-Q4_K rows=5120 n=9: rel err vs full 5.32e-02
-Q4_K rows=6144 n=16: rel err vs full 3.45e-02
-Q4_K rows=5120 n=16: rel err vs full 3.29e-02
-Q4_K rows=6144 n=32: rel err vs full 4.35e-02
-Q4_K rows=5120 n=32: rel err vs full 4.15e-02
-Q4_K rows=6144 n=128: rel err vs full 6.39e-02
-Q4_K rows=5120 n=128: rel err vs full 6.31e-02
-Q4_K rows=6144 n=512: rel err vs full 7.73e-02
-Q4_K rows=5120 n=512: rel err vs full 8.97e-02
+Q4_K rows=6144 n=9: rel err vs full 4.86e-02
+Q4_K rows=5120 n=9: rel err vs full 5.36e-02
+Q4_K rows=6144 n=16: rel err vs full 3.32e-02
+Q4_K rows=5120 n=16: rel err vs full 3.42e-02
+Q4_K rows=6144 n=32: rel err vs full 4.54e-02
+Q4_K rows=5120 n=32: rel err vs full 4.38e-02
+Q4_K rows=6144 n=128: rel err vs full 6.31e-02
+Q4_K rows=5120 n=128: rel err vs full 6.40e-02
+Q4_K rows=6144 n=512: rel err vs full 7.64e-02
+Q4_K rows=5120 n=512: rel err vs full 8.71e-02
 Q6_K rows=17408 n=1: rel err vs full 1.06e-02
-Q6_K rows=5120 n=1: rel err vs full 9.61e-03
+Q6_K rows=5120 n=1: rel err vs full 9.56e-03
 Q6_K rows=17408 n=4: rel err vs full 1.06e-02
-Q6_K rows=5120 n=4: rel err vs full 1.08e-02
-Q6_K rows=17408 n=8: rel err vs full 1.14e-02
+Q6_K rows=5120 n=4: rel err vs full 1.07e-02
+Q6_K rows=17408 n=8: rel err vs full 1.13e-02
 Q6_K rows=5120 n=8: rel err vs full 1.10e-02
 Q6_K rows=17408 n=9: rel err vs full 1.18e-02
 Q6_K rows=5120 n=9: rel err vs full 1.15e-02
@@ -280,381 +280,381 @@ Q6_K rows=17408 n=128: rel err vs full 1.18e-02
 Q6_K rows=5120 n=128: rel err vs full 1.17e-02
 Q6_K rows=17408 n=512: rel err vs full 1.21e-02
 Q6_K rows=5120 n=512: rel err vs full 1.24e-02
-IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=9.68e-03 q81=3.65e-05 wround=9.79e-03
-IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=9.66e-03 q81=1.61e-05 wround=9.67e-03
-IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=9.89e-03 q81=2.54e-04 wround=9.85e-03
-IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=9.62e-03 q81=5.92e-05 wround=9.64e-03
-IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=2.66e-04 wround=1.05e-02
-IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=1.01e-04 wround=1.04e-02
-IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=2.06e-04 wround=1.10e-02
-IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=1.02e-04 wround=1.08e-02
-IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=4.33e-04 wround=1.10e-02
-IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=9.56e-05 wround=1.08e-02
-IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.18e-02 q81=3.37e-04 wround=1.19e-02
-IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=1.15e-04 wround=1.14e-02
-IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=3.72e-04 wround=1.14e-02
-IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=1.29e-04 wround=1.12e-02
-IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=4.16e-04 wround=1.15e-02
-IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=7.01e-05 wround=1.13e-02
-IQ2_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=9.83e-03 q81=5.23e-04 wround=1.00e-02
-IQ2_XS n=1 torch.float16 mmq=False lcpp=True: full=9.88e-03 q81=1.82e-05 wround=9.88e-03
-IQ2_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=9.03e-04 wround=1.16e-02
-IQ2_XS n=2 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.26e-04 wround=1.14e-02
-IQ2_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=5.94e-04 wround=1.06e-02
-IQ2_XS n=3 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.16e-04 wround=1.02e-02
-IQ2_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=7.02e-04 wround=1.11e-02
-IQ2_XS n=4 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.14e-04 wround=1.06e-02
-IQ2_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.14e-03 wround=1.16e-02
-IQ2_XS n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.77e-04 wround=1.10e-02
-IQ2_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=7.62e-04 wround=1.06e-02
-IQ2_XS n=6 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=1.84e-04 wround=1.04e-02
-IQ2_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=7.22e-04 wround=1.11e-02
-IQ2_XS n=7 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.48e-04 wround=1.10e-02
-IQ2_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.01e-03 wround=1.12e-02
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=9.66e-03 q81=1.53e-03 wround=9.76e-03
+IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=9.64e-03 q81=2.17e-04 wround=9.65e-03
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=9.91e-03 q81=1.78e-03 wround=9.86e-03
+IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=9.61e-03 q81=2.15e-04 wround=9.63e-03
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.71e-03 wround=1.04e-02
+IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.24e-04 wround=1.04e-02
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.72e-03 wround=1.09e-02
+IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.74e-03 wround=1.10e-02
+IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.18e-02
+IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.24e-04 wround=1.14e-02
+IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.76e-03 wround=1.14e-02
+IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.30e-04 wround=1.12e-02
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.76e-03 wround=1.14e-02
+IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.25e-04 wround=1.13e-02
+IQ2_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=9.73e-03 q81=1.70e-03 wround=9.91e-03
+IQ2_XS n=1 torch.float16 mmq=False lcpp=True: full=9.88e-03 q81=2.33e-04 wround=9.88e-03
+IQ2_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.68e-03 wround=1.17e-02
+IQ2_XS n=2 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.26e-04 wround=1.15e-02
+IQ2_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.74e-03 wround=1.06e-02
+IQ2_XS n=3 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.26e-04 wround=1.02e-02
+IQ2_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.75e-03 wround=1.11e-02
+IQ2_XS n=4 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.25e-04 wround=1.06e-02
+IQ2_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.76e-03 wround=1.15e-02
+IQ2_XS n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.20e-04 wround=1.10e-02
+IQ2_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.74e-03 wround=1.08e-02
+IQ2_XS n=6 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.33e-04 wround=1.04e-02
+IQ2_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.70e-03 wround=1.11e-02
+IQ2_XS n=7 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.22e-04 wround=1.10e-02
+IQ2_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.79e-03 wround=1.12e-02
 IQ2_XS n=8 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.23e-04 wround=1.09e-02
-IQ2_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=5.98e-04 wround=1.06e-02
-IQ2_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.02e-05 wround=1.04e-02
-IQ2_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=8.83e-04 wround=1.14e-02
+IQ2_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.73e-03 wround=1.05e-02
+IQ2_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.20e-04 wround=1.04e-02
+IQ2_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.64e-03 wround=1.14e-02
 IQ2_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.18e-04 wround=1.11e-02
-IQ2_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=8.11e-04 wround=1.13e-02
-IQ2_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.12e-04 wround=1.07e-02
-IQ2_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=6.70e-04 wround=1.07e-02
-IQ2_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.17e-04 wround=1.07e-02
-IQ2_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.05e-03 wround=1.17e-02
-IQ2_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=1.84e-04 wround=1.14e-02
-IQ2_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=7.22e-04 wround=1.11e-02
-IQ2_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=1.72e-04 wround=1.08e-02
-IQ2_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=7.70e-04 wround=1.20e-02
-IQ2_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.21e-02 q81=1.60e-04 wround=1.21e-02
-IQ2_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.10e-03 wround=1.08e-02
+IQ2_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.75e-03 wround=1.13e-02
+IQ2_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.25e-04 wround=1.07e-02
+IQ2_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.74e-03 wround=1.09e-02
+IQ2_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+IQ2_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.72e-03 wround=1.16e-02
+IQ2_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.21e-04 wround=1.14e-02
+IQ2_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.76e-03 wround=1.11e-02
+IQ2_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.20e-04 wround=1.08e-02
+IQ2_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.70e-03 wround=1.20e-02
+IQ2_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.22e-04 wround=1.22e-02
+IQ2_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.83e-03 wround=1.09e-02
 IQ2_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.20e-04 wround=1.05e-02
-IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=5.58e-04 wround=1.05e-02
-IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=1.30e-05 wround=1.04e-02
-IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.07e-03 wround=1.25e-02
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.65e-03 wround=1.06e-02
+IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.19e-04 wround=1.04e-02
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.24e-02 q81=1.76e-03 wround=1.25e-02
 IQ3_S n=2 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.13e-04 wround=1.22e-02
-IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=6.99e-04 wround=1.06e-02
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.86e-03 wround=1.06e-02
 IQ3_S n=3 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.17e-04 wround=1.05e-02
-IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=6.30e-04 wround=1.17e-02
-IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.00e-04 wround=1.11e-02
-IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.02e-03 wround=1.13e-02
-IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=1.83e-04 wround=1.11e-02
-IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=8.53e-04 wround=1.06e-02
-IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=1.76e-04 wround=1.03e-02
-IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=8.18e-04 wround=1.12e-02
-IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=1.57e-04 wround=1.13e-02
-IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=9.50e-04 wround=1.09e-02
-IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.03e-04 wround=1.07e-02
-IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=5.49e-04 wround=1.05e-02
-IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=1.38e-05 wround=1.07e-02
-IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=8.98e-04 wround=1.18e-02
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.74e-03 wround=1.18e-02
+IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.11e-04 wround=1.11e-02
+IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.67e-03 wround=1.13e-02
+IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.21e-04 wround=1.11e-02
+IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.82e-03 wround=1.07e-02
+IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.24e-04 wround=1.03e-02
+IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.76e-03 wround=1.12e-02
+IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.20e-04 wround=1.13e-02
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.73e-03 wround=1.09e-02
+IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.29e-04 wround=1.07e-02
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.67e-03 wround=1.06e-02
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.06e-04 wround=1.07e-02
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.66e-03 wround=1.18e-02
 IQ3_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.11e-04 wround=1.17e-02
-IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=7.58e-04 wround=1.06e-02
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.72e-03 wround=1.06e-02
 IQ3_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.24e-04 wround=1.01e-02
-IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=6.55e-04 wround=1.11e-02
-IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.91e-04 wround=1.10e-02
-IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.20e-02 q81=1.05e-03 wround=1.21e-02
-IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=1.54e-04 wround=1.17e-02
-IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=7.67e-04 wround=1.10e-02
-IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=1.78e-04 wround=1.07e-02
-IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=8.69e-04 wround=1.21e-02
-IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.21e-02 q81=1.61e-04 wround=1.21e-02
-IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.01e-03 wround=1.08e-02
-IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.16e-04 wround=1.04e-02
-IQ4_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=5.03e-04 wround=1.11e-02
-IQ4_XS n=1 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.09e-05 wround=1.10e-02
-IQ4_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=9.42e-04 wround=1.27e-02
-IQ4_XS n=2 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.13e-04 wround=1.23e-02
-IQ4_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=6.28e-04 wround=1.11e-02
-IQ4_XS n=3 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.89e-04 wround=1.10e-02
-IQ4_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.26e-02 q81=6.19e-04 wround=1.28e-02
-IQ4_XS n=4 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.01e-04 wround=1.23e-02
-IQ4_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.22e-02 q81=1.02e-03 wround=1.22e-02
-IQ4_XS n=5 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=1.66e-04 wround=1.16e-02
-IQ4_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=8.66e-04 wround=1.12e-02
-IQ4_XS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=1.66e-04 wround=1.08e-02
-IQ4_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=7.00e-04 wround=1.13e-02
-IQ4_XS n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=1.51e-04 wround=1.12e-02
-IQ4_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.23e-02 q81=9.96e-04 wround=1.25e-02
-IQ4_XS n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.09e-04 wround=1.14e-02
-Q2_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.81e-03 q81=4.06e-04 wround=1.00e-02
-Q2_K n=1 torch.float16 mmq=False lcpp=True: full=9.65e-03 q81=6.57e-06 wround=9.65e-03
-Q2_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=9.93e-04 wround=1.14e-02
-Q2_K n=2 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.06e-04 wround=1.12e-02
-Q2_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=6.97e-04 wround=1.10e-02
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.72e-03 wround=1.10e-02
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.22e-04 wround=1.10e-02
+IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.71e-03 wround=1.20e-02
+IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.23e-04 wround=1.18e-02
+IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.73e-03 wround=1.11e-02
+IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.74e-03 wround=1.21e-02
+IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.28e-04 wround=1.22e-02
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.73e-03 wround=1.07e-02
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.19e-04 wround=1.04e-02
+IQ4_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+IQ4_XS n=1 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.12e-04 wround=1.10e-02
+IQ4_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.78e-03 wround=1.27e-02
+IQ4_XS n=2 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.21e-04 wround=1.23e-02
+IQ4_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.57e-03 wround=1.11e-02
+IQ4_XS n=3 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.05e-04 wround=1.10e-02
+IQ4_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.27e-02 q81=1.81e-03 wround=1.29e-02
+IQ4_XS n=4 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.15e-04 wround=1.23e-02
+IQ4_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.69e-03 wround=1.22e-02
+IQ4_XS n=5 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.13e-04 wround=1.16e-02
+IQ4_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.74e-03 wround=1.12e-02
+IQ4_XS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+IQ4_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.68e-03 wround=1.13e-02
+IQ4_XS n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.08e-04 wround=1.12e-02
+IQ4_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.23e-02 q81=1.74e-03 wround=1.25e-02
+IQ4_XS n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.26e-04 wround=1.14e-02
+Q2_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.86e-03 q81=1.63e-03 wround=1.00e-02
+Q2_K n=1 torch.float16 mmq=False lcpp=True: full=9.67e-03 q81=1.95e-04 wround=9.67e-03
+Q2_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.72e-03 wround=1.14e-02
+Q2_K n=2 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.20e-04 wround=1.12e-02
+Q2_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.79e-03 wround=1.11e-02
 Q2_K n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.11e-04 wround=1.07e-02
-Q2_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=5.55e-04 wround=1.07e-02
+Q2_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.70e-03 wround=1.07e-02
 Q2_K n=4 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.16e-04 wround=1.03e-02
-Q2_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=9.80e-04 wround=1.14e-02
-Q2_K n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=1.71e-04 wround=1.10e-02
-Q2_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.22e-02 q81=7.48e-04 wround=1.24e-02
-Q2_K n=6 torch.float16 mmq=False lcpp=True: full=1.19e-02 q81=1.80e-04 wround=1.20e-02
-Q2_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=6.91e-04 wround=1.15e-02
-Q2_K n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=1.38e-04 wround=1.13e-02
-Q2_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=9.40e-04 wround=1.25e-02
-Q2_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.00e-04 wround=1.18e-02
-Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.83e-03 q81=5.19e-04 wround=9.86e-03
-Q4_K n=1 torch.float16 mmq=False lcpp=True: full=9.75e-03 q81=1.64e-05 wround=9.76e-03
-Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=7.21e-04 wround=1.16e-02
-Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=9.37e-05 wround=1.17e-02
-Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=4.94e-04 wround=1.17e-02
-Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=1.02e-04 wround=1.12e-02
-Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=5.75e-04 wround=1.09e-02
-Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=1.15e-04 wround=1.08e-02
-Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.12e-03 wround=1.10e-02
-Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=1.73e-04 wround=1.09e-02
-Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=7.31e-04 wround=1.18e-02
-Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.06e-04 wround=1.15e-02
-Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=9.88e-04 wround=1.17e-02
-Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=1.99e-04 wround=1.14e-02
-Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=9.50e-04 wround=1.27e-02
-Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=1.78e-04 wround=1.17e-02
-Q6_K n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=6.38e-04 wround=1.04e-02
-Q6_K n=1 torch.float16 mmq=False lcpp=True: full=9.90e-03 q81=7.41e-05 wround=9.91e-03
-Q6_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=5.37e-04 wround=1.11e-02
-Q6_K n=2 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=9.07e-05 wround=1.09e-02
-Q6_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=9.34e-04 wround=1.12e-02
-Q6_K n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=7.03e-05 wround=1.08e-02
-Q6_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.06e-03 wround=1.04e-02
-Q6_K n=4 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=9.27e-05 wround=1.01e-02
-Q6_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.21e-03 wround=1.06e-02
-Q6_K n=5 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=1.74e-04 wround=1.03e-02
-Q6_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=7.04e-04 wround=1.05e-02
-Q6_K n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=1.90e-04 wround=1.03e-02
-Q6_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=7.72e-04 wround=1.20e-02
-Q6_K n=7 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=1.54e-04 wround=1.17e-02
-Q6_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=8.19e-04 wround=1.18e-02
-Q6_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=1.56e-04 wround=1.18e-02
-IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=9.94e-03 q81=5.95e-04 wround=1.01e-02
-IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.85e-03 q81=3.11e-05 wround=9.84e-03
-IQ2_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=5.30e-04 wround=1.12e-02
-IQ2_S n=2 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=2.85e-05 wround=1.10e-02
-IQ2_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=4.59e-04 wround=1.11e-02
-IQ2_S n=3 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=6.54e-05 wround=1.07e-02
-IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=3.59e-04 wround=1.07e-02
-IQ2_S n=5 torch.float16 mmq=True lcpp=True: full=1.03e-02 q81=1.04e-04 wround=1.03e-02
-IQ2_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=4.10e-04 wround=1.11e-02
-IQ2_S n=7 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=7.06e-05 wround=1.10e-02
-IQ2_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=3.53e-04 wround=1.11e-02
-IQ2_S n=8 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=6.68e-05 wround=1.11e-02
-IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=6.25e-04 wround=1.12e-02
-IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=9.64e-05 wround=1.09e-02
-IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=5.80e-04 wround=1.14e-02
-IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=8.37e-05 wround=1.12e-02
-IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=7.11e-04 wround=1.19e-02
-IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=1.42e-04 wround=1.21e-02
-IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=5.97e-04 wround=1.16e-02
-IQ2_S n=128 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=9.47e-05 wround=1.14e-02
-IQ2_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=7.19e-04 wround=1.24e-02
-IQ2_S n=512 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=1.94e-04 wround=1.22e-02
-IQ2_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=7.60e-04 wround=1.28e-02
-IQ2_S n=2048 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=2.06e-04 wround=1.27e-02
-IQ2_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.80e-03 q81=8.42e-04 wround=9.94e-03
-IQ2_XS n=1 torch.float16 mmq=True lcpp=True: full=9.76e-03 q81=2.01e-04 wround=9.76e-03
-IQ2_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=9.79e-04 wround=1.13e-02
-IQ2_XS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=2.06e-04 wround=1.08e-02
-IQ2_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.09e-03 wround=1.11e-02
-IQ2_XS n=3 torch.float16 mmq=True lcpp=True: full=1.06e-02 q81=2.07e-04 wround=1.05e-02
-IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=8.25e-04 wround=1.26e-02
-IQ2_XS n=5 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=2.07e-04 wround=1.24e-02
-IQ2_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.34e-03 wround=1.18e-02
-IQ2_XS n=7 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=1.58e-04 wround=1.18e-02
-IQ2_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=8.27e-04 wround=1.21e-02
-IQ2_XS n=8 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=1.97e-04 wround=1.18e-02
-IQ2_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=8.76e-04 wround=1.19e-02
-IQ2_XS n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=2.16e-04 wround=1.15e-02
-IQ2_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.03e-03 wround=1.23e-02
-IQ2_XS n=16 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=1.57e-04 wround=1.20e-02
-IQ2_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.15e-03 wround=1.23e-02
-IQ2_XS n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.15e-04 wround=1.21e-02
-IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=1.35e-03 wround=1.26e-02
-IQ2_XS n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=2.25e-04 wround=1.22e-02
-IQ2_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.44e-03 wround=1.32e-02
-IQ2_XS n=512 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=2.22e-04 wround=1.28e-02
-IQ2_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.43e-03 wround=1.31e-02
-IQ2_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=2.32e-04 wround=1.29e-02
-IQ2_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.75e-03 q81=8.38e-04 wround=9.96e-03
-IQ2_XXS n=1 torch.float16 mmq=True lcpp=True: full=9.56e-03 q81=2.18e-04 wround=9.55e-03
-IQ2_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=8.95e-04 wround=1.12e-02
-IQ2_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=2.02e-04 wround=1.07e-02
-IQ2_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.16e-03 wround=1.12e-02
-IQ2_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=2.04e-04 wround=1.11e-02
-IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=6.24e-04 wround=1.28e-02
-IQ2_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=2.08e-04 wround=1.22e-02
-IQ2_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.35e-03 wround=1.13e-02
-IQ2_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=1.46e-04 wround=1.09e-02
-IQ2_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=9.66e-04 wround=1.20e-02
-IQ2_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.05e-04 wround=1.21e-02
-IQ2_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=7.51e-04 wround=1.19e-02
-IQ2_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=2.17e-04 wround=1.19e-02
-IQ2_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=9.53e-04 wround=1.19e-02
-IQ2_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=1.56e-04 wround=1.16e-02
-IQ2_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.21e-03 wround=1.21e-02
-IQ2_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=2.14e-04 wround=1.19e-02
-IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.30e-03 wround=1.24e-02
-IQ2_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.15e-04 wround=1.21e-02
-IQ2_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=1.40e-03 wround=1.28e-02
-IQ2_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=2.24e-04 wround=1.23e-02
-IQ2_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.39e-03 wround=1.31e-02
-IQ2_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=2.30e-04 wround=1.27e-02
-IQ3_S n=1 torch.bfloat16 mmq=True lcpp=True: full=9.68e-03 q81=8.36e-04 wround=9.90e-03
-IQ3_S n=1 torch.float16 mmq=True lcpp=True: full=9.60e-03 q81=2.05e-04 wround=9.61e-03
-IQ3_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=8.51e-04 wround=1.14e-02
-IQ3_S n=2 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=2.14e-04 wround=1.11e-02
-IQ3_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.09e-03 wround=1.13e-02
-IQ3_S n=3 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=1.97e-04 wround=1.09e-02
-IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=7.49e-04 wround=1.16e-02
-IQ3_S n=5 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=2.02e-04 wround=1.13e-02
-IQ3_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.35e-03 wround=1.15e-02
-IQ3_S n=7 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=1.55e-04 wround=1.17e-02
-IQ3_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=7.98e-04 wround=1.25e-02
-IQ3_S n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.11e-04 wround=1.21e-02
-IQ3_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=8.62e-04 wround=1.24e-02
-IQ3_S n=9 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=2.20e-04 wround=1.18e-02
-IQ3_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=9.93e-04 wround=1.22e-02
-IQ3_S n=16 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=1.57e-04 wround=1.22e-02
-IQ3_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.16e-03 wround=1.30e-02
-IQ3_S n=64 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=2.03e-04 wround=1.29e-02
-IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.41e-03 wround=1.23e-02
-IQ3_S n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=2.27e-04 wround=1.23e-02
-IQ3_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.62e-03 wround=1.30e-02
-IQ3_S n=512 torch.float16 mmq=True lcpp=True: full=1.26e-02 q81=2.29e-04 wround=1.26e-02
-IQ3_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=1.46e-03 wround=1.32e-02
-IQ3_S n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=2.34e-04 wround=1.29e-02
-IQ3_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.04e-02 q81=8.73e-04 wround=1.05e-02
-IQ3_XXS n=1 torch.float16 mmq=True lcpp=True: full=1.01e-02 q81=2.14e-04 wround=1.01e-02
-IQ3_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=9.71e-04 wround=1.12e-02
-IQ3_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=1.96e-04 wround=1.08e-02
-IQ3_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.05e-02 q81=1.06e-03 wround=1.05e-02
-IQ3_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.02e-02 q81=2.07e-04 wround=1.02e-02
-IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=7.84e-04 wround=1.16e-02
-IQ3_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=2.21e-04 wround=1.14e-02
-IQ3_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.25e-03 wround=1.11e-02
-IQ3_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=1.71e-04 wround=1.08e-02
-IQ3_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.13e-03 wround=1.20e-02
-IQ3_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=1.93e-04 wround=1.16e-02
-IQ3_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=8.77e-04 wround=1.22e-02
-IQ3_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.19e-04 wround=1.21e-02
-IQ3_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=8.52e-04 wround=1.20e-02
-IQ3_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=1.53e-04 wround=1.22e-02
-IQ3_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.27e-02 q81=1.15e-03 wround=1.28e-02
-IQ3_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=2.04e-04 wround=1.29e-02
-IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.39e-03 wround=1.22e-02
-IQ3_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=2.20e-04 wround=1.23e-02
-IQ3_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.49e-03 wround=1.30e-02
-IQ3_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.31e-02 q81=2.20e-04 wround=1.31e-02
-IQ3_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.34e-02 q81=1.44e-03 wround=1.34e-02
-IQ3_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.32e-02 q81=2.27e-04 wround=1.32e-02
-IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=8.18e-04 wround=1.11e-02
-IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=2.15e-04 wround=1.07e-02
-IQ4_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=9.72e-03 q81=1.02e-03 wround=9.95e-03
-IQ4_XS n=2 torch.float16 mmq=True lcpp=True: full=9.59e-03 q81=2.03e-04 wround=9.59e-03
-IQ4_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=9.98e-04 wround=1.11e-02
-IQ4_XS n=3 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=2.16e-04 wround=1.05e-02
-IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=7.39e-04 wround=1.13e-02
-IQ4_XS n=5 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=2.20e-04 wround=1.07e-02
-IQ4_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.32e-03 wround=1.20e-02
-IQ4_XS n=7 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=1.58e-04 wround=1.16e-02
-IQ4_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=9.96e-04 wround=1.26e-02
-IQ4_XS n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=2.21e-04 wround=1.21e-02
-IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.33e-02 q81=8.26e-04 wround=1.35e-02
-IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=2.05e-04 wround=1.28e-02
-IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=9.43e-04 wround=1.20e-02
-IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=1.58e-04 wround=1.16e-02
-IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.27e-02 q81=1.13e-03 wround=1.30e-02
-IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.35e-02 q81=2.12e-04 wround=1.35e-02
-IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.35e-02 q81=1.36e-03 wround=1.36e-02
-IQ4_XS n=128 torch.float16 mmq=True lcpp=True: full=1.37e-02 q81=2.25e-04 wround=1.37e-02
-IQ4_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.35e-02 q81=1.51e-03 wround=1.37e-02
-IQ4_XS n=512 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=2.26e-04 wround=1.30e-02
-IQ4_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.43e-02 q81=1.50e-03 wround=1.44e-02
-IQ4_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.41e-02 q81=2.28e-04 wround=1.41e-02
-Q2_K n=1 torch.bfloat16 mmq=True lcpp=True: full=3.17e-02 q81=2.89e-02 wround=3.18e-02 d2s6=1.78e-04
-Q2_K n=1 torch.float16 mmq=True lcpp=True: full=2.89e-02 q81=2.69e-02 wround=2.89e-02 d2s6=2.93e-04
-Q2_K n=2 torch.bfloat16 mmq=True lcpp=True: full=2.81e-02 q81=2.56e-02 wround=2.82e-02 d2s6=1.74e-04
-Q2_K n=2 torch.float16 mmq=True lcpp=True: full=2.89e-02 q81=2.78e-02 wround=2.89e-02 d2s6=5.25e-04
-Q2_K n=3 torch.bfloat16 mmq=True lcpp=True: full=2.26e-02 q81=1.95e-02 wround=2.27e-02 d2s6=2.13e-05
-Q2_K n=3 torch.float16 mmq=True lcpp=True: full=2.67e-02 q81=2.54e-02 wround=2.67e-02 d2s6=1.13e-04
-Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.68e-02 q81=3.40e-02 wround=3.69e-02 d2s6=4.00e-04
-Q2_K n=5 torch.float16 mmq=True lcpp=True: full=3.18e-02 q81=3.09e-02 wround=3.18e-02 d2s6=5.30e-04
-Q2_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.93e-02 q81=4.74e-02 wround=4.93e-02 d2s6=3.47e-04
-Q2_K n=7 torch.float16 mmq=True lcpp=True: full=5.25e-02 q81=5.13e-02 wround=5.25e-02 d2s6=3.05e-04
-Q2_K n=8 torch.bfloat16 mmq=True lcpp=True: full=3.50e-02 q81=2.68e-02 wround=3.50e-02 d2s6=3.19e-04
-Q2_K n=8 torch.float16 mmq=True lcpp=True: full=3.00e-02 q81=2.80e-02 wround=3.00e-02 d2s6=2.79e-04
-Q2_K n=9 torch.bfloat16 mmq=True lcpp=True: full=2.81e-02 q81=2.40e-02 wround=2.82e-02 d2s6=4.86e-04
-Q2_K n=9 torch.float16 mmq=True lcpp=True: full=2.41e-02 q81=2.26e-02 wround=2.41e-02 d2s6=5.86e-04
-Q2_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.15e-02 q81=2.88e-02 wround=3.15e-02 d2s6=4.76e-04
-Q2_K n=16 torch.float16 mmq=True lcpp=True: full=3.65e-02 q81=3.56e-02 wround=3.65e-02 d2s6=3.19e-04
-Q2_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.37e-02 q81=4.91e-02 wround=5.37e-02 d2s6=8.45e-04
-Q2_K n=64 torch.float16 mmq=True lcpp=True: full=5.21e-02 q81=4.99e-02 wround=5.21e-02 d2s6=6.05e-04
-Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.08e-02 q81=5.46e-02 wround=6.09e-02 d2s6=7.89e-04
-Q2_K n=128 torch.float16 mmq=True lcpp=True: full=5.99e-02 q81=5.63e-02 wround=5.99e-02 d2s6=6.39e-04
-Q2_K n=512 torch.bfloat16 mmq=True lcpp=True: full=6.92e-02 q81=6.35e-02 wround=6.91e-02 d2s6=1.19e-03
-Q2_K n=512 torch.float16 mmq=True lcpp=True: full=6.85e-02 q81=6.84e-02 wround=6.85e-02 d2s6=6.35e-04
-Q2_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.74e-02 q81=7.23e-02 wround=7.73e-02 d2s6=1.26e-03
-Q2_K n=2048 torch.float16 mmq=True lcpp=True: full=6.91e-02 q81=6.74e-02 wround=6.91e-02 d2s6=6.26e-04
-Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.61e-02 q81=9.34e-03 wround=1.61e-02 xsum=8.53e-06
+Q2_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.67e-03 wround=1.15e-02
+Q2_K n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.08e-04 wround=1.10e-02
+Q2_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.62e-03 wround=1.23e-02
+Q2_K n=6 torch.float16 mmq=False lcpp=True: full=1.19e-02 q81=2.18e-04 wround=1.19e-02
+Q2_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.80e-03 wround=1.15e-02
+Q2_K n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.21e-04 wround=1.13e-02
+Q2_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.73e-03 wround=1.25e-02
+Q2_K n=8 torch.float16 mmq=False lcpp=True: full=1.19e-02 q81=2.18e-04 wround=1.19e-02
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.87e-03 q81=1.74e-03 wround=9.91e-03
+Q4_K n=1 torch.float16 mmq=False lcpp=True: full=9.76e-03 q81=2.07e-04 wround=9.77e-03
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.74e-03 wround=1.17e-02
+Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.18e-04 wround=1.16e-02
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.66e-03 wround=1.17e-02
+Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.08e-04 wround=1.12e-02
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.63e-03 wround=1.09e-02
+Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.09e-04 wround=1.08e-02
+Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.74e-03 wround=1.11e-02
+Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.13e-04 wround=1.09e-02
+Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.77e-03 wround=1.17e-02
+Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.18e-04 wround=1.15e-02
+Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.18e-02
+Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.19e-04 wround=1.14e-02
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.70e-03 wround=1.27e-02
+Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.13e-04 wround=1.17e-02
+Q6_K n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.55e-03 wround=1.04e-02
+Q6_K n=1 torch.float16 mmq=False lcpp=True: full=9.91e-03 q81=1.99e-04 wround=9.92e-03
+Q6_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+Q6_K n=2 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.17e-04 wround=1.08e-02
+Q6_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.85e-03 wround=1.12e-02
+Q6_K n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.25e-04 wround=1.07e-02
+Q6_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.80e-03 wround=1.03e-02
+Q6_K n=4 torch.float16 mmq=False lcpp=True: full=1.00e-02 q81=2.09e-04 wround=1.01e-02
+Q6_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.92e-03 wround=1.06e-02
+Q6_K n=5 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.49e-04 wround=1.03e-02
+Q6_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.72e-03 wround=1.05e-02
+Q6_K n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.21e-04 wround=1.03e-02
+Q6_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.20e-02 q81=1.68e-03 wround=1.21e-02
+Q6_K n=7 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.26e-04 wround=1.17e-02
+Q6_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.73e-03 wround=1.18e-02
+Q6_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.35e-04 wround=1.18e-02
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.00e-02 q81=1.74e-03 wround=1.01e-02
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.86e-03 q81=2.80e-04 wround=9.86e-03
+IQ2_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.65e-03 wround=1.12e-02
+IQ2_S n=2 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.30e-04 wround=1.09e-02
+IQ2_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.81e-03 wround=1.11e-02
+IQ2_S n=3 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.10e-04 wround=1.07e-02
+IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=1.70e-03 wround=1.08e-02
+IQ2_S n=5 torch.float16 mmq=True lcpp=True: full=1.03e-02 q81=3.06e-04 wround=1.03e-02
+IQ2_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.76e-03 wround=1.10e-02
+IQ2_S n=7 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.17e-04 wround=1.10e-02
+IQ2_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.73e-03 wround=1.10e-02
+IQ2_S n=8 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.26e-04 wround=1.11e-02
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.73e-03 wround=1.12e-02
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.21e-04 wround=1.09e-02
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.82e-03 wround=1.14e-02
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.29e-04 wround=1.12e-02
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.81e-03 wround=1.19e-02
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.27e-04 wround=1.21e-02
+IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.84e-03 wround=1.18e-02
+IQ2_S n=128 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.39e-04 wround=1.14e-02
+IQ2_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.86e-03 wround=1.24e-02
+IQ2_S n=512 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.39e-04 wround=1.21e-02
+IQ2_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.93e-03 wround=1.29e-02
+IQ2_S n=2048 torch.float16 mmq=True lcpp=True: full=1.26e-02 q81=3.52e-04 wround=1.26e-02
+IQ2_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.78e-03 q81=1.59e-03 wround=9.91e-03
+IQ2_XS n=1 torch.float16 mmq=True lcpp=True: full=9.76e-03 q81=2.94e-04 wround=9.76e-03
+IQ2_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.72e-03 wround=1.13e-02
+IQ2_XS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.17e-04 wround=1.08e-02
+IQ2_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.77e-03 wround=1.11e-02
+IQ2_XS n=3 torch.float16 mmq=True lcpp=True: full=1.06e-02 q81=2.98e-04 wround=1.05e-02
+IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=1.73e-03 wround=1.26e-02
+IQ2_XS n=5 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=3.05e-04 wround=1.24e-02
+IQ2_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.72e-03 wround=1.17e-02
+IQ2_XS n=7 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.50e-04 wround=1.18e-02
+IQ2_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.73e-03 wround=1.21e-02
+IQ2_XS n=8 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.38e-04 wround=1.17e-02
+IQ2_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.80e-03 wround=1.20e-02
+IQ2_XS n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.32e-04 wround=1.15e-02
+IQ2_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.83e-03 wround=1.23e-02
+IQ2_XS n=16 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.52e-04 wround=1.20e-02
+IQ2_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.81e-03 wround=1.23e-02
+IQ2_XS n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.32e-04 wround=1.21e-02
+IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.84e-03 wround=1.27e-02
+IQ2_XS n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.50e-04 wround=1.22e-02
+IQ2_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.89e-03 wround=1.32e-02
+IQ2_XS n=512 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=3.70e-04 wround=1.28e-02
+IQ2_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.90e-03 wround=1.32e-02
+IQ2_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.91e-04 wround=1.29e-02
+IQ2_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.72e-03 q81=1.62e-03 wround=9.93e-03
+IQ2_XXS n=1 torch.float16 mmq=True lcpp=True: full=9.56e-03 q81=3.02e-04 wround=9.55e-03
+IQ2_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.76e-03 wround=1.13e-02
+IQ2_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.19e-04 wround=1.07e-02
+IQ2_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.76e-03 wround=1.12e-02
+IQ2_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=2.92e-04 wround=1.11e-02
+IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.69e-03 wround=1.27e-02
+IQ2_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.37e-04 wround=1.21e-02
+IQ2_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.74e-03 wround=1.12e-02
+IQ2_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.48e-04 wround=1.09e-02
+IQ2_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.74e-03 wround=1.19e-02
+IQ2_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.19e-04 wround=1.21e-02
+IQ2_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.19e-02
+IQ2_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.36e-04 wround=1.19e-02
+IQ2_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.82e-03 wround=1.19e-02
+IQ2_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.43e-04 wround=1.16e-02
+IQ2_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.82e-03 wround=1.21e-02
+IQ2_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.39e-04 wround=1.20e-02
+IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=1.89e-03 wround=1.25e-02
+IQ2_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.52e-04 wround=1.21e-02
+IQ2_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.93e-03 wround=1.30e-02
+IQ2_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.78e-04 wround=1.23e-02
+IQ2_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.89e-03 wround=1.30e-02
+IQ2_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=3.82e-04 wround=1.27e-02
+IQ3_S n=1 torch.bfloat16 mmq=True lcpp=True: full=9.68e-03 q81=1.65e-03 wround=9.91e-03
+IQ3_S n=1 torch.float16 mmq=True lcpp=True: full=9.60e-03 q81=3.09e-04 wround=9.61e-03
+IQ3_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.68e-03 wround=1.13e-02
+IQ3_S n=2 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.20e-04 wround=1.12e-02
+IQ3_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.73e-03 wround=1.11e-02
+IQ3_S n=3 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.07e-04 wround=1.09e-02
+IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.76e-03 wround=1.16e-02
+IQ3_S n=5 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.43e-04 wround=1.13e-02
+IQ3_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.76e-03 wround=1.15e-02
+IQ3_S n=7 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.37e-04 wround=1.17e-02
+IQ3_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.77e-03 wround=1.23e-02
+IQ3_S n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.04e-04 wround=1.21e-02
+IQ3_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.71e-03 wround=1.25e-02
+IQ3_S n=9 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.15e-04 wround=1.18e-02
+IQ3_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.77e-03 wround=1.22e-02
+IQ3_S n=16 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.78e-04 wround=1.22e-02
+IQ3_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.79e-03 wround=1.30e-02
+IQ3_S n=64 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.38e-04 wround=1.29e-02
+IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.83e-03 wround=1.24e-02
+IQ3_S n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.56e-04 wround=1.23e-02
+IQ3_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.87e-03 wround=1.30e-02
+IQ3_S n=512 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=3.85e-04 wround=1.27e-02
+IQ3_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=1.90e-03 wround=1.33e-02
+IQ3_S n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.93e-04 wround=1.29e-02
+IQ3_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.04e-02 q81=1.75e-03 wround=1.05e-02
+IQ3_XXS n=1 torch.float16 mmq=True lcpp=True: full=1.01e-02 q81=3.21e-04 wround=1.01e-02
+IQ3_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.70e-03 wround=1.12e-02
+IQ3_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.21e-04 wround=1.08e-02
+IQ3_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.05e-02 q81=1.71e-03 wround=1.05e-02
+IQ3_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.02e-02 q81=2.80e-04 wround=1.02e-02
+IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.71e-03 wround=1.17e-02
+IQ3_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.18e-04 wround=1.14e-02
+IQ3_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.86e-03 wround=1.12e-02
+IQ3_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.36e-04 wround=1.08e-02
+IQ3_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.85e-03 wround=1.20e-02
+IQ3_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.34e-04 wround=1.16e-02
+IQ3_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.73e-03 wround=1.23e-02
+IQ3_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.25e-04 wround=1.21e-02
+IQ3_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.75e-03 wround=1.21e-02
+IQ3_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.46e-04 wround=1.22e-02
+IQ3_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.79e-03 wround=1.29e-02
+IQ3_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.43e-04 wround=1.29e-02
+IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.85e-03 wround=1.23e-02
+IQ3_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.68e-04 wround=1.23e-02
+IQ3_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.92e-03 wround=1.31e-02
+IQ3_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=3.72e-04 wround=1.30e-02
+IQ3_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.34e-02 q81=1.90e-03 wround=1.35e-02
+IQ3_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.32e-02 q81=3.73e-04 wround=1.32e-02
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=1.58e-03 wround=1.10e-02
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.20e-04 wround=1.07e-02
+IQ4_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=9.83e-03 q81=1.72e-03 wround=1.01e-02
+IQ4_XS n=2 torch.float16 mmq=True lcpp=True: full=9.59e-03 q81=3.10e-04 wround=9.59e-03
+IQ4_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+IQ4_XS n=3 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=2.85e-04 wround=1.05e-02
+IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.78e-03 wround=1.13e-02
+IQ4_XS n=5 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.23e-04 wround=1.07e-02
+IQ4_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.78e-03 wround=1.19e-02
+IQ4_XS n=7 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.40e-04 wround=1.16e-02
+IQ4_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.85e-03 wround=1.26e-02
+IQ4_XS n=8 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.35e-04 wround=1.21e-02
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.31e-02 q81=1.77e-03 wround=1.33e-02
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=3.09e-04 wround=1.28e-02
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.78e-03 wround=1.19e-02
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.54e-04 wround=1.17e-02
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=1.82e-03 wround=1.30e-02
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.34e-02 q81=3.36e-04 wround=1.35e-02
+IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.36e-02 q81=1.83e-03 wround=1.37e-02
+IQ4_XS n=128 torch.float16 mmq=True lcpp=True: full=1.37e-02 q81=3.61e-04 wround=1.37e-02
+IQ4_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.35e-02 q81=1.94e-03 wround=1.37e-02
+IQ4_XS n=512 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=3.62e-04 wround=1.30e-02
+IQ4_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.42e-02 q81=1.90e-03 wround=1.43e-02
+IQ4_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.41e-02 q81=3.98e-04 wround=1.41e-02
+Q2_K n=1 torch.bfloat16 mmq=True lcpp=True: full=3.14e-02 q81=3.00e-02 wround=3.14e-02 d2s6=1.83e-03
+Q2_K n=1 torch.float16 mmq=True lcpp=True: full=2.88e-02 q81=2.67e-02 wround=2.87e-02 d2s6=6.13e-04
+Q2_K n=2 torch.bfloat16 mmq=True lcpp=True: full=2.76e-02 q81=2.63e-02 wround=2.76e-02 d2s6=1.83e-03
+Q2_K n=2 torch.float16 mmq=True lcpp=True: full=2.89e-02 q81=2.78e-02 wround=2.89e-02 d2s6=5.49e-04
+Q2_K n=3 torch.bfloat16 mmq=True lcpp=True: full=2.35e-02 q81=2.21e-02 wround=2.35e-02 d2s6=1.85e-03
+Q2_K n=3 torch.float16 mmq=True lcpp=True: full=2.69e-02 q81=2.60e-02 wround=2.69e-02 d2s6=5.68e-04
+Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.63e-02 q81=3.62e-02 wround=3.64e-02 d2s6=1.74e-03
+Q2_K n=5 torch.float16 mmq=True lcpp=True: full=3.21e-02 q81=3.15e-02 wround=3.21e-02 d2s6=5.91e-04
+Q2_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.94e-02 q81=4.87e-02 wround=4.94e-02 d2s6=1.85e-03
+Q2_K n=7 torch.float16 mmq=True lcpp=True: full=5.27e-02 q81=5.18e-02 wround=5.27e-02 d2s6=6.10e-04
+Q2_K n=8 torch.bfloat16 mmq=True lcpp=True: full=3.31e-02 q81=3.08e-02 wround=3.31e-02 d2s6=1.87e-03
+Q2_K n=8 torch.float16 mmq=True lcpp=True: full=3.00e-02 q81=2.81e-02 wround=3.00e-02 d2s6=6.02e-04
+Q2_K n=9 torch.bfloat16 mmq=True lcpp=True: full=2.89e-02 q81=2.77e-02 wround=2.90e-02 d2s6=1.84e-03
+Q2_K n=9 torch.float16 mmq=True lcpp=True: full=2.38e-02 q81=2.31e-02 wround=2.38e-02 d2s6=6.05e-04
+Q2_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.25e-02 q81=3.20e-02 wround=3.26e-02 d2s6=1.95e-03
+Q2_K n=16 torch.float16 mmq=True lcpp=True: full=3.63e-02 q81=3.60e-02 wround=3.63e-02 d2s6=5.93e-04
+Q2_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.40e-02 q81=5.19e-02 wround=5.40e-02 d2s6=1.91e-03
+Q2_K n=64 torch.float16 mmq=True lcpp=True: full=5.22e-02 q81=5.03e-02 wround=5.22e-02 d2s6=6.10e-04
+Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.00e-02 q81=5.66e-02 wround=6.01e-02 d2s6=1.90e-03
+Q2_K n=128 torch.float16 mmq=True lcpp=True: full=5.98e-02 q81=5.71e-02 wround=5.98e-02 d2s6=6.63e-04
+Q2_K n=512 torch.bfloat16 mmq=True lcpp=True: full=6.90e-02 q81=6.52e-02 wround=6.89e-02 d2s6=1.98e-03
+Q2_K n=512 torch.float16 mmq=True lcpp=True: full=6.84e-02 q81=6.86e-02 wround=6.84e-02 d2s6=6.43e-04
+Q2_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.71e-02 q81=7.58e-02 wround=7.70e-02 d2s6=2.00e-03
+Q2_K n=2048 torch.float16 mmq=True lcpp=True: full=6.86e-02 q81=6.75e-02 wround=6.86e-02 d2s6=6.62e-04
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.61e-02 q81=1.26e-02 wround=1.61e-02 xsum=1.65e-03
 Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.62e-02 q81=1.32e-02 wround=1.62e-02 xsum=6.92e-04
-Q4_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.35e-02 q81=6.37e-03 wround=1.36e-02 xsum=1.59e-04
-Q4_K n=2 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=6.79e-03 wround=1.15e-02 xsum=6.83e-04
-Q4_K n=3 torch.bfloat16 mmq=True lcpp=True: full=5.29e-02 q81=4.96e-02 wround=5.29e-02 xsum=6.35e-04
-Q4_K n=3 torch.float16 mmq=True lcpp=True: full=4.28e-02 q81=4.15e-02 wround=4.28e-02 xsum=4.64e-04
-Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=2.29e-02 q81=1.87e-02 wround=2.29e-02 xsum=3.86e-04
-Q4_K n=5 torch.float16 mmq=True lcpp=True: full=3.32e-02 q81=3.20e-02 wround=3.32e-02 xsum=5.13e-04
-Q4_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.07e-02 q81=3.69e-02 wround=4.09e-02 xsum=3.29e-04
-Q4_K n=7 torch.float16 mmq=True lcpp=True: full=3.86e-02 q81=3.72e-02 wround=3.86e-02 xsum=5.42e-04
-Q4_K n=8 torch.bfloat16 mmq=True lcpp=True: full=3.00e-02 q81=2.20e-02 wround=3.00e-02 xsum=6.39e-04
-Q4_K n=8 torch.float16 mmq=True lcpp=True: full=2.97e-02 q81=2.73e-02 wround=2.97e-02 xsum=4.93e-04
-Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=3.75e-02 q81=3.38e-02 wround=3.76e-02 xsum=9.36e-04
-Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.96e-02 q81=3.82e-02 wround=3.96e-02 xsum=5.45e-04
-Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=4.82e-02 q81=4.48e-02 wround=4.83e-02 xsum=6.62e-04
-Q4_K n=16 torch.float16 mmq=True lcpp=True: full=4.81e-02 q81=4.66e-02 wround=4.81e-02 xsum=6.86e-04
-Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.72e-02 q81=5.49e-02 wround=5.72e-02 xsum=7.36e-04
-Q4_K n=64 torch.float16 mmq=True lcpp=True: full=6.20e-02 q81=6.05e-02 wround=6.20e-02 xsum=8.00e-04
-Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=5.45e-02 q81=5.10e-02 wround=5.45e-02 xsum=8.33e-04
-Q4_K n=128 torch.float16 mmq=True lcpp=True: full=6.00e-02 q81=5.84e-02 wround=6.00e-02 xsum=7.05e-04
-Q4_K n=512 torch.bfloat16 mmq=True lcpp=True: full=7.03e-02 q81=6.60e-02 wround=7.03e-02 xsum=8.68e-04
-Q4_K n=512 torch.float16 mmq=True lcpp=True: full=6.59e-02 q81=6.49e-02 wround=6.59e-02 xsum=7.60e-04
-Q4_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.40e-02 q81=7.16e-02 wround=7.40e-02 xsum=1.03e-03
-Q4_K n=2048 torch.float16 mmq=True lcpp=True: full=6.99e-02 q81=6.85e-02 wround=6.99e-02 xsum=7.95e-04
-Q6_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=7.43e-04 wround=1.13e-02
-Q6_K n=1 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=2.25e-04 wround=1.13e-02
-Q6_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=1.30e-03 wround=1.07e-02
-Q6_K n=2 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=8.90e-05 wround=1.05e-02
-Q6_K n=3 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.18e-03 wround=1.08e-02
-Q6_K n=3 torch.float16 mmq=True lcpp=True: full=1.03e-02 q81=9.18e-05 wround=1.03e-02
-Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=6.39e-04 wround=1.10e-02
-Q6_K n=5 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=1.07e-04 wround=1.08e-02
-Q6_K n=7 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.12e-03 wround=1.17e-02
-Q6_K n=7 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=1.25e-04 wround=1.11e-02
-Q6_K n=8 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.14e-03 wround=1.15e-02
-Q6_K n=8 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=2.27e-04 wround=1.12e-02
-Q6_K n=9 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.05e-03 wround=1.16e-02
-Q6_K n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=1.40e-04 wround=1.15e-02
-Q6_K n=16 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.25e-03 wround=1.17e-02
-Q6_K n=16 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=1.51e-04 wround=1.18e-02
-Q6_K n=64 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.92e-03 wround=1.17e-02
-Q6_K n=64 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=2.13e-04 wround=1.18e-02
-Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=2.46e-03 wround=1.25e-02
-Q6_K n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=2.14e-04 wround=1.22e-02
-Q6_K n=512 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=2.08e-03 wround=1.26e-02
-Q6_K n=512 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=2.66e-04 wround=1.24e-02
-Q6_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=2.14e-03 wround=1.24e-02
-Q6_K n=2048 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=2.93e-04 wround=1.23e-02
-IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=4.14e-04 wround=1.09e-02
-IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=7.23e-04 wround=1.31e-02
-IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=6.00e-04 wround=1.16e-02
-IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.62e-03 wround=1.32e-02
-IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=7.74e-04 wround=1.15e-02
-IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.34e-03 wround=1.31e-02
-IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=8.15e-04 wround=1.08e-02
-IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.36e-03 wround=1.23e-02
-IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=9.87e-04 wround=1.18e-02
-IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.40e-03 wround=1.21e-02
-IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=7.67e-04 wround=1.18e-02
-IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.45e-02 q81=1.41e-03 wround=1.46e-02
-Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=5.38e-02 q81=5.00e-02 wround=5.37e-02 d2s6=1.02e-04
-Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.57e-02 q81=6.32e-02 wround=6.58e-02 d2s6=8.11e-04
-Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.56e-02 q81=2.91e-02 wround=3.55e-02 xsum=1.70e-04
-Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.25e-02 q81=5.87e-02 wround=6.23e-02 xsum=7.68e-04
-Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=5.76e-04 wround=1.19e-02
-Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.04e-03 wround=1.25e-02
+Q4_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=8.38e-03 wround=1.25e-02 xsum=1.83e-03
+Q4_K n=2 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=6.79e-03 wround=1.15e-02 xsum=7.20e-04
+Q4_K n=3 torch.bfloat16 mmq=True lcpp=True: full=5.34e-02 q81=5.28e-02 wround=5.34e-02 xsum=1.79e-03
+Q4_K n=3 torch.float16 mmq=True lcpp=True: full=4.29e-02 q81=4.21e-02 wround=4.29e-02 xsum=7.38e-04
+Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=2.23e-02 q81=2.05e-02 wround=2.23e-02 xsum=1.85e-03
+Q4_K n=5 torch.float16 mmq=True lcpp=True: full=3.29e-02 q81=3.20e-02 wround=3.29e-02 xsum=6.87e-04
+Q4_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.07e-02 q81=3.93e-02 wround=4.08e-02 xsum=1.90e-03
+Q4_K n=7 torch.float16 mmq=True lcpp=True: full=3.84e-02 q81=3.72e-02 wround=3.84e-02 xsum=7.68e-04
+Q4_K n=8 torch.bfloat16 mmq=True lcpp=True: full=2.96e-02 q81=2.72e-02 wround=2.96e-02 xsum=1.97e-03
+Q4_K n=8 torch.float16 mmq=True lcpp=True: full=2.90e-02 q81=2.69e-02 wround=2.90e-02 xsum=7.28e-04
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=3.92e-02 q81=3.83e-02 wround=3.93e-02 xsum=1.90e-03
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.96e-02 q81=3.86e-02 wround=3.96e-02 xsum=8.33e-04
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=4.79e-02 q81=4.65e-02 wround=4.80e-02 xsum=1.95e-03
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=4.75e-02 q81=4.62e-02 wround=4.76e-02 xsum=7.92e-04
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.68e-02 q81=5.64e-02 wround=5.68e-02 xsum=1.95e-03
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=6.12e-02 q81=6.02e-02 wround=6.12e-02 xsum=8.31e-04
+Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=5.43e-02 q81=5.28e-02 wround=5.43e-02 xsum=1.92e-03
+Q4_K n=128 torch.float16 mmq=True lcpp=True: full=6.02e-02 q81=5.86e-02 wround=6.02e-02 xsum=7.98e-04
+Q4_K n=512 torch.bfloat16 mmq=True lcpp=True: full=7.02e-02 q81=6.92e-02 wround=7.02e-02 xsum=1.97e-03
+Q4_K n=512 torch.float16 mmq=True lcpp=True: full=6.56e-02 q81=6.47e-02 wround=6.56e-02 xsum=9.09e-04
+Q4_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.31e-02 q81=7.21e-02 wround=7.31e-02 xsum=2.05e-03
+Q4_K n=2048 torch.float16 mmq=True lcpp=True: full=7.03e-02 q81=6.95e-02 wround=7.03e-02 xsum=8.68e-04
+Q6_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.48e-03 wround=1.11e-02
+Q6_K n=1 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.25e-04 wround=1.13e-02
+Q6_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.05e-02 q81=1.78e-03 wround=1.07e-02
+Q6_K n=2 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=2.97e-04 wround=1.05e-02
+Q6_K n=3 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.92e-03 wround=1.08e-02
+Q6_K n=3 torch.float16 mmq=True lcpp=True: full=1.04e-02 q81=3.18e-04 wround=1.04e-02
+Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=1.78e-03 wround=1.10e-02
+Q6_K n=5 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.27e-04 wround=1.08e-02
+Q6_K n=7 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.80e-03 wround=1.16e-02
+Q6_K n=7 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=3.36e-04 wround=1.11e-02
+Q6_K n=8 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.96e-03 wround=1.15e-02
+Q6_K n=8 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.31e-04 wround=1.12e-02
+Q6_K n=9 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.76e-03 wround=1.17e-02
+Q6_K n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.17e-04 wround=1.15e-02
+Q6_K n=16 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=2.00e-03 wround=1.17e-02
+Q6_K n=16 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.72e-04 wround=1.18e-02
+Q6_K n=64 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=2.48e-03 wround=1.16e-02
+Q6_K n=64 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.74e-04 wround=1.18e-02
+Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=2.93e-03 wround=1.25e-02
+Q6_K n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.68e-04 wround=1.22e-02
+Q6_K n=512 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=2.49e-03 wround=1.26e-02
+Q6_K n=512 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=4.83e-04 wround=1.24e-02
+Q6_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=2.53e-03 wround=1.25e-02
+Q6_K n=2048 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=5.81e-04 wround=1.23e-02
+IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=1.70e-03 wround=1.09e-02
+IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.92e-03 wround=1.28e-02
+IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.77e-03 wround=1.17e-02
+IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=2.07e-03 wround=1.34e-02
+IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.78e-03 wround=1.14e-02
+IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=2.01e-03 wround=1.31e-02
+IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.76e-03 wround=1.07e-02
+IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=2.01e-03 wround=1.23e-02
+IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.85e-03 wround=1.19e-02
+IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.94e-03 wround=1.20e-02
+IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.83e-03 wround=1.19e-02
+IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.46e-02 q81=1.95e-03 wround=1.47e-02
+Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=5.15e-02 q81=4.98e-02 wround=5.13e-02 d2s6=1.85e-03
+Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.64e-02 q81=6.50e-02 wround=6.64e-02 d2s6=2.00e-03
+Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.77e-02 q81=3.50e-02 wround=3.76e-02 xsum=1.90e-03
+Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.26e-02 q81=6.20e-02 wround=6.24e-02 xsum=2.16e-03
+Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.82e-03 wround=1.20e-02
+Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=2.00e-03 wround=1.26e-02

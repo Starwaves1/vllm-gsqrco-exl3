@@ -111,7 +111,7 @@ def main() -> None:
         print(json.dumps({"case": case, "status": "mismatch", "note": "accepted invalid shapes silently"}))
         return
     refs = _refs.refs(ref_raw, name, ref_x, mmq=op.endswith("mmq"), lcpp=op.startswith("lcpp"))
-    err = min(_refs.rel_err(y, *v) for kk, v in refs.items() if kk != "full")
+    err = min(_refs.rel_err(y, v) for kk, v in refs.items() if kk != "full")
     print(json.dumps({"case": case, "status": "ok" if err < 5e-3 else "mismatch", "rel_err": err}))
 
 

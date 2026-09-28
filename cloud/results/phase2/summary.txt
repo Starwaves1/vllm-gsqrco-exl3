@@ -11,12 +11,16 @@ No shim or kernel code changed in this phase.
  - test_kernel_parity.py, VLLM_GGUF_LCPP=1: 776 passed, 16 skipped (464 Route L tests; the stock
    tests still pass: 771/21 without the flag). Real GGUF rows, all 9 Route L types, MMVQ 1..8 rows,
    MMQ 1,2,3,5,7,8,9,16,64,128,512,2048 rows, bf16 + fp16, allocator free blocks poisoned (0xFF)
-   before each call. Worst error vs the matching CPU model (kernel-parity-errors-lcpp.txt):
-   bf16 <= 2.5e-3 (output rounding), fp16 <= 2.9e-4 except Q2_K MMQ 6.4e-4, Q4_K MMQ 8.0e-4.
-   References had to model b11211 exactly: MMQ quantizes with x*(127/amax) (not x/d), keeps d in
-   float (D4) and uses per-64 scales + per-16 x-sums for Q2_K (D2S6); near-tie q flips (fast-math
-   approximate division, frequent with 16-bit x) get a slack. Before that, 30 fp16/Q2_K cases
-   "failed" on the reference, not the kernel (diagnosed with box-scripts/p2diag3.py).
+   before each call. Worst error vs the closest CPU model (kernel-parity-errors-lcpp.txt), with
+   the calibrated tolerances 5e-3 bf16 / 2.5e-3 fp16 unchanged: bf16 <= 2.9e-3 (output rounding),
+   fp16 <= 4.0e-4 except Q6_K MMQ 5.8e-4, Q2_K MMQ 6.6e-4, Q4_K MMQ 9.1e-4. The models are not
+   bit-exact: b11211's MMQ tile loaders round K-quant sub-block scales to half, and MMQ quantizes
+   with x*(127/amax); both sit far below the tolerances.
+   Two test-side fixes were needed, none in the kernels: (a) Q2_K MMQ uses the D2S6 layout (one q8
+   scale per 64 values, half x-sums per 16), now a reference model; (b) 16-bit test inputs often
+   sit exactly on a q8_1 rounding tie (x = amax/2 gives x/d = 63.5), which the GPU's fast-math
+   division may round either way; one flipped q in an outlier channel moved a row by 3-5e-3
+   (box-scripts/p2diag3.py). The test inputs are now nudged one ulp off every tie.
  - Numerics change to know about: Q2_K through lcpp MMQ is 7.7e-2 from full precision on the
    synthetic 20x-outlier activations (stock b2899 MMQ: 1.3e-2), because D2S6 uses one q8 scale
    per 64 values. That is llama.cpp's own arithmetic (it matches the D2S6 model to 1.3e-3).
@@ -26,12 +30,15 @@ No shim or kernel code changed in this phase.
    stream mapping (current stream; null -> cudaStreamLegacy) and graph-safe pool.
  - Zeroed MMQ tail at 1-7 rows: correct results with poisoned scratch; compute-sanitizer memcheck
    and initcheck with one cudaMalloc per tensor (PYTORCH_NO_CUDA_MEMORY_CACHING=1) on MMQ 1/5/7/9/128,
-   MMVQ 4/8, 5 types: 0 memory errors, 0 uninitialised reads (the 2 graph tests cannot capture
-   without the caching allocator; they ran clean under memcheck with it: 39/39, 0 errors).
+   MMVQ 4/8, 5 types: 0 memory errors, 0 uninitialised reads. (memcheck's "8 errors" are CUDA API
+   errors from the 2 graph tests, which cannot capture without the caching allocator; with it they
+   ran clean under memcheck: 39/39, 0 errors.) These runs predate the tie-free inputs; that change
+   touches only the reference comparison, not memory behaviour.
  - Guards (test_kernel_guards.py, 8 cases x 8 lcpp type/op pairs): 64/64 pass: x_noncontig,
    w_narrow_view, w_misaligned, row_too_big, k_mismatch rejected cleanly; x_misaligned, x_rowstride,
    graph_replay run correct. Under memcheck (no caching allocator) row_too_big, k_mismatch,
-   x_rowstride, w_narrow_view: 32/32, 0 errors; positive control (stock MMVQ row_too_big) faults.
+   x_rowstride, w_narrow_view: 32/32, 0 errors; graph_replay under memcheck with the caching
+   allocator 8/8, 0 errors; positive control (stock MMVQ row_too_big) faults.
  - Mixed-shard layer: blk.0 gate IQ2_XS + up IQ2_XXS through GGUFLinearMethod: each shard is a
    view into the padded weight (no copy) and apply() is bit-exact vs per-shard ops at 1/4/8/9/128.
 
@@ -55,9 +62,12 @@ No shim or kernel code changed in this phase.
    seq_010   0.00820      0.00740   n/a        0.9861/0.9792
    overall   0.0404       0.0284               0.9802/0.9790     (absolute gate KLD<=0.001 / top-1>=0.99: FAIL, as stock)
    >=100k    0.0051       0.0045               0.9826/0.9809
-   The new gate (L <= llama.cpp CUDA-vs-CPU) passes on all six measured prompts. Route L does not
-   collapse the gap to llama.cpp CUDA: the rest of the graph still differs (bf16 vs f16 activations,
-   attention, GDN, norms). Long prompts are unchanged within noise.
+   The new gate (L <= llama.cpp CUDA-vs-CPU) passes on all six measured prompts, but stock passes
+   it too, so it does not discriminate: that floor is loose and set by a few outlier positions
+   (phase 1b). What the numbers support: overall KLD 0.028 vs 0.040, with mixed per-prompt
+   changes (seq_005 much better, seq_000/seq_002 slightly worse, long prompts unchanged within
+   noise). Route L does not close the gap to llama.cpp CUDA: the rest of the graph still differs
+   (bf16 vs f16 activations, attention, GDN, norms).
 
 4. Microbenchmarks (micro/micro-table.txt; bench/micro/gemm.py; X bf16, CUDA-graph GPU time)
    IQ3_S 17408x5120, us (GB/s):     n=1        2          4          8          16         128        2048
@@ -66,10 +76,13 @@ No shim or kernel code changed in this phase.
      lcpp MMVQ                      72 (532)   79 (483)   101 (379)  149 (257)
      lcpp MMQ                       125 (306)  125        126 (304)  127 (302)  136 (281)  292 (131)  4161
    At 4 rows (the decisive number; gate-up / down shapes): lcpp MMVQ IQ3_S 379 / 392 GB/s, IQ3_XXS
-   363 / 371, IQ4_XS 625 / 627, Q4_K 520 / 486. IQ3 runs ~40% below IQ4_XS, so 4-row decode is
-   decode/lookup-bound, not bandwidth-bound (1 row: IQ3 530-567 GB/s, IQ4_XS 770). lcpp MMQ beats lcpp MMVQ from 8 rows for every type measured (IQ3_S 127 vs 149 us)
+   363 / 371, IQ4_XS 625 / 627, Q4_K 520 / 486. IQ3 runs ~40% below IQ4_XS on the same bytes/row
+   budget, which suggests 4-row IQ3 decode is lookup/ALU-bound rather than bandwidth-bound (an
+   inference from GB/s, not a counter measurement; 1 row: IQ3 530-567 GB/s, IQ4_XS 770). lcpp MMQ beats lcpp MMVQ from 8 rows for every type measured (IQ3_S 127 vs 149 us)
    and for the lm_head already at 4 rows (1151 vs 1377 us).
-   lm_head (Q4_K 248320x5120, 715 MB): lcpp MMVQ n=1 941 us (760 GB/s), n=4 1377 us.
+   lm_head (Q4_K 248320x5120, 715 MB): lcpp MMVQ n=1 941 us (760 GB/s), n=4 1377 us. For this
+   weight the micro's graph time is above its own eager time (879 / 1312 us) and above the in-situ
+   profile (808 / 1070 us); treat the big-weight micro rows as upper bounds.
    Stock MMQ Q4_K lm_head at 2048 rows: 747 ms (lcpp MMQ 55 ms).
    ninfer-all's decode-once vector kernel (iamwavecut/ninfer-all 06df485e8f, Apache-2.0) was fetched
    to /workspace/scratch on the box but NOT built or timed: compiling/running that third-party code
@@ -83,8 +96,9 @@ No shim or kernel code changed in this phase.
      shim tail memsets        5           0.004 ms
      cuBLAS (BF16 layers)    48           1.71 ms
      other kernels          805           2.78 ms (GDN, attention, act, norms)
-     GPU idle               -             6.9 ms (host gaps between graph segments: ~0.93 ms after
-                                          the sampler's cat, ~0.5 ms after each embedding dequant)
+     GPU idle               -             6.9 ms (largest gaps, box-scripts/p2gaps.py: ~0.93 ms
+                                          after a cat before an index kernel, ~0.5 ms after each
+                                          IQ2_S embedding dequant)
    lm_head: 1 target read at n=4 (1.07 ms) + 3 draft reads at n=1 (0.81 ms each) = 3.5 ms/step, of
    which the draft reads are 2.43 ms (5.7% of the step). The shim's casts + quantize are 2.5 ms (6%).
 
@@ -100,3 +114,18 @@ No shim or kernel code changed in this phase.
    Clocks: decode 1725 MHz, 346 W (power-limited, 93% util); prefill 1755-1830 MHz at 348 W.
    Reference point: ninfer-all's published 3090 numbers for this model (C++ engine, 420 W, greedy,
    one request): 108.7 tok/s with MTP k=3, 59.9 without. Route L greedy c=1 = 0.72x of that.
+
+6. Review (/check, one Fable reviewer): 10 findings.
+   Fixed: the near-tie slack in _refs.py hid up to ~2x of the tolerance budget; replaced by
+   tie-free test inputs (slack code deleted, suite re-run: 776 / 771 pass, numbers above are from
+   that run); the model is not bit-exact (half sub-block scales) - now stated; the parity gate
+   does not discriminate (stock passes it) - now stated; the idle-gap claim now has its script
+   (box-scripts/p2gaps.py) and p2trace.py lost a dead line; lm_head micro vs in-situ discrepancy
+   noted; "lookup-bound" labelled as an inference; memcheck's 8 API errors explained.
+   Rejected: dropping the view check in test_lcpp_mixed_shard_layer - output equality cannot show
+   that the shard is a view rather than a copy, which is the point of the layout.
+   Reviewer suggested, not done (routing/config changes for Garrett): route lcpp MMQ from 8 rows
+   instead of MMVQ, and the lm_head from 4 rows (measured faster above).
+   Also not done: the ninfer-all vector-kernel timing (permission refused, see section 4).
+Box time this phase: 2026-09-28 08:25-18:20 UTC (~10 h rented at ~$0.2/h; ~7 h of it idle while
+the session was interrupted). Box left running, GPU idle, /dev/shm clear.

@@ -1,75 +1,75 @@
 type     op        dtype      max best-model err (model)   max err vs full
-IQ1_M    mmvq      bfloat16             1.26e-03 q81              1.15e-02
-IQ1_M    mmvq      float16              2.02e-04 q81              1.15e-02
-IQ2_S    lcpp_mmq  bfloat16             7.60e-04 q81              1.32e-02
-IQ2_S    lcpp_mmq  float16              2.06e-04 q81              1.27e-02
-IQ2_S    lcpp_mmvq bfloat16             4.33e-04 q81              1.18e-02
-IQ2_S    lcpp_mmvq float16              1.29e-04 q81              1.14e-02
-IQ2_S    mmvq      bfloat16             7.04e-04 q81              1.18e-02
-IQ2_S    mmvq      float16              1.07e-04 q81              1.18e-02
-IQ2_XS   lcpp_mmq  bfloat16             1.62e-03 q81              1.30e-02
-IQ2_XS   lcpp_mmq  float16              2.32e-04 q81              1.29e-02
-IQ2_XS   lcpp_mmvq bfloat16             1.14e-03 q81              1.17e-02
-IQ2_XS   lcpp_mmvq float16              2.26e-04 q81              1.14e-02
-IQ2_XS   mmvq      bfloat16             1.27e-03 q81              1.18e-02
-IQ2_XS   mmvq      float16              2.19e-04 q81              1.19e-02
-IQ2_XXS  lcpp_mmq  bfloat16             1.40e-03 q81              1.30e-02
-IQ2_XXS  lcpp_mmq  float16              2.30e-04 q81              1.27e-02
-IQ2_XXS  lcpp_mmvq bfloat16             1.10e-03 q81              1.19e-02
-IQ2_XXS  lcpp_mmvq float16              2.20e-04 q81              1.21e-02
-IQ2_XXS  mmvq      bfloat16             1.36e-03 q81              1.14e-02
+IQ1_M    mmvq      bfloat16             1.75e-03 q81              1.16e-02
+IQ1_M    mmvq      float16              2.27e-04 q81              1.15e-02
+IQ2_S    lcpp_mmq  bfloat16             1.93e-03 q81              1.29e-02
+IQ2_S    lcpp_mmq  float16              3.52e-04 q81              1.26e-02
+IQ2_S    lcpp_mmvq bfloat16             1.78e-03 q81              1.17e-02
+IQ2_S    lcpp_mmvq float16              2.30e-04 q81              1.14e-02
+IQ2_S    mmvq      bfloat16             1.78e-03 q81              1.18e-02
+IQ2_S    mmvq      float16              2.25e-04 q81              1.18e-02
+IQ2_XS   lcpp_mmq  bfloat16             2.07e-03 q81              1.32e-02
+IQ2_XS   lcpp_mmq  float16              3.91e-04 q81              1.29e-02
+IQ2_XS   lcpp_mmvq bfloat16             1.79e-03 q81              1.17e-02
+IQ2_XS   lcpp_mmvq float16              2.33e-04 q81              1.14e-02
+IQ2_XS   mmvq      bfloat16             1.78e-03 q81              1.18e-02
+IQ2_XS   mmvq      float16              2.26e-04 q81              1.18e-02
+IQ2_XXS  lcpp_mmq  bfloat16             2.01e-03 q81              1.30e-02
+IQ2_XXS  lcpp_mmq  float16              3.82e-04 q81              1.27e-02
+IQ2_XXS  lcpp_mmvq bfloat16             1.83e-03 q81              1.19e-02
+IQ2_XXS  lcpp_mmvq float16              2.25e-04 q81              1.22e-02
+IQ2_XXS  mmvq      bfloat16             1.78e-03 q81              1.14e-02
 IQ2_XXS  mmvq      float16              2.29e-04 q81              1.12e-02
-IQ3_S    lcpp_mmq  bfloat16             1.62e-03 q81              1.32e-02
-IQ3_S    lcpp_mmq  float16              2.34e-04 q81              1.29e-02
-IQ3_S    lcpp_mmvq bfloat16             1.07e-03 q81              1.25e-02
-IQ3_S    lcpp_mmvq float16              2.17e-04 q81              1.22e-02
-IQ3_S    mmvq      bfloat16             1.32e-03 q81              1.17e-02
-IQ3_S    mmvq      float16              2.18e-04 q81              1.16e-02
-IQ3_XXS  lcpp_mmq  bfloat16             1.49e-03 q81              1.34e-02
-IQ3_XXS  lcpp_mmq  float16              2.27e-04 q81              1.32e-02
-IQ3_XXS  lcpp_mmvq bfloat16             1.05e-03 q81              1.21e-02
-IQ3_XXS  lcpp_mmvq float16              2.24e-04 q81              1.21e-02
-IQ3_XXS  mmvq      bfloat16             1.28e-03 q81              1.14e-02
-IQ3_XXS  mmvq      float16              2.15e-04 q81              1.18e-02
-IQ4_XS   lcpp_mmq  bfloat16             1.51e-03 q81              1.45e-02
-IQ4_XS   lcpp_mmq  float16              2.28e-04 q81              1.41e-02
-IQ4_XS   lcpp_mmvq bfloat16             1.02e-03 q81              1.26e-02
-IQ4_XS   lcpp_mmvq float16              2.13e-04 q81              1.23e-02
-IQ4_XS   mmvq      bfloat16             1.39e-03 q81              1.31e-02
-IQ4_XS   mmvq      float16              2.14e-04 q81              1.22e-02
-Q2_K     lcpp_mmq  bfloat16             1.26e-03 d2s6             7.74e-02
-Q2_K     lcpp_mmq  float16              6.39e-04 d2s6             6.91e-02
-Q2_K     lcpp_mmvq bfloat16             9.93e-04 q81              1.25e-02
-Q2_K     lcpp_mmvq float16              2.16e-04 q81              1.19e-02
-Q2_K     mmq       bfloat16             1.51e-03 q81              1.32e-02
-Q2_K     mmq       float16              2.31e-04 q81              1.30e-02
-Q2_K     mmvq      bfloat16             1.29e-03 q81              1.18e-02
-Q2_K     mmvq      float16              2.14e-04 q81              1.21e-02
-Q4_K     lcpp_mmq  bfloat16             1.03e-03 xsum             7.40e-02
-Q4_K     lcpp_mmq  float16              8.00e-04 xsum             6.99e-02
-Q4_K     lcpp_mmvq bfloat16             1.12e-03 q81              1.25e-02
-Q4_K     lcpp_mmvq float16              2.06e-04 q81              1.18e-02
-Q4_K     mmq       bfloat16             9.93e-04 xsum             7.01e-02
-Q4_K     mmq       float16              2.31e-04 xsum             6.13e-02
-Q4_K     mmvq      bfloat16             1.17e-03 q81              1.22e-02
-Q4_K     mmvq      float16              2.05e-04 q81              1.23e-02
-Q6_K     lcpp_mmq  bfloat16             2.46e-03 q81              1.25e-02
-Q6_K     lcpp_mmq  float16              2.93e-04 q81              1.24e-02
-Q6_K     lcpp_mmvq bfloat16             1.21e-03 q81              1.19e-02
-Q6_K     lcpp_mmvq float16              1.90e-04 q81              1.18e-02
-Q6_K     mmq       bfloat16             2.18e-03 q81              1.24e-02
-Q6_K     mmq       float16              2.63e-04 q81              1.24e-02
-Q6_K     mmvq      bfloat16             1.69e-03 q81              1.19e-02
-Q6_K     mmvq      float16              1.73e-04 q81              1.18e-02
+IQ3_S    lcpp_mmq  bfloat16             2.01e-03 q81              1.32e-02
+IQ3_S    lcpp_mmq  float16              3.93e-04 q81              1.29e-02
+IQ3_S    lcpp_mmvq bfloat16             1.86e-03 q81              1.24e-02
+IQ3_S    lcpp_mmvq float16              2.29e-04 q81              1.22e-02
+IQ3_S    mmvq      bfloat16             1.82e-03 q81              1.17e-02
+IQ3_S    mmvq      float16              2.30e-04 q81              1.16e-02
+IQ3_XXS  lcpp_mmq  bfloat16             1.94e-03 q81              1.34e-02
+IQ3_XXS  lcpp_mmq  float16              3.73e-04 q81              1.32e-02
+IQ3_XXS  lcpp_mmvq bfloat16             1.74e-03 q81              1.21e-02
+IQ3_XXS  lcpp_mmvq float16              2.28e-04 q81              1.22e-02
+IQ3_XXS  mmvq      bfloat16             1.77e-03 q81              1.14e-02
+IQ3_XXS  mmvq      float16              2.18e-04 q81              1.18e-02
+IQ4_XS   lcpp_mmq  bfloat16             1.95e-03 q81              1.46e-02
+IQ4_XS   lcpp_mmq  float16              3.98e-04 q81              1.41e-02
+IQ4_XS   lcpp_mmvq bfloat16             1.81e-03 q81              1.27e-02
+IQ4_XS   lcpp_mmvq float16              2.26e-04 q81              1.23e-02
+IQ4_XS   mmvq      bfloat16             1.80e-03 q81              1.31e-02
+IQ4_XS   mmvq      float16              2.36e-04 q81              1.22e-02
+Q2_K     lcpp_mmq  bfloat16             2.00e-03 d2s6             7.71e-02
+Q2_K     lcpp_mmq  float16              6.63e-04 d2s6             6.86e-02
+Q2_K     lcpp_mmvq bfloat16             1.80e-03 q81              1.25e-02
+Q2_K     lcpp_mmvq float16              2.21e-04 q81              1.19e-02
+Q2_K     mmq       bfloat16             1.88e-03 q81              1.30e-02
+Q2_K     mmq       float16              2.36e-04 q81              1.30e-02
+Q2_K     mmvq      bfloat16             1.79e-03 q81              1.19e-02
+Q2_K     mmvq      float16              2.33e-04 q81              1.21e-02
+Q4_K     lcpp_mmq  bfloat16             2.16e-03 xsum             7.31e-02
+Q4_K     lcpp_mmq  float16              9.09e-04 xsum             7.03e-02
+Q4_K     lcpp_mmvq bfloat16             1.77e-03 q81              1.25e-02
+Q4_K     lcpp_mmvq float16              2.19e-04 q81              1.18e-02
+Q4_K     mmq       bfloat16             1.87e-03 xsum             7.03e-02
+Q4_K     mmq       float16              2.29e-04 xsum             6.13e-02
+Q4_K     mmvq      bfloat16             1.80e-03 q81              1.22e-02
+Q4_K     mmvq      float16              2.26e-04 q81              1.22e-02
+Q6_K     lcpp_mmq  bfloat16             2.93e-03 q81              1.25e-02
+Q6_K     lcpp_mmq  float16              5.81e-04 q81              1.24e-02
+Q6_K     lcpp_mmvq bfloat16             1.92e-03 q81              1.20e-02
+Q6_K     lcpp_mmvq float16              2.49e-04 q81              1.18e-02
+Q6_K     mmq       bfloat16             2.52e-03 q81              1.24e-02
+Q6_K     mmq       float16              3.17e-04 q81              1.24e-02
+Q6_K     mmvq      bfloat16             2.14e-03 q81              1.19e-02
+Q6_K     mmvq      float16              2.38e-04 q81              1.18e-02
 
 routing (_fused_mul_mat_gguf, whole tensor, bf16) max rel err vs full:
   IQ1_M    1.12e-02
-  IQ2_S    1.25e-02
+  IQ2_S    1.26e-02
   IQ2_XS   1.18e-02
   IQ2_XXS  1.18e-02
   IQ3_S    1.19e-02
   IQ3_XXS  1.21e-02
-  IQ4_XS   1.47e-02
-  Q2_K     6.79e-02
-  Q4_K     8.97e-02
+  IQ4_XS   1.48e-02
+  Q2_K     6.61e-02
+  Q4_K     8.71e-02
   Q6_K     1.24e-02

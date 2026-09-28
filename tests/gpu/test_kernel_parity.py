@@ -9,8 +9,7 @@ Tolerances calibrated on an RTX 3090 at e2b8ad5 (2026-09-28, cloud/results/phase
 reference-model error 2.5e-3 (bf16) / 1.24e-3 (fp16); worst error vs full precision 1.5e-2,
 except Q4_K through MMQ (7.0e-2 direct, 9.0e-2 via routing), which matches the xsum model
 to 2.5e-3: its min term uses half(sum x), as in ggml's MMQ. ggml_dequantize accepts float32.
-Every quantized-activation model carries a slack for q values within 1e-4 of a rounding tie
-(_refs.q8_1), which fast-math may round either way.
+Inputs are tie-free (_x): an x on a q8_1 rounding tie may round either way on the GPU.
 
 Route L (llama.cpp b11211 MMVQ/MMQ behind csrc/lcpp_shim.cu; needs the VLLM_GGUF_BUILD_LCPP=1
 build, skipped otherwise): lcpp_mul_mat_vec_q at 1..8 tokens and lcpp_mul_mat_q at 1..2048
@@ -62,14 +61,30 @@ def _x(n, k, dtype, seed=0):
     # hidden-state-like: mostly N(0,1) with a few large outlier channels
     x = torch.randn(n, k, generator=g)
     x[:, torch.randperm(k, generator=g)[: max(1, k // 256)]] *= 20
-    return x.to(getattr(torch, dtype))
+    x = x.to(getattr(torch, dtype))
+    if x.dtype == torch.float32:
+        return x
+    # No q8_1 rounding ties (x/d = j + 0.5 for the block's d = amax/127, per 32 and per 64 values):
+    # 16-bit x hits them often (x = amax/2), and the GPU's fast-math division may round them either
+    # way, so no reference could be exact. One ulp toward zero moves such an x/d by ~0.25 (a nudged
+    # 32-block amax can create new ties, hence the loop; it converges in 2-4 passes).
+    for _ in range(8):
+        tie = torch.zeros(n, k, dtype=torch.bool)
+        for qk in (32, 64):
+            b = x.float().abs().view(n, k // qk, qk)
+            t = b * (127 / b.amax(-1, keepdim=True))
+            tie |= ((t - t.floor() - 0.5).abs() < 1e-4).view(n, k)
+        if not tie.any():
+            return x
+        x = torch.where(tie, (x.view(torch.int16) - 1).view(x.dtype), x)
+    raise AssertionError("could not remove q8_1 rounding ties from x")
 
 
 def _check(y, raw, name, x, mmq, lcpp=False):
     import _refs
 
     r = _refs.refs(raw, name, x.cpu(), mmq, lcpp)
-    errs = {k: _refs.rel_err(y, *v) for k, v in r.items()}
+    errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
     tight = TIGHT[str(x.dtype).split(".")[-1]]
     print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq} lcpp={lcpp}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
     best = min(v for k, v in errs.items() if k != "full")
