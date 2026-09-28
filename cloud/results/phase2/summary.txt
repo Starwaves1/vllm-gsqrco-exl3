@@ -1,0 +1,102 @@
+Phase 2: Route L (llama.cpp b11211 MMVQ/MMQ behind csrc/lcpp_shim.cu) on the same rented RTX 3090
+(Vast.ai, 350 W stock, driver 595.84) as phase 1b. Plugin = local main a760156+ (route-l merged),
+built in place with VLLM_GGUF_BUILD_LCPP=1 (sm_86, CUDA 13.0 toolchain, 41 s with 24 jobs,
+_C_gguf.abi3.so 28.85 MB, sha256 90540d1c...). Runtime VLLM_GGUF_LCPP=1. Box scripts: box-scripts/.
+No shim or kernel code changed in this phase.
+
+1. Build / load: the .so loads on the GPU, lcpp_mul_mat_vec_q and lcpp_mul_mat_q register, importing
+   the plugin with VLLM_GGUF_LCPP=1 leaves CUDA uninitialised.
+
+2. Correctness (tests/gpu, commit be506ce; logs/)
+ - test_kernel_parity.py, VLLM_GGUF_LCPP=1: 776 passed, 16 skipped (464 Route L tests; the stock
+   tests still pass: 771/21 without the flag). Real GGUF rows, all 9 Route L types, MMVQ 1..8 rows,
+   MMQ 1,2,3,5,7,8,9,16,64,128,512,2048 rows, bf16 + fp16, allocator free blocks poisoned (0xFF)
+   before each call. Worst error vs the matching CPU model (kernel-parity-errors-lcpp.txt):
+   bf16 <= 2.5e-3 (output rounding), fp16 <= 2.9e-4 except Q2_K MMQ 6.4e-4, Q4_K MMQ 8.0e-4.
+   References had to model b11211 exactly: MMQ quantizes with x*(127/amax) (not x/d), keeps d in
+   float (D4) and uses per-64 scales + per-16 x-sums for Q2_K (D2S6); near-tie q flips (fast-math
+   approximate division, frequent with 16-bit x) get a slack. Before that, 30 fp16/Q2_K cases
+   "failed" on the reference, not the kernel (diagnosed with box-scripts/p2diag3.py).
+ - Numerics change to know about: Q2_K through lcpp MMQ is 7.7e-2 from full precision on the
+   synthetic 20x-outlier activations (stock b2899 MMQ: 1.3e-2), because D2S6 uses one q8 scale
+   per 64 values. That is llama.cpp's own arithmetic (it matches the D2S6 model to 1.3e-3).
+ - Odd row counts (200 rows, MMQ fallback tiles) at 5 and 128 tokens: pass.
+ - CUDA graphs: capture on torch's capture stream + replay with new X is bit-exact vs eager on the
+   default stream, twice, 9 types x (MMVQ 1/4/8, MMQ 1/5/8/9/128/512): 81/81. Confirms the shim's
+   stream mapping (current stream; null -> cudaStreamLegacy) and graph-safe pool.
+ - Zeroed MMQ tail at 1-7 rows: correct results with poisoned scratch; compute-sanitizer memcheck
+   and initcheck with one cudaMalloc per tensor (PYTORCH_NO_CUDA_MEMORY_CACHING=1) on MMQ 1/5/7/9/128,
+   MMVQ 4/8, 5 types: 0 memory errors, 0 uninitialised reads (the 2 graph tests cannot capture
+   without the caching allocator; they ran clean under memcheck with it: 39/39, 0 errors).
+ - Guards (test_kernel_guards.py, 8 cases x 8 lcpp type/op pairs): 64/64 pass: x_noncontig,
+   w_narrow_view, w_misaligned, row_too_big, k_mismatch rejected cleanly; x_misaligned, x_rowstride,
+   graph_replay run correct. Under memcheck (no caching allocator) row_too_big, k_mismatch,
+   x_rowstride, w_narrow_view: 32/32, 0 errors; positive control (stock MMVQ row_too_big) faults.
+ - Mixed-shard layer: blk.0 gate IQ2_XS + up IQ2_XXS through GGUFLinearMethod: each shard is a
+   view into the padded weight (no copy) and apply() is bit-exact vs per-shard ops at 1/4/8/9/128.
+
+3. Serve (serve-gsq.sh, production argv incl. MTP k=3, fp8 KV, --long-prefill-token-threshold 128)
+   health after 281 s (weights 121 s), 12.29 GiB weights, 22,423 MiB after load, 23,373 MiB after
+   the smoke (1.2 GiB of 24 GiB free), KV 250,000 tokens (stock: 245,312), 1.25x at 200k.
+   Smoke OK: chat with reasoning split; qwen3_coder tool call get_weather{"city":"Paris","unit":"celsius"}.
+
+   Logit parity, vLLM side only, against the phase-1b llama.cpp CUDA dumps (parity/):
+   seq       CUDA||stock  CUDA||L   CUDA||CPU  top-1 stock/L     gate L <= CUDA||CPU
+   seq_000   0.11645      0.13062   0.22509    0.9492/0.9492     PASS
+   seq_001   0.25106      0.15896   0.39918    0.9479/0.9514     PASS
+   seq_002   0.00505      0.00735   0.01449    0.9861/0.9722     PASS
+   seq_003   0.00186      0.00194   0.00352    0.9792/0.9826     PASS
+   seq_004   0.00238      0.00160   0.00825    0.9965/0.9965     PASS
+   seq_005   0.06073      0.00841   0.07194    0.9826/0.9896     PASS
+   seq_006   0.00127      0.00139   n/a        0.9931/0.9861     not measured
+   seq_007   0.00145      0.00138   n/a        0.9896/0.9861
+   seq_008   0.00271      0.00285   n/a        0.9896/0.9896
+   seq_009   0.00195      0.00167   n/a        0.9792/0.9826
+   seq_010   0.00820      0.00740   n/a        0.9861/0.9792
+   overall   0.0404       0.0284               0.9802/0.9790     (absolute gate KLD<=0.001 / top-1>=0.99: FAIL, as stock)
+   >=100k    0.0051       0.0045               0.9826/0.9809
+   The new gate (L <= llama.cpp CUDA-vs-CPU) passes on all six measured prompts. Route L does not
+   collapse the gap to llama.cpp CUDA: the rest of the graph still differs (bf16 vs f16 activations,
+   attention, GDN, norms). Long prompts are unchanged within noise.
+
+4. Microbenchmarks (micro/micro-table.txt; bench/micro/gemm.py; X bf16, CUDA-graph GPU time)
+   IQ3_S 17408x5120, us (GB/s):     n=1        2          4          8          16         128        2048
+     stock MMVQ                     71 (541)   139 (275)  277 (138)  554 (69)   1110 (34)
+     stock dequant + cuBLAS         711 (54)   716        718        719        723        875        5480
+     lcpp MMVQ                      72 (532)   79 (483)   101 (379)  149 (257)
+     lcpp MMQ                       125 (306)  125        126 (304)  127 (302)  136 (281)  292 (131)  4161
+   At 4 rows (the decisive number; gate-up / down shapes): lcpp MMVQ IQ3_S 379 / 392 GB/s, IQ3_XXS
+   363 / 371, IQ4_XS 625 / 627, Q4_K 520 / 486. IQ3 runs ~40% below IQ4_XS, so 4-row decode is
+   decode/lookup-bound, not bandwidth-bound (1 row: IQ3 530-567 GB/s, IQ4_XS 770). lcpp MMQ beats lcpp MMVQ from 8 rows for every type measured (IQ3_S 127 vs 149 us)
+   and for the lm_head already at 4 rows (1151 vs 1377 us).
+   lm_head (Q4_K 248320x5120, 715 MB): lcpp MMVQ n=1 941 us (760 GB/s), n=4 1377 us.
+   Stock MMQ Q4_K lm_head at 2048 rows: 747 ms (lcpp MMQ 55 ms).
+   ninfer-all's decode-once vector kernel (iamwavecut/ninfer-all 06df485e8f, Apache-2.0) was fetched
+   to /workspace/scratch on the box but NOT built or timed: compiling/running that third-party code
+   was denied by the session's permission policy. No numbers for it here.
+
+   Decode-step profile (torch profiler, 6 engine steps at c=1, MTP k=3, CUDA graphs; profile/):
+   per step 42.3 ms wall (profiler on), 35.4 ms GPU busy:
+     lcpp GEMM kernels      452 launches  27.8 ms
+     shim casts (fp32 in/out) 902         1.82 ms
+     shim q8_1 quantize     452           0.67 ms
+     shim tail memsets        5           0.004 ms
+     cuBLAS (BF16 layers)    48           1.71 ms
+     other kernels          805           2.78 ms (GDN, attention, act, norms)
+     GPU idle               -             6.9 ms (host gaps between graph segments: ~0.93 ms after
+                                          the sampler's cat, ~0.5 ms after each embedding dequant)
+   lm_head: 1 target read at n=4 (1.07 ms) + 3 draft reads at n=1 (0.81 ms each) = 3.5 ms/step, of
+   which the draft reads are 2.43 ms (5.7% of the step). The shim's casts + quantize are 2.5 ms (6%).
+
+5. Speed, VLLM_GGUF_LCPP=1 (speed/; bench/speed/run.sh gsq --start, GSQ_PREFILL="8192:1:8 180000:1:2")
+   metric             Route L   stock gsq   W4A16 baseline   L/stock   L/baseline
+   decode c=1          76.6      31.6        89.1             2.42x     0.86x
+   decode c=2         116.1      37.1       182.6             3.13x     0.64x
+    (greedy c=1/c=2)   77.8/117.0 32.4/38.0  94.1/194.4       2.40/3.08 0.83/0.60
+   prefill 8k c=1     1036        357       1108              2.90x     0.94x
+   prefill 180k c=1    589        281        603              2.10x     0.98x
+   decode = pass 2 of production run_benchmarks.sh single, C*1000/meanTPOT; c=4 228, c=8 375.
+   MTP k=3 acceptance 0.688, mean accepted length 3.06, per position 0.847 0.679 0.539 (stock: 0.689 / 3.07).
+   Clocks: decode 1725 MHz, 346 W (power-limited, 93% util); prefill 1755-1830 MHz at 348 W.
+   Reference point: ninfer-all's published 3090 numbers for this model (C++ engine, 420 W, greedy,
+   one request): 108.7 tok/s with MTP k=3, 59.9 without. Route L greedy c=1 = 0.72x of that.

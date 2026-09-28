@@ -1,0 +1,4 @@
+(APIServer pid=68256) WARNING 09-28 16:31:34 [envs.py:2149] Unknown vLLM environment variable detected: VLLM_GGUF_LCPP
+(EngineCore pid=68603) INFO 09-28 16:33:59 [gpu_model_runner.py:5455] Model loading took 12.29 GiB memory and 121.215494 seconds
+(EngineCore pid=68603) INFO 09-28 16:35:35 [kv_cache_utils.py:2389] GPU KV cache size: 250,000 tokens
+(EngineCore pid=68603) INFO 09-28 16:35:35 [kv_cache_utils.py:2390] Maximum concurrency for 200,000 tokens per request: 1.25x

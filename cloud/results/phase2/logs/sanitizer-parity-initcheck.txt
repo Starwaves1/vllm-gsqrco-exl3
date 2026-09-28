@@ -1,0 +1,7 @@
+2 failed, 37 passed, 15 warnings in 22.16s
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_graph_replay[IQ3_S-mmq-5]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_graph_replay[IQ3_S-mmvq-4]
+      1 ========= COMPUTE-SANITIZER
+      1 ========= ERROR SUMMARY: 0 errors
+      1 ========= Target application returned an error
+rc=1

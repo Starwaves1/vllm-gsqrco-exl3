@@ -1,0 +1,59 @@
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+E          (originally from torch_call_dispatcher( "aten::to", "dtype_layout", stack.data(), TORCH_ABI_VERSION) API call failed at /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/stable/ops.h, line 850)
+E         torch.AcceleratorError: CUDA error: operation failed due to a previous error during capture
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-IQ3_S-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-IQ4_XS-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-Q4_K-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-IQ3_S-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-IQ3_XXS-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-Q2_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-Q4_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-Q6_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-IQ3_S-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-IQ4_XS-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-Q4_K-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-IQ3_S-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-IQ3_XXS-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-Q2_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-Q4_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-Q6_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ3_S-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ4_XS-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-Q4_K-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ3_S-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ3_XXS-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-Q2_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-Q4_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-Q6_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-IQ3_S-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-IQ4_XS-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-Q4_K-lcpp_mmvq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-IQ3_S-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-IQ3_XXS-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-Q2_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-Q4_K-lcpp_mmq]
+PASSED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-Q6_K-lcpp_mmq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-IQ3_S-lcpp_mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-IQ4_XS-lcpp_mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-Q4_K-lcpp_mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-IQ3_S-lcpp_mmq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-IQ3_XXS-lcpp_mmq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-Q2_K-lcpp_mmq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-Q4_K-lcpp_mmq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[graph_replay-Q6_K-lcpp_mmq]
+9 failed, 32 passed, 63 deselected in 814.25s (0:13:34)
+rc=1

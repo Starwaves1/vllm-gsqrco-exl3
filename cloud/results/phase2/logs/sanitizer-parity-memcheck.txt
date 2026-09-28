@@ -1,0 +1,12 @@
+2 failed, 37 passed, 15 warnings in 22.47s
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_graph_replay[IQ3_S-mmq-5]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_graph_replay[IQ3_S-mmvq-4]
+      8 ========= 
+      1 ========= COMPUTE-SANITIZER
+      1 ========= ERROR SUMMARY: 8 errors
+      2 ========= Program hit cudaErrorStreamCaptureInvalidated (error 901) due to "operation failed due to a previous error during capture" on CUDA API call to cudaGetLastError.
+      2 ========= Program hit cudaErrorStreamCaptureInvalidated (error 901) due to "operation failed due to a previous error during capture" on CUDA API call to cudaStreamEndCapture.
+      2 ========= Program hit cudaErrorStreamCaptureUnsupported (error 900) due to "operation not permitted when stream is capturing" on CUDA API call to cudaGetLastError.
+      8 =========     Saved host backtrace up to driver entry point at error
+      1 ========= Target application returned an error
+rc=99

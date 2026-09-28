@@ -1,4 +1,6 @@
-# Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM (Phase A, CPU only)
+# Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
+
+Latest: Phase 2 (Route L on a rented 3090) passed correctness; decode 76.6 tok/s c=1, see "Phase 2" below.
 
 ## Current state (2026-09-27 late)
 
@@ -40,6 +42,38 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
 - Box-only gotcha: a stopped vLLM leaves its CPU-tier mmap (`/dev/shm/vllm_offload_*.mmap`)
   behind; with a 15 GB /dev/shm the next start fails with EFAULT in
   `shared_offload_region.py`. Clear it between runs when no vLLM is running.
+
+## Phase 2: Route L on the rented RTX 3090 (2026-09-28, 350 W)
+
+Route L (llama.cpp b11211 MMVQ/MMQ behind `csrc/lcpp_shim.cu`, `VLLM_GGUF_LCPP=1`) is correct and
+serves. Full numbers: `cloud/results/phase2/summary.txt`. No shim or kernel bug was found; no plugin
+code changed. Test and bench changes: be506ce.
+
+- Build: in place with `VLLM_GGUF_BUILD_LCPP=1` (41 s at 24 jobs); both ops register; import keeps
+  CUDA uninitialised.
+- Kernel parity (VERIFIED): 464 Route L tests pass on real rows, all 9 types, MMVQ 1..8 and MMQ
+  1..2048 rows (incl. 128), bf16/fp16, odd row counts, poisoned scratch. Worst error vs the exact
+  b11211 CPU model: bf16 2.5e-3, fp16 2.9e-4 (Q2_K/Q4_K MMQ 6-8e-4). The references needed the
+  b11211 MMQ quantizer (x*(127/amax), float d, D2S6 for Q2_K) and a slack for near-tie q flips.
+  Q2_K via lcpp MMQ is 7.7e-2 from full precision on outlier-heavy inputs (per-64 activation
+  scale); that is llama.cpp's own arithmetic.
+- ROUTE-L.md's guesses, each confirmed: stream mapping and graph safety (capture + replay bit-exact,
+  81/81); the MMQ tail at 1-7 rows (poisoned scratch, memcheck and initcheck clean with one
+  cudaMalloc per tensor); guards reject every bad case with no device fault (64/64, memcheck clean);
+  the contiguous mixed-shard layout (views, bit-exact through `GGUFLinearMethod.apply`).
+- Serve: load 281 s, 12.29 GiB weights, 23.4 of 24 GiB used after the smoke, 250,000 KV tokens
+  (1.25x at 200k). Chat and tool-call smoke pass.
+- Logit parity vs the phase-1b llama.cpp CUDA dumps: overall KLD 0.028 (stock 0.040), top-1 97.9%;
+  vLLM-vs-llama.cpp-CUDA is at or below llama.cpp's own CUDA-vs-CPU spread on all six prompts where
+  that floor exists. The absolute gate (KLD <= 0.001) still fails, as with stock kernels.
+- Speed (350 W): decode 76.6 / 116.1 tok/s at c=1 / c=2 (stock 31.6 / 37.1; W4A16 baseline 89.1 /
+  182.6), prefill 1036 tok/s at 8k and 589 at 180k (baseline 1108 / 603). MTP acceptance unchanged.
+- Where decode time goes (c=1, one MTP step, 42 ms with the profiler on): GEMM kernels 27.8 ms, shim
+  casts + q8_1 quantize 2.5 ms, draft lm_head reads 2.4 ms, host gaps 6.9 ms. IQ3 MMVQ at 4 rows
+  runs at ~380 GB/s against 625 for IQ4_XS: 4-row decode is lookup-bound. lcpp MMQ is faster than
+  MMVQ from 8 rows (and for the lm_head from 4).
+- Not done: ninfer-all's decode-once vector kernel was fetched but not built or timed (the session's
+  permission policy refused running that third-party code).
 
 ## Branches
 

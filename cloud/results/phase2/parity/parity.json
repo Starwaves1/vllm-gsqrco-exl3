@@ -1,0 +1,148 @@
+{
+ "summary": {
+  "kld_mean": 0.028383940173528747,
+  "top1": 0.9789540816326531,
+  "positions": 3136,
+  "long_kld_mean": 0.004537100791005736,
+  "long_top1": 0.9809027777777778,
+  "thresholds": {
+   "kld_mean_max": 0.001,
+   "top1_min": 0.99
+  },
+  "pass": false
+ },
+ "sequences": {
+  "seq_000": {
+   "kind": "chat",
+   "n_tokens": 1024,
+   "n_pos": 256,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.1306164838308174,
+   "kld_p99": 1.0389998907803921,
+   "kld_max": 17.636013970350096,
+   "top1": 0.94921875,
+   "llama_top1_in_vllm_top5": 0.9921875
+  },
+  "seq_001": {
+   "kind": "chat",
+   "n_tokens": 2048,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.1589607554389615,
+   "kld_p99": 3.5137377163271246,
+   "kld_max": 18.228788548691327,
+   "top1": 0.9513888888888888,
+   "llama_top1_in_vllm_top5": 0.9861111111111112
+  },
+  "seq_002": {
+   "kind": "code",
+   "n_tokens": 1536,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.007347293724583527,
+   "kld_p99": 0.0913819551720075,
+   "kld_max": 0.37998728998570513,
+   "top1": 0.9722222222222222,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_003": {
+   "kind": "code",
+   "n_tokens": 4096,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0019433776595890523,
+   "kld_p99": 0.022078169243436793,
+   "kld_max": 0.13040731308256046,
+   "top1": 0.9826388888888888,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_004": {
+   "kind": "code",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0016019817947474989,
+   "kld_p99": 0.017217220757965467,
+   "kld_max": 0.06181414880516672,
+   "top1": 0.9965277777777778,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_005": {
+   "kind": "prose",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.008414787097494008,
+   "kld_p99": 0.15443073265243393,
+   "kld_max": 1.2978284830132878,
+   "top1": 0.9895833333333334,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_006": {
+   "kind": "code",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0013943101496613859,
+   "kld_p99": 0.03131702014552541,
+   "kld_max": 0.11782417908894784,
+   "top1": 0.9861111111111112,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_007": {
+   "kind": "mixed",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0013833856576348006,
+   "kld_p99": 0.02518865943610806,
+   "kld_max": 0.06731238250109899,
+   "top1": 0.9861111111111112,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_008": {
+   "kind": "mixed",
+   "n_tokens": 65536,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0028459364907920167,
+   "kld_p99": 0.0498483905595383,
+   "kld_max": 0.14029627728128558,
+   "top1": 0.9895833333333334,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_009": {
+   "kind": "code",
+   "n_tokens": 102400,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.0016747919686463605,
+   "kld_p99": 0.01849666792721576,
+   "kld_max": 0.021527703550677558,
+   "top1": 0.9826388888888888,
+   "llama_top1_in_vllm_top5": 1.0
+  },
+  "seq_010": {
+   "kind": "mixed",
+   "n_tokens": 120000,
+   "n_pos": 288,
+   "vocab_llama": 248320,
+   "vocab_vllm": 248320,
+   "kld_mean": 0.007399409613365112,
+   "kld_p99": 0.11912263792916249,
+   "kld_max": 0.15549207365446335,
+   "top1": 0.9791666666666666,
+   "llama_top1_in_vllm_top5": 1.0
+  }
+ }
+}
