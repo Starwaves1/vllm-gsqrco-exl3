@@ -87,9 +87,8 @@ pf() { local len=$1 c=$2 n=$3 seed=$((RANDOM * 32768 + RANDOM)) log=$OUT/prefill
 }
 {
   echo "# salted prefill ladder"
-  pf 8192 1 8; pf 8192 2 8
-  pf 65536 1 2; pf 65536 2 4
-  pf 180000 1 2
+  # GSQ_PREFILL: "len:conc:prompts ..." to run a subset of the ladder
+  for spec in ${GSQ_PREFILL:-8192:1:8 8192:2:8 65536:1:2 65536:2:4 180000:1:2}; do pf ${spec//:/ }; done
 } | tee -a "$SUM"
 
 M | grep -E '^vllm:spec_decode' > "$OUT/spec_after.prom" || true

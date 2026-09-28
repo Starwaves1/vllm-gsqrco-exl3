@@ -3,7 +3,7 @@
 process). Prints one JSON line: status = ok (ran, result correct) | rejected (clean Python
 exception before any bad access) | mismatch (ran, silently wrong).
 
-  python tests/gpu/_guard_case.py CASE TYPE OP     OP = mmvq | mmq
+  python tests/gpu/_guard_case.py CASE TYPE OP     OP = mmvq | mmq | lcpp_mmvq | lcpp_mmq
 
 Cases (the kernels use data_ptr() only; no contiguity, stride or alignment checks,
 gguf_kernel.cu:98,118-285 per STATUS):
@@ -14,6 +14,7 @@ gguf_kernel.cu:98,118-285 per STATUS):
   w_misaligned     W starts 1 byte into its storage
   row_too_big      row argument > W rows (reads past W)
   k_mismatch       X has fewer columns than W's rows hold (reads past X)
+  x_rowstride      X is x[:, :k] of a wider buffer (row stride > k, unit inner stride)
   graph_replay     capture the op in a CUDA graph, replay with new X contents, compare
 """
 
@@ -44,8 +45,14 @@ def main() -> None:
     raw = np.ascontiguousarray(t.data[:ROWS])
     qt = int(gguf.GGMLQuantizationType[name])
     k = int(t.shape[0])
-    fn = ops.ggml_mul_mat_vec_a8 if op == "mmvq" else ops.ggml_mul_mat_a8
-    n = N if op == "mmvq" else 64
+    fn = {"mmvq": ops.ggml_mul_mat_vec_a8, "mmq": ops.ggml_mul_mat_a8,
+          "lcpp_mmvq": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_q", None),
+          "lcpp_mmq": getattr(torch.ops._C_gguf, "lcpp_mul_mat_q", None)}[op]
+    if fn is None:
+        raise SystemExit(f"{op}: _C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+    # lcpp MMQ at 5 rows: below upstream's J_max tail, where only the shim's zeroed tail
+    # keeps the tile reads defined
+    n = {"mmvq": N, "lcpp_mmvq": N, "mmq": 64, "lcpp_mmq": 5}[op]
     g = torch.Generator().manual_seed(0)
     x = torch.randn(n, k, generator=g).to(torch.bfloat16)
     w = torch.from_numpy(raw).cuda()
@@ -72,6 +79,10 @@ def main() -> None:
         row = w.shape[0] + 64
     elif case == "k_mismatch":
         xc = xc[:, : k // 2].contiguous()
+    elif case == "x_rowstride":
+        wide = torch.zeros(n, k + 512, dtype=torch.bfloat16, device="cuda")
+        wide[:, :k] = xc
+        xc = wide[:, :k]
     elif case != "graph_replay":
         raise SystemExit(f"unknown case {case}")
 
@@ -99,8 +110,8 @@ def main() -> None:
         # ran without a device fault; there is no correct answer to compare with
         print(json.dumps({"case": case, "status": "mismatch", "note": "accepted invalid shapes silently"}))
         return
-    refs = _refs.refs(ref_raw, name, ref_x, mmq=(op == "mmq"))
-    err = min(_refs.rel_err(y, v) for kk, v in refs.items() if kk != "full")
+    refs = _refs.refs(ref_raw, name, ref_x, mmq=op.endswith("mmq"), lcpp=op.startswith("lcpp"))
+    err = min(_refs.rel_err(y, *v) for kk, v in refs.items() if kk != "full")
     print(json.dumps({"case": case, "status": "ok" if err < 5e-3 else "mismatch", "rel_err": err}))
 
 
