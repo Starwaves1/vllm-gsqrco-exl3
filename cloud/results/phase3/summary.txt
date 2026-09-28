@@ -1,0 +1,15 @@
+Phase 3: close Route L's decode gap (rented RTX 3090, 350 W, same box as phase 2). Route L on
+(VLLM_GGUF_LCPP=1) everywhere. Decode = pass 2 of production run_benchmarks.sh single via
+bench/speed/run.sh gsq (no prefill ladder), T=0 cohorts; ms/step = C * 1000 / decode * tok/step.
+Box scripts: box-scripts/. Reference points (phase 2): Route L 77.8 / 117.0 tok/s c=1 / c=2
+(40.1 / 53.0 ms/step); W4A16 baseline 94.1 / 194.4 greedy in phase 2 (the brief quotes 94.3 / 200.8).
+
+item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1 / c=2   parity      kept
+1     lcpp MMQ from 8 rows (was >8)            77.8 (a)   135.5      40.1 / 45.9          776 pass    yes
+1b    lm_head MMQ from 4 rows                  76.8       (b)        40.2 / -             776 pass    no (c)
+ (a) c=1 never reaches 8 rows, so its path is phase 2's; measured with 1b in: 76.8, 40.2 ms/step,
+     tok/step 3.09 vs 3.12 (greedy tokens shift with the lm_head's float order).
+ (b) c=2 runs the lm_head at 8 rows, which is MMQ with or without 1b.
+ (c) in-situ lm_head at 4 rows: MMQ 1119 us vs MMVQ 1077 us (item2/item1-eager-gemm.txt vs
+     p2-eager-gemm.txt); the microbench (1151 vs 1377 us) overstated MMVQ for this weight.
+     MTP acceptance unchanged: 0.688, mean length 3.06. Clocks 1740-1755 MHz, 346 W.

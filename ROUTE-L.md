@@ -29,7 +29,7 @@ Every numeric property is untested.
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
   - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ3_XXS/IQ3_S/IQ4_XS,
-    ≤8 rows go to lcpp MMVQ and >8 to lcpp MMQ. IQ1_M keeps the old path.
+    <8 rows go to lcpp MMVQ and ≥8 to lcpp MMQ (phase 3 item 1). IQ1_M keeps the old path.
   - Mixed-type fused layers: each shard is stored contiguously inside its
     padded region, so `_shard_weight` returns a view and the per-forward
     `.contiguous()` copy is gone.

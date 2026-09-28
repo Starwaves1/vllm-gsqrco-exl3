@@ -348,7 +348,7 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
 
     x = _x(n, int(ts[0].shape[0]), "bfloat16", seed=800 + n).cuda()
     y = method.apply(layer, x)
-    fn = C.lcpp_mul_mat_vec_q if n <= 8 else C.lcpp_mul_mat_q
+    fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
     ref = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
     torch.cuda.synchronize()
     print(f"\nblk.{blk} gate {ts[0].tensor_type.name} + up {ts[1].tensor_type.name}, n={n}")

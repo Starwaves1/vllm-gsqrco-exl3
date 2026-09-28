@@ -44,7 +44,8 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        if x.shape[0] <= 8:
+        # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)
+        if x.shape[0] < 8:
             return torch.ops._C_gguf.lcpp_mul_mat_vec_q(
                 weight, x, weight_type, weight.shape[0]
             )
