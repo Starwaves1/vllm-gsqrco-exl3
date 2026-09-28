@@ -74,7 +74,9 @@ def _shard_weight(
 
     With VLLM_GGUF_LCPP=1 each run of adjacent same-type shards is stored
     contiguously from the start of its first shard's region (see
-    _create_padded_weight_param), so for a run this is a view, not a copy."""
+    _create_padded_weight_param), so for a run this is a view, not a copy.
+    Under that layout the offsets of a shard inside a run do not locate its
+    bytes: address runs (_shard_runs), not single shards."""
     if ops.LCPP_ENABLED:
         rows = end - start
         return weight[start:end].view(-1)[: rows * size].view(rows, size)
@@ -83,10 +85,14 @@ def _shard_weight(
 
 def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
     """(rows, type) for each run of adjacent same-type shards of a padded
-    multi-shard weight: one product per run instead of one per shard."""
+    multi-shard weight: one product per run instead of one per shard. Only
+    VLLM_GGUF_LCPP=1 stores runs contiguously; otherwise every shard is its own
+    run, as before (stock routing depends on each product's row count)."""
     offsets = weight.shard_offset_map
-    for weight_type, run in groupby(zip(shard_ids, weight_types), key=lambda p: p[1]):
-        ids = [idx for idx, _ in run]
+    key = (lambda p: p[1]) if ops.LCPP_ENABLED else (lambda p: p[0])
+    for _, run in groupby(zip(shard_ids, weight_types), key=key):
+        ids, types = zip(*run)
+        weight_type = types[0]
         start, _, size = offsets[ids[0]]
         yield _shard_weight(weight, start, offsets[ids[-1]][1], size), weight_type
 

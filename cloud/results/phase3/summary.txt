@@ -64,6 +64,22 @@ the draft-head share of the busy gap stated; one baseline figure (94.1) used thr
 Reviewer suggested, not done: FULL cudagraphs via another attention backend and async scheduling
 (config, affect production equally; for Garrett).
 
+Review 2 (/check, Fable, items 3-4b): 14 findings, none high. Fixed: _shard_runs coalesced in
+stock mode too, changing stock routing (5120-row MMVQ threshold) - now LCPP only; item 5 table
+counted the eager lm_head as in-layer Q4_K (corrected, 618 GB/s); item 4b tok/s gain is mostly
+tok/step (caveat added), projection now 31.9-32.5 ms; clock explanation replaced by "noise";
+run test now also covers a qkv run narrower than the padded row (blk.2, packing arithmetic);
+_shard_weight docstring warns that shard offsets inside a run don't locate bytes; draft-head gate
+documented (ids file + MTP_DRAFT_VOCAB, not VLLM_GGUF_LCPP); torch.load weights_only=True; test
+hook checks X dtype; "line for line" -> "same arithmetic and layout"; quantizer test adds
+all-zero blocks; initcheck on the dequant tests (0 errors); write-up scope fixes. Re-run: parity
+1002 pass / 16 skip with Route L (was 997; +5 run cases), 987 / 31 without it, CPU guards 42.
+Rejected: storing runs once at load (7): a second representation of the layout, more code than
+the groupby it replaces, no correctness gain. Ids validation beyond weights_only (9): an
+out-of-range id already fails loudly at load; PROVENANCE detail left as generated.
+Reviewer suggested, not done: IQ4_NL dequant launcher overruns when k % 256 != 0 (pre-existing,
+not in this GGUF); repeat profile runs to put error bars on sub-ms deltas.
+
 item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1 / c=2   parity      kept
 3b    draft lm_head placeholder not allocated  (c)        (c)        -                    n/a (d)     yes
 3a    + row-pruned draft lm_head (40,960 rows) 79.4       139.5      37.8 / 43.2          n/a (d)     yes
@@ -99,7 +115,8 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  initcheck 0 errors on 18 cases without the caching allocator. Profile (item4/): casts
  1.82 -> 0.68 ms/step (451 output casts left), in-graph kernel boundaries 2290 -> 1843 per step.
  Per-kernel GEMM times moved +1..5% against item 3's profile, the unchanged stock IQ1_M kernel
- too (+4.7%): run-to-run SM clock (1740 vs 1755 MHz in the speed runs), not the change.
+ too (+4.7%); target GEMM time also moved -2.7% from item 1 to item 3 with no target code
+ change. Profile deltas under ~1 ms/step are run-to-run noise (single profiled runs).
 
 item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1 / c=2   parity      kept
 4b    one product per same-type shard run;     83.5       146.7      36.6 / 41.6          997 pass    yes
@@ -111,21 +128,28 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  path too). Profile: GPU busy 32.5 -> 31.7 ms/step, q8_1 quantize + casts 1.34 -> 1.15 ms.
  tok/step at T=0 went 3.00 -> 3.06: prefill runs MMQ, where a 10,240-row product splits K
  (stream-k) differently from three shard products, so prompt numerics move by ~1 bf16 ulp;
- ms/step is the comparable figure (-0.3 / -0.5 ms). Coalesced vs per-shard: bit-exact through
+ ms/step is the comparable figure (-0.3 / -0.5 ms, i.e. -0.8% at c=1; of the +2.8% tok/s
+ at c=1, +2.0% is tok/step: whole-run acceptance 0.633 -> 0.651, also moved by the 8-row MMQ
+ decode at c=2). The GPU-busy drop (-0.8 ms) is within profile noise (item 4 note). Coalesced vs per-shard: bit-exact through
  MMVQ (n < 8); through MMQ max 0.03 abs, rel 1e-3 bound (test_lcpp_same_type_run, 5 new);
  bit-exact against one product over the same rows. ggml_dequantize (embedding rows, IQ1_M
  dequant + matmul) writes every element, so new_zeros -> new_empty; test_dequantize now
- poisons the allocator first (all pass). This one change sits outside the VLLM_GGUF_LCPP flag.
+ poisons the allocator first (all pass), and initcheck on the dequant tests is clean (review 2).
+ This one change sits outside the VLLM_GGUF_LCPP flag: stock mode keeps one product per shard
+ (review 2 fix; stock routing depends on each product's row count).
 
 item 5  decode-once kernel for 2-8 rows: NOT started (stop point). Data for the decision:
  After items 1-4b: 83.5 / 146.7 tok/s c=1 / c=2 = 36.6 / 41.6 ms/step (baseline 94.1 / 194.4).
- At ~3.05 tok/step, 94.1 tok/s needs ~32.5 ms/step: -4.1 ms at c=1; c=2 needs -10 ms.
+ At 3.00-3.06 tok/step (acceptance moves with numerics), 94.1 tok/s needs 31.9-32.5 ms/step:
+ -4.1..-4.7 ms at c=1; c=2 needs ~-10 ms.
  Target pass at c=1 (4 rows, item4b/profile-pertype.txt; bytes from the GGUF header), per step:
    type      GB     ms     GB/s      type      GB     ms     GB/s
    IQ3_S    3.64   8.65    421       Q4_K     0.87   2.47    351
    IQ3_XXS  2.08   5.14    403       IQ2_S    0.39   1.21    326
    IQ4_XS   3.02   4.18    723       Q2_K     0.24   0.82    293
-   (IQ2_XS/IQ2_XXS 0.32 GB, 1.09 ms; IQ1_M stock 0.2 ms)   all: 10.56 GB, 23.6 ms, 448 GB/s
+   (IQ2_XS/IQ2_XXS 0.32 GB, 1.09 ms; IQ1_M stock 0.2 ms)
+   Q4_K's 2.47 ms includes the eager target lm_head (0.715 GB, 1.07 ms): in-layer Q4_K is
+   0.87 GB / 1.40 ms = 618 GB/s. All in-layer: 10.56 GB / 22.5 ms = 469 GB/s.
  IQ3 at 4 rows runs at 58% of IQ4_XS's rate on the same kernel family. If a decode-once kernel
  brought IQ3_S/IQ3_XXS to IQ4_XS's 723 GB/s at 4 rows, the target pass loses ~5.9 ms; at their
  own 1-row rate (~550-590 GB/s) ~3.8 ms. So 94 tok/s at c=1 needs roughly the IQ4_XS-level

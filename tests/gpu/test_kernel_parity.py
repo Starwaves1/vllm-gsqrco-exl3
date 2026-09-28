@@ -282,6 +282,7 @@ def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
     C = _lcpp()
     k, qt = 5120, int(gguf.GGMLQuantizationType[name])
     x = _x(n, k, "bfloat16" if x_kind == "rowstride" else x_kind, seed=900 + n).cuda()
+    x[0, 128:256] = 0  # all-zero blocks: the amax == 0 branches
     if x_kind == "rowstride":
         x = torch.cat([x, x[:, :512]], 1)[:, :k]  # row stride k + 512
     ours = C.lcpp_quantize_q8_1(x, qt, mmq, False)
@@ -342,13 +343,15 @@ def _padded_layer(shards, qts, k, monkeypatch):
     return layer, method
 
 
-def _mixed_block(gguf_reader, a, b):
-    """First block whose tensors a and b have different Route L types."""
+def _mixed_block(gguf_reader, a, b, a_narrower=False):
+    """First block whose tensors a and b have different Route L types (with a_narrower: a's
+    rows hold fewer bytes than b's, so a's run is packed tighter than the padded row)."""
     by_name = {t.name: t for t in gguf_reader.tensors}
     for i in range(64):
         ta, tb = by_name.get(f"blk.{i}.{a}.weight"), by_name.get(f"blk.{i}.{b}.weight")
         if ta is not None and tb is not None and ta.tensor_type != tb.tensor_type \
-                and {ta.tensor_type.name, tb.tensor_type.name} <= set(LCPP_TYPES):
+                and {ta.tensor_type.name, tb.tensor_type.name} <= set(LCPP_TYPES) \
+                and (not a_narrower or ta.data.shape[1] < tb.data.shape[1]):
             return i, ta, tb
     pytest.skip(f"no block with a mixed-type {a}/{b} pair on Route L types")
 
@@ -390,8 +393,9 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     assert torch.equal(y, ref)
 
 
+@pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
 @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
-def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, monkeypatch):
+def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
     """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
     attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
     the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
@@ -407,7 +411,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, monkeypatch):
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     import _refs
 
-    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate")
+    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
     qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
     z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
     shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]

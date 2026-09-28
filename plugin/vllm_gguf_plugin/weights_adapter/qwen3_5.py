@@ -401,7 +401,7 @@ def _draft_vocab_ids(model_config: ModelConfig) -> torch.Tensor | None:
     vLLM overlay's qwen3_5_mtp.py patch that creates `draft_lm_head`."""
     path = os.path.join(model_config.model, "mtp_draft_vocab_ids.pt")
     if os.path.exists(path) and os.environ.get("MTP_DRAFT_VOCAB", "1") != "0":
-        return torch.load(path, map_location="cpu")
+        return torch.load(path, map_location="cpu", weights_only=True)
     return None
 
 
@@ -409,7 +409,9 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
     """Qwen3.5/3.6 single-block MTP draft stored in a GGUF nextn block.
 
     With the overlay's pruned draft head, `mtp.draft_lm_head` gets the GGUF
-    output.weight rows listed in mtp_draft_vocab_ids.pt (a lossless row slice)."""
+    output.weight rows listed in mtp_draft_vocab_ids.pt (a lossless row slice).
+    Gated by that file and MTP_DRAFT_VOCAB (=0 turns it off), not VLLM_GGUF_LCPP:
+    the overlay builds the head whenever the file is there."""
 
     #: embed_tokens is shared from the target after vLLM probes the draft's
     #: embed_input_ids, so it must stay an ordinary module. lm_head is shared

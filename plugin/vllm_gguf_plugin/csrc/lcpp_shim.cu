@@ -247,8 +247,8 @@ struct TorchPool final : public ggml_cuda_pool {
 };
 
 // ---------------------------------------------------------------------------
-// q8_1 activation quantizers for fp32 / fp16 / bf16 X. Line for line the
-// arithmetic and output layout of the vendored quantize_q8_1 (MMVQ) and
+// q8_1 activation quantizers for fp32 / fp16 / bf16 X. The same arithmetic and
+// output layout as the vendored quantize_q8_1 (MMVQ) and
 // quantize_mmq_q8_1 (MMQ; 2-D, no ids) in quantize.cu, which take fp32 only;
 // reading 16-bit X directly saves a cast kernel per call. Converting fp16/bf16
 // to float is exact, so the q8 blocks are bit-identical to the vendored ones on
@@ -568,7 +568,9 @@ Tensor lcpp_mul_mat_q(Tensor W, Tensor X, int64_t type, int64_t row) {
 // (vendored true; X must be fp32 with a row stride that is a multiple of 4).
 Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
   STD_TORCH_CHECK(lcpp_type_supported(type) && X.is_cuda() && X.dim() == 2 && X.stride(1) == 1 &&
-                      X.size(1) % MATRIX_ROW_PADDING == 0,
+                      X.size(1) % MATRIX_ROW_PADDING == 0 &&
+                      (X.scalar_type() == ScalarType::Float || X.scalar_type() == ScalarType::Half ||
+                       X.scalar_type() == ScalarType::BFloat16),
                   "lcpp_quantize_q8_1: bad arguments");
   const int64_t n = X.size(0), k = X.size(1), s01 = n == 1 ? k : X.stride(0);
   const int64_t bytes = mmq ? n * k / QK8_1_MMQ * (int64_t)sizeof(block_q8_1_mmq)

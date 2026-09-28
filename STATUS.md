@@ -51,29 +51,34 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | item | change | c=1 tok/s | c=2 tok/s | ms/step c=1 / c=2 | kept |
 |---|---|---|---|---|---|
 | phase 2 | Route L as merged | 77.8 | 117.0 | 40.1 / 53.0 | |
-| 1 | lcpp MMQ from 8 rows (was >8) | 77.8 | 135.5 | 40.1 / 45.9 | yes |
+| 1 | lcpp MMQ from 8 rows (was >8) | 77.8 (a) | 135.5 | 40.1 / 45.9 | yes |
 | 1b | lm_head via MMQ from 4 rows | 76.8 | = | 40.2 / - | no: 1119 vs 1077 us in situ |
 | 2 | host gaps: diagnosis only | | | | |
 | 3 | draft lm_head row-pruned to 40,960 (production's list and mechanism); no bf16 lm_head placeholder | 79.4 | 139.5 | 37.8 / 43.2 | yes |
 | 4 | owned X -> q8_1 quantizer (no input cast) | 81.2 | 142.9 | 36.9 / 42.1 | yes |
-| 4b | one GEMM per same-type shard run (433 -> 356 per pass); dequant output not zeroed | 83.5 | 146.7 | 36.6 / 41.6 | yes |
+| 4b | one GEMM per same-type shard run (433 -> 356 per pass); dequant output not zeroed | 83.5 (b) | 146.7 (b) | 36.6 / 41.6 | yes |
 
-- Parity after each item: kernel parity 776 -> 992 -> 997 pass (new: q8 bytes vs the vendored
-  quantizer, 216/216 bit-identical; same-type run test). GPU guards 64/64, CPU guards 42,
-  memcheck/initcheck clean after item 4. Vendored files unchanged (VENDORED.md sha256 pass).
+(a) item 1 at c=1 is phase 2's path (c=1 never reaches 8 rows). (b) mostly tok/step: acceptance
+moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
+
+- Tests: kernel parity 776 -> 992 -> 1002 pass (new: q8 bytes vs the vendored quantizer,
+  bit-identical; same-type run test); item 3 is loader-only (CPU tests + serve smoke). GPU guards
+  64/64, CPU guards 42, memcheck/initcheck 0 errors on 18 targeted cases after item 4 and on the
+  dequant tests after 4b. Vendored files unchanged (VENDORED.md sha256 pass).
 - Host gaps (item 2): vLLM runs both Route L and the W4A16 baseline PIECEWISE (FlashInfer has no
   FULL cudagraph support under spec decode); every Route L GEMM except the eager lm_head calls is
   graph-captured, draft passes included; both models idle the GPU ~4.7 ms/step without the
   profiler. Not the plugin. The rest of the gap is GPU time.
 - Item 3 costs acceptance: 0.688 -> 0.630 (mean length 3.06 -> 2.89), since tokens outside the
-  40,960 are never drafted. Net positive. VRAM: load peak -2.37 GiB (23,427 -> 21,001 MiB), KV
-  250,000 -> 246,875 tokens (1.23x at 200k).
+  40,960 are never drafted. Net positive. VRAM: load peak -2.37 GiB (23,427 -> 21,001 MiB); the
+  pruned head adds 0.11 GiB of weights, so KV 250,000 -> 246,875 tokens (1.23x at 200k). Off
+  switch: MTP_DRAFT_VOCAB=0 (the head follows the ids file, not VLLM_GGUF_LCPP).
 - Item 4 keeps the output cast: MMVQ/MMQ write fp32 only. W rows must now be contiguous (MMVQ
   goes through upstream's q8_1 entry `ggml_cuda_op_mul_mat_vec_q`).
 - Item 5 (decode-once kernel for 2-8 rows) not started, by instruction. At 4 rows IQ3_S/IQ3_XXS
   run at 421/403 GB/s in situ against IQ4_XS's 723; they are 13.8 of the 23.6 ms target GEMM
-  time. Reaching 94 tok/s at c=1 needs about -4.1 ms/step, i.e. IQ3 near IQ4_XS's rate.
-- Reviews: /check (Fable) after item 2 and at the end; outcomes in summary.txt.
+  time. Reaching 94 tok/s at c=1 needs -4.1..-4.7 ms/step, i.e. IQ3 near IQ4_XS's rate.
+- Reviews: /check (Fable) after item 2 and after 4b; both outcomes in summary.txt.
 
 ## Phase 2: Route L on the rented RTX 3090 (2026-09-28, 350 W)
 
