@@ -77,13 +77,17 @@ def _store_gguf_loaded_weight(
     loaded_weight: torch.Tensor,
     shard_id: int | str | None = None,
 ) -> None:
-    loaded_weight = _clone_loaded_weight(loaded_weight).to(device=param.device)
+    # Copy straight from host memory: a device staging copy leaves a freed
+    # segment per weight in vLLM's weights memory pool (cumem), which the MTP
+    # draft loaded right after cannot reuse.
+    loaded_weight = _clone_loaded_weight(loaded_weight)
     if shard_id is None:
         _materialize_parameter_data(
             param, tuple(loaded_weight.shape), loaded_weight.dtype
         )
         param.data.copy_(loaded_weight)
         return
+    loaded_weight = loaded_weight.to(device=param.device)
 
     if shard_id not in param.shard_id_map:
         param.shard_id_map[shard_id] = len(param.data_container)
@@ -131,7 +135,7 @@ def _gguf_embedding_weight_loader(
     param: Parameter | UninitializedParameter,
     loaded_weight: torch.Tensor,
 ) -> None:
-    loaded_weight = _clone_loaded_weight(loaded_weight).to(device=param.device)
+    loaded_weight = _clone_loaded_weight(loaded_weight)  # host copy, see above
     start_idx = layer.shard_indices.org_vocab_start_index
     shard_size = layer.shard_indices.org_vocab_end_index - start_idx
     loaded_weight = loaded_weight.narrow(param.output_dim, start_idx, shard_size)
