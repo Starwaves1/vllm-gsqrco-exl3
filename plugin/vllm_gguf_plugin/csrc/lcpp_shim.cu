@@ -382,7 +382,7 @@ static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq, int6
 // 4 activation rows and 106 at 8: +9 per row = one q8_1 block, the weight and
 // grid loads are not repeated). Per activation row it pays those q8_1
 // loads (a lane reads its 36-byte block as 8 separate words), shared by only
-// 2 weight rows per warp.
+// 2 weight rows per warp, on top of a heavy sign step.
 // Here a CTA of 4 warps owns 16 weight rows, 4 per warp, and lane l takes the
 // 32-value slices l, l+32, ... of each. The grid sits in shared memory, and
 // each 32-block chunk of every activation row is staged there with 16-byte
@@ -390,7 +390,7 @@ static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq, int6
 // lane decodes its slice of each of its 4 rows once into 8 int8x4 words, then
 // reads each activation slice once and dots it with all 4.
 // From ninfer-all's ggml_bridge_vec.cuh (Apache-2.0; read, not copied): the
-// slice-per-lane layout and the shared-memory grid.
+// slice-per-lane layout, the shared-memory grid and the sign step (iq3_negate).
 // The staging and the 4-row reuse are ours. 4 warps x 4 rows was the fastest of
 // 2..16 warps x 2..8 rows measured.
 //
@@ -418,25 +418,28 @@ struct iq3_traits<GGML_TYPE_IQ3_XXS> {
   static __device__ const uint32_t* grid() { return iq3xxs_grid; }
 };
 
+// Negates the bytes of g whose bit is set in the low nibble of bits. The IQ3
+// grids have no zero byte, so the per-byte (g ^ 0xFF) + 1 never carries: the
+// same int8 values as the vendored __vcmpne4 / __vsub4 sign step, in 4
+// instructions instead of ~10 (ninfer-all's negate_bytes, ggml_bridge_vec.cuh).
+static __device__ __forceinline__ int iq3_negate(uint32_t g, uint32_t bits) {
+  const uint32_t ones = ((bits & 0xF) * 0x00204081u) & 0x01010101u;
+  return (int)((g ^ (ones * 0xFFu)) + ones);
+}
+
 // Slice u (values 32u..32u+31) of block b: 8 signed int8x4 words in value
-// order, the block scale d and the slice's integer sub-scale ls, computed as
-// vec_dot_iq3_s_q8_1 / vec_dot_iq3_xxs_q8_1 (vecdotq.cuh, iqs = 2u) do, with
-// the grid read from shared memory.
+// order, the block scale d and the slice's integer sub-scale ls, with the
+// grid read from shared memory. Same values as vec_dot_iq3_s_q8_1 /
+// vec_dot_iq3_xxs_q8_1 (vecdotq.cuh) with iqs = 2u.
 static __device__ __forceinline__ void iq3_decode(const block_iq3_s* b, int u, const uint32_t* grid,
                                                   int (&w)[8], int& ls, float& d) {
   const int2 qs_packed = make_int2(get_int_b2(b->qs, 2 * u), get_int_b2(b->qs, 2 * u + 1));
   const uint8_t* qs = (const uint8_t*)&qs_packed;
   const int qh = b->qh[u];
-  const int signs_packed_32 = get_int_b2(b->signs, u);
-  const uint8_t* signs = (const uint8_t*)&signs_packed_32;
+  const uint32_t signs = get_int_b2(b->signs, u);
 #pragma unroll
-  for (int l0 = 0; l0 < 8; l0 += 2) {
-    const int g0 = grid[qs[l0 + 0] | ((qh << (8 - l0)) & 0x100)];
-    const int g1 = grid[qs[l0 + 1] | ((qh << (7 - l0)) & 0x100)];
-    const int s0 = __vcmpne4(((signs[l0 / 2] & 0x03) << 7) | ((signs[l0 / 2] & 0x0C) << 21), 0);
-    const int s1 = __vcmpne4(((signs[l0 / 2] & 0x30) << 3) | ((signs[l0 / 2] & 0xC0) << 17), 0);
-    w[l0 + 0] = __vsub4(g0 ^ s0, s0);
-    w[l0 + 1] = __vsub4(g1 ^ s1, s1);
+  for (int e = 0; e < 8; ++e) {
+    w[e] = iq3_negate(grid[qs[e] | ((qh << (8 - e)) & 0x100)], signs >> (4 * e));
   }
   ls = (b->scales[u / 2] >> (4 * (u & 1))) & 0x0F;
   d = __half2float(b->d);
@@ -449,11 +452,9 @@ static __device__ __forceinline__ void iq3_decode(const block_iq3_xxs* b, int u,
   const uint32_t aux32 = get_int_b2(b->qs, QK_K / 16 + u);
 #pragma unroll
   for (int l0 = 0; l0 < 8; l0 += 2) {
-    const uint32_t signs = unpack_ksigns(aux32 >> (7 * l0 / 2));
-    const int s0 = __vcmpne4(signs & 0x08040201, 0);
-    const int s1 = __vcmpne4(signs & 0x80402010, 0);
-    w[l0 + 0] = __vsub4(grid[q3[l0 + 0]] ^ s0, s0);
-    w[l0 + 1] = __vsub4(grid[q3[l0 + 1]] ^ s1, s1);
+    const uint32_t signs = unpack_ksigns(aux32 >> (7 * l0 / 2));  // 8 sign bits, 1 per value
+    w[l0 + 0] = iq3_negate(grid[q3[l0 + 0]], signs);
+    w[l0 + 1] = iq3_negate(grid[q3[l0 + 1]], signs >> 4);
   }
   ls = aux32 >> 28;
   d = __half2float(b->d);
