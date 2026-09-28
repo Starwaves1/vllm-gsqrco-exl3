@@ -1,0 +1,12 @@
+seq_000 chat   tokens=   1024 positions= 256
+seq_001 chat   tokens=   2048 positions= 288
+seq_002 code   tokens=   1536 positions= 288
+seq_003 code   tokens=   4096 positions= 288
+seq_004 code   tokens=   8192 positions= 288
+seq_005 prose  tokens=   8192 positions= 288
+seq_006 code   tokens=  32768 positions= 288
+seq_007 mixed  tokens=  32768 positions= 288
+seq_008 mixed  tokens=  65536 positions= 288
+seq_009 code   tokens= 102400 positions= 288
+seq_010 mixed  tokens= 120000 positions= 288
+fingerprint eb7ac4b45c892c9e99fb5749a4a7dbec56c9fb706cd7dd5efec39134603e1a4a

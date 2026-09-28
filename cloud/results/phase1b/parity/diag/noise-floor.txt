@@ -1,0 +1,19 @@
+seq      pair                     stats
+seq_000  llamaCUDA || llamaCPU   KLD mean 0.22509 median 0.00064 top1 0.9414
+seq_000  llamaCUDA || vLLM       KLD mean 0.11645 median 0.00049 top1 0.9492
+seq_000  llamaCPU  || vLLM       KLD mean 0.21509 median 0.00058 top1 0.9375
+seq_001  llamaCUDA || llamaCPU   KLD mean 0.39918 median 0.00168 top1 0.9097
+seq_001  llamaCUDA || vLLM       KLD mean 0.25106 median 0.00078 top1 0.9479
+seq_001  llamaCPU  || vLLM       KLD mean 0.44326 median 0.00181 top1 0.9132
+seq_002  llamaCUDA || llamaCPU   KLD mean 0.01449 median 0.00013 top1 0.9792
+seq_002  llamaCUDA || vLLM       KLD mean 0.00505 median 0.00005 top1 0.9861
+seq_002  llamaCPU  || vLLM       KLD mean 0.01316 median 0.00012 top1 0.9722
+seq_003  llamaCUDA || llamaCPU   KLD mean 0.00352 median 0.00010 top1 0.9792
+seq_003  llamaCUDA || vLLM       KLD mean 0.00186 median 0.00006 top1 0.9792
+seq_003  llamaCPU  || vLLM       KLD mean 0.00412 median 0.00012 top1 0.9861
+seq_004  llamaCUDA || llamaCPU   KLD mean 0.00825 median 0.00012 top1 0.9896
+seq_004  llamaCUDA || vLLM       KLD mean 0.00238 median 0.00008 top1 0.9965
+seq_004  llamaCPU  || vLLM       KLD mean 0.00686 median 0.00020 top1 0.9861
+seq_005  llamaCUDA || llamaCPU   KLD mean 0.07194 median 0.00086 top1 0.9826
+seq_005  llamaCUDA || vLLM       KLD mean 0.06073 median 0.00030 top1 0.9826
+seq_005  llamaCPU  || vLLM       KLD mean 0.01003 median 0.00082 top1 0.9757

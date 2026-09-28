@@ -1,0 +1,47 @@
+INFO 09-28 04:18:43 [__init__.py:112] Registered model loader `<class 'vllm_gguf_plugin.loader.GGUFModelLoader'>` with load format `gguf`
+INFO 09-28 04:18:43 [config.py:459] Registered config parser `<class 'vllm_gguf_plugin.config_parser.GGUFConfigParser'>` with config format `gguf`
+Namespace(subparser='bench', bench_type='serve', dispatch_function=<function BenchmarkServingSubcommand.cmd at 0x7fbf58377740>, trust_remote_code=False, seed=0, num_prompts=8, dataset_name='custom', no_stream=False, dataset_path='/workspace/runs/p1b-speed-gsq/prodbench/bench/prompts_real.jsonl', no_oversample=False, skip_chat_template=False, enable_multimodal_chat=False, disable_shuffle=False, custom_output_len=1024, custom_ensure_client_side_data=False, spec_bench_output_len=256, spec_bench_category=None, sonnet_input_len=550, sonnet_output_len=150, sonnet_prefix_len=200, sharegpt_output_len=None, timed_trace_chunk_hash_size=16, timed_trace_sec_multiplier=1, timed_trace_label_timestamp='timestamp', timed_trace_label_input_length='input_length', timed_trace_label_output_length='output_length', timed_trace_label_hash_ids='hash_ids', blazedit_min_distance=0.0, blazedit_max_distance=1.0, asr_max_audio_len_sec=inf, asr_min_audio_len_sec=0.0, random_input_len=1024, random_output_len=128, random_range_ratio='0.0', random_prefix_len=0, random_batch_size=1, no_reranker=False, random_mm_base_items_per_request=1, random_mm_num_mm_items_range_ratio=0.0, random_mm_limit_mm_per_prompt={'image': 255, 'video': 1}, random_mm_bucket_config={(256, 256, 1): 0.5, (720, 1280, 1): 0.5, (720, 1280, 16): 0.0}, hf_subset=None, hf_split=None, hf_name=None, hf_output_len=None, bfcl_categories=None, prefix_repetition_prefix_len=256, prefix_repetition_suffix_len=256, prefix_repetition_num_prefixes=10, prefix_repetition_output_len=128, speed_bench_dataset_subset='qualitative', speed_bench_output_len=4096, speed_bench_category=None, label=None, backend='openai', base_url=None, host='127.0.0.1', port=18090, endpoint='/v1/completions', header=None, max_concurrency=4, model='/workspace/gsq-vllm/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp', input_len=None, output_len=None, tokenizer=None, tokenizer_mode='auto', use_beam_search=False, logprobs=None, request_rate=inf, burstiness=1.0, probe_request_rate=0.0, disable_tqdm=False, num_warmups=0, profile=False, save_result=False, save_detailed=False, append_result=False, metadata=None, result_dir=None, result_filename=None, ignore_eos=False, self_timed=None, percentile_metrics=None, metric_percentiles='99', goodput=None, request_id_prefix='bench-4417dd65-', top_p=None, top_k=None, min_p=None, temperature=None, frequency_penalty=None, presence_penalty=None, repetition_penalty=None, served_model_name='qwen3.8-27b', lora_modules=None, lora_assignment='random', ramp_up_strategy=None, ramp_up_start_rps=None, ramp_up_end_rps=None, ready_check_timeout_sec=0, chat_template_kwargs=None, extra_body=None, skip_tokenizer_init=False, insecure=False, plot_timeline=False, timeline_itl_thresholds='25,50', plot_dataset_stats=False)
+WARNING: vllm bench serve no longer sets temperature==0 (greedy) in requests by default. The default will be determined on the server side and can be model/API specific. For the old behavior, include --temperature=0.
+Starting initial single prompt test run...
+Skipping endpoint ready check.
+Starting main benchmark run...
+Traffic request rate: inf
+Burstiness factor: 1.0 (Poisson process)
+Maximum request concurrency: 4
+  0%|          | 0/8 [00:00<?, ?it/s] 12%|█▎        | 1/8 [01:14<08:39, 74.18s/it] 25%|██▌       | 2/8 [01:17<03:16, 32.75s/it] 38%|███▊      | 3/8 [01:30<01:57, 23.47s/it] 50%|█████     | 4/8 [01:38<01:09, 17.46s/it] 62%|██████▎   | 5/8 [02:20<01:18, 26.12s/it] 75%|███████▌  | 6/8 [02:41<00:48, 24.48s/it] 88%|████████▊ | 7/8 [02:41<00:16, 16.53s/it]100%|██████████| 8/8 [02:52<00:00, 14.70s/it]100%|██████████| 8/8 [02:52<00:00, 21.54s/it]
+tip: install termplotlib and gnuplot to plot the metrics
+============ Serving Benchmark Result ============
+Successful requests:                     8         
+Failed requests:                         0         
+Maximum request concurrency:             4         
+Benchmark duration (s):                  172.33    
+Total input tokens:                      2034      
+Total generated tokens:                  7779      
+Request throughput (req/s):              0.05      
+Output token throughput (tok/s):         45.14     
+Peak output token throughput (tok/s):    20.00     
+Peak concurrent requests:                5.00      
+Total token throughput (tok/s):          56.94     
+---------------Time to First Token----------------
+Mean TTFT (ms):                          1472.41   
+Median TTFT (ms):                        1585.70   
+P99 TTFT (ms):                           1792.74   
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          80.16     
+Median TPOT (ms):                        79.49     
+P99 TPOT (ms):                           94.07     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           244.43    
+Median ITL (ms):                         249.67    
+P99 ITL (ms):                            330.81    
+---------------Speculative Decoding---------------
+Acceptance rate (%):                     68.37     
+Acceptance length:                       3.05      
+Drafts:                                  2551      
+Draft tokens:                            7653      
+Accepted tokens:                         5232      
+Per-position acceptance (%):
+  Position 0:                            84.75     
+  Position 1:                            67.54     
+  Position 2:                            52.80     
+==================================================

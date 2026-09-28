@@ -1,0 +1,23 @@
+seq_000 chat      1024 tok  KLD mean 0.11645 p99 2.31758 max 10.5312  top1 0.9492
+seq_001 chat      2048 tok  KLD mean 0.25106 p99 10.29220 max 20.7969  top1 0.9479
+seq_002 code      1536 tok  KLD mean 0.00505 p99 0.08865 max 0.1724  top1 0.9861
+seq_003 code      4096 tok  KLD mean 0.00186 p99 0.02458 max 0.0665  top1 0.9792
+seq_004 code      8192 tok  KLD mean 0.00238 p99 0.03565 max 0.0687  top1 0.9965
+seq_005 prose     8192 tok  KLD mean 0.06073 p99 0.05659 max 10.7635  top1 0.9826
+seq_006 code     32768 tok  KLD mean 0.00127 p99 0.03238 max 0.0787  top1 0.9931
+seq_007 mixed    32768 tok  KLD mean 0.00145 p99 0.02768 max 0.1041  top1 0.9896
+seq_008 mixed    65536 tok  KLD mean 0.00271 p99 0.05290 max 0.1185  top1 0.9896
+seq_009 code    102400 tok  KLD mean 0.00195 p99 0.02734 max 0.0461  top1 0.9792
+seq_010 mixed   120000 tok  KLD mean 0.00820 p99 0.12455 max 0.1937  top1 0.9861
+{
+ "kld_mean": 0.04042452940378738,
+ "top1": 0.9802295918367347,
+ "positions": 3136,
+ "long_kld_mean": 0.005075417946592998,
+ "long_top1": 0.9826388888888888,
+ "thresholds": {
+  "kld_mean_max": 0.001,
+  "top1_min": 0.99
+ },
+ "pass": false
+}

@@ -1,0 +1,83 @@
+{
+ "seed": 20260927,
+ "fingerprint": "eb7ac4b45c892c9e99fb5749a4a7dbec56c9fb706cd7dd5efec39134603e1a4a",
+ "sequences": [
+  {
+   "name": "seq_000",
+   "kind": "chat",
+   "n_tokens": 1024,
+   "n_pos": 256,
+   "ids_sha256": "4ba0a6d5f71bb2327243be07e5f5c486daa9de4902e2afca8b39ab6104da0836"
+  },
+  {
+   "name": "seq_001",
+   "kind": "chat",
+   "n_tokens": 2048,
+   "n_pos": 288,
+   "ids_sha256": "32f76561f8d0743133bd4b9d53fc8c6b261f27bd34b1de2b4a1bda722dbe3940"
+  },
+  {
+   "name": "seq_002",
+   "kind": "code",
+   "n_tokens": 1536,
+   "n_pos": 288,
+   "ids_sha256": "a723f48f8716ec1e7c2f7e1445dc330289d76c3fc8c3d3e0eeb1daf77fb2afb4"
+  },
+  {
+   "name": "seq_003",
+   "kind": "code",
+   "n_tokens": 4096,
+   "n_pos": 288,
+   "ids_sha256": "1765fde6f5fa35dc6c1c2cfd09fa68b212fbc59fa7961cfb4a9480c7fc5eeddc"
+  },
+  {
+   "name": "seq_004",
+   "kind": "code",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "ids_sha256": "033b5935873f41b6d7ba4a93615b4eaa9948e7f674a691585bb6dbddec33dae6"
+  },
+  {
+   "name": "seq_005",
+   "kind": "prose",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "ids_sha256": "e70f8b836064cd69e4f85ceca04035f1884e25ee92a9b823a5ed97573a5c258f"
+  },
+  {
+   "name": "seq_006",
+   "kind": "code",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "ids_sha256": "24bf0ea34c872c9e93343849ad655dad5e2873647b222574228d69160976e9a9"
+  },
+  {
+   "name": "seq_007",
+   "kind": "mixed",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "ids_sha256": "fdf4b2be789d59abf5cb0f3d11d8bcc6527b1215bc1a5ac10e7c28a1bacf2ff6"
+  },
+  {
+   "name": "seq_008",
+   "kind": "mixed",
+   "n_tokens": 65536,
+   "n_pos": 288,
+   "ids_sha256": "6ad4e82a438d73cb165a0e511e7a9d48fc17f7f7b5554508c75ada469f864c06"
+  },
+  {
+   "name": "seq_009",
+   "kind": "code",
+   "n_tokens": 102400,
+   "n_pos": 288,
+   "ids_sha256": "3a092a33bbd20d5ac7053496c20dd2fcae06942ec63eb9cb168689cf6015962c"
+  },
+  {
+   "name": "seq_010",
+   "kind": "mixed",
+   "n_tokens": 120000,
+   "n_pos": 288,
+   "ids_sha256": "7e5f63937ec33d81e4b61948e3de8a7082e82a1a626e8f094e23e64d273f2699"
+  }
+ ]
+}

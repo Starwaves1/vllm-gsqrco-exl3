@@ -13,6 +13,8 @@
 #    invocation, so no prefix-cache or KV-tier entry can hit (the production script's
 #    random prompts use seed 0 every run).
 # 3. MTP acceptance per position from /metrics (vllm:spec_decode_*), before/after.
+# 4. GPU SM/mem clock, power and utilization sampled every second per phase
+#    (clocks-<phase>.csv) and summarised over busy samples (clocksum.py).
 #
 # The server must mirror production (serve-gsq.sh / serve-baseline.sh: MTP k=3, fp8 KV).
 # --start launches that server here and stops it at the end; otherwise one must already
@@ -54,6 +56,9 @@ fi
 curl -sf -o /dev/null "$GSQ_URL/health" || gsq_die "no server on $GSQ_URL"
 
 M() { curl -s "$GSQ_URL/metrics" -H "Authorization: Bearer $GSQ_API_KEY"; }
+CLK=
+clk() { nvidia-smi --query-gpu=timestamp,clocks.sm,clocks.mem,power.draw,utilization.gpu --format=csv,noheader -l 1 > "$OUT/clocks-$1.csv" 2>&1 & CLK=$!; }
+clk_stop() { kill "$CLK" 2>/dev/null || true; CLK=; }
 M | grep -E '^vllm:spec_decode' > "$OUT/spec_before.prom" || true
 
 export VLLM_API_KEY=$GSQ_API_KEY HOST=127.0.0.1 PORT=$GSQ_PORT MODEL=$TOKENIZER
@@ -62,15 +67,19 @@ export OPENAI_API_KEY=$GSQ_API_KEY   # what vllm bench serve sends (the producti
   echo "# kind=$KIND url=$GSQ_URL tokenizer=$TOKENIZER $(date -u +%FT%TZ)"
   for pass in 1 2; do
     echo "# production run_benchmarks.sh single, pass $pass$([ $pass = 1 ] && echo ' (warm-up, discard)')"
+    clk decode-pass$pass
     OUT=$OUT/prod-pass$pass bash "$STAGE/bench/run_benchmarks.sh" single | grep -E '^(ROW|#)'
+    clk_stop
   done
 } | tee -a "$SUM"
 
 B=("$GSQ_VENV/bin/vllm" bench serve --host 127.0.0.1 --port "$GSQ_PORT" --model "$TOKENIZER" --served-model-name qwen3.8-27b)
 num() { awk "/$1/ {print \$$2}" "$3"; }
 pf() { local len=$1 c=$2 n=$3 seed=$((RANDOM * 32768 + RANDOM)) log=$OUT/prefill_${1}_c$2.log
+  clk prefill-$len-c$c
   "${B[@]}" --dataset-name random --random-input-len "$len" --random-output-len 1 \
     --num-prompts "$n" --max-concurrency "$c" --seed "$seed" > "$log" 2>&1
+  clk_stop
   local in dur; in=$(num "Total input tokens" 4 "$log"); dur=$(num "Benchmark duration" 4 "$log")
   echo "ROW prefill len=$len conc=$c seed=$seed | $(python3 -c "print(f'{$in/$dur:.0f}')") tok/s | meanTTFT=$(num "Mean TTFT" 4 "$log") ms"
 }
@@ -101,4 +110,5 @@ if drafts:
 else:
     print("ROW MTP | no drafts recorded (speculative decoding off?)")
 PY
+python3 "$GSQ_ROOT/bench/speed/clocksum.py" "$OUT"/clocks-*.csv | sed 's/^/ROW clocks /' | tee -a "$SUM"
 echo "results: $OUT"

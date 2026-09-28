@@ -1,0 +1,20 @@
+pos 843 ctx='crop_width - 2 * margin' next='_pixels'
+   llamaCUDA H=1.81 maxlogit=19.0 'ĠPy':0.507  'ĠHF':0.237  'Py':0.072
+   llamaCPU  H=1.67 maxlogit=18.5 'ĠPy':0.630  'Py':0.163  'ĠHF':0.055
+   vLLM      H=3.90 maxlogit=-1.0 'ĠHF':0.366  'Ġtransformers':0.064  'HF':0.053
+pos 897 ctx='        dtype=crops[0].' next='dtype'
+   llamaCUDA H=1.92 maxlogit=19.3 'style':0.410  'Ġcorrectness':0.274  'Ġissues':0.067
+   llamaCPU  H=2.54 maxlogit=18.0 'Ġbugs':0.297  'style':0.142  'Ġissues':0.137
+   vLLM      H=2.86 maxlogit=-1.5 'issues':0.227  'Ġissues':0.201  'style':0.107
+pos 900 ctx='rops[0].dtype,\n' next='ĠĠĠ'
+   llamaCUDA H=0.70 maxlogit=23.8 'c':0.568  '<|im_end|>':0.431  'Ċ':0.001
+   llamaCPU  H=0.61 maxlogit=23.6 '<|im_end|>':0.861  'Ċ':0.078  'Ġoutput':0.030
+   vLLM      H=1.32 maxlogit=-0.7 '<|im_end|>':0.491  'Ġchannels':0.338  'æľĢåĲİä¸Ģ':0.110
+pos 987 ctx=' tile_y == 0 else margin' next='_pixels'
+   llamaCUDA H=2.19 maxlogit=19.8 'æķ´æķ°':0.379  'Ġinteger':0.286  'integer':0.062
+   llamaCPU  H=1.85 maxlogit=20.9 'Ġinteger':0.429  'æķ´æķ°':0.299  'integer':0.063
+   vLLM      H=2.80 maxlogit=-0.7 'è¾¹çķĮ':0.503  'Ġboundary':0.060  'Boundary':0.041
+pos 1001 ctx='_height if tile_y == tiling' next='_h'
+   llamaCUDA H=1.97 maxlogit=18.6 'Ġcode':0.422  '<|im_end|>':0.244  'Ġfocused':0.116
+   llamaCPU  H=1.88 maxlogit=18.4 'Ġcode':0.372  '<|im_end|>':0.343  'Ġfocused':0.081
+   vLLM      H=0.78 maxlogit=-0.3 '<|im_end|>':0.726  'Ġcode':0.236  'Ġcareful':0.017

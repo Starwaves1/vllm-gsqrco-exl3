@@ -1,0 +1,8 @@
+parity-vllm start 2026-09-28T07:02:18Z
+vllm rc=0
+compare rc=1
+parity-vllm end 2026-09-28T07:56:19Z
+mtp llama rc=0
+mtp vllm rc=1
+mtp end 2026-09-28T08:06:36Z
+P1B_PARITY_DONE

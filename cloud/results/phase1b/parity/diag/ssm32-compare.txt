@@ -1,0 +1,24 @@
+seq_000 chat      1024 tok  KLD mean 0.11937 p99 2.40372 max 10.5718  top1 0.9492
+seq_001: missing output, skipped
+seq_002: missing output, skipped
+seq_003: missing output, skipped
+seq_004: missing output, skipped
+seq_005: missing output, skipped
+seq_006: missing output, skipped
+seq_007: missing output, skipped
+seq_008: missing output, skipped
+seq_009: missing output, skipped
+seq_010: missing output, skipped
+{
+ "kld_mean": 0.11936812937629208,
+ "top1": 0.94921875,
+ "positions": 256,
+ "long_kld_mean": null,
+ "long_top1": null,
+ "thresholds": {
+  "kld_mean_max": 0.001,
+  "top1_min": 0.99
+ },
+ "pass": false
+}
+DIAG_DONE

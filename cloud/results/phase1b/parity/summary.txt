@@ -1,0 +1,49 @@
+Logit parity, stock plugin kernels (box build of 2419a1a), llama.cpp b11211 CUDA as reference
+(bench/parity/run.sh: prompts.py fingerprint eb7ac4b4 = prompts.lock.json; llama_logits f16 KV, FA;
+vLLM in-process, bf16 KV, mamba ssm cache float16 as production, no spec decode).
+seq_000/001 come from the first pass, seq_002-010 from the resumed pass (same code, same flags;
+box-scripts/p1b-parity2.sh). KLD = KL(llama || vLLM), nats, full 248,320 vocab.
+
+seq      kind     tokens   KLD mean  KLD p99  KLD max   top-1
+seq_000  chat       1024   0.11645   2.318    10.53    0.9492
+seq_001  chat       2048   0.25106  10.292    20.80    0.9479
+seq_002  code       1536   0.00505   0.0887    0.172   0.9861
+seq_003  code       4096   0.00186   0.0246    0.067   0.9792
+seq_004  code       8192   0.00238   0.0357    0.069   0.9965
+seq_005  prose      8192   0.06073   0.0566   10.76    0.9826
+seq_006  code      32768   0.00127   0.0324    0.079   0.9931
+seq_007  mixed     32768   0.00145   0.0277    0.104   0.9896
+seq_008  mixed     65536   0.00271   0.0529    0.119   0.9896
+seq_009  code     102400   0.00195   0.0273    0.046   0.9792
+seq_010  mixed    120000   0.00820   0.1246    0.194   0.9861
+overall (3136 positions): KLD 0.0404, top-1 0.9802      gate KLD <= 0.001, top-1 >= 0.99: FAIL
+>= 100k (576 positions):  KLD 0.0051, top-1 0.9826      FAIL
+
+Noise floor (diag/noise-floor.txt): the same llama_logits binary with -ngl 0 and no GPU (llama.cpp
+CPU backend, same GGUF, same ids) against the CUDA reference, seq_000-005:
+seq      llamaCUDA||llamaCPU      llamaCUDA||vLLM          top-1 CUDA/CPU  top-1 CUDA/vLLM
+seq_000  0.22509                  0.11645                  0.9414          0.9492
+seq_001  0.39918                  0.25106                  0.9097          0.9479
+seq_002  0.01449                  0.00505                  0.9792          0.9861
+seq_003  0.00352                  0.00186                  0.9792          0.9792
+seq_004  0.00825                  0.00238                  0.9896          0.9965
+seq_005  0.07194                  0.06073                  0.9826          0.9826
+On every sequence measured, vLLM is at least as close to llama.cpp CUDA as llama.cpp's own CPU
+backend is. Median KLD is 0.0001-0.002 for every pair; the means are set by a few near-tie
+positions (diag/seq000-outliers.txt: e.g. pos 900 CUDA 'c' 0.57 / '<|im_end|>' 0.43, CPU
+'<|im_end|>' 0.86), mostly inside the chat user turn (seq_000/001) where this model is
+uncertain. So on this GGUF the 0.001 / 99% gates sit below the reference's own backend spread;
+the stock kernels show no parity defect beyond that spread.
+
+Rejected hypothesis: fp16 SSM state cache. seq_000 with --mamba-ssm-cache-dtype float32:
+KLD 0.1194 (fp16: 0.1165), diag/ssm32-compare.txt.
+
+MTP acceptance, k=3, same 8 real prompts x 512 tokens (mtp/): llama-server b11211
+(bench/speed/serve-llamacpp.sh, q8_0 KV, CTX=32768) vs serve-gsq.sh (fp8 KV, production argv).
+              llama.cpp   vLLM     delta
+  T=1.0 (model sampling)  0.6276  0.6657  +0.038 (vLLM higher; harness flags |delta| > 0.02)
+  greedy                  0.6732  0.6650  -0.008 ok
+  vLLM per position (T=1.0) 0.852 0.651 0.495; mean accepted length 3.00
+The sampled-temperature gap is in vLLM's favour; vLLM runs draft_sample_method=probabilistic
+(rejection sampling), so a different acceptance rule than llama.cpp's is the likely cause
+(not verified in llama.cpp source).

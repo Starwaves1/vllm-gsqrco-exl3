@@ -14,10 +14,9 @@ float32 rows), holding logprobs; tokens absent from the returned dict are -inf.
       [--kv-cache-dtype auto|fp8] [--mamba-ssm-cache-dtype float16|float32] [--only seq_003,...]
   .venv/bin/python bench/parity/vllm_logprobs.py --dry-run -d PROMPT_DIR   (no GPU: prints plan)
 
-TODO(GPU): confirm (1) logprobs=-1 returns every vocab id in 0.27.1 (FlatLogprobs vs dict),
-(2) the plugin's model_config.max_logprobs path accepts -1 with a GGUF model,
-(3) probes hit the prefix cache (check vllm:prefix_cache_hits in the engine stats / time
-per probe << time of the warm-up).
+Checked on an RTX 3090 (phase 1b, cloud/results/phase1b/parity): logprobs=-1 returns all
+248,320 vocab ids per probe (no -inf rows), max_logprobs=-1 works with the GGUF model, and
+the probes hit the prefix cache (block size 400; 288 probes on a 65k sequence take ~6 min).
 """
 
 import argparse

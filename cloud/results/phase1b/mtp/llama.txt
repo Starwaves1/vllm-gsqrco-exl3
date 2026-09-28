@@ -1,0 +1,2 @@
+llama default: acceptance 0.6275894538606404  drafted 4248  accepted 2666
+llama greedy: acceptance 0.6732429099876696  drafted 4055  accepted 2730

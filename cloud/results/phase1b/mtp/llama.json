@@ -1,0 +1,21 @@
+{
+ "engine": "llama",
+ "url": "http://127.0.0.1:18091",
+ "prompts": "/workspace/deploy/bench/prompts_real.jsonl",
+ "results": {
+  "default": {
+   "requests": 8,
+   "completion_tokens": 4096,
+   "drafted": 4248,
+   "accepted": 2666,
+   "acceptance_rate": 0.6275894538606404
+  },
+  "greedy": {
+   "requests": 8,
+   "completion_tokens": 4096,
+   "drafted": 4055,
+   "accepted": 2730,
+   "acceptance_rate": 0.6732429099876696
+  }
+ }
+}

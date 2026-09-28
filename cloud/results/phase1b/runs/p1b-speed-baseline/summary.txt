@@ -1,0 +1,37 @@
+# kind=baseline url=http://127.0.0.1:18090 tokenizer=/workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast 2026-09-28T05:52:56Z
+# production run_benchmarks.sh single, pass 1 (warm-up, discard)
+# Mon Sep 28 05:52:56 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=88.43 tok/s | decode(C/meanTPOT)=90.1 | tok/step=2.58 | meanTTFT=144.33 ms
+ROW cohort C2 real prompts T=default | e2e=161.23 tok/s | decode(C/meanTPOT)=182.3 | tok/step=2.61 | meanTTFT=201.89 ms
+ROW cohort C4 real prompts T=default | e2e=270.52 tok/s | decode(C/meanTPOT)=334.7 | tok/step=2.62 | meanTTFT=312.41 ms
+ROW cohort C8 real prompts T=default | e2e=402.70 tok/s | decode(C/meanTPOT)=481.3 | tok/step=2.61 | meanTTFT=777.33 ms
+ROW cohort C1 real prompts T=0 | e2e=93.20 tok/s | decode(C/meanTPOT)=94.3 | tok/step=2.60 | meanTTFT=142.75 ms
+ROW cohort C2 real prompts T=0 | e2e=186.94 tok/s | decode(C/meanTPOT)=200.8 | tok/step=2.75 | meanTTFT=195.52 ms
+ROW cohort C4 real prompts T=0 | e2e=315.89 tok/s | decode(C/meanTPOT)=344.5 | tok/step=2.59 | meanTTFT=309.83 ms
+ROW cohort C8 real prompts T=0 | e2e=430.54 tok/s | decode(C/meanTPOT)=513.5 | tok/step=2.64 | meanTTFT=780.56 ms
+# raw logs in /workspace/runs/p1b-speed-baseline/prod-pass1
+# production run_benchmarks.sh single, pass 2
+# Mon Sep 28 06:00:45 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=88.12 tok/s | decode(C/meanTPOT)=89.1 | tok/step=2.57 | meanTTFT=143.97 ms
+ROW cohort C2 real prompts T=default | e2e=164.79 tok/s | decode(C/meanTPOT)=182.6 | tok/step=2.60 | meanTTFT=202.52 ms
+ROW cohort C4 real prompts T=default | e2e=280.48 tok/s | decode(C/meanTPOT)=337.3 | tok/step=2.64 | meanTTFT=311.36 ms
+ROW cohort C8 real prompts T=default | e2e=418.60 tok/s | decode(C/meanTPOT)=487.8 | tok/step=2.62 | meanTTFT=755.16 ms
+ROW cohort C1 real prompts T=0 | e2e=92.97 tok/s | decode(C/meanTPOT)=94.1 | tok/step=2.60 | meanTTFT=143.52 ms
+ROW cohort C2 real prompts T=0 | e2e=184.52 tok/s | decode(C/meanTPOT)=194.4 | tok/step=2.65 | meanTTFT=198.67 ms
+ROW cohort C4 real prompts T=0 | e2e=316.53 tok/s | decode(C/meanTPOT)=345.1 | tok/step=2.59 | meanTTFT=309.43 ms
+ROW cohort C8 real prompts T=0 | e2e=436.88 tok/s | decode(C/meanTPOT)=505.4 | tok/step=2.61 | meanTTFT=775.83 ms
+# raw logs in /workspace/runs/p1b-speed-baseline/prod-pass2
+# salted prefill ladder
+ROW prefill len=8192 conc=1 seed=755424029 | 1108 tok/s | meanTTFT=7395.17 ms
+ROW prefill len=8192 conc=2 seed=898439995 | 1170 tok/s | meanTTFT=13996.84 ms
+ROW prefill len=65536 conc=1 seed=292171083 | 868 tok/s | meanTTFT=75480.85 ms
+ROW prefill len=65536 conc=2 seed=75551539 | 839 tok/s | meanTTFT=156045.24 ms
+ROW prefill len=180000 conc=1 seed=621183674 | 603 tok/s | meanTTFT=298522.98 ms
+ROW MTP whole run | acceptance rate 0.5218 | mean accepted length 2.565 | per position 0.723 0.498 0.345
+ROW clocks p1b-speed-baseline/clocks-decode-pass1.csv: 380 s busy, median SM 1875 MHz, mem 9501 MHz, 340.3 W, util 85%
+ROW clocks p1b-speed-baseline/clocks-decode-pass2.csv: 381 s busy, median SM 1875 MHz, mem 9501 MHz, 340.7 W, util 85%
+ROW clocks p1b-speed-baseline/clocks-prefill-180000-c1.csv: 596 s busy, median SM 1860 MHz, mem 9501 MHz, 348.3 W, util 100%
+ROW clocks p1b-speed-baseline/clocks-prefill-65536-c1.csv: 151 s busy, median SM 1860 MHz, mem 9501 MHz, 348.3 W, util 96%
+ROW clocks p1b-speed-baseline/clocks-prefill-65536-c2.csv: 312 s busy, median SM 1860 MHz, mem 9501 MHz, 348.0 W, util 100%
+ROW clocks p1b-speed-baseline/clocks-prefill-8192-c1.csv: 59 s busy, median SM 1845 MHz, mem 9501 MHz, 348.1 W, util 96%
+ROW clocks p1b-speed-baseline/clocks-prefill-8192-c2.csv: 57 s busy, median SM 1815 MHz, mem 9501 MHz, 348.3 W, util 96%

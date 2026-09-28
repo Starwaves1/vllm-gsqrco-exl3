@@ -1,0 +1,46 @@
+Phase 1b: gsq (Swift GSQ-RCO IQ3_S-mtp GGUF, stock plugin kernels at 2419a1a) vs baseline
+(Starw1/Qwen3.8-27B-absolute-heresy-W4A16), same box, same argv (production's, via
+serve-gsq.sh / serve-baseline.sh), back to back, bench/speed/run.sh --start.
+Box: Vast.ai RTX 3090, 350 W limit (stock), PCIe 4.0 x16 capable, driver 595.84 (box.txt).
+Box-only settings, identical for both: CPU KV tier 13 GiB (GSQ_CPU_TIER_BYTES; /dev/shm is 20 GB),
+fs tier /workspace/kvtier capped at 30 GB, /dev/shm/vllm_offload_* and the fs tier cleared before each run.
+
+Decode = production run_benchmarks.sh single, pass 2 (pass 1 = warm-up), 8 real prompts x 1024 out,
+"decode" = C*1000/meanTPOT, T=default. Prefill = salted random prompts, output 1, tok/s = input/duration.
+
+metric                 gsq      baseline   gsq/baseline   target
+decode c=1 (tok/s)      31.6      89.1       0.35          >= 1.0   FAIL
+decode c=2 (tok/s)      37.1     182.6       0.20          >= 1.0   FAIL
+  (greedy c=1 / c=2)    32.4/38.0 94.1/194.4 0.34/0.20
+  (e2e c=1 / c=2)       30.8/34.4 88.1/164.8 0.35/0.21
+prefill 8k c=1          357      1108        0.32          >= 0.8   FAIL
+prefill 8k c=2          442      1170        0.38
+prefill 64k c=1         328       868        0.38          >= 0.8   FAIL
+prefill 64k c=2         384       839        0.46
+prefill 180k c=1        281       603        0.47          >= 0.8   FAIL
+
+GPU during the runs (nvidia-smi -l 1, median over samples with util >= 50%; clocks-*.csv):
+                       gsq                      baseline
+decode (pass 2)        1650 MHz  348.5 W  97%   1875 MHz  340.7 W  85%
+prefill 8k c=1         1755 MHz  347.1 W        1845 MHz  348.1 W
+prefill 64k c=1        1770 MHz  347.0 W        1860 MHz  348.3 W
+prefill 180k c=1       1785 MHz  346.3 W        1860 MHz  348.3 W
+memory clock 9501 MHz throughout. Both engines sit at the 350 W cap; gsq's decode kernels
+draw more power per step and run ~12% lower SM clock at the same cap.
+
+MTP k=3 (vllm:spec_decode_* from /metrics, whole run incl. prefill ladder):
+  gsq       acceptance rate 0.689, mean accepted length 3.07, per position 0.847 0.682 0.538
+  baseline  acceptance rate 0.522, mean accepted length 2.57, per position 0.723 0.498 0.345
+  (different weights: Swift vs heresy finetune; not a like-for-like drafter comparison)
+
+Load (gsq, serve-gsq.sh): cold start 466 s to /health (weights 126 s, torch.compile 169 s);
+warm start ~200 s (weights 122 s, compile 9 s). 12.29 GiB weights, 22,445 MiB VRAM after load
+with MTP, 245,312 KV tokens (1.23x at 200k). Baseline: 14.26 GiB weights, 207,812 KV tokens.
+Smoke: coherent chat with reasoning split; qwen3_coder tool call get_weather{"city":"Paris","unit":"celsius"}.
+
+Note: production's argv has --long-prefill-token-threshold 128, so (per vLLM scheduler source)
+each long prompt advances at most 128 tokens per step for both engines; for gsq every such step
+is above the plugin's MMVQ cutoff (8-16 tokens), i.e. the IQ dequant + GEMM path.
+
+Parity and MTP vs llama.cpp: parity/summary.txt (stock kernels: gates FAIL at KLD 0.040 / top-1 98.0%,
+but inside llama.cpp's own CUDA-vs-CPU spread; MTP greedy within 1 point, T=1.0 vLLM +3.8 points).

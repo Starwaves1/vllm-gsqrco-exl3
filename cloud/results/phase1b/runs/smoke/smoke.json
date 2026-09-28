@@ -1,0 +1,38 @@
+{
+  "chat": {
+    "content": "\n\nSunlight is a mix of all visible wavelengths, and when it enters the atmosphere, shorter-wavelength light (blue and violet) scatters off nitrogen and oxygen molecules far more strongly than longer wavelengths, because Rayleigh scattering scales with 1/\u03bb\u2074. That scattered blue light reaches your eyes from every direction in the sky, while the less-scattered reds and oranges continue mostly straight through, which is why the sky looks blue and sunsets look red.",
+    "reasoning": "The user wants a two-sentence explanation of why the sky is blue. This is a straightforward physics question about Rayleigh scattering. I need to be concise, accurate, and exactly two sentences.\n\nKey points: Sunlight contains all colors (wavelengths). When it enters the atmosphere, it scatters off gas molecules. Shorter wavelengths (blue/violet) scatter much more than longer ones (red/orange) because scattering intensity is inversely proportional to the fourth power of wavelength (Rayleigh scattering). So blue light is scattered in all directions, making the sky appear blue. Violet scatters even more, but our eyes are less sensitive to it and some violet is absorbed in the upper atmosphere.\n\nTwo sentences, lean, no preamble.\n",
+    "finish": "stop",
+    "usage": {
+      "prompt_tokens": 176,
+      "total_tokens": 425,
+      "completion_tokens": 249,
+      "prompt_tokens_details": null
+    },
+    "secs": 36.89
+  },
+  "tool": {
+    "tool_calls": [
+      {
+        "id": "chatcmpl-tool-8f47ccaae32156c7",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"city\": \"Paris\", \"unit\": \"celsius\"}"
+        }
+      }
+    ],
+    "content": null,
+    "reasoning_len": 92,
+    "finish": "tool_calls",
+    "usage": {
+      "prompt_tokens": 568,
+      "total_tokens": 630,
+      "completion_tokens": 62,
+      "prompt_tokens_details": null
+    },
+    "secs": 3.2
+  }
+}
+SMOKE_OK
+smoke rc=0
