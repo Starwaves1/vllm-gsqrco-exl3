@@ -1,12 +1,12 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Vendor llama.cpp b11211 kernels behind a shim (Route L)
 
 The Swift GGUF is IQ-dominated (about 82% of weight bytes in IQ types), and the plugin's kernels are llama.cpp b2899: IQ types have no MMQ, so above the MMVQ threshold every forward dequantizes the whole weight to bf16 and runs cuBLAS, and MMVQ re-reads weights once per row. On the RTX 3090, int8 tensor-core MMA peaks at about 4× the bf16 rate, so any W×A16 route caps prefill well below an int8 MMQ. vLLM must stay the server (priority scheduling, KV tiers, the production argv). We decided to vendor llama.cpp b11211's MMVQ, MMQ and q8_1 quantize files unmodified into the plugin, adapt them with one owned shim file, and gate the new path behind a default-off flag, because it is the only source that covers every quant type in the file with tensor-core MMQ and uses the same numerics as the parity reference.
 
-Status is proposed until Route L passes the Phase B kernel tests, parity, speed, fit and soak on the cloud box. It is compiled and CPU-checked only.
+Accepted by Garrett on 2026-09-28 as the direction: vendor llama.cpp matmul kernels into vLLM in a stable, tested way, and improve on them in owned code where measurements justify it. Still to pass on the cloud box: Phase B kernel tests, parity, speed, fit and soak; Route A remains a fallback branch until then.
 
 ## Considered Options
 
