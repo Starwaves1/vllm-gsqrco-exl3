@@ -10,6 +10,7 @@ Variants (only where production could route them):
   stock_dq       ops.ggml_dequantize to bf16 + x @ W.T (cuBLAS), what IQ types get above 8-16 rows
   lcpp_mmvq      torch.ops._C_gguf.lcpp_mul_mat_vec_q, n <= 8
   lcpp_mmq       torch.ops._C_gguf.lcpp_mul_mat_q
+  lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -59,6 +60,8 @@ def variants(name, qt, rows, k, n):
     if n <= 8:
         v["lcpp_mmvq"] = lambda w, x: C.lcpp_mul_mat_vec_q(w, x, qt, rows)
     v["lcpp_mmq"] = lambda w, x: C.lcpp_mul_mat_q(w, x, qt, rows)
+    if n <= 8 and name.startswith("IQ3"):
+        v["lcpp_iq3"] = lambda w, x: C.lcpp_mul_mat_vec_iq3(w, x, qt, rows)
     return v
 
 
@@ -99,21 +102,28 @@ def time_eager(fn, w, x, calls):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out")
+    ap.add_argument("--types", default=",".join(TYPES), help="comma-separated subset of TYPES")
+    ap.add_argument("--tokens", default=",".join(map(str, TOKENS)))
+    ap.add_argument("--variants", help="comma-separated subset of variant names")
     args = ap.parse_args()
+    types = args.types.split(",")
+    tokens = [int(t) for t in args.tokens.split(",")]
     if not hasattr(torch.ops._C_gguf, "lcpp_mul_mat_q"):
         sys.exit("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
     reader = gguf.GGUFReader(str(GGUF))
-    cases = [(t, s) for t in TYPES for s in SHAPES] + [("Q4_K", LM_HEAD)]
+    cases = [(t, s) for t in types for s in SHAPES] + ([("Q4_K", LM_HEAD)] if "Q4_K" in types else [])
     lines = ["type\trows\tK\tn\tvariant\tgraph_us\teager_us\tGBps"]
     print(f"{torch.cuda.get_device_name()}  X bf16, {PER_GRAPH} calls per graph", flush=True)
     for name, (rows, k) in cases:
         w, qt = weight(reader, name, rows, k)
         mb = w.numel() / 1e6
         print(f"\n{name} {rows}x{k} ({mb:.1f} MB)", flush=True)
-        for n in TOKENS:
+        for n in tokens:
             x = torch.randn(n, k, device="cuda", dtype=torch.bfloat16)
             row = []
             for vname, fn in variants(name, qt, rows, k, n).items():
+                if args.variants and vname not in args.variants.split(","):
+                    continue
                 g = time_graph(fn, w, x)
                 e = time_eager(fn, w, x, calls=max(5, min(100, int(2e5 / max(g, 1)))))
                 gbps = w.numel() / (g * 1e-6) / 1e9

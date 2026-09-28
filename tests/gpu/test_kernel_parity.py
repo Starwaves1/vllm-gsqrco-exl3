@@ -15,7 +15,9 @@ Route L (llama.cpp b11211 MMVQ/MMQ behind csrc/lcpp_shim.cu; needs the VLLM_GGUF
 build, skipped otherwise): lcpp_mul_mat_vec_q at 1..8 tokens and lcpp_mul_mat_q at 1..2048
 against the same references (plus the D2S6 model for Q2_K MMQ, see _refs.py), with the
 allocator's free blocks poisoned (0xFF) first so an unzeroed scratch read shows up; CUDA-graph
-capture + replay must be bit-exact with an eager call. Run the file with VLLM_GGUF_LCPP=1 and
+capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 (the shim's own
+IQ3_S/IQ3_XXS kernel for 1..8 rows) is checked the same way and against vendored MMVQ on fp32 X.
+Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
 """
 
@@ -41,6 +43,7 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # 1..8: MMQ below upstream's J_max tail (only the shim's zeroed 128-block tail protects the
 # reads); 128 = production's prefill chunk (--long-prefill-token-threshold 128).
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
+IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
 
 
 def _sample(tensors_by_type, name, rows=ROWS, big=None):
@@ -268,6 +271,42 @@ def test_lcpp_mmq_odd_rows(tensors_by_type, name, n):
     _check(y, raw, name, x, mmq=True, lcpp=True)
 
 
+@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail"])
+@pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
+@pytest.mark.parametrize("n", LCPP_MMVQ_TOKENS)
+@pytest.mark.parametrize("name", IQ3_TYPES)
+def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
+    """The owned IQ3 kernel (lcpp_mul_mat_vec_iq3) takes MMVQ's q8_1 input and computes each
+    32-value slice exactly as the vendored vec_dot; only the fp32 order of a row's slice sums
+    differs. 16-bit X: the CPU reference models, as for MMVQ. fp32 X (fp32 output, no final
+    rounding): within 1e-5 of vendored MMVQ itself. row_tail: 203 rows (the last CTA's 16
+    rows are part-filled); k_tail: K = 4608 (the last staged chunk is 16 q8_1 blocks, not 32;
+    this model's K are all multiples of 1024)."""
+    import _refs
+    import gguf
+    import numpy as np
+    import torch
+
+    C = _lcpp()
+    qt = gguf.GGMLQuantizationType[name]
+    _, raw = _sample(tensors_by_type, name, rows=203 if shape == "row_tail" else ROWS)
+    bsz = gguf.GGML_QUANT_SIZES[qt][1]
+    raw = np.ascontiguousarray(raw[:, : 18 * bsz] if shape == "k_tail" else raw)
+    x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1000 + n)
+    w = torch.from_numpy(raw).cuda()
+    _poison_allocator()
+    y = C.lcpp_mul_mat_vec_iq3(w, x.cuda(), int(qt), w.shape[0])
+    ref = C.lcpp_mul_mat_vec_q(w, x.cuda(), int(qt), w.shape[0])
+    torch.cuda.synchronize()
+    assert y.shape == (n, raw.shape[0]) and y.dtype == x.dtype
+    if dtype == "float32":
+        err = _refs.rel_err(y, ref.double().cpu())
+        print(f"\n{name} n={n} {shape}: vs MMVQ rel {err:.1e}, bit-equal {(y == ref).float().mean().item():.3f}")
+        assert err <= 1e-5
+    else:
+        _check(y, raw, name, x, mmq=False, lcpp=True)
+
+
 @pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
 @pytest.mark.parametrize("n", [1, 4, 9])
 @pytest.mark.parametrize("mmq", [False, True], ids=["q8_1", "mmq"])
@@ -298,11 +337,20 @@ def test_lcpp_graph_replay(tensors_by_type, name, op_n):
     """Captured on torch's (non-default) capture stream, replayed with new X: bit-exact with an
     eager call on the default stream, twice. A launch on any other stream would either fail the
     capture or leave static_y stale."""
-    import torch
-
     C = _lcpp()
     op, n = op_n
-    fn = C.lcpp_mul_mat_vec_q if op == "mmvq" else C.lcpp_mul_mat_q
+    _graph_replay(tensors_by_type, name, n, C.lcpp_mul_mat_vec_q if op == "mmvq" else C.lcpp_mul_mat_q)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8])
+@pytest.mark.parametrize("name", IQ3_TYPES)
+def test_lcpp_iq3_graph_replay(tensors_by_type, name, n):
+    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_vec_iq3)
+
+
+def _graph_replay(tensors_by_type, name, n, fn):
+    import torch
+
     _, x1, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=600 + n)
     x2 = _x(n, x1.shape[1], "bfloat16", seed=700 + n).cuda()
     static_x = x1.cuda()
