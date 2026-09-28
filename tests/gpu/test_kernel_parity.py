@@ -90,7 +90,7 @@ def test_dequantize(tensors_by_type, name, dtype):
         # same float math on both sides; allow only 1-ulp ordering differences
         torch.testing.assert_close(out, exp, rtol=2e-7, atol=0)
     else:
-        torch.testing.assert_close(out, exp, rtol=0, atol=0)  # TODO(GPU): 1 ulp if rounding order differs
+        torch.testing.assert_close(out, exp, rtol=0, atol=0)
 
 
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])

@@ -9,8 +9,7 @@ max-model-len 200000, MTP k=3, CUDA graphs) on the GGUF, HANDOFF §2 "Fits".
 
 Uses the session server from conftest (serve-gsq.sh, so the argv is production's; the
 script prints the diff). Reusing a running server needs GSQ_SERVER_LOG for step 1.
-TODO(GPU): read the startup log once and pin the exact KV-capacity numbers in STATUS.md
-(expected well above production's 267 blocks: the weights are 12.1 GB vs 15.8 GB).
+First RTX 3090 run (e2b8ad5 + MTP): 246,093 KV tokens, 1.23x at 200k (STATUS.md, Phase 1).
 """
 
 import json

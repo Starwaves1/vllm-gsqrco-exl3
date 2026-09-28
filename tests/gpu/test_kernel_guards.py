@@ -10,8 +10,8 @@ tests are the acceptance test for the guards (localweights-style), not a baselin
 
 GSQ_COMPUTE_SANITIZER=/path/to/compute-sanitizer additionally runs each case under
 memcheck, which also catches out-of-bounds reads that happen not to fault.
-TODO(GPU): after the first run, record which cases fail at e2b8ad5 in STATUS.md, then
-add the guards in plugin/ and turn this suite green.
+Cases failing at e2b8ad5 are recorded in STATUS.md (Phase 1). TODO: add the guards in
+plugin/ and turn this suite green.
 """
 
 import json
