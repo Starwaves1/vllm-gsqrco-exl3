@@ -1,8 +1,7 @@
 5 complete steps; per step: region | launched by | class | count | GPU ms
-  target  capped: MemAvailable 7 GB < 8 GB; waiting
-capped: MemAvailable 7 GB < 8 GB; waiting
-capped: MemAvailable 7 GB < 8 GB; waiting
-rget   cudaGraphLaunch        gemm_cublas       48.0    1.718
+  target   cudaGraphLaunch        gemm_lcpp        433.0   23.304
+  target   cudaGraphLaunch        other            925.0    1.819
+  target   cudaGraphLaunch        gemm_cublas       48.0    1.718
   outside  cudaGraphLaunch        gemm_lcpp         15.0    1.327
   target   cudaLaunchKernel       gemm_lcpp          1.0    1.070
   target   cudaLaunchKernel       other            296.0    0.976
