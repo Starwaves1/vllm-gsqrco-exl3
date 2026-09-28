@@ -5,11 +5,10 @@ MMQ ggml_mul_mat_a8 at 16..512 tokens (K-quants only; the plugin has no IQ MMQ),
 production routing function _fused_mul_mat_gguf on whole tensors (MMVQ below the
 mmvq_safe threshold, else MMQ or dequantize + x @ W.T).
 
-TODO(GPU): calibrate TIGHT/LOOSE on the first run and pin them. The first numbers to look
-at are the per-model errors printed with -s; TIGHT should sit a few x above the worst
-passing case, not at the failure.
-TODO(GPU): confirm ggml_dequantize accepts torch.float32 as output dtype (fake impl says
-dtype is free; the CUDA dispatch may be half/bf16 only). If not, drop float32 from DQ_DTYPES.
+Tolerances calibrated on an RTX 3090 at e2b8ad5 (2026-09-28, cloud/results/phase1): worst
+reference-model error 2.5e-3 (bf16) / 1.24e-3 (fp16); worst error vs full precision 1.5e-2,
+except Q4_K through MMQ (7.0e-2 direct, 9.0e-2 via routing), which matches the xsum model
+to 2.5e-3: its min term uses half(sum x), as in ggml's MMQ. ggml_dequantize accepts float32.
 TODO(kernels): when multi-column MMVQ / IQ MMQ land, add their token counts and the new
 routing thresholds here; the references do not change.
 """
@@ -22,11 +21,12 @@ ROWS = 512                          # rows per kernel test (real rows from the G
 MMVQ_TOKENS = [1, 2, 3, 4, 8, 16]    # 4 = MTP k=3 verify
 MMQ_TOKENS = [16, 64, 512]
 ROUTE_TOKENS = [1, 4, 8, 16, 32, 512]
-TIGHT = {"bfloat16": 4e-3, "float16": 1.5e-3}   # TODO(GPU): calibrate
-# vs full precision. The MMQ Q4_K/Q5_K x-sum model is ~2x further from full than q81 on
-# CPU (1.5e-2 vs 8e-3 on real Q4_K rows): its scale and min terms no longer share the
-# q8_1 error, so they stop cancelling.
-LOOSE = 5e-2                                      # TODO(GPU): calibrate
+TIGHT = {"bfloat16": 5e-3, "float16": 2.5e-3}
+# vs full precision. The MMQ Q4_K/Q5_K x-sum model is further from full than q81: its scale
+# and min terms no longer share the q8_1 error, so they stop cancelling (the 20x outlier
+# channels in _x make it large).
+LOOSE = 3e-2
+LOOSE_XSUM = 1.5e-1                               # Q4_K via MMQ, see the module docstring
 DQ_DTYPES = ["float32", "float16", "bfloat16"]
 
 
@@ -60,7 +60,7 @@ def _check(y, raw, name, x, mmq):
     print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
     best = min(v for k, v in errs.items() if k != "full")
     assert best <= tight, f"no reference model within {tight}: {errs}"
-    assert errs["full"] <= LOOSE, f"too far from full precision: {errs}"
+    assert errs["full"] <= (LOOSE_XSUM if "xsum" in errs else LOOSE), f"too far from full precision: {errs}"
 
 
 @pytest.mark.parametrize("dtype", DQ_DTYPES)
@@ -156,4 +156,4 @@ def test_routing_whole_tensor(tensors_by_type, name, n, big):
     torch.cuda.synchronize()
     e = _refs.rel_err(y, ref)
     print(f"\n{name} rows={t.shape[1]} n={n}: rel err vs full {e:.2e}")
-    assert e <= LOOSE
+    assert e <= (LOOSE_XSUM if name in _refs.KQUANT_MIN_SPLIT else LOOSE)
