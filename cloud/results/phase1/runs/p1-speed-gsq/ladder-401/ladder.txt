@@ -1,0 +1,6 @@
+# salted prefill ladder (bench/speed/run.sh commands)
+ROW prefill len=8192 conc=1 seed=437477578 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=8192 conc=2 seed=994835892 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=65536 conc=1 seed=857769489 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=65536 conc=2 seed=275634316 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=180000 conc=1 seed=37560587 | 0 tok/s | meanTTFT=0.00 ms

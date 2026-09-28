@@ -1,0 +1,4 @@
+memory.used [MiB], memory.total [MiB], power.draw [W], power.limit [W]
+22411 MiB, 24576 MiB, 26.06 W, 180.00 W
+pid, used_gpu_memory [MiB]
+40304, 22376 MiB

@@ -1,0 +1,12 @@
+start 2026-09-27T23:12:44Z
+Terminated
+gguf rc=143
+gguf done 2026-09-27T23:28:10Z
+sha256sum: /workspace/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf: No such file or directory
+Terminated
+baseline rc=143
+baseline done 2026-09-27T23:30:12Z
+85972eb15137d6ea706a6aeda3e33dd8c26605fea29afa6f6478b8dc4fdc30b4  config.json
+sha256sum: quantization_config.json: No such file or directory
+e6f530d7a178a60cff4431b16b7596b4196e6b08b3b23b117911f1a6275cc0ba  model.safetensors.index.json
+ALLDONE

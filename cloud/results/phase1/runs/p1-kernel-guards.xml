@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="25" skipped="0" tests="35" time="825.883" timestamp="2026-09-28T01:02:12.714601+00:00" hostname="5eeb1faa328a"><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_noncontig-IQ3_S-mmvq]" time="23.446"><failure message="AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.4966837550862009}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'x_noncontig', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.4966837550862009}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_noncontig-IQ4_XS-mmvq]" time="23.222"><failure message="AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.6587160898153723}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'x_noncontig', type_op = ('IQ4_XS', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.6587160898153723}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_noncontig-Q4_K-mmvq]" time="23.255"><failure message="AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.4478860757317582}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'x_noncontig', type_op = ('Q4_K', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.4478860757317582}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_noncontig-Q4_K-mmq]" time="23.613"><failure message="AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.6067328075289646}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'x_noncontig', type_op = ('Q4_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.6067328075289646}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_noncontig-Q6_K-mmq]" time="23.444"><failure message="AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.5482092302326689}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'x_noncontig', type_op = ('Q6_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.5482092302326689}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_misaligned-IQ3_S-mmvq]" time="23.604" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_misaligned-IQ4_XS-mmvq]" time="23.866" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_misaligned-Q4_K-mmvq]" time="23.821" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_misaligned-Q4_K-mmq]" time="23.909" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[x_misaligned-Q6_K-mmq]" time="23.575" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_narrow_view-IQ3_S-mmvq]" time="23.182"><failure message="AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'w_narrow_view', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_narrow_view-IQ4_XS-mmvq]" time="23.271"><failure message="AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'w_narrow_view', type_op = ('IQ4_XS', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_narrow_view-Q4_K-mmvq]" time="23.287"><failure message="AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'w_narrow_view', type_op = ('Q4_K', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_narrow_view-Q4_K-mmq]" time="23.324"><failure message="AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'w_narrow_view', type_op = ('Q4_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_narrow_view-Q6_K-mmq]" time="23.417"><failure message="AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'w_narrow_view', type_op = ('Q6_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_misaligned-IQ3_S-mmvq]" time="23.983"><failure message="AssertionError: device fault:&#10;  /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)&#10;    w = torch.from_numpy(raw).cuda()&#10;  Traceback (most recent call last):&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 108, in &lt;module&gt;&#10;      main()&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 92, in main&#10;      torch.cuda.synchronize()&#10;    File &quot;/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py&quot;, line 1219, in synchronize&#10;      return torch._C._cuda_synchronize()&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  torch.AcceleratorError: CUDA error: misaligned address&#10;  Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.&#10;  &#10;  &#10;assert not True&#10; +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef850f100&gt;)">case = 'w_misaligned', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+&gt;       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 108, in &lt;module&gt;
+E             main()
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 92, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef850f100&gt;)
+
+tests/gpu/test_kernel_guards.py:46: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_misaligned-IQ4_XS-mmvq]" time="23.918"><failure message="AssertionError: device fault:&#10;  /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)&#10;    w = torch.from_numpy(raw).cuda()&#10;  Traceback (most recent call last):&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 108, in &lt;module&gt;&#10;      main()&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 92, in main&#10;      torch.cuda.synchronize()&#10;    File &quot;/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py&quot;, line 1219, in synchronize&#10;      return torch._C._cuda_synchronize()&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  torch.AcceleratorError: CUDA error: misaligned address&#10;  Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.&#10;  &#10;  &#10;assert not True&#10; +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef850f370&gt;)">case = 'w_misaligned', type_op = ('IQ4_XS', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+&gt;       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 108, in &lt;module&gt;
+E             main()
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 92, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef850f370&gt;)
+
+tests/gpu/test_kernel_guards.py:46: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_misaligned-Q4_K-mmvq]" time="24.311"><failure message="AssertionError: device fault:&#10;  /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)&#10;    w = torch.from_numpy(raw).cuda()&#10;  Traceback (most recent call last):&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 108, in &lt;module&gt;&#10;      main()&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 92, in main&#10;      torch.cuda.synchronize()&#10;    File &quot;/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py&quot;, line 1219, in synchronize&#10;      return torch._C._cuda_synchronize()&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  torch.AcceleratorError: CUDA error: misaligned address&#10;  Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.&#10;  &#10;  &#10;assert not True&#10; +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8571b10&gt;)">case = 'w_misaligned', type_op = ('Q4_K', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+&gt;       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 108, in &lt;module&gt;
+E             main()
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 92, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8571b10&gt;)
+
+tests/gpu/test_kernel_guards.py:46: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_misaligned-Q4_K-mmq]" time="24.284"><failure message="AssertionError: device fault:&#10;  /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)&#10;    w = torch.from_numpy(raw).cuda()&#10;  Traceback (most recent call last):&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 108, in &lt;module&gt;&#10;      main()&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 92, in main&#10;      torch.cuda.synchronize()&#10;    File &quot;/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py&quot;, line 1219, in synchronize&#10;      return torch._C._cuda_synchronize()&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  torch.AcceleratorError: CUDA error: misaligned address&#10;  Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.&#10;  &#10;  &#10;assert not True&#10; +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8571cb0&gt;)">case = 'w_misaligned', type_op = ('Q4_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+&gt;       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 108, in &lt;module&gt;
+E             main()
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 92, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8571cb0&gt;)
+
+tests/gpu/test_kernel_guards.py:46: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[w_misaligned-Q6_K-mmq]" time="24.187"><failure message="AssertionError: device fault:&#10;  /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)&#10;    w = torch.from_numpy(raw).cuda()&#10;  Traceback (most recent call last):&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 108, in &lt;module&gt;&#10;      main()&#10;    File &quot;/workspace/gsq-vllm/tests/gpu/_guard_case.py&quot;, line 92, in main&#10;      torch.cuda.synchronize()&#10;    File &quot;/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py&quot;, line 1219, in synchronize&#10;      return torch._C._cuda_synchronize()&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  torch.AcceleratorError: CUDA error: misaligned address&#10;  Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.&#10;  &#10;  &#10;assert not True&#10; +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8573370&gt;)">case = 'w_misaligned', type_op = ('Q6_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+&gt;       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/gsq-vllm/tests/gpu/_guard_case.py:51: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 108, in &lt;module&gt;
+E             main()
+E           File "/workspace/gsq-vllm/tests/gpu/_guard_case.py", line 92, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(&lt;generator object test_guard_case.&lt;locals&gt;.&lt;genexpr&gt; at 0x706ef8573370&gt;)
+
+tests/gpu/test_kernel_guards.py:46: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[row_too_big-IQ3_S-mmvq]" time="23.581"><failure message="AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'row_too_big', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[row_too_big-IQ4_XS-mmvq]" time="23.584"><failure message="AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'row_too_big', type_op = ('IQ4_XS', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[row_too_big-Q4_K-mmvq]" time="23.208"><failure message="AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'row_too_big', type_op = ('Q4_K', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[row_too_big-Q4_K-mmq]" time="23.364"><failure message="AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'row_too_big', type_op = ('Q4_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[row_too_big-Q6_K-mmq]" time="23.367"><failure message="AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'row_too_big', type_op = ('Q6_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[k_mismatch-IQ3_S-mmvq]" time="23.246"><failure message="AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'k_mismatch', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[k_mismatch-IQ4_XS-mmvq]" time="23.213"><failure message="AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'k_mismatch', type_op = ('IQ4_XS', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[k_mismatch-Q4_K-mmvq]" time="23.478"><failure message="AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'k_mismatch', type_op = ('Q4_K', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[k_mismatch-Q4_K-mmq]" time="23.971"><failure message="AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'k_mismatch', type_op = ('Q4_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[k_mismatch-Q6_K-mmq]" time="23.360"><failure message="AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}&#10;assert 'mismatch' in ('ok', 'rejected')">case = 'k_mismatch', type_op = ('Q6_K', 'mmq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(p.stdout.strip().splitlines()[-1])
+&gt;       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:49: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[graph_replay-IQ3_S-mmvq]" time="23.637" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[graph_replay-IQ4_XS-mmvq]" time="24.050" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[graph_replay-Q4_K-mmvq]" time="23.576" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[graph_replay-Q4_K-mmq]" time="23.487" /><testcase classname="tests.gpu.test_kernel_guards" name="test_guard_case[graph_replay-Q6_K-mmq]" time="23.627" /></testsuite></testsuites>

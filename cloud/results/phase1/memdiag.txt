@@ -1,0 +1,39 @@
+(EngineCore pid=33459) [memdiag] load_model start arch=['Qwen3_5ForConditionalGeneration'] prefix='' alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=33459) [memdiag] before initialize_model ['Qwen3_5ForConditionalGeneration'] alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=33459) [memdiag] after initialize_model alloc=0.23GiB reserved=0.76GiB
+(EngineCore pid=33459) [memdiag] load_model end arch=['Qwen3_5ForConditionalGeneration'] alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=33459) [memdiag] load_model start arch=['Qwen3_5MTP'] prefix='' alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=33459) [memdiag] before initialize_model ['Qwen3_5MTP'] alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=33459) [memdiag] after initialize_model alloc=16.78GiB reserved=23.16GiB
+(EngineCore pid=33459) [memdiag] OOM snapshot dumped alloc=16.90GiB reserved=23.10GiB
+(EngineCore pid=35152) [memdiag] load_model start arch=['Qwen3_5ForConditionalGeneration'] prefix='' alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=35152) [memdiag] before initialize_model ['Qwen3_5ForConditionalGeneration'] alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=35152) [memdiag] after initialize_model alloc=0.23GiB reserved=0.76GiB
+(EngineCore pid=35152) [memdiag] load_model end arch=['Qwen3_5ForConditionalGeneration'] alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=35152) [memdiag] load_model start arch=['Qwen3_5MTP'] prefix='' alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=35152) [memdiag] before initialize_model ['Qwen3_5MTP'] alloc=12.04GiB reserved=18.42GiB
+(EngineCore pid=35152) [memdiag] after initialize_model alloc=16.78GiB reserved=23.16GiB
+(EngineCore pid=35152) [memdiag] OOM snapshot dumped alloc=16.90GiB reserved=23.10GiB
+(EngineCore pid=36822) [memdiag] load_model start arch=['Qwen3_5ForConditionalGeneration'] prefix='' alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=36822) [memdiag] before initialize_model ['Qwen3_5ForConditionalGeneration'] alloc=0.06GiB reserved=0.06GiB
+(EngineCore pid=36822) [memdiag] after initialize_model alloc=0.23GiB reserved=0.76GiB
+(EngineCore pid=36822) [memdiag] load_model end arch=['Qwen3_5ForConditionalGeneration'] alloc=12.02GiB reserved=17.36GiB
+(EngineCore pid=36822) [memdiag] load_model start arch=['Qwen3_5MTP'] prefix='' alloc=12.02GiB reserved=17.36GiB
+(EngineCore pid=36822) [memdiag] before initialize_model ['Qwen3_5MTP'] alloc=12.02GiB reserved=17.36GiB
+(EngineCore pid=36822) [memdiag] after initialize_model alloc=16.75GiB reserved=22.10GiB
+(EngineCore pid=36822) [memdiag] load_model end arch=['Qwen3_5MTP'] alloc=17.09GiB reserved=22.54GiB
+---OOM
+(EngineCore pid=28049) ERROR 09-27 23:46:28 [core.py:1349] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 70.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 14.00 MiB is free. Including non-PyTorch memory, this process has 23.54 GiB memory in use. Of the allocated memory 23.10 GiB is allocated by PyTorch, with 6.20 GiB allocated in private pools (e.g., CUDA Graphs), and 1.41 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+---nomtp
+(EngineCore pid=29435) INFO 09-27 23:50:17 [gpu_model_runner.py:5455] Model loading took 11.98 GiB memory and 101.778014 seconds
+(EngineCore pid=29435) INFO 09-27 23:55:52 [kv_cache_utils.py:2389] GPU KV cache size: 282,031 tokens
+(EngineCore pid=29435) INFO 09-27 23:55:52 [kv_cache_utils.py:2390] Maximum concurrency for 200,000 tokens per request: 1.41x
+---mtp-fixed
+p1-diag-mem/server.log:(EngineCore pid=36822) INFO 09-28 00:14:57 [gpu_model_runner.py:5455] Model loading took 12.29 GiB memory and 168.532651 seconds
+p1-diag-mem/server.log:(EngineCore pid=36822) INFO 09-28 00:20:09 [kv_cache_utils.py:2389] GPU KV cache size: 246,093 tokens
+p1-diag-mem/server.log:(EngineCore pid=36822) INFO 09-28 00:20:09 [kv_cache_utils.py:2390] Maximum concurrency for 200,000 tokens per request: 1.23x
+p1-diag-mem/server.log:(EngineCore pid=36822) ERROR 09-28 00:20:12 [core.py:1349] OSError: [Errno 14] Bad address
+p1-diag-mem/server.log:(EngineCore pid=36822) OSError: [Errno 14] Bad address
+p1-smoke/server.log:(EngineCore pid=40304) INFO 09-28 00:31:11 [gpu_model_runner.py:5455] Model loading took 12.29 GiB memory and 169.087159 seconds
+p1-smoke/server.log:(EngineCore pid=40304) INFO 09-28 00:31:38 [kv_cache_utils.py:2389] GPU KV cache size: 246,093 tokens
+p1-smoke/server.log:(EngineCore pid=40304) INFO 09-28 00:31:38 [kv_cache_utils.py:2390] Maximum concurrency for 200,000 tokens per request: 1.23x

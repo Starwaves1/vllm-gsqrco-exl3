@@ -1,0 +1,28 @@
+ok .gitattributes
+ok generation_config.json
+ok chat_template.jinja
+ok README.md
+ok config.json
+ok model.safetensors.index.json
+ok model_extra_tensors.safetensors
+ok mtp_draft_vocab_ids.pt
+ok preprocessor_config.json
+ok processor_config.json
+ok quantization_config.json
+ok tokenizer.json
+ok tokenizer_config.json
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+ok model-00007-of-00007.safetensors
+ok model-00005-of-00007.safetensors
+ok model-00006-of-00007.safetensors
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+ok model-00003-of-00007.safetensors
+ok model-00004-of-00007.safetensors
+ok model-00002-of-00007.safetensors
+ok model-00001-of-00007.safetensors
+baseline done 2026-09-28T01:35:26Z
+85972eb15137d6ea706a6aeda3e33dd8c26605fea29afa6f6478b8dc4fdc30b4  config.json
+394dacad1bd8e205d420dbc55ac3d87b4fe98b114479e8b34f2c9b90f3c922f3  quantization_config.json
+e6f530d7a178a60cff4431b16b7596b4196e6b08b3b23b117911f1a6275cc0ba  model.safetensors.index.json
+BASELINE_FINISHED

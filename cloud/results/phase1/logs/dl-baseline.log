@@ -1,0 +1,7 @@
+[90mHint: A new version of huggingface_hub (2.0.0) is available! You are using version 1.30.0.
+To update, run: hf update[0m
+Fetching 20 files:   0%|          | 0/20 [00:00<?, ?it/s]Still waiting to acquire lock on /workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast/.cache/huggingface/.gitignore.lock (elapsed: 0.1 seconds)
+Still waiting to acquire lock on /workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast/.cache/huggingface/.gitignore.lock (elapsed: 0.1 seconds)
+Still waiting to acquire lock on /workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast/.cache/huggingface/.gitignore.lock (elapsed: 0.1 seconds)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 20 files:   5%|▌         | 1/20 [00:00<00:17,  1.07it/s]Fetching 20 files:  10%|█         | 2/20 [00:01<00:10,  1.70it/s]Fetching 20 files:  20%|██        | 4/20 [00:01<00:05,  3.18it/s]Fetching 20 files:  30%|███       | 6/20 [00:02<00:05,  2.46it/s]Fetching 20 files:   0%|          | 0/20 [00:00<?, ?it/s]Fetching 20 files:  35%|███▌      | 7/20 [00:00<00:01,  7.19it/s]Fetching 20 files:  40%|████      | 8/20 [00:01<00:01,  6.31it/s]Fetching 20 files:  45%|████▌     | 9/20 [00:01<00:01,  6.70it/s]Fetching 20 files:  50%|█████     | 10/20 [00:01<00:02,  4.74it/s]

@@ -8,6 +8,39 @@ Handoff snapshot, 2026-09-27. Labels: VERIFIED (checked in source or by running 
 
 Scope change from Garrett during the run: **deliverable 5 (kernel porting: multi-column MMVQ, IQ MMQ, dispatch) is paused until a prior-art survey comes back.** No kernel code was written, so there is no WIP kernel branch.
 
+## Phase 1 on a rented RTX 3090 (2026-09-28, Vast.ai, cut short)
+
+Box: RTX 3090 24 GB, driver 580.142, **power-capped at 180 W** (default 370 W). Under load
+the SM clock sits at 480-615 MHz (decode 480, prefill 540-615; memory 9501 MHz), so every
+absolute speed number below is heavily depressed. Raw data: `cloud/results/phase1/`.
+
+- Env: venv equals `env/gsq-freeze.txt`, vLLM overlay ba05ffab verifies, plugin built with
+  the cu130 pip toolchain, GGUF sha256 and hf-config verify pass.
+- First serve with MTP OOMed in the draft load (fixed in e751e64): the plugin staged each
+  unsharded weight on the GPU, and inside vLLM's cumem "weights" pool the freed segments
+  could not hold the draft's 2 x 2.37 GiB bf16 embed/lm_head placeholders. Headroom after
+  the fix is about 1 GiB at the draft-load peak (22.54 of 23.56 GiB reserved); about
+  5.3 GiB stays reserved-free from the sharded path (`_create_padded_weight_param`), so a
+  larger GGUF would OOM again. The placeholders cannot simply be dropped: vLLM probes
+  `draft.embed_input_ids` before sharing the target's embedding.
+- Load: 169-170 s, "Model loading took 12.29 GiB"; 22.4 GB VRAM used after startup.
+- Fit (gpu-util 0.94, fp8 KV, MTP k=3): 246,093 KV tokens, 1.23x at 200k (282,031 / 1.41x
+  without MTP). A 195k-token request completes (27.5 min) with no device fault.
+- Smoke: coherent chat, reasoning split, qwen3_coder tool call parsed.
+- Kernel parity at e2b8ad5: 276 pass / 12 skip after calibration (0d8fd9e). Max errors per
+  type: `cloud/results/phase1/kernel-parity-errors.txt`. No kernel bug found; Q4_K MMQ is
+  7e-2 from full precision but 2.5e-3 from the xsum model (ggml's MMQ min term).
+- Guards at e2b8ad5 (expected): x_noncontig silently wrong (rel err ~1.5), w_narrow_view
+  NaN, w_misaligned device fault ("misaligned address"), row_too_big and k_mismatch
+  accepted silently; x_misaligned and graph_replay pass (all 5 type/op combos each).
+- Speed as-is (180 W, SM ~500 MHz): decode 10.7 tok/s c=1, 11.9 c=2 (real prompts, 8 x
+  1024, T default), MTP mean acceptance length 2.99; prefill 133 tok/s at 8k c=1, 175 at
+  8k c=2. 64k/180k and the W4A16 baseline were not measured (box abandoned for the power
+  cap).
+- Box-only gotcha: a stopped vLLM leaves its CPU-tier mmap (`/dev/shm/vllm_offload_*.mmap`)
+  behind; with a 15 GB /dev/shm the next start fails with EFAULT in
+  `shared_offload_region.py`. Clear it between runs when no vLLM is running.
+
 ## Branches
 
 | Branch | What |

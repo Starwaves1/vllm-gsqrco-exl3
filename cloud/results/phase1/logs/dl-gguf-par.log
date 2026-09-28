@@ -1,0 +1,8 @@
+resume from 4005207364, 32 chunks of 253587798
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+curl: (92) HTTP/2 stream 1 was not closed cleanly: CANCEL (err 8)
+size 12120016896
+gguf done 2026-09-27T23:41:17Z
+sha256 9aecf1cd41b2cb2f32a74e0d889e33855ebef43b26f43b43feb5720239e677e5
+GGUF_VERIFIED

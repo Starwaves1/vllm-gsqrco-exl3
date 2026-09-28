@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="12" tests="288" time="49.830" timestamp="2026-09-28T01:01:18.522665+00:00" hostname="5eeb1faa328a"><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ1_M-float32]" time="21.545" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ1_M-float16]" time="0.050" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ1_M-bfloat16]" time="0.036" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_S-float32]" time="0.437" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_S-float16]" time="0.158" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_S-bfloat16]" time="0.160" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XS-float32]" time="0.082" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XS-float16]" time="0.048" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XS-bfloat16]" time="0.101" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XXS-float32]" time="0.097" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XXS-float16]" time="0.108" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ2_XXS-bfloat16]" time="0.088" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_S-float32]" time="0.066" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_S-float16]" time="0.116" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_S-bfloat16]" time="0.056" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_XXS-float32]" time="0.075" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_XXS-float16]" time="0.088" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ3_XXS-bfloat16]" time="0.059" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ4_XS-float32]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ4_XS-float16]" time="0.108" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[IQ4_XS-bfloat16]" time="0.031" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q2_K-float32]" time="0.167" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q2_K-float16]" time="0.038" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q2_K-bfloat16]" time="0.173" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q4_K-float32]" time="0.106" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q4_K-float16]" time="0.095" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q4_K-bfloat16]" time="0.099" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q6_K-float32]" time="0.301" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q6_K-float16]" time="0.296" /><testcase classname="tests.gpu.test_kernel_parity" name="test_dequantize[Q6_K-bfloat16]" time="0.213" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-1-bfloat16]" time="0.089" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-1-float16]" time="0.080" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-2-bfloat16]" time="0.042" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-2-float16]" time="0.086" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-3-bfloat16]" time="0.037" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-3-float16]" time="0.057" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-4-bfloat16]" time="0.073" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-4-float16]" time="0.039" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-8-bfloat16]" time="0.091" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-8-float16]" time="0.175" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-16-bfloat16]" time="0.097" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ1_M-16-float16]" time="0.109" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-1-bfloat16]" time="0.210" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-1-float16]" time="0.187" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-2-bfloat16]" time="0.191" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-2-float16]" time="0.177" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-3-bfloat16]" time="0.188" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-3-float16]" time="0.200" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-4-bfloat16]" time="0.212" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-4-float16]" time="0.239" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-8-bfloat16]" time="0.351" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-8-float16]" time="0.303" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-16-bfloat16]" time="0.216" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_S-16-float16]" time="0.262" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-1-bfloat16]" time="0.065" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-1-float16]" time="0.062" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-2-bfloat16]" time="0.050" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-2-float16]" time="0.083" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-3-bfloat16]" time="0.062" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-3-float16]" time="0.091" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-4-bfloat16]" time="0.060" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-4-float16]" time="0.086" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-8-bfloat16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-8-float16]" time="0.063" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-16-bfloat16]" time="0.098" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XS-16-float16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-1-bfloat16]" time="0.096" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-1-float16]" time="0.052" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-2-bfloat16]" time="0.084" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-2-float16]" time="0.064" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-3-bfloat16]" time="0.049" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-3-float16]" time="0.163" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-4-bfloat16]" time="0.192" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-4-float16]" time="0.093" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-8-bfloat16]" time="0.102" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-8-float16]" time="0.050" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-16-bfloat16]" time="0.095" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ2_XXS-16-float16]" time="0.095" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-1-bfloat16]" time="0.062" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-1-float16]" time="0.055" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-2-bfloat16]" time="0.085" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-2-float16]" time="0.154" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-3-bfloat16]" time="0.056" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-3-float16]" time="0.083" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-4-bfloat16]" time="0.059" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-4-float16]" time="0.055" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-8-bfloat16]" time="0.149" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-8-float16]" time="0.096" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-16-bfloat16]" time="0.060" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_S-16-float16]" time="0.093" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-1-bfloat16]" time="0.094" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-1-float16]" time="0.058" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-2-bfloat16]" time="0.053" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-2-float16]" time="0.079" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-3-bfloat16]" time="0.060" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-3-float16]" time="0.054" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-4-bfloat16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-4-float16]" time="0.084" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-8-bfloat16]" time="0.067" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-8-float16]" time="0.099" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-16-bfloat16]" time="0.111" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ3_XXS-16-float16]" time="0.133" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-1-bfloat16]" time="0.038" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-1-float16]" time="0.050" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-2-bfloat16]" time="0.065" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-2-float16]" time="0.035" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-3-bfloat16]" time="0.087" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-3-float16]" time="0.078" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-4-bfloat16]" time="0.033" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-4-float16]" time="0.082" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-8-bfloat16]" time="0.101" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-8-float16]" time="0.084" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-16-bfloat16]" time="0.096" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[IQ4_XS-16-float16]" time="0.105" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-1-bfloat16]" time="0.022" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-1-float16]" time="0.086" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-2-bfloat16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-2-float16]" time="0.018" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-3-bfloat16]" time="0.078" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-3-float16]" time="0.021" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-4-bfloat16]" time="0.078" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-4-float16]" time="0.018" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-8-bfloat16]" time="0.085" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-8-float16]" time="0.093" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-16-bfloat16]" time="0.021" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q2_K-16-float16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-1-bfloat16]" time="0.097" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-1-float16]" time="0.030" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-2-bfloat16]" time="0.028" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-2-float16]" time="0.030" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-3-bfloat16]" time="0.031" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-3-float16]" time="0.180" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-4-bfloat16]" time="0.091" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-4-float16]" time="0.030" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-8-bfloat16]" time="0.082" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-8-float16]" time="0.093" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-16-bfloat16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q4_K-16-float16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-1-bfloat16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-1-float16]" time="0.101" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-2-bfloat16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-2-float16]" time="0.043" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-3-bfloat16]" time="0.094" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-3-float16]" time="0.072" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-4-bfloat16]" time="0.195" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-4-float16]" time="0.103" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-8-bfloat16]" time="0.120" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-8-float16]" time="0.181" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-16-bfloat16]" time="0.116" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmvq[Q6_K-16-float16]" time="0.119" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-16-bfloat16]" time="0.061" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-16-float16]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-64-bfloat16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-64-float16]" time="0.112" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-512-bfloat16]" time="0.307" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q2_K-512-float16]" time="0.291" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-16-bfloat16]" time="0.200"><failure message="AssertionError: too far from full precision: {'full': 0.05588072618591808, 'q81': 0.055871059009155705, 'wround': 0.0558739098794764, 'xsum': 0.0021871749223002003}&#10;assert 0.05588072618591808 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 16, dtype = 'bfloat16'
+
+    @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
+    @pytest.mark.parametrize("n", MMQ_TOKENS)
+    @pytest.mark.parametrize("name", [q for q in QUANT_TYPES if not q.startswith("IQ")])
+    def test_mmq(tensors_by_type, name, n, dtype):
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        t, raw = _sample(tensors_by_type, name)
+        x = _x(n, int(t.shape[0]), dtype, seed=100 + n)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        y = ops.ggml_mul_mat_a8(w, x.cuda(), int(gguf.GGMLQuantizationType[name]), w.shape[0])
+        torch.cuda.synchronize()
+&gt;       _check(y, raw, name, x, mmq=True)
+
+tests/gpu/test_kernel_parity.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+y = tensor([[ 0.6250,  1.6094, -1.9062,  ..., -1.3828,  1.7344,  3.5938],
+        [ 2.3281, -2.0781, -1.0078,  ..., -0.013...],
+        [-2.0156, -4.8438, -0.6797,  ..., -1.0234, -0.2041,  2.2500]],
+       device='cuda:0', dtype=torch.bfloat16)
+raw = memmap([[174,   5, 142, ...,  96, 190,  69],
+        [ 95,   5,   5, ...,  64,  58, 119],
+        [ 93,   6,  42, ...,... 5,   6,  58, ...,  29, 126,  73],
+        [ 72,   5,  30, ..., 244, 179, 172]],
+       shape=(512, 3456), dtype=uint8)
+name = 'Q4_K'
+x = tensor([[-0.1924,  0.3867, -0.3301,  ...,  0.5625, -0.4863,  0.0132],
+        [-0.0299, -1.1484, -1.3984,  ..., -0.293... -1.0703,  2.4219],
+        [-0.7578,  0.0757,  0.0364,  ..., -1.2656,  0.9727, -0.9414]],
+       dtype=torch.bfloat16)
+mmq = True
+
+    def _check(y, raw, name, x, mmq):
+        import _refs
+    
+        r = _refs.refs(raw, name, x.cpu(), mmq)
+        errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
+        tight = TIGHT[str(x.dtype).split(".")[-1]]
+        print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
+        best = min(v for k, v in errs.items() if k != "full")
+        assert best &lt;= tight, f"no reference model within {tight}: {errs}"
+&gt;       assert errs["full"] &lt;= LOOSE, f"too far from full precision: {errs}"
+E       AssertionError: too far from full precision: {'full': 0.05588072618591808, 'q81': 0.055871059009155705, 'wround': 0.0558739098794764, 'xsum': 0.0021871749223002003}
+E       assert 0.05588072618591808 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:63: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-16-float16]" time="0.064" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-64-bfloat16]" time="0.282"><failure message="AssertionError: too far from full precision: {'full': 0.05063342190923976, 'q81': 0.04880177330778526, 'wround': 0.05058995175840102, 'xsum': 0.0023434909737642113}&#10;assert 0.05063342190923976 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 64, dtype = 'bfloat16'
+
+    @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
+    @pytest.mark.parametrize("n", MMQ_TOKENS)
+    @pytest.mark.parametrize("name", [q for q in QUANT_TYPES if not q.startswith("IQ")])
+    def test_mmq(tensors_by_type, name, n, dtype):
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        t, raw = _sample(tensors_by_type, name)
+        x = _x(n, int(t.shape[0]), dtype, seed=100 + n)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        y = ops.ggml_mul_mat_a8(w, x.cuda(), int(gguf.GGMLQuantizationType[name]), w.shape[0])
+        torch.cuda.synchronize()
+&gt;       _check(y, raw, name, x, mmq=True)
+
+tests/gpu/test_kernel_parity.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+y = tensor([[-0.5820,  2.5312, -0.1670,  ...,  0.2949,  0.1387, -0.1895],
+        [ 1.6875, -2.0312, -1.6875,  ...,  1.617...],
+        [ 0.7305,  2.7188, -0.2188,  ...,  1.7500, -0.7812, -0.1279]],
+       device='cuda:0', dtype=torch.bfloat16)
+raw = memmap([[174,   5, 142, ...,  96, 190,  69],
+        [ 95,   5,   5, ...,  64,  58, 119],
+        [ 93,   6,  42, ...,... 5,   6,  58, ...,  29, 126,  73],
+        [ 72,   5,  30, ..., 244, 179, 172]],
+       shape=(512, 3456), dtype=uint8)
+name = 'Q4_K'
+x = tensor([[-9.0234e-01,  1.8438e+00,  2.5781e-01,  ...,  1.0781e+00,
+         -2.3281e+00, -4.0234e-01],
+        [-1.523...  [ 2.2344e+00,  9.9219e-01, -7.2266e-02,  ...,  4.8438e-01,
+          6.7969e-01,  2.1719e+00]], dtype=torch.bfloat16)
+mmq = True
+
+    def _check(y, raw, name, x, mmq):
+        import _refs
+    
+        r = _refs.refs(raw, name, x.cpu(), mmq)
+        errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
+        tight = TIGHT[str(x.dtype).split(".")[-1]]
+        print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
+        best = min(v for k, v in errs.items() if k != "full")
+        assert best &lt;= tight, f"no reference model within {tight}: {errs}"
+&gt;       assert errs["full"] &lt;= LOOSE, f"too far from full precision: {errs}"
+E       AssertionError: too far from full precision: {'full': 0.05063342190923976, 'q81': 0.04880177330778526, 'wround': 0.05058995175840102, 'xsum': 0.0023434909737642113}
+E       assert 0.05063342190923976 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:63: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-64-float16]" time="0.196"><failure message="AssertionError: too far from full precision: {'full': 0.05100458239600836, 'q81': 0.049631074246144144, 'wround': 0.05100475881978832, 'xsum': 0.0007655354552734284}&#10;assert 0.05100458239600836 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 64, dtype = 'float16'
+
+    @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
+    @pytest.mark.parametrize("n", MMQ_TOKENS)
+    @pytest.mark.parametrize("name", [q for q in QUANT_TYPES if not q.startswith("IQ")])
+    def test_mmq(tensors_by_type, name, n, dtype):
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        t, raw = _sample(tensors_by_type, name)
+        x = _x(n, int(t.shape[0]), dtype, seed=100 + n)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        y = ops.ggml_mul_mat_a8(w, x.cuda(), int(gguf.GGMLQuantizationType[name]), w.shape[0])
+        torch.cuda.synchronize()
+&gt;       _check(y, raw, name, x, mmq=True)
+
+tests/gpu/test_kernel_parity.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+y = tensor([[-0.5664,  2.5449, -0.1528,  ...,  0.3315,  0.1466, -0.1769],
+        [ 1.6533, -2.0742, -1.7402,  ...,  1.572...2],
+        [ 0.7202,  2.7012, -0.2368,  ...,  1.7275, -0.8008, -0.1333]],
+       device='cuda:0', dtype=torch.float16)
+raw = memmap([[174,   5, 142, ...,  96, 190,  69],
+        [ 95,   5,   5, ...,  64,  58, 119],
+        [ 93,   6,  42, ...,... 5,   6,  58, ...,  29, 126,  73],
+        [ 72,   5,  30, ..., 244, 179, 172]],
+       shape=(512, 3456), dtype=uint8)
+name = 'Q4_K'
+x = tensor([[-9.0283e-01,  1.8438e+00,  2.5806e-01,  ...,  1.0742e+00,
+         -2.3320e+00, -4.0234e-01],
+        [-1.521...   [ 2.2324e+00,  9.9170e-01, -7.2083e-02,  ...,  4.8364e-01,
+          6.7920e-01,  2.1719e+00]], dtype=torch.float16)
+mmq = True
+
+    def _check(y, raw, name, x, mmq):
+        import _refs
+    
+        r = _refs.refs(raw, name, x.cpu(), mmq)
+        errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
+        tight = TIGHT[str(x.dtype).split(".")[-1]]
+        print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
+        best = min(v for k, v in errs.items() if k != "full")
+        assert best &lt;= tight, f"no reference model within {tight}: {errs}"
+&gt;       assert errs["full"] &lt;= LOOSE, f"too far from full precision: {errs}"
+E       AssertionError: too far from full precision: {'full': 0.05100458239600836, 'q81': 0.049631074246144144, 'wround': 0.05100475881978832, 'xsum': 0.0007655354552734284}
+E       assert 0.05100458239600836 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:63: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-512-bfloat16]" time="0.394"><failure message="AssertionError: too far from full precision: {'full': 0.07005900293456407, 'q81': 0.06869288417262162, 'wround': 0.06999080379353845, 'xsum': 0.002477703018483936}&#10;assert 0.07005900293456407 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 512, dtype = 'bfloat16'
+
+    @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
+    @pytest.mark.parametrize("n", MMQ_TOKENS)
+    @pytest.mark.parametrize("name", [q for q in QUANT_TYPES if not q.startswith("IQ")])
+    def test_mmq(tensors_by_type, name, n, dtype):
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        t, raw = _sample(tensors_by_type, name)
+        x = _x(n, int(t.shape[0]), dtype, seed=100 + n)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        y = ops.ggml_mul_mat_a8(w, x.cuda(), int(gguf.GGMLQuantizationType[name]), w.shape[0])
+        torch.cuda.synchronize()
+&gt;       _check(y, raw, name, x, mmq=True)
+
+tests/gpu/test_kernel_parity.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+y = tensor([[-0.3613, -1.6172, -0.0796,  ...,  1.0859, -1.1641,  0.8594],
+        [ 0.0320,  1.0859,  0.5742,  ...,  1.718...],
+        [-1.7578, -3.1875, -2.5469,  ...,  0.0713,  0.6992, -0.0471]],
+       device='cuda:0', dtype=torch.bfloat16)
+raw = memmap([[174,   5, 142, ...,  96, 190,  69],
+        [ 95,   5,   5, ...,  64,  58, 119],
+        [ 93,   6,  42, ...,... 5,   6,  58, ...,  29, 126,  73],
+        [ 72,   5,  30, ..., 244, 179, 172]],
+       shape=(512, 3456), dtype=uint8)
+name = 'Q4_K'
+x = tensor([[ 0.1934, -1.5625, -0.6992,  ...,  0.2422,  0.9336, -0.4258],
+        [-0.5625, -0.2559, -0.0415,  ...,  0.378... -0.6367, -1.1484],
+        [-1.3125,  0.7617, -0.1963,  ...,  0.8516, -0.1045,  0.4453]],
+       dtype=torch.bfloat16)
+mmq = True
+
+    def _check(y, raw, name, x, mmq):
+        import _refs
+    
+        r = _refs.refs(raw, name, x.cpu(), mmq)
+        errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
+        tight = TIGHT[str(x.dtype).split(".")[-1]]
+        print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
+        best = min(v for k, v in errs.items() if k != "full")
+        assert best &lt;= tight, f"no reference model within {tight}: {errs}"
+&gt;       assert errs["full"] &lt;= LOOSE, f"too far from full precision: {errs}"
+E       AssertionError: too far from full precision: {'full': 0.07005900293456407, 'q81': 0.06869288417262162, 'wround': 0.06999080379353845, 'xsum': 0.002477703018483936}
+E       assert 0.07005900293456407 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:63: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q4_K-512-float16]" time="0.322"><failure message="AssertionError: too far from full precision: {'full': 0.0613000195133042, 'q81': 0.06026107741832571, 'wround': 0.06131186714731676, 'xsum': 0.001239998420641039}&#10;assert 0.0613000195133042 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 512, dtype = 'float16'
+
+    @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
+    @pytest.mark.parametrize("n", MMQ_TOKENS)
+    @pytest.mark.parametrize("name", [q for q in QUANT_TYPES if not q.startswith("IQ")])
+    def test_mmq(tensors_by_type, name, n, dtype):
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        t, raw = _sample(tensors_by_type, name)
+        x = _x(n, int(t.shape[0]), dtype, seed=100 + n)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        y = ops.ggml_mul_mat_a8(w, x.cuda(), int(gguf.GGMLQuantizationType[name]), w.shape[0])
+        torch.cuda.synchronize()
+&gt;       _check(y, raw, name, x, mmq=True)
+
+tests/gpu/test_kernel_parity.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+y = tensor([[-0.3611, -1.6289, -0.0703,  ...,  1.0947, -1.1816,  0.8730],
+        [ 0.0393,  1.0820,  0.5801,  ...,  1.725...6],
+        [-1.7529, -3.1777, -2.5410,  ...,  0.0471,  0.7021, -0.0458]],
+       device='cuda:0', dtype=torch.float16)
+raw = memmap([[174,   5, 142, ...,  96, 190,  69],
+        [ 95,   5,   5, ...,  64,  58, 119],
+        [ 93,   6,  42, ...,... 5,   6,  58, ...,  29, 126,  73],
+        [ 72,   5,  30, ..., 244, 179, 172]],
+       shape=(512, 3456), dtype=uint8)
+name = 'Q4_K'
+x = tensor([[ 0.1930, -1.5664, -0.6973,  ...,  0.2424,  0.9316, -0.4253],
+        [-0.5635, -0.2554, -0.0416,  ...,  0.379..., -0.6362, -1.1523],
+        [-1.3135,  0.7622, -0.1965,  ...,  0.8506, -0.1047,  0.4460]],
+       dtype=torch.float16)
+mmq = True
+
+    def _check(y, raw, name, x, mmq):
+        import _refs
+    
+        r = _refs.refs(raw, name, x.cpu(), mmq)
+        errs = {k: _refs.rel_err(y, v) for k, v in r.items()}
+        tight = TIGHT[str(x.dtype).split(".")[-1]]
+        print(f"\n{name} n={x.shape[0]} {x.dtype} mmq={mmq}: " + " ".join(f"{k}={v:.2e}" for k, v in errs.items()))
+        best = min(v for k, v in errs.items() if k != "full")
+        assert best &lt;= tight, f"no reference model within {tight}: {errs}"
+&gt;       assert errs["full"] &lt;= LOOSE, f"too far from full precision: {errs}"
+E       AssertionError: too far from full precision: {'full': 0.0613000195133042, 'q81': 0.06026107741832571, 'wround': 0.06131186714731676, 'xsum': 0.001239998420641039}
+E       assert 0.0613000195133042 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:63: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-16-bfloat16]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-16-float16]" time="0.158" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-64-bfloat16]" time="0.113" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-64-float16]" time="0.193" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-512-bfloat16]" time="0.426" /><testcase classname="tests.gpu.test_kernel_parity" name="test_mmq[Q6_K-512-float16]" time="0.488" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-1-True]" time="0.064" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-1-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-4-True]" time="0.019" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-4-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-8-True]" time="0.032" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-8-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-16-True]" time="0.234" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-16-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-32-True]" time="0.041" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-32-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-512-True]" time="0.410" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ1_M-512-False]" time="0.000"><skipped type="pytest.skip" message="no IQ1_M tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ1_M tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-1-True]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-1-False]" time="0.010" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-4-True]" time="0.018" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-4-False]" time="0.044" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-8-True]" time="0.089" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-8-False]" time="0.015" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-16-True]" time="0.087" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-16-False]" time="0.016" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-32-True]" time="0.100" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-32-False]" time="0.093" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-512-True]" time="0.396" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_S-512-False]" time="0.297" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-1-True]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-1-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-4-True]" time="0.018" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-4-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-8-True]" time="0.053" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-8-False]" time="0.011" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-16-True]" time="0.085" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-16-False]" time="0.099" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-32-True]" time="0.028" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-32-False]" time="0.090" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-512-True]" time="0.406" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XS-512-False]" time="0.300" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-1-True]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-1-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-4-True]" time="0.017" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-4-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-8-True]" time="0.048" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-8-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-16-True]" time="0.020" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-16-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-32-True]" time="0.097" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-32-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-512-True]" time="0.408" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ2_XXS-512-False]" time="0.000"><skipped type="pytest.skip" message="no IQ2_XXS tensor with rows&gt;5120 == False">/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:38: no IQ2_XXS tensor with rows&gt;5120 == False</skipped></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-1-True]" time="0.006" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-1-False]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-4-True]" time="0.063" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-4-False]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-8-True]" time="0.083" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-8-False]" time="0.012" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-16-True]" time="0.087" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-16-False]" time="0.016" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-32-True]" time="0.089" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-32-False]" time="0.092" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-512-True]" time="0.208" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_S-512-False]" time="0.301" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-1-True]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-1-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-4-True]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-4-False]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-8-True]" time="0.005" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-8-False]" time="0.068" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-16-True]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-16-False]" time="0.089" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-32-True]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-32-False]" time="0.094" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-512-True]" time="0.124" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ3_XXS-512-False]" time="0.297" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-1-True]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-1-False]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-4-True]" time="0.012" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-4-False]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-8-True]" time="0.137" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-8-False]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-16-True]" time="0.013" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-16-False]" time="0.081" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-32-True]" time="0.013" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-32-False]" time="0.082" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-512-True]" time="0.205" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[IQ4_XS-512-False]" time="0.123" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-1-True]" time="0.006" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-1-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-4-True]" time="0.013" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-4-False]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-8-True]" time="0.044" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-8-False]" time="0.010" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-16-True]" time="0.091" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-16-False]" time="0.095" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-32-True]" time="0.015" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-32-False]" time="0.182" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-512-True]" time="0.249" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q2_K-512-False]" time="0.363" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-1-True]" time="0.005" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-1-False]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-4-True]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-4-False]" time="0.004" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-8-True]" time="0.005"><failure message="assert 0.06903378732547957 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 8, big = True
+
+    @pytest.mark.parametrize("big", [True, False])
+    @pytest.mark.parametrize("n", ROUTE_TOKENS)
+    @pytest.mark.parametrize("name", QUANT_TYPES)
+    def test_routing_whole_tensor(tensors_by_type, name, n, big):
+        """The function production calls, on a whole tensor (routing depends on its rows).
+        Reference: the kernel's own dequantize (checked above) in float64, since a CPU
+        dequant of a 17408x5120 tensor per case would dominate the run time."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        import _refs
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+    
+        t, raw = _sample(tensors_by_type, name, rows=None, big=big)
+        qt = int(gguf.GGMLQuantizationType[name])
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        x = _x(n, int(t.shape[0]), "bfloat16", seed=200 + n)
+        y = _fused_mul_mat_gguf(x.cuda(), w, qt)
+        W = ops.ggml_dequantize(w, qt, int(t.shape[1]), int(t.shape[0]), torch.float32).double()
+        ref = (x.cuda().double() @ W.T).cpu()
+        torch.cuda.synchronize()
+        e = _refs.rel_err(y, ref)
+        print(f"\n{name} rows={t.shape[1]} n={n}: rel err vs full {e:.2e}")
+&gt;       assert e &lt;= LOOSE
+E       assert 0.06903378732547957 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:159: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-8-False]" time="0.005" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-16-True]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-16-False]" time="0.007" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-32-True]" time="0.083" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-32-False]" time="0.010" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-512-True]" time="0.206"><failure message="assert 0.07672286712416157 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 512, big = True
+
+    @pytest.mark.parametrize("big", [True, False])
+    @pytest.mark.parametrize("n", ROUTE_TOKENS)
+    @pytest.mark.parametrize("name", QUANT_TYPES)
+    def test_routing_whole_tensor(tensors_by_type, name, n, big):
+        """The function production calls, on a whole tensor (routing depends on its rows).
+        Reference: the kernel's own dequantize (checked above) in float64, since a CPU
+        dequant of a 17408x5120 tensor per case would dominate the run time."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        import _refs
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+    
+        t, raw = _sample(tensors_by_type, name, rows=None, big=big)
+        qt = int(gguf.GGMLQuantizationType[name])
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        x = _x(n, int(t.shape[0]), "bfloat16", seed=200 + n)
+        y = _fused_mul_mat_gguf(x.cuda(), w, qt)
+        W = ops.ggml_dequantize(w, qt, int(t.shape[1]), int(t.shape[0]), torch.float32).double()
+        ref = (x.cuda().double() @ W.T).cpu()
+        torch.cuda.synchronize()
+        e = _refs.rel_err(y, ref)
+        print(f"\n{name} rows={t.shape[1]} n={n}: rel err vs full {e:.2e}")
+&gt;       assert e &lt;= LOOSE
+E       assert 0.07672286712416157 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:159: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q4_K-512-False]" time="0.133"><failure message="assert 0.0894792805931457 &lt;= 0.05">tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=&lt;GGMLQuantizationType.BF16: 30&gt;, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'Q4_K', n = 512, big = False
+
+    @pytest.mark.parametrize("big", [True, False])
+    @pytest.mark.parametrize("n", ROUTE_TOKENS)
+    @pytest.mark.parametrize("name", QUANT_TYPES)
+    def test_routing_whole_tensor(tensors_by_type, name, n, big):
+        """The function production calls, on a whole tensor (routing depends on its rows).
+        Reference: the kernel's own dequantize (checked above) in float64, since a CPU
+        dequant of a 17408x5120 tensor per case would dominate the run time."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        import _refs
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+    
+        t, raw = _sample(tensors_by_type, name, rows=None, big=big)
+        qt = int(gguf.GGMLQuantizationType[name])
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+        x = _x(n, int(t.shape[0]), "bfloat16", seed=200 + n)
+        y = _fused_mul_mat_gguf(x.cuda(), w, qt)
+        W = ops.ggml_dequantize(w, qt, int(t.shape[1]), int(t.shape[0]), torch.float32).double()
+        ref = (x.cuda().double() @ W.T).cpu()
+        torch.cuda.synchronize()
+        e = _refs.rel_err(y, ref)
+        print(f"\n{name} rows={t.shape[1]} n={n}: rel err vs full {e:.2e}")
+&gt;       assert e &lt;= LOOSE
+E       assert 0.0894792805931457 &lt;= 0.05
+
+tests/gpu/test_kernel_parity.py:159: AssertionError</failure></testcase><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-1-True]" time="0.013" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-1-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-4-True]" time="0.020" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-4-False]" time="0.008" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-8-True]" time="0.070" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-8-False]" time="0.009" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-16-True]" time="0.090" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-16-False]" time="0.011" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-32-True]" time="0.101" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-32-False]" time="0.086" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-512-True]" time="0.400" /><testcase classname="tests.gpu.test_kernel_parity" name="test_routing_whole_tensor[Q6_K-512-False]" time="0.229" /></testsuite></testsuites>

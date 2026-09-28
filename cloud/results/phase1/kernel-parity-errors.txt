@@ -1,0 +1,39 @@
+type     op    dtype      max best-model err (model)   max err vs full
+IQ1_M    mmvq  bfloat16             1.75e-03 q81              1.15e-02
+IQ1_M    mmvq  float16              3.22e-04 q81              1.15e-02
+IQ2_S    mmvq  bfloat16             1.80e-03 q81              1.18e-02
+IQ2_S    mmvq  float16              2.61e-04 q81              1.18e-02
+IQ2_XS   mmvq  bfloat16             1.79e-03 q81              1.18e-02
+IQ2_XS   mmvq  float16              3.05e-04 q81              1.19e-02
+IQ2_XXS  mmvq  bfloat16             1.79e-03 q81              1.14e-02
+IQ2_XXS  mmvq  float16              3.16e-04 q81              1.12e-02
+IQ3_S    mmvq  bfloat16             1.82e-03 q81              1.17e-02
+IQ3_S    mmvq  float16              3.11e-04 q81              1.16e-02
+IQ3_XXS  mmvq  bfloat16             1.80e-03 q81              1.14e-02
+IQ3_XXS  mmvq  float16              2.87e-04 q81              1.18e-02
+IQ4_XS   mmvq  bfloat16             1.80e-03 q81              1.31e-02
+IQ4_XS   mmvq  float16              3.11e-04 q81              1.22e-02
+Q2_K     mmq   bfloat16             1.93e-03 q81              1.32e-02
+Q2_K     mmq   float16              4.00e-04 q81              1.30e-02
+Q2_K     mmvq  bfloat16             1.78e-03 q81              1.18e-02
+Q2_K     mmvq  float16              3.04e-04 q81              1.21e-02
+Q4_K     mmq   bfloat16             2.48e-03 xsum             7.01e-02
+Q4_K     mmq   float16              1.24e-03 xsum             6.13e-02
+Q4_K     mmvq  bfloat16             1.81e-03 q81              1.22e-02
+Q4_K     mmvq  float16              3.25e-04 q81              1.23e-02
+Q6_K     mmq   bfloat16             2.53e-03 q81              1.24e-02
+Q6_K     mmq   float16              4.29e-04 q81              1.24e-02
+Q6_K     mmvq  bfloat16             2.13e-03 q81              1.19e-02
+Q6_K     mmvq  float16              4.89e-04 q81              1.18e-02
+
+routing (_fused_mul_mat_gguf, whole tensor, bf16) max rel err vs full:
+  IQ1_M    1.12e-02
+  IQ2_S    1.24e-02
+  IQ2_XS   1.12e-02
+  IQ2_XXS  1.11e-02
+  IQ3_S    1.14e-02
+  IQ3_XXS  1.15e-02
+  IQ4_XS   1.47e-02
+  Q2_K     1.22e-02
+  Q4_K     8.95e-02
+  Q6_K     1.24e-02

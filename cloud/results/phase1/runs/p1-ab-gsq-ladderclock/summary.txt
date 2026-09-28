@@ -1,0 +1,3 @@
+ROW gsq cohort C1 real prompts T=default n=2 | e2e=10.52 tok/s | decode(C/meanTPOT)=10.7 | meanTTFT=1628.32 ms
+ROW gsq prefill len=8192 conc=1 seed=847029129 | 133 tok/s | meanTTFT=61395.25 ms
+ROW gsq prefill len=8192 conc=2 seed=967779794 | 175 tok/s | meanTTFT=93585.10 ms

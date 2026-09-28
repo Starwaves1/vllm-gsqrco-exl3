@@ -1,0 +1,8 @@
+ROW cohort C1 real prompts T=default (prod bench pass 1) | e2e=10.44 tok/s | decode(C/meanTPOT)=10.7 | meanTTFT=2014.04 ms
+ROW cohort C2 real prompts T=default (prod bench pass 1) | e2e=10.88 tok/s | decode(C/meanTPOT)=11.9 | meanTTFT=2639.80 ms
+# salted prefill ladder (bench/speed/run.sh commands)
+ROW prefill len=8192 conc=1 seed=156477501 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=8192 conc=2 seed=566444975 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=65536 conc=1 seed=711691592 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=65536 conc=2 seed=410982935 | 0 tok/s | meanTTFT=0.00 ms
+ROW prefill len=180000 conc=1 seed=714505487 | 0 tok/s | meanTTFT=0.00 ms

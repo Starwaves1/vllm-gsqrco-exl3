@@ -1,0 +1,95 @@
++ W=/workspace
++ G=/workspace/gsq-vllm
++ SP=/workspace/gsq-vllm/.venv/lib/python3.12/site-packages
++ cd /workspace/gsq-vllm
++ uv python install 3.12.13
+Python 3.12.13 is already installed
++ '[' -x .venv/bin/python ']'
++ uv pip install --python .venv/bin/python --link-mode=copy --no-deps -r env/prod-freeze.txt
+Checked 202 packages in 95ms
++ date -u '+venv done %FT%TZ'
+venv done 2026-09-27T23:33:20Z
++ '[' -d /workspace/vllm-src/.git ']'
++ git -C /workspace/vllm-src fetch --tags origin
++ mkdir -p /workspace/deploy-state
++ DENV=(env VLLM_REPO=$W/vllm-src SITE_PACKAGES=$SP STATE_FILE=$W/deploy-state/state BACKUP_ROOT=$W/deploy-state/bk)
++ env VLLM_REPO=/workspace/vllm-src SITE_PACKAGES=/workspace/gsq-vllm/.venv/lib/python3.12/site-packages STATE_FILE=/workspace/deploy-state/state BACKUP_ROOT=/workspace/deploy-state/bk /workspace/deploy/scripts/deploy-vllm.sh --init v0.27.1
+commit 6e448d0ea9bf3d88d898b65449ca6dc2aec170ac: 2755 tracked files under vllm/
+DRIFT: wheel differs from 6e448d0ea9bf3d88d898b65449ca6dc2aec170ac:
+  vllm/config/cache.py (differs)
+  vllm/config/speculative.py (differs)
+  vllm/config/vllm.py (differs)
+  vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py (differs)
+  vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py (differs)
+  vllm/distributed/kv_transfer/kv_connector/v1/offloading/worker.py (differs)
+  vllm/envs.py (differs)
+  vllm/model_executor/kernels/linear/mixed_precision/marlin.py (differs)
+  vllm/model_executor/layers/attention/attention.py (differs)
+  vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py (differs)
+  vllm/model_executor/layers/mamba/ops/causal_conv1d.py (differs)
+  vllm/model_executor/layers/mamba/ops/mamba_ssm.py (differs)
+  vllm/model_executor/layers/quantization/utils/marlin_utils.py (differs)
+  vllm/model_executor/models/qwen3_5.py (differs)
+  vllm/model_executor/models/qwen3_5_mtp.py (differs)
+  vllm/model_executor/models/qwen3_dflash.py (differs)
+  vllm/model_executor/models/registry.py (differs)
+  vllm/platforms/cuda.py (differs)
+  vllm/platforms/interface.py (differs)
+  vllm/third_party/flash_linear_attention/ops/fused_recurrent.py (differs)
+  vllm/third_party/flash_linear_attention/ops/fused_sigmoid_gating.py (differs)
+  vllm/utils/torch_utils.py (differs)
+  vllm/v1/attention/backends/flash_attn.py (differs)
+  vllm/v1/attention/backends/flashinfer.py (differs)
+  vllm/v1/attention/backends/registry.py (differs)
+  vllm/v1/attention/backends/triton_attn.py (differs)
+  vllm/v1/core/kv_cache_coordinator.py (differs)
+  vllm/v1/core/kv_cache_utils.py (differs)
+  vllm/v1/core/sched/scheduler.py (differs)
+  vllm/v1/core/single_type_kv_cache_manager.py (differs)
+  vllm/v1/kv_cache_interface.py (differs)
+  vllm/v1/kv_offload/base.py (differs)
+  vllm/v1/kv_offload/config.py (differs)
+  vllm/v1/kv_offload/cpu/gpu_worker.py (differs)
+  vllm/v1/kv_offload/cpu/policies/arc.py (differs)
+  vllm/v1/kv_offload/cpu/policies/base.py (differs)
+  vllm/v1/kv_offload/cpu/policies/lru.py (differs)
+  vllm/v1/kv_offload/tiering/async_lookup.py (differs)
+  vllm/v1/kv_offload/tiering/base.py (differs)
+  vllm/v1/kv_offload/tiering/factory.py (differs)
+  vllm/v1/kv_offload/tiering/fs/manager.py (differs)
+  vllm/v1/kv_offload/tiering/manager.py (differs)
+  vllm/v1/kv_offload/tiering/spec.py (differs)
+  vllm/v1/sample/metadata.py (differs)
+  vllm/v1/sample/ops/topk_topp_sampler.py (differs)
+  vllm/v1/sample/rejection_sampler.py (differs)
+  vllm/v1/sample/sampler.py (differs)
+  vllm/v1/spec_decode/llm_base_proposer.py (differs)
+  vllm/v1/structured_output/__init__.py (differs)
+  vllm/v1/structured_output/backend_xgrammar.py (differs)
+  vllm/v1/worker/gpu/cudagraph_utils.py (differs)
+  vllm/v1/worker/gpu/model_runner.py (differs)
+  vllm/v1/worker/gpu/model_states/mamba_hybrid.py (differs)
+  vllm/v1/worker/gpu/sample/sampler.py (differs)
+  vllm/v1/worker/gpu/sample/states.py (differs)
+  vllm/v1/worker/gpu/spec_decode/__init__.py (differs)
+  vllm/v1/worker/gpu/spec_decode/dflash/speculator.py (differs)
+  vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py (differs)
+  vllm/v1/worker/gpu/spec_decode/utils.py (differs)
+  vllm/v1/worker/gpu_input_batch.py (differs)
+  vllm/v1/worker/gpu_model_runner.py (differs)
+  vllm/v1/worker/mamba_utils.py (differs)
+NOTE: files in the wheel that 6e448d0ea9bf3d88d898b65449ca6dc2aec170ac does not track and .gitignore does not cover:
+  vllm/model_executor/layers/quantization/kvarn/__init__.py
+  vllm/model_executor/layers/quantization/kvarn/config.py
+  vllm/model_executor/layers/quantization/kvarn/sinkhorn.py
+  vllm/model_executor/models/qwen3_dflash2.py
+  vllm/v1/attention/backends/kvarn_attn.py
+  vllm/v1/attention/ops/kvarn_decode.py
+  vllm/v1/attention/ops/kvarn_store.py
+  vllm/v1/attention/ops/spec_decode_attn.py
+  vllm/v1/attention/ops/triton_kvarn_decode.py
+  vllm/v1/attention/ops/triton_kvarn_sinkhorn.py
+  vllm/v1/sample/ops/row_softmax.py
+  vllm/v1/worker/gpu/spec_decode/dflash2/__init__.py
+  vllm/v1/worker/gpu/spec_decode/dflash2/lookup.py
+  vllm/v1/worker/gpu/spec_decode/dflash2/speculator.py

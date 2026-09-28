@@ -1,0 +1,343 @@
++ W=/workspace
++ G=/workspace/gsq-vllm
++ SP=/workspace/gsq-vllm/.venv/lib/python3.12/site-packages
++ cd /workspace/gsq-vllm
++ env VLLM_REPO=/workspace/vllm-src SITE_PACKAGES=/workspace/gsq-vllm/.venv/lib/python3.12/site-packages STATE_FILE=/workspace/deploy-state/state BACKUP_ROOT=/workspace/deploy-state/bk /workspace/deploy/scripts/deploy-vllm.sh --verify
+commit ba05ffababdcf89ada26b5d34845e04901e2ddf3: 2769 tracked files under vllm/
+OK: every tracked file matches
++ cmp /workspace/prod-build_backend.py /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/build_backend.py
++ tools/setup-cuda-toolchain.sh
+Build cuda_13.0.r13.0/compiler.36424714_0
++ MAX_JOBS=32
++ tools/build-plugin.sh
+DEBUG Searching for user configuration in: `/root/.config/uv/uv.toml`
+DEBUG uv 0.12.10 (x86_64-unknown-linux-gnu)
+DEBUG Disabling the uv cache due to `--no-cache`
+DEBUG Marking explicit source tree for reinstall: `/workspace/gsq-vllm/plugin`
+DEBUG Checking for Python interpreter at path `.venv/bin/python`
+DEBUG Using Python 3.12.13 environment at: .venv
+DEBUG Using request connect timeout of 10s and read timeout of 30s
+DEBUG Found PEP 621 metadata for /workspace/gsq-vllm/plugin in `pyproject.toml` (vllm-gguf-plugin)
+DEBUG Solving with installed Python version: 3.12.13
+DEBUG Solving with target Python version: >=3.12.13
+DEBUG Adding direct dependency: vllm-gguf-plugin*
+DEBUG Searching for a compatible version of vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin (*)
+DEBUG No static `pyproject.toml` available for: vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin (DynamicField("version"))
+DEBUG Computed cache info: Timestamp(SystemTime { tv_sec: 1790550710, tv_nsec: 741800302 }), None, None, {}, {"src": None}. Most recently modified: plugin/setup.py
+DEBUG Preparing metadata for: vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+DEBUG Assessing Python executable as base candidate: /.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/bin/python3.12
+DEBUG No workspace root found, using project root
+DEBUG Proceeding without build isolation
+DEBUG Locking the source tree for setuptools
+DEBUG Calling `setuptools.build_meta.prepare_metadata_for_build_editable()`
+DEBUG running dist_info
+DEBUG creating /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info
+DEBUG writing /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/PKG-INFO
+DEBUG writing dependency_links to /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/dependency_links.txt
+DEBUG writing entry points to /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/entry_points.txt
+DEBUG writing requirements to /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/requires.txt
+DEBUG writing top-level names to /tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/top_level.txt
+DEBUG writing manifest file '/tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest file '/tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest template 'MANIFEST.in'
+DEBUG warning: no previously-included files matching '__pycache__' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.py[cod]' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.so' found anywhere in distribution
+DEBUG adding license file 'LICENSE'
+DEBUG writing manifest file '/tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG creating '/tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin-0.0.5.dist-info'
+DEBUG Prepared metadata for: vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+DEBUG Tried 1 versions: vllm-gguf-plugin 1
+DEBUG marker environment resolution took 0.612s
+Resolved 1 package in 615ms
+DEBUG Must revalidate requirement: vllm-gguf-plugin
+DEBUG Unnecessary package: aiohappyeyeballs==2.7.1
+DEBUG Unnecessary package: aiohttp==3.14.3
+DEBUG Unnecessary package: aiosignal==1.4.0
+DEBUG Unnecessary package: annotated-doc==0.0.5
+DEBUG Unnecessary package: annotated-types==0.8.0
+DEBUG Unnecessary package: anthropic==1.0.0
+DEBUG Unnecessary package: anyio==4.14.2
+DEBUG Unnecessary package: apache-tvm-ffi==0.1.11
+DEBUG Unnecessary package: astor==0.8.1
+DEBUG Unnecessary package: attrs==26.1.0
+DEBUG Unnecessary package: blake3==1.0.9
+DEBUG Unnecessary package: cachetools==7.1.7
+DEBUG Unnecessary package: cbor2==6.1.4
+DEBUG Unnecessary package: certifi==2026.7.22
+DEBUG Unnecessary package: cffi==2.1.1
+DEBUG Unnecessary package: charset-normalizer==3.5.1
+DEBUG Unnecessary package: click==8.4.2
+DEBUG Unnecessary package: cloudpickle==3.1.2
+DEBUG Unnecessary package: compressed-tensors==0.17.0
+DEBUG Unnecessary package: cryptography==50.0.0
+DEBUG Unnecessary package: cuda-bindings==13.3.1
+DEBUG Unnecessary package: cuda-core==1.0.1
+DEBUG Unnecessary package: cuda-pathfinder==1.6.1
+DEBUG Unnecessary package: cuda-python==13.3.1
+DEBUG Unnecessary package: cuda-tile==1.5.0
+DEBUG Unnecessary package: cuda-toolkit==13.0.3.0
+DEBUG Unnecessary package: datasets==5.0.1
+DEBUG Unnecessary package: depyf==0.20.0
+DEBUG Unnecessary package: detect-installer==0.1.0
+DEBUG Unnecessary package: dill==0.4.1
+DEBUG Unnecessary package: dnspython==2.8.0
+DEBUG Unnecessary package: docstring-parser==0.18.0
+DEBUG Unnecessary package: einops==0.8.2
+DEBUG Unnecessary package: email-validator==2.3.0
+DEBUG Unnecessary package: fastapi==0.136.3
+DEBUG Unnecessary package: fastapi-cli==0.0.32
+DEBUG Unnecessary package: fastapi-cloud-cli==0.23.0
+DEBUG Unnecessary package: fastar==0.12.0
+DEBUG Unnecessary package: fastsafetensors==0.3.3
+DEBUG Unnecessary package: filelock==3.32.3
+DEBUG Unnecessary package: flashinfer-python==0.6.16.post3
+DEBUG Unnecessary package: frozenlist==1.8.0
+DEBUG Unnecessary package: fsspec==2026.6.0
+DEBUG Unnecessary package: gguf==0.19.0 (from file:///workspace/llama.cpp/gguf-py)
+DEBUG Unnecessary package: googleapis-common-protos==1.75.1
+DEBUG Unnecessary package: grpcio==1.83.0
+DEBUG Unnecessary package: h11==0.16.0
+DEBUG Unnecessary package: hf-transfer==0.1.9
+DEBUG Unnecessary package: hf-xet==1.6.0
+DEBUG Unnecessary package: httpcore==1.0.9
+DEBUG Unnecessary package: httpcore2==2.12.0
+DEBUG Unnecessary package: httptools==0.8.0
+DEBUG Unnecessary package: httpx==0.28.1
+DEBUG Unnecessary package: httpx2==2.12.0
+DEBUG Unnecessary package: huggingface-hub==1.28.0
+DEBUG Unnecessary package: humming-kernels==0.1.10
+DEBUG Unnecessary package: idna==3.19
+DEBUG Unnecessary package: ijson==3.5.1
+DEBUG Unnecessary package: interegular==0.3.3
+DEBUG Unnecessary package: jinja2==3.1.6
+DEBUG Unnecessary package: jiter==0.16.0
+DEBUG Unnecessary package: jmespath==1.1.0
+DEBUG Unnecessary package: jsonschema==4.26.0
+DEBUG Unnecessary package: jsonschema-specifications==2025.9.1
+DEBUG Unnecessary package: lark==1.2.2
+DEBUG Unnecessary package: llguidance==1.7.6
+DEBUG Unnecessary package: llvmlite==0.47.0
+DEBUG Unnecessary package: lm-format-enforcer==0.11.3
+DEBUG Unnecessary package: loguru==0.7.3
+DEBUG Unnecessary package: markdown-it-py==4.2.0
+DEBUG Unnecessary package: markupsafe==3.0.3
+DEBUG Unnecessary package: mcp==2.0.0
+DEBUG Unnecessary package: mcp-types==2.0.0
+DEBUG Unnecessary package: mdurl==0.1.2
+DEBUG Unnecessary package: mistral-common==1.11.7
+DEBUG Unnecessary package: ml-dtypes==0.6.0
+DEBUG Unnecessary package: model-hosting-container-standards==0.1.16
+DEBUG Unnecessary package: mpmath==1.3.0
+DEBUG Unnecessary package: msgspec==0.21.1
+DEBUG Unnecessary package: multidict==6.7.1
+DEBUG Unnecessary package: multiprocess==0.70.19
+DEBUG Unnecessary package: nccl4py==0.4.1
+DEBUG Unnecessary package: networkx==3.6.1
+DEBUG Unnecessary package: ninja==1.13.0
+DEBUG Unnecessary package: numba==0.65.0
+DEBUG Unnecessary package: numpy==2.3.5
+DEBUG Unnecessary package: nvidia-cublas==13.1.1.3
+DEBUG Unnecessary package: nvidia-cuda-cccl==13.3.3.4.1
+DEBUG Unnecessary package: nvidia-cuda-crt==13.3.73
+DEBUG Unnecessary package: nvidia-cuda-cupti==13.0.85
+DEBUG Unnecessary package: nvidia-cuda-nvcc==13.3.73
+DEBUG Unnecessary package: nvidia-cuda-nvdisasm==13.3.73
+DEBUG Unnecessary package: nvidia-cuda-nvrtc==13.0.88
+DEBUG Unnecessary package: nvidia-cuda-runtime==13.0.96
+DEBUG Unnecessary package: nvidia-cudnn-cu13==9.20.0.48
+DEBUG Unnecessary package: nvidia-cudnn-frontend==1.27.0
+DEBUG Unnecessary package: nvidia-cufft==12.0.0.61
+DEBUG Unnecessary package: nvidia-cufile==1.15.1.6
+DEBUG Unnecessary package: nvidia-curand==10.4.0.35
+DEBUG Unnecessary package: nvidia-cusolver==12.0.4.66
+DEBUG Unnecessary package: nvidia-cusparse==12.6.3.3
+DEBUG Unnecessary package: nvidia-cusparselt-cu13==0.8.1
+DEBUG Unnecessary package: nvidia-cutlass-dsl==4.6.0
+DEBUG Unnecessary package: nvidia-cutlass-dsl-libs-base==4.6.0
+DEBUG Unnecessary package: nvidia-cutlass-dsl-libs-core==4.6.0
+DEBUG Unnecessary package: nvidia-cutlass-dsl-libs-cu12==4.6.0
+DEBUG Unnecessary package: nvidia-cutlass-dsl-libs-cu13==4.6.0
+DEBUG Unnecessary package: nvidia-ml-py==13.610.43
+DEBUG Unnecessary package: nvidia-nccl-cu13==2.29.7
+DEBUG Unnecessary package: nvidia-nvjitlink==13.3.33
+DEBUG Unnecessary package: nvidia-nvshmem-cu13==3.4.5
+DEBUG Unnecessary package: nvidia-nvtx==13.0.85
+DEBUG Unnecessary package: nvidia-nvvm==13.3.73
+DEBUG Unnecessary package: nvtx==0.2.15
+DEBUG Unnecessary package: openai==3.3.1
+DEBUG Unnecessary package: openai-harmony==0.0.8
+DEBUG Unnecessary package: opencv-python-headless==5.0.0.93
+DEBUG Unnecessary package: opentelemetry-api==1.44.0
+DEBUG Unnecessary package: opentelemetry-exporter-otlp==1.44.0
+DEBUG Unnecessary package: opentelemetry-exporter-otlp-proto-common==1.44.0
+DEBUG Unnecessary package: opentelemetry-exporter-otlp-proto-grpc==1.44.0
+DEBUG Unnecessary package: opentelemetry-exporter-otlp-proto-http==1.44.0
+DEBUG Unnecessary package: opentelemetry-proto==1.44.0
+DEBUG Unnecessary package: opentelemetry-sdk==1.44.0
+DEBUG Unnecessary package: opentelemetry-semantic-conventions==0.65b0
+DEBUG Unnecessary package: opentelemetry-semantic-conventions-ai==0.5.1
+DEBUG Unnecessary package: outlines-core==0.2.14
+DEBUG Unnecessary package: packaging==26.3
+DEBUG Unnecessary package: pandas==3.0.5
+DEBUG Unnecessary package: partial-json-parser==0.2.1.1.post7
+DEBUG Unnecessary package: pillow==12.3.0
+DEBUG Unnecessary package: prometheus-client==0.26.0
+DEBUG Unnecessary package: prometheus-fastapi-instrumentator==8.1.0
+DEBUG Unnecessary package: propcache==0.5.2
+DEBUG Unnecessary package: protobuf==6.33.6
+DEBUG Unnecessary package: psutil==7.2.2
+DEBUG Unnecessary package: py-cpuinfo==9.0.0
+DEBUG Unnecessary package: pyarrow==25.0.1
+DEBUG Unnecessary package: pybase64==1.5.0
+DEBUG Unnecessary package: pycountry==26.2.16
+DEBUG Unnecessary package: pycparser==3.0
+DEBUG Unnecessary package: pydantic==2.13.4
+DEBUG Unnecessary package: pydantic-core==2.46.4
+DEBUG Unnecessary package: pydantic-extra-types==2.11.1
+DEBUG Unnecessary package: pydantic-settings==2.15.0
+DEBUG Unnecessary package: pyelftools==0.33
+DEBUG Unnecessary package: pygments==2.21.0
+DEBUG Unnecessary package: pyjwt==2.13.0
+DEBUG Unnecessary package: pynvvideocodec==2.0.4
+DEBUG Unnecessary package: python-dateutil==2.9.0.post0
+DEBUG Unnecessary package: python-dotenv==1.2.3
+DEBUG Unnecessary package: python-json-logger==4.2.0
+DEBUG Unnecessary package: python-multipart==0.0.32
+DEBUG Unnecessary package: pyyaml==6.0.3
+DEBUG Unnecessary package: pyzmq==27.2.0
+DEBUG Unnecessary package: quack-kernels==0.6.1
+DEBUG Unnecessary package: referencing==0.37.0
+DEBUG Unnecessary package: regex==2026.7.19
+DEBUG Unnecessary package: requests==2.34.2
+DEBUG Unnecessary package: rich==15.0.0
+DEBUG Unnecessary package: rich-toolkit==0.20.3
+DEBUG Unnecessary package: rignore==0.8.1
+DEBUG Unnecessary package: rpds-py==2026.6.3
+DEBUG Unnecessary package: safetensors==0.8.0
+DEBUG Unnecessary package: sentencepiece==0.2.2
+DEBUG Unnecessary package: sentry-sdk==2.68.0
+DEBUG Unnecessary package: setproctitle==1.3.7
+DEBUG Unnecessary package: setuptools==80.10.2
+DEBUG Unnecessary package: shellingham==1.5.4
+DEBUG Unnecessary package: six==1.17.0
+DEBUG Unnecessary package: sniffio==1.3.1
+DEBUG Unnecessary package: sse-starlette==3.4.8
+DEBUG Unnecessary package: starlette==1.6.0
+DEBUG Unnecessary package: supervisor==4.3.0
+DEBUG Unnecessary package: sympy==1.14.0
+DEBUG Unnecessary package: tabulate==0.10.0
+DEBUG Unnecessary package: tiktoken==0.14.0
+DEBUG Unnecessary package: tilelang==0.1.12
+DEBUG Unnecessary package: tokenizers==0.22.2
+DEBUG Unnecessary package: tokenspeed-mla==0.1.8
+DEBUG Unnecessary package: tokenspeed-triton==3.8.10.post20260721
+DEBUG Unnecessary package: torch==2.13.0
+DEBUG Unnecessary package: torch-c-dlpack-ext==0.1.5
+DEBUG Unnecessary package: torchaudio==2.11.0
+DEBUG Unnecessary package: torchcodec==0.16.0
+DEBUG Unnecessary package: torchvision==0.28.0
+DEBUG Unnecessary package: tqdm==4.70.0
+DEBUG Unnecessary package: transformers==5.15.1
+DEBUG Unnecessary package: triton==3.7.1
+DEBUG Unnecessary package: truststore==0.10.4
+DEBUG Unnecessary package: typer==0.27.1
+DEBUG Unnecessary package: typing-extensions==4.16.0
+DEBUG Unnecessary package: typing-inspection==0.4.4
+DEBUG Unnecessary package: urllib3==2.7.0
+DEBUG Unnecessary package: uvicorn==0.52.4
+DEBUG Unnecessary package: uvloop==0.22.1
+DEBUG Unnecessary package: vllm==0.27.1
+DEBUG Unnecessary package: watchfiles==1.2.0
+DEBUG Unnecessary package: websockets==17.0.1
+DEBUG Unnecessary package: xgrammar==0.2.3
+DEBUG Unnecessary package: xxhash==4.0.1
+DEBUG Unnecessary package: yarl==1.24.5
+DEBUG Unnecessary package: z3-solver==4.15.4.0
+DEBUG Computed cache info: Timestamp(SystemTime { tv_sec: 1790550710, tv_nsec: 741800302 }), None, None, {}, {"src": None}. Most recently modified: plugin/setup.py
+   Building vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+DEBUG Building: vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+DEBUG Assessing Python executable as base candidate: /.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/bin/python3.12
+DEBUG Reusing existing build environment for: vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+DEBUG Locking the source tree for setuptools
+DEBUG Calling `setuptools.build_meta.build_editable(__import__("os").fsdecode(b"/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC"), {}, __import__("os").fsdecode(b"/tmp/.tmptg5pHS/builds-v0/.tmp7m2Wuw/metadata_directory/vllm_gguf_plugin-0.0.5.dist-info"))`
+DEBUG running editable_wheel
+DEBUG creating /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info
+DEBUG writing /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/PKG-INFO
+DEBUG writing dependency_links to /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/dependency_links.txt
+DEBUG writing entry points to /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/entry_points.txt
+DEBUG writing requirements to /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/requires.txt
+DEBUG writing top-level names to /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/top_level.txt
+DEBUG writing manifest file '/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest file '/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest template 'MANIFEST.in'
+DEBUG warning: no previously-included files matching '__pycache__' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.py[cod]' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.so' found anywhere in distribution
+DEBUG adding license file 'LICENSE'
+DEBUG writing manifest file '/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG creating '/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin-0.0.5.dist-info'
+DEBUG creating /tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin-0.0.5.dist-info/WHEEL
+DEBUG running build_py
+DEBUG running build_ext
+DEBUG building 'vllm_gguf_plugin._C_gguf' extension
+DEBUG creating /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/gguf
+DEBUG [1/2] g++-13 -MMD -MF /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/torch_bindings.o.d -fno-strict-overflow -Wsign-compare -Wunreachable-code -DNDEBUG -g -O3 -Wall -O3 -fstack-protector -fstack-clash-protection -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -fPIC -fPIC -Ivllm_gguf_plugin/csrc -Ivllm_gguf_plugin/csrc/gguf -I/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include -I/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/api/include -I/workspace/gsq-vllm/build/cu130/nvidia/cu13/include -I/workspace/gsq-vllm/.venv/include -I/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/include/python3.12 -c -c /workspace/gsq-vllm/plugin/vllm_gguf_plugin/csrc/torch_bindings.cpp -o /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/torch_bindings.o -O3 -std=c++17 -DTORCH_API_INCLUDE_EXTENSION_H -DPy_LIMITED_API=0x030A0000 -DTORCH_EXTENSION_NAME=_C_gguf
+DEBUG [2/2] /workspace/gsq-vllm/build/cu130/nvidia/cu13/bin/nvcc -MD -MF /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/gguf/gguf_kernel.o.d -Ivllm_gguf_plugin/csrc -Ivllm_gguf_plugin/csrc/gguf -I/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include -I/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/api/include -I/workspace/gsq-vllm/build/cu130/nvidia/cu13/include -I/workspace/gsq-vllm/.venv/include -I/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/include/python3.12 -c -c /workspace/gsq-vllm/plugin/vllm_gguf_plugin/csrc/gguf/gguf_kernel.cu -o /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/gguf/gguf_kernel.o -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options ''"'"'-fPIC'"'"'' -O3 -std=c++17 --use_fast_math -DUSE_CUDA -DTORCH_API_INCLUDE_EXTENSION_H -DPy_LIMITED_API=0x030A0000 -DTORCH_EXTENSION_NAME=_C_gguf -gencode=arch=compute_86,code=sm_86 -ccbin gcc-13
+DEBUG creating /tmp/tmpgvvcv122.build-lib/vllm_gguf_plugin
+DEBUG g++-13 -fno-strict-overflow -Wsign-compare -Wunreachable-code -DNDEBUG -g -O3 -Wall -O3 -fstack-protector -fstack-clash-protection -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -fPIC -pthread -shared -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--exclude-libs,ALL /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/gguf/gguf_kernel.o /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin/csrc/torch_bindings.o -L/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/lib -L/workspace/gsq-vllm/build/cu130/nvidia/cu13/lib64 -L/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/lib -lc10 -ltorch -ltorch_cpu -lcudart -lc10_cuda -ltorch_cuda -o /tmp/tmpgvvcv122.build-lib/vllm_gguf_plugin/_C_gguf.abi3.so
+DEBUG copying /tmp/tmpgvvcv122.build-lib/vllm_gguf_plugin/_C_gguf.abi3.so -> vllm_gguf_plugin
+DEBUG running egg_info
+DEBUG creating /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info
+DEBUG writing /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/PKG-INFO
+DEBUG writing dependency_links to /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/dependency_links.txt
+DEBUG writing entry points to /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/entry_points.txt
+DEBUG writing requirements to /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/requires.txt
+DEBUG writing top-level names to /tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/top_level.txt
+DEBUG writing manifest file '/tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest file '/tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG reading manifest template 'MANIFEST.in'
+DEBUG warning: no previously-included files matching '__pycache__' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.py[cod]' found anywhere in distribution
+DEBUG warning: no previously-included files matching '*.so' found anywhere in distribution
+DEBUG adding license file 'LICENSE'
+DEBUG writing manifest file '/tmp/tmpguxlwgei.build-temp/vllm_gguf_plugin.egg-info/SOURCES.txt'
+DEBUG Editable install will be performed using a meta path finder.
+DEBUG 
+DEBUG Options like `package-data`, `include/exclude-package-data` or
+DEBUG `packages.find.exclude/include` may have no effect.
+DEBUG 
+DEBUG adding '__editable___vllm_gguf_plugin_0_0_5_finder.py'
+DEBUG adding '__editable__.vllm_gguf_plugin-0.0.5.pth'
+DEBUG creating '/tmp/.tmptg5pHS/builds-v0/.tmpTlbaaC/.tmp-soep7edp/vllm_gguf_plugin-0.0.5-0.editable-cp310-abi3-linux_x86_64.whl' and adding '/tmp/tmpwbg86t4ovllm_gguf_plugin-0.0.5-0.editable-cp310-abi3-linux_x86_64.whl' to it
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/licenses/LICENSE'
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/METADATA'
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/WHEEL'
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/entry_points.txt'
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/top_level.txt'
+DEBUG adding 'vllm_gguf_plugin-0.0.5.dist-info/RECORD'
+DEBUG /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/setuptools/command/editable_wheel.py:352: InformationOnly: Editable installation.
+DEBUG !!
+DEBUG 
+DEBUG         ********************************************************************************
+DEBUG         Please be careful with folders in your working directory with the same
+DEBUG         name as your package as they may take precedence during imports.
+DEBUG         ********************************************************************************
+DEBUG 
+DEBUG !!
+DEBUG   with strategy, WheelFile(wheel_path, "w") as wheel_obj:
+DEBUG Built `vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin` into `vllm_gguf_plugin-0.0.5-0.editable-cp310-abi3-linux_x86_64.whl`
+      Built vllm-gguf-plugin @ file:///workspace/gsq-vllm/plugin
+Prepared 1 package in 35.38s
+Installed 1 package in 3ms
+ + vllm-gguf-plugin==0.0.5 (from file:///workspace/gsq-vllm/plugin)
++ date -u '+plugin done %FT%TZ'
+plugin done 2026-09-27T23:35:29Z
++ uv pip freeze --python .venv/bin/python
+++ sed 's#@ file://.*#@ file#; s#^-e file://.*#-e file#' env/gsq-freeze.txt
++ diff /dev/fd/63 /dev/fd/62
+++ sed 's#@ file://.*#@ file#; s#^-e file://.*#-e file#' /workspace/logs/box-freeze.txt
++ echo FREEZE_IDENTICAL
+FREEZE_IDENTICAL
++ echo SETUP_DONE
+SETUP_DONE

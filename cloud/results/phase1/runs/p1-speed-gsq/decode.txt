@@ -1,0 +1,2 @@
+ROW cohort C1 real prompts T=default (prod bench pass 1) | e2e=10.44 tok/s | decode(C/meanTPOT)=10.7 | meanTTFT=2014.04 ms
+ROW cohort C2 real prompts T=default (prod bench pass 1) | e2e=10.88 tok/s | decode(C/meanTPOT)=11.9 | meanTTFT=2639.80 ms

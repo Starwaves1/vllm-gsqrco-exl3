@@ -1,0 +1,152 @@
+Sun Sep 27 23:36:45 UTC 2026
+NOTE: GPU power-limited to 180 W on this rented box (stock 3090: 350 W)
+Sun Sep 27 23:36:45 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.142                Driver Version: 580.142        CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3090        On  |   00000000:C2:00.0 Off |                  N/A |
+| 58%   46C    P8             24W /  180W |       0MiB /  24576MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+
+==============NVSMI LOG==============
+
+Timestamp                                              : Sun Sep 27 23:36:46 2026
+Driver Version                                         : 580.142
+CUDA Version                                           : 13.0
+
+Attached GPUs                                          : 1
+GPU 00000000:C2:00.0
+    Performance State                                  : P8
+    Clocks Event Reasons
+        Idle                                           : Active
+        Applications Clocks Setting                    : Not Active
+        SW Power Cap                                   : Not Active
+        HW Slowdown                                    : Not Active
+            HW Thermal Slowdown                        : Not Active
+            HW Power Brake Slowdown                    : Not Active
+        Sync Boost                                     : Not Active
+        SW Thermal Slowdown                            : Not Active
+        Display Clock Setting                          : Not Active
+    Clocks Event Reasons Counters
+        SW Power Capping                               : 519710411120 us
+        Sync Boost                                     : 0 us
+        SW Thermal Slowdown                            : 0 us
+        HW Thermal Slowdown                            : 0 us
+        HW Power Braking                               : 0 us
+    Sparse Operation Mode                              : N/A
+    FB Memory Usage
+        Total                                          : 24576 MiB
+        Reserved                                       : 452 MiB
+        Used                                           : 0 MiB
+        Free                                           : 24125 MiB
+    BAR1 Memory Usage
+        Total                                          : 256 MiB
+        Used                                           : 1 MiB
+        Free                                           : 255 MiB
+    Conf Compute Protected Memory Usage
+        Total                                          : 0 MiB
+        Used                                           : 0 MiB
+        Free                                           : 0 MiB
+    Temperature
+        GPU Current Temp                               : 46 C
+        GPU T.Limit Temp                               : N/A
+        GPU Shutdown Temp                              : 98 C
+        GPU Slowdown Temp                              : 95 C
+        GPU Max Operating Temp                         : 93 C
+        GPU Target Temperature                         : 83 C
+        Memory Current Temp                            : N/A
+        Memory Max Operating Temp                      : N/A
+    GPU Power Readings
+        Average Power Draw                             : 24.84 W
+        Instantaneous Power Draw                       : 24.85 W
+        Current Power Limit                            : 180.00 W
+        Requested Power Limit                          : 180.00 W
+        Default Power Limit                            : 370.00 W
+        Min Power Limit                                : 100.00 W
+        Max Power Limit                                : 390.00 W
+    Power Samples
+        Duration                                       : 12.52 sec
+        Number of Samples                              : 119
+        Max                                            : 132.76 W
+        Min                                            : 24.63 W
+        Avg                                            : 53.40 W
+    GPU Memory Power Readings 
+        Average Power Draw                             : N/A
+        Instantaneous Power Draw                       : N/A
+    Module Power Readings
+        Average Power Draw                             : N/A
+        Instantaneous Power Draw                       : N/A
+        Current Power Limit                            : N/A
+        Requested Power Limit                          : N/A
+        Default Power Limit                            : N/A
+        Min Power Limit                                : N/A
+        Max Power Limit                                : N/A
+    Clocks
+        Graphics                                       : 210 MHz
+        SM                                             : 210 MHz
+        Memory                                         : 405 MHz
+        Video                                          : 555 MHz
+    Applications Clocks
+        Graphics                                       : N/A
+        Memory                                         : N/A
+    Default Applications Clocks
+        Graphics                                       : N/A
+        Memory                                         : N/A
+    Deferred Clocks
+        Memory                                         : N/A
+    Max Clocks
+        Graphics                                       : 2115 MHz
+        SM                                             : 2115 MHz
+        Memory                                         : 9751 MHz
+        Video                                          : 1965 MHz
+    Max Customer Boost Clocks
+        Graphics                                       : N/A
+    SM Clock Samples
+        Duration                                       : Not Found
+        Number of Samples                              : Not Found
+        Max                                            : Not Found
+        Min                                            : Not Found
+        Avg                                            : Not Found
+    Memory Clock Samples
+        Duration                                       : Not Found
+        Number of Samples                              : Not Found
+        Max                                            : Not Found
+        Min                                            : Not Found
+        Avg                                            : Not Found
+    Clock Policy
+        Auto Boost                                     : N/A
+        Auto Boost Default                             : N/A
+
+name, pci.bus_id, vbios_version, compute_cap, pcie.link.gen.max, pcie.link.width.max, pcie.link.gen.current, pcie.link.width.current
+NVIDIA GeForce RTX 3090, 00000000:C2:00.0, 94.02.26.80.56, 8.6, 4, 16, 1, 8
+gsq-vllm HEAD ae8994e4d343f97850402e74330970d03a56411b (+ uncommitted toolchain SIGPIPE fix)
+CPU(s):                                  96
+Model name:                              AMD EPYC 7K62 48-Core Processor
+CPU(s) scaling MHz:                      70%
+91666513920
+Filesystem      Size  Used Avail Use% Mounted on
+overlay         151G   18G  134G  12% /
+shm              15G     0   15G   0% /dev/shm
+6.8.0-138-generic
+ldd (Ubuntu GLIBC 2.39-0ubuntu8.9) 2.39
+
+=== Clocks under load (phase 1, nvidia-smi -l 1, samples with util >= 50%; 180 W cap)
+p1-ab-gsq-ladderclock/clocks-decode-c1.csv: 196 s busy, median SM 480 MHz, mem 9501 MHz, 179.7 W, util 100%
+p1-ab-gsq-ladderclock/clocks-prefill-8192-c1.csv: 490 s busy, median SM 540 MHz, mem 9501 MHz, 179.8 W, util 100%
+p1-ab-gsq-ladderclock/clocks-prefill-8192-c2.csv: 374 s busy, median SM 615 MHz, mem 9501 MHz, 179.6 W, util 100%
+p1-ab-gsq-tail/clocks-prefill-65536-c1.csv: 275 s busy, median SM 555 MHz, mem 9501 MHz, 179.6 W, util 100%
+spot check during the 195k-token fit prefill (00:54 UTC): SM 1065 MHz, 174.9 W, util 100%
+PCIe link at idle: gen/width current vs max as listed above (width 8 at idle; slot width under load not measured)

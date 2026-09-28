@@ -1,0 +1,8 @@
+engine pid 31744
+=== t=3s vram=19189 MiB
+Error: Failed to copy Py_Version symbol
+
+Caused by:
+    0: Permission denied (os error 13)
+    1: Permission denied (os error 13)
+DIAG_DONE

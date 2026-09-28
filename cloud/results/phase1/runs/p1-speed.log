@@ -1,0 +1,6 @@
+# kind=gsq url=http://127.0.0.1:18090 tokenizer=/workspace/gsq-vllm/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp 2026-09-28T02:28:38Z
+# production run_benchmarks.sh single, pass 1 (warm-up, discard)
+# Mon Sep 28 02:28:38 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=10.44 tok/s | decode(C/meanTPOT)=10.7 | tok/step=3.03 | meanTTFT=2014.04 ms
+ROW cohort C2 real prompts T=default | e2e=10.88 tok/s | decode(C/meanTPOT)=11.9 | tok/step=3.02 | meanTTFT=2639.80 ms
+Terminated
