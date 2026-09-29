@@ -39,7 +39,7 @@ Every numeric property is untested.
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
   - `linear.py` routing (`_lcpp_op`; n = activation rows, W rows = the
-    weight's or shard run's rows). IQ1_M keeps the old path.
+    weight's or shard run's rows).
 
     | type | n = 1..5 | n = 6, 7 | n = 8 | n ≥ 9 | source |
     |---|---|---|---|---|---|
@@ -47,6 +47,7 @@ Every numeric property is untested.
     | Q4_K, W rows > 2048 | MMVQ at 1, 2; `lcpp_mul_mat_vec_own` from 3 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
     | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
     | other Route L types; Q4_K/IQ2_S ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | phase3 item 1 |
+    | IQ1_M (no MMQ upstream) | MMVQ | MMVQ | MMVQ | MMVQ in 8-row calls to 32 rows, then the stock dequantize + x @ W.T | opt-p2 |
 
   - Fused layers quantize X once (`_quantize_x_q8_1`, opt-p) for all their
     shard runs whose op reads q8_1 (every op above but MMQ) and pass it as

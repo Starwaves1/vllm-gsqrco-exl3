@@ -40,7 +40,8 @@ LOOSE_XSUM = 1.5e-1                  # Q4_K via MMQ (and Q2_K via lcpp MMQ), see
 DQ_DTYPES = ["float32", "float16", "bfloat16"]
 MIN_TERM = ("Q4_K", "Q5_K")                       # MMQ types whose x-sum min term is far from full
 
-LCPP_TYPES = [q for q in QUANT_TYPES if q != "IQ1_M"]  # IQ1_M keeps the e2b8ad5 path
+LCPP_TYPES = QUANT_TYPES
+LCPP_MMQ_TYPES = [q for q in LCPP_TYPES if q != "IQ1_M"]  # llama.cpp has no IQ1_M MMQ
 LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # 1..8: MMQ below upstream's J_max tail (only the shim's zeroed 128-block tail protects the
 # reads); 128 = production's prefill chunk (--long-prefill-token-threshold 128).
@@ -249,7 +250,7 @@ def test_lcpp_mmvq(tensors_by_type, name, n, dtype):
 
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16"])
 @pytest.mark.parametrize("n", LCPP_MMQ_TOKENS)
-@pytest.mark.parametrize("name", LCPP_TYPES)
+@pytest.mark.parametrize("name", LCPP_MMQ_TYPES)
 def test_lcpp_mmq(tensors_by_type, name, n, dtype):
     import torch
 
@@ -263,7 +264,7 @@ def test_lcpp_mmq(tensors_by_type, name, n, dtype):
 
 
 @pytest.mark.parametrize("n", [5, 128])
-@pytest.mark.parametrize("name", LCPP_TYPES)
+@pytest.mark.parametrize("name", LCPP_MMQ_TYPES)
 def test_lcpp_mmq_odd_rows(tensors_by_type, name, n):
     """W rows not a multiple of 128: MMQ's fallback tiles."""
     import torch
@@ -351,7 +352,7 @@ def test_lcpp_x_q8(tensors_by_type, name, n):
 
 def test_quantize_x_q8_1_mixed_route():
     """A layer's runs share one q8_1 quantization of X even when the first run is not a Route L
-    type (blk.13 gate_up: IQ1_M, stock path, then IQ2_*): the bytes are those of the Route L run."""
+    type (here Q5_K, stock path): the bytes are those of the Route L run."""
     import gguf
     import torch
 
@@ -363,12 +364,32 @@ def test_quantize_x_q8_1_mixed_route():
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     T = gguf.GGMLQuantizationType
     x = _x(4, 5120, "bfloat16", seed=77).cuda()
-    q8 = _quantize_x_q8_1(x, [int(T.IQ1_M), int(T.IQ2_XS)], [5120, 5120])
+    q8 = _quantize_x_q8_1(x, [int(T.Q5_K), int(T.IQ2_XS)], [5120, 5120])
     assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.IQ2_XS), False, False))
     # 8 rows: MMVQ is not routed there, the Q4_K kernel is (above 2048 weight rows)
     x = _x(8, 5120, "bfloat16", seed=78).cuda()
     q8 = _quantize_x_q8_1(x, [int(T.Q4_K)], [4096])
     assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.Q4_K), False, False))
+
+
+@pytest.mark.parametrize("n", [9, 20, 32])
+def test_lcpp_iq1_m_chunks(tensors_by_type, n):
+    """IQ1_M above 8 rows (llama.cpp has no IQ1_M MMQ): MMVQ on 8-row chunks, reading apply()'s
+    shared q8_1 X in row slices, equals the chunks' own products, with or without x_q8."""
+    import torch
+
+    from vllm_gguf_plugin import ops
+    from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf, _quantize_x_q8_1
+
+    C = _lcpp()
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    _, x, w, qt = _lcpp_case(tensors_by_type, "IQ1_M", n, "bfloat16", seed=980 + n)
+    x = x.cuda()
+    want = torch.cat([C.lcpp_mul_mat_vec_q(w, x[i : i + 8], qt, w.shape[0]) for i in range(0, n, 8)])
+    q8 = _quantize_x_q8_1(x, [qt], [w.shape[0]])
+    assert torch.equal(_fused_mul_mat_gguf(x, w, qt), want)
+    assert torch.equal(_fused_mul_mat_gguf(x, w, qt, q8), want)
 
 
 @pytest.mark.parametrize("n", [1, 2, 4, 8, 9])
@@ -405,6 +426,8 @@ def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
     import torch
 
     C = _lcpp()
+    if mmq and name not in LCPP_MMQ_TYPES:
+        pytest.skip(f"no {name} MMQ")
     k, qt = 5120, int(gguf.GGMLQuantizationType[name])
     x = _x(n, k, "bfloat16" if x_kind == "rowstride" else x_kind, seed=900 + n).cuda()
     x[0, 128:256] = 0  # all-zero blocks: the amax == 0 branches
@@ -425,6 +448,8 @@ def test_lcpp_graph_replay(tensors_by_type, name, op_n):
     capture or leave static_y stale."""
     C = _lcpp()
     op, n = op_n
+    if op == "mmq" and name not in LCPP_MMQ_TYPES:
+        pytest.skip(f"no {name} MMQ")
     _graph_replay(tensors_by_type, name, n, C.lcpp_mul_mat_vec_q if op == "mmvq" else C.lcpp_mul_mat_q)
 
 

@@ -6,7 +6,8 @@
 // vendored kernels link against (device info, context, pool, type sizes,
 // error hooks) and two torch ops:
 //   lcpp_mul_mat_vec_q(W, X, type, row)  MMVQ, 1..8 activation rows
-//   lcpp_mul_mat_q(W, X, type, row)      MMQ (int8 tensor cores), any rows
+//   lcpp_mul_mat_q(W, X, type, row)      MMQ (int8 tensor cores), any rows;
+//                                        not IQ1_M (no MMQ instance upstream)
 //   lcpp_mul_mat_vec_iq3(W, X, type, row) owned IQ3_S/IQ3_XXS kernel, 1..8 rows
 //   lcpp_mul_mat_vec_iq3_mma(W, X, type, row) the same on int8 tensor cores
 //                                          (lcpp_owned_iq3_mma.cu)
@@ -91,6 +92,7 @@ static void type_traits(ggml_type t, int64_t* blck, size_t* size) {
     case GGML_TYPE_IQ3_XXS: *blck = QK_K; *size = sizeof(block_iq3_xxs); return;
     case GGML_TYPE_IQ3_S: *blck = QK_K; *size = sizeof(block_iq3_s); return;
     case GGML_TYPE_IQ4_XS: *blck = QK_K; *size = sizeof(block_iq4_xs); return;
+    case GGML_TYPE_IQ1_M: *blck = QK_K; *size = sizeof(block_iq1_m); return;
     default: GGML_ABORT("lcpp shim: unsupported ggml type %d", (int)t);
   }
 }
@@ -662,6 +664,7 @@ static bool lcpp_type_supported(int64_t type) {
     case GGML_TYPE_Q2_K: case GGML_TYPE_Q4_K: case GGML_TYPE_Q6_K:
     case GGML_TYPE_IQ2_XXS: case GGML_TYPE_IQ2_XS: case GGML_TYPE_IQ2_S:
     case GGML_TYPE_IQ3_XXS: case GGML_TYPE_IQ3_S: case GGML_TYPE_IQ4_XS:
+    case GGML_TYPE_IQ1_M:  // MMVQ only
       return true;
     default:
       return false;
@@ -740,6 +743,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
                   op, ": IQ3_S or IQ3_XXS only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::own || own_mul_mat_vec_supported((int)type),
                   op, ": Q4_K or IQ2_S only, got type ", type);
+  STD_TORCH_CHECK(kernel != Kernel::mmq || type != GGML_TYPE_IQ1_M, op, ": no MMQ for IQ1_M");
   const int64_t k = check_inputs(W, X, type, row, mmvq, op);
   const int64_t n = X.size(0);
   const ScalarType out_dtype = X.scalar_type();
@@ -854,7 +858,7 @@ Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row, std::
 // stride that is a multiple of 4). Every byte is written: no zero fill.
 Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
   STD_TORCH_CHECK(lcpp_type_supported(type) && X.is_cuda() && X.dim() == 2 && X.stride(1) == 1 &&
-                      X.size(1) % MATRIX_ROW_PADDING == 0 &&
+                      X.size(1) % MATRIX_ROW_PADDING == 0 && !(mmq && type == GGML_TYPE_IQ1_M) &&
                       (X.scalar_type() == ScalarType::Float || X.scalar_type() == ScalarType::Half ||
                        X.scalar_type() == ScalarType::BFloat16),
                   "lcpp_quantize_q8_1: bad arguments");
