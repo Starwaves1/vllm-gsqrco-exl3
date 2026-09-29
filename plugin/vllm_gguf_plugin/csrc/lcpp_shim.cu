@@ -575,8 +575,8 @@ void own_mul_mat_vec_cuda(int type, const char* vx, const void* vy, float* dst, 
 bool mma_k_supported(int type);
 int mma_k_max_cols();
 size_t mma_k_work_bytes(int type, int nrows, int k, int ncols, int nsm);
-void mma_k_cuda(int type, const char* vx, const void* vy, void* dst, int dst_kind, float* work, int nrows,
-                int k, int64_t row_bytes, int ncols, int nsm, cudaStream_t stream);
+void mma_k_cuda(int type, const char* vx, const void* vy, void* dst, int dst_kind, float* work, size_t work_bytes,
+                int nrows, int k, int64_t row_bytes, int ncols, int nsm, cudaStream_t stream);
 
 // ---------------------------------------------------------------------------
 // MMQ host side. Mirrors the non-MoE, q8_1 branch of ggml_cuda_mul_mat_q in
@@ -729,8 +729,8 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
 
   if (kernel == Kernel::mma_k) {
     // MMQ's q8_1 layout, no read tail (the kernel reads only the n quantized columns);
-    // the kernel writes X's dtype, so no output cast. Launches: quantize, mma_k, and a
-    // split-sum kernel when rows are too few to fill the GPU without a K split.
+    // the kernel writes X's dtype, so no output cast. Launches: quantize, mma_k, and the
+    // fixup summing the tiles its CTAs share (skipped when none is shared).
     Tensor y = torch::stable::new_empty(X, {n, row}, out_dtype);
     ggml_backend_cuda_context ctx(device);
     ctx.pools[device][0] = std::make_unique<TorchPool>(X);
@@ -743,8 +743,8 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
       work.alloc(work_bytes / sizeof(float));
     }
     const int dst_kind = out_dtype == ScalarType::Float ? 0 : out_dtype == ScalarType::Half ? 1 : 2;
-    mma_k_cuda((int)type, (const char*)W.data_ptr(), q8.get(), y.data_ptr(), dst_kind, work.get(), (int)row,
-               (int)k, W.size(1), (int)n, nsm, stream);
+    mma_k_cuda((int)type, (const char*)W.data_ptr(), q8.get(), y.data_ptr(), dst_kind, work.get(), work_bytes,
+               (int)row, (int)k, W.size(1), (int)n, nsm, stream);
     CUDA_CHECK(cudaGetLastError());
     return y;
   }

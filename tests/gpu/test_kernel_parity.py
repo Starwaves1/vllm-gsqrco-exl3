@@ -408,15 +408,32 @@ def test_lcpp_mma_k(tensors_by_type, name, n, dtype, shape):
         assert err <= 1e-5
     else:
         _check(y, raw, name, x, mmq=True, lcpp=True)
+        _within_1ulp(y, ref, f"{name} n={n} {dtype} {shape}")
+
+
+def _within_1ulp(y, ref, what):
+    """16-bit y vs vendored MMQ's output in the same dtype: both round an fp32 sum that differs
+    only in the order of its terms, so they may land 1 ulp apart (a rounding boundary between
+    them), never more; except where the sum cancels to near zero, relative to the output's rms,
+    and its reordering error is a larger share of it."""
+    import torch
+
+    a, b = y.float(), ref.float()
+    ulp = torch.where(b == 0, torch.zeros_like(b), (b.abs().frexp().exponent - 1).float().exp2())
+    ulp = ulp * (2.0 ** -7 if y.dtype == torch.bfloat16 else 2.0 ** -10)
+    cancel = b.abs() < 1e-3 * b.pow(2).mean().sqrt()
+    far = ((a - b).abs() > ulp) & ~cancel
+    print(f"\n{what}: vs MMQ equal {(a == b).float().mean().item():.3f}, > 1 ulp {int(far.sum())}")
+    assert not far.any()
 
 
 @pytest.mark.parametrize("n", [16, 32, 64])
 @pytest.mark.parametrize("rows", [17408, 5120])
 @pytest.mark.parametrize("name", MMA_K_TYPES)
 def test_lcpp_mma_k_whole_tensor(tensors_by_type, name, rows, n):
-    """A whole 17408 x 5120 tensor (no K split: one pass per 64-row CTA) and a whole 5120 x 17408
-    one (split in 3), fp32 X, against vendored MMQ on the same q8_1: they differ only in the
-    fp32 order of the K sum."""
+    """A whole 17408 x 5120 tensor and a whole 5120 x 17408 one (272 / 80 tiles, 20 / 68 K steps,
+    shared by the resident CTAs), fp32 X, against vendored MMQ on the same q8_1: they differ only
+    in the fp32 order of the K sum."""
     import _refs
     import gguf
     import numpy as np
@@ -439,12 +456,16 @@ def test_lcpp_mma_k_whole_tensor(tensors_by_type, name, rows, n):
     assert err <= 2e-6
 
 
-@pytest.mark.parametrize("rows", [ROWS, 17408])
+@pytest.mark.parametrize("rows", [ROWS, 10496, 17408])
 @pytest.mark.parametrize("n", [16, 33, 64])
 @pytest.mark.parametrize("name", MMA_K_TYPES)
 def test_lcpp_mma_k_graph_replay(tensors_by_type, name, n, rows):
-    """512 rows: the K split and its sum kernel; 17408 rows: one pass, X's dtype written directly."""
-    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_mma_k, rows=rows)
+    """Rows of a 17408 x 5120 tensor: 512 (every tile shared by CTAs), 10496 (at 16 columns every
+    CTA covers whole tiles, no fixup), 17408 (the whole tensor)."""
+    ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[1]) == 17408 and int(t.shape[0]) == 5120]
+    if not ts:
+        pytest.skip(f"no 17408 x 5120 {name} tensor")
+    _graph_replay({name: ts}, name, n, _lcpp().lcpp_mul_mat_mma_k, rows=rows)
 
 
 _FIRST_CALL_IN_CAPTURE = r"""

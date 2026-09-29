@@ -581,11 +581,11 @@ static plan make_plan(int nrows, int ncols, int nblocks, int nsm) {
 }
 
 template <ggml_type type, int NT, typename OutT>
-static void launch_t(const char* vx, const void* vy, void* dst, float* work, int nrows, int ncols,
+static void launch_t(const char* vx, const void* vy, void* dst, float* work, size_t work_bytes, int nrows, int ncols,
                      int64_t row_bytes, int nblocks, int nsm, cudaStream_t stream) {
   const plan p = make_plan<type, NT>(nrows, ncols, nblocks, nsm);
   GGML_ASSERT((int64_t)M * row_bytes <= INT_MAX);  // the kernel's per-thread copy offsets are int
-  GGML_ASSERT(!p.pieces || work != nullptr);
+  GGML_ASSERT(work_bytes >= p.work_bytes && (p.work_bytes == 0 || work != nullptr));
   mma_k<type, NT, OutT><<<p.nctas, dim3(WARP_SIZE, WARPS), p.smem, stream>>>(
       vx, (const int4*)vy, (OutT*)dst, work, nrows, ncols, row_bytes, nblocks, p.units);
   if (p.pieces) {
@@ -596,24 +596,24 @@ static void launch_t(const char* vx, const void* vy, void* dst, float* work, int
 
 // The kernel instance for ncols: 2 / 4 / 8 column tiles.
 template <ggml_type type, typename OutT>
-static void launch_out(const char* vx, const void* vy, void* dst, float* work, int nrows, int ncols,
-                       int64_t row_bytes, int nblocks, int nsm, cudaStream_t stream) {
+static void launch_out(const char* vx, const void* vy, void* dst, float* work, size_t work_bytes, int nrows,
+                       int ncols, int64_t row_bytes, int nblocks, int nsm, cudaStream_t stream) {
   if (ncols <= 16) {
-    launch_t<type, 2, OutT>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+    launch_t<type, 2, OutT>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
   } else if (ncols <= 32) {
-    launch_t<type, 4, OutT>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+    launch_t<type, 4, OutT>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
   } else {
-    launch_t<type, 8, OutT>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+    launch_t<type, 8, OutT>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
   }
 }
 
 template <ggml_type type>
-static void launch_type(const char* vx, const void* vy, void* dst, int dst_kind, float* work, int nrows,
-                        int ncols, int64_t row_bytes, int nblocks, int nsm, cudaStream_t stream) {
+static void launch_type(const char* vx, const void* vy, void* dst, int dst_kind, float* work, size_t work_bytes,
+                        int nrows, int ncols, int64_t row_bytes, int nblocks, int nsm, cudaStream_t stream) {
   switch (dst_kind) {
-    case 0: launch_out<type, float>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
-    case 1: launch_out<type, half>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
-    default: launch_out<type, nv_bfloat16>(vx, vy, dst, work, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
+    case 0: launch_out<type, float>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
+    case 1: launch_out<type, half>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
+    default: launch_out<type, nv_bfloat16>(vx, vy, dst, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream); break;
   }
 }
 
@@ -650,20 +650,20 @@ size_t mma_k_work_bytes(int type, int nrows, int k, int ncols, int nsm) {
 // W [nrows, row_bytes] blocks of type (mma_k_supported), 16-byte aligned, contiguous
 // rows, k % 512 == 0; vy: quantize_x's block_q8_1_mmq for ncols (1..64) columns in
 // the type's ds layout; dst [ncols, nrows] fp32 / fp16 / bf16 (dst_kind 0 / 1 / 2);
-// work: mma_k_work_bytes of fp32 scratch or null.
-void mma_k_cuda(int type, const char* vx, const void* vy, void* dst, int dst_kind, float* work, int nrows,
-                int k, int64_t row_bytes, int ncols, int nsm, cudaStream_t stream) {
+// work: work_bytes (>= mma_k_work_bytes) of fp32 scratch, null if 0.
+void mma_k_cuda(int type, const char* vx, const void* vy, void* dst, int dst_kind, float* work, size_t work_bytes,
+                int nrows, int k, int64_t row_bytes, int ncols, int nsm, cudaStream_t stream) {
   GGML_ASSERT(ncols >= 1 && ncols <= 8 * MAX_NT && k % (2 * QK_K) == 0);
   const int nblocks = k / QK_K;
   switch (type) {
     case GGML_TYPE_Q4_K:
-      launch_type<GGML_TYPE_Q4_K>(vx, vy, dst, dst_kind, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+      launch_type<GGML_TYPE_Q4_K>(vx, vy, dst, dst_kind, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
       break;
     case GGML_TYPE_IQ4_XS:
-      launch_type<GGML_TYPE_IQ4_XS>(vx, vy, dst, dst_kind, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+      launch_type<GGML_TYPE_IQ4_XS>(vx, vy, dst, dst_kind, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
       break;
     case GGML_TYPE_IQ2_S:
-      launch_type<GGML_TYPE_IQ2_S>(vx, vy, dst, dst_kind, work, nrows, ncols, row_bytes, nblocks, nsm, stream);
+      launch_type<GGML_TYPE_IQ2_S>(vx, vy, dst, dst_kind, work, work_bytes, nrows, ncols, row_bytes, nblocks, nsm, stream);
       break;
     default: GGML_ABORT("mma_k: type %d", type);
   }
