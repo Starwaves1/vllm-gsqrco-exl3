@@ -10,9 +10,12 @@ cd $WT
 source scripts/env.sh
 stopall() { pkill -INT -f "bin/vllm serve"; for i in $(seq 90); do pgrep -f "VLLM::EngineCore|bin/vllm serve" >/dev/null || break; sleep 2; done
   pkill -9 -f "VLLM::EngineCore"; pkill -9 -f "bin/vllm serve"; sleep 5; box_clean_shm; rm -rf /workspace/kvtier; }
+# stage.sh starts build on the CPU when it freezes the stage; jobs wait for its rc file
 build() { ( source tools/cuda-env.sh; export PATH=$GSQ_VENV/bin:$PATH; cd plugin
-  VLLM_GGUF_BUILD_LCPP=1 MAX_JOBS=24 python setup.py build_ext --inplace ) > $L/$TAG-build.log 2>&1
-  echo "build rc=$?"; tail -1 $L/$TAG-build.log; }
+  VLLM_GGUF_BUILD_LCPP=1 MAX_JOBS=16 python setup.py build_ext --inplace ) > $L/$TAG-build.log 2>&1
+  echo $? > $WT/.build-rc; }
+wait_build() { while [ ! -f $WT/.build-rc ]; do sleep 10; done
+  echo "build rc=$(cat $WT/.build-rc)"; [ "$(cat $WT/.build-rc)" = 0 ] || { tail -20 $L/$TAG-build.log; exit 1; }; }
 parity() { local T=tests/gpu/test_kernel_parity.py
   tools/pytest $T -q -rs > $L/$TAG-parity-lcpp.log 2>&1; echo "parity lcpp rc=$?: $(tail -1 $L/$TAG-parity-lcpp.log)"
   env -u VLLM_GGUF_LCPP tools/pytest $T -q -rs > $L/$TAG-parity-stock.log 2>&1; echo "parity stock rc=$?: $(tail -1 $L/$TAG-parity-stock.log)"; }

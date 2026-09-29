@@ -10,7 +10,7 @@ source /workspace/wt-p2-$TAG/cloud/results/opt-p2/box-scripts/lib.sh
 R=/workspace/runs/opt-p2-$TAG; rm -rf $R; mkdir -p $R
 exec > >(tee $L/$TAG-job.log) 2>&1
 date -u +"start %FT%TZ"; stopall
-build
+wait_build
 [ -z "${SKIP_PARITY:-}" ] && parity
 serve --profiler-config "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"$R/trace\",\"torch_profiler_with_stack\":false,\"torch_profiler_use_gzip\":false,\"ignore_frontend\":true,\"delay_iterations\":60,\"max_iterations\":6}"
 if [ -z "${SKIP_BENCH:-}" ]; then

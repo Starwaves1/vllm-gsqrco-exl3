@@ -237,8 +237,8 @@ std::unique_ptr<ggml_cuda_pool> ggml_backend_cuda_context::new_pool_for_device(
 // scratch is reused across calls; stream ordered; CUDA-graph safe). Nothing is
 // zero-filled: the quantizers write every byte of their q8 buffer (zeros past
 // ne00), and stream-k tmp_fixup is written before it is read. Upstream's ggml
-// pool doesn't zero either. The one exception, the MMQ read tail, is zeroed in
-// mul_mat_q below.
+// pool doesn't zero either. The one exception, the MMQ read tail, is zeroed by
+// MMQ's quantize kernel (mul_mat_q below).
 struct TorchPool final : public ggml_cuda_pool {
   explicit TorchPool(const Tensor& like) : like_(like) {}
   void* alloc(size_t size, size_t* actual_size) override {
@@ -285,12 +285,19 @@ static __global__ void quantize_q8_1_x(const T* __restrict__ x, block_q8_1* __re
   y[ib].ds = make_half2(d, sum);
 }
 
+// tail / tail_int4s: MMQ's read tail after the quantized blocks (see mul_mat_q), zeroed here
+// by the whole grid rather than by a separate memset launch.
 template <typename T, mmq_q8_1_ds_layout ds_layout>
 static __global__ void quantize_mmq_q8_1_x(const T* __restrict__ x, block_q8_1_mmq* __restrict__ y,
                                            const int64_t ne00, const int64_t s01, const int64_t ne0,
-                                           const int ne1) {
+                                           const int ne1, int4* __restrict__ tail, const int tail_int4s) {
   constexpr int vals_per_scale = ds_layout == MMQ_Q8_1_DS_LAYOUT_D2S6 ? 64 : 32;
   constexpr int vals_per_sum = ds_layout == MMQ_Q8_1_DS_LAYOUT_D2S6 ? 16 : 32;
+  const int64_t nthreads = (int64_t)gridDim.x * gridDim.y * blockDim.x;
+  for (int64_t i = ((int64_t)blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x; i < tail_int4s;
+       i += nthreads) {
+    tail[i] = make_int4(0, 0, 0, 0);
+  }
   const int64_t i0 = ((int64_t)blockDim.x * blockIdx.y + threadIdx.x) * 4;
   if (i0 >= ne0) return;
 
@@ -340,11 +347,12 @@ static __global__ void quantize_mmq_q8_1_x(const T* __restrict__ x, block_q8_1_m
 }
 
 // X [n, k] (row stride s01 elements) -> q8 at vy: block_q8_1 (mmq false) or
-// block_q8_1_mmq in type's ds layout, k_padded values per row. Launch
-// geometry as upstream's quantize_row_q8_1_cuda / quantize_mmq_q8_1_cuda.
+// block_q8_1_mmq in type's ds layout, k_padded values per row, then (mmq only)
+// tail_bytes of zeros. Launch geometry as upstream's quantize_row_q8_1_cuda /
+// quantize_mmq_q8_1_cuda.
 template <typename T>
 static void quantize_x_t(const T* x, void* vy, ggml_type type, bool mmq, int64_t n, int64_t k,
-                         int64_t s01, int64_t k_padded, cudaStream_t stream) {
+                         int64_t s01, int64_t k_padded, size_t tail_bytes, cudaStream_t stream) {
   if (!mmq) {
     const dim3 grid((k_padded + CUDA_QUANTIZE_BLOCK_SIZE - 1) / CUDA_QUANTIZE_BLOCK_SIZE, n, 1);
     quantize_q8_1_x<T><<<grid, CUDA_QUANTIZE_BLOCK_SIZE, 0, stream>>>(x, (block_q8_1*)vy, k, s01, k_padded);
@@ -352,29 +360,31 @@ static void quantize_x_t(const T* x, void* vy, ggml_type type, bool mmq, int64_t
   }
   const dim3 grid(n, (k_padded + 4 * CUDA_QUANTIZE_BLOCK_SIZE_MMQ - 1) / (4 * CUDA_QUANTIZE_BLOCK_SIZE_MMQ), 1);
   block_q8_1_mmq* y = (block_q8_1_mmq*)vy;
+  int4* tail = (int4*)(y + n * k_padded / QK8_1_MMQ);  // block_q8_1_mmq is 144 bytes: int4-aligned
+  const int tail_int4s = (int)(tail_bytes / sizeof(int4));
   switch (mmq_get_q8_1_ds_layout(type)) {
     case MMQ_Q8_1_DS_LAYOUT_D4:
-      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D4><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n);
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D4><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n, tail, tail_int4s);
       break;
     case MMQ_Q8_1_DS_LAYOUT_DS4:
-      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_DS4><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n);
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_DS4><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n, tail, tail_int4s);
       break;
     case MMQ_Q8_1_DS_LAYOUT_D2S6:
-      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D2S6><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n);
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D2S6><<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01, k_padded, n, tail, tail_int4s);
       break;
   }
 }
 
 static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq, int64_t k_padded,
-                       cudaStream_t stream) {
+                       cudaStream_t stream, size_t tail_bytes = 0) {
   const int64_t n = X.size(0), k = X.size(1), s01 = n == 1 ? k : X.stride(0);
   switch (X.scalar_type()) {
     case ScalarType::Float:
-      quantize_x_t((const float*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, stream); break;
+      quantize_x_t((const float*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, tail_bytes, stream); break;
     case ScalarType::Half:
-      quantize_x_t((const half*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, stream); break;
+      quantize_x_t((const half*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, tail_bytes, stream); break;
     default:  // BFloat16 (check_inputs admits nothing else)
-      quantize_x_t((const nv_bfloat16*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, stream); break;
+      quantize_x_t((const nv_bfloat16*)X.data_ptr(), vy, type, mmq, n, k, s01, k_padded, tail_bytes, stream); break;
   }
   CUDA_CHECK(cudaGetLastError());
 }
@@ -609,15 +619,13 @@ static void mul_mat_q(ggml_backend_cuda_context& ctx, const ggml_tensor* src0,
   // Upstream sizes that tail as J_max blocks, but J_max is 0 below 8 columns,
   // and garbage there gave IMAs / NaNs (Maxwell-Lyu/vllm-gguf-plugin
   // f1d38ffdd0). So add 128 block_q8_1_mmq (18 KiB; 128 is the largest J
-  // mul_mat_q_switch_J selects) and zero everything past the quantized data:
-  // one small memset, not the whole buffer.
+  // mul_mat_q_switch_J selects) and zero everything past the quantized data,
+  // not the whole buffer; the quantize kernel writes those zeros (no memset).
   const size_t nbytes_quant = ne11 * ne10_padded * sizeof(block_q8_1_mmq) / QK8_1_MMQ;
   const size_t nbytes_tail =
       (ggml_cuda_mmq_get_J_max(src0->type, fallback, cc, ne11) + 128) * sizeof(block_q8_1_mmq);
   ggml_cuda_pool_alloc<char> q8(ctx.pool(), nbytes_quant + nbytes_tail);
-  CUDA_CHECK(cudaMemsetAsync(q8.get() + nbytes_quant, 0, nbytes_tail, stream));
-
-  quantize_x(X, q8.get(), src0->type, true, ne10_padded, stream);
+  quantize_x(X, q8.get(), src0->type, true, ne10_padded, stream, nbytes_tail);
 
   const int64_t s01 = src0->nb[1] / ggml_type_size(src0->type);
   const int64_t s02 = s01 * ne01;
@@ -761,7 +769,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   // Launches per call with 16-bit X:
   //   IQ3:  [quantize], iq3_mul_mat_vec                              = 1 or 2
   //   MMVQ, iq3_mma, own: [quantize], mul_mat_vec, cast Y            = 2 or 3
-  //   MMQ:  tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
+  //   MMQ:  quantize (+ zero tail), mul_mat_q, [stream-k fixup], cast Y = 3 or 4
   const ScalarType y_dtype = kernel == Kernel::iq3 ? out_dtype : ScalarType::Float;
   Tensor y = torch::stable::new_empty(X, {n, row}, y_dtype);
 

@@ -80,8 +80,9 @@ profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
 - Nothing is zero-filled except the MMQ tail. The quantizers write every byte
   of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is
   written by `mul_mat_q` before the fixup reads it. Upstream's ggml pool
-  doesn't zero either. The MMQ tail memset is J_max+128 blocks (≤ 36 KiB),
-  not the whole buffer.
+  doesn't zero either. The MMQ tail is J_max+128 blocks (≤ 36 KiB), not the
+  whole buffer; since opt-p2 MMQ's quantize kernel zeroes it (one launch
+  fewer per MMQ call than the phase 3 column).
 - The output cast stays: MMVQ and MMQ write fp32 dst only (`float * dst` in
   both kernels' write-back), so a 16-bit Y needs vendored edits. Phase 3 took
   the input cast out with the owned quantizer instead (1.8 → 0.7 ms of casts
