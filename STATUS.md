@@ -101,15 +101,17 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
   - Tests: the owned-kernel parity and graph tests run over (type, op) for all three owned ops;
     K2's extra shapes (odd_rows, k_min, few_rows, many_tiles) now cover `lcpp_mul_mat_vec_own`
     too, except fp32 odd_rows (its only fp32 reference, MMVQ, reads past that W).
-- Tests on the box (this build; logs in `tests/`): kernel parity 1970 pass / 128 skip / 0 fail with
-  `VLLM_GGUF_LCPP=1` (1594 on opt-k2 alone, 1185 on opt-p); 1939 / 159 / 0 with it off, where
-  the 31 extra skips need the flag. Stock path: main's 328 non-Route-L parity tests collect
-  unchanged here (+6 new: opt-p's gemv and shared-quantize tests) and pass on both builds (main:
-  1137 pass / 31 skip, flag off). GPU guards `-k "lcpp or first_call"` 132 pass / 10 skip (x_q8
-  cases on MMQ ops) / 0 fail; CPU guards 73 + routing table 54 pass. compute-sanitizer memcheck
-  and initcheck 0 errors on 57 cases: 16 per owned op (IQ3_S/IQ3_XXS or Q4_K/IQ2_S, n = 1..8,
-  all tail shapes), x_q8 and shared-quantize tests. CPU suite locally 471 pass / 73 skip / 54
-  xfail. Vendored files unchanged (VENDORED.md sha256, 39 files).
+- Tests on the box (build of 6dd7c76, same kernels and routing as the ladder's 0f8497d; logs in
+  `tests/`): kernel parity 2036 pass / 119 skip / 0 fail with `VLLM_GGUF_LCPP=1` (1594 on opt-k2
+  alone, 1185 on opt-p); 1979 / 176 / 0 with it off (the extra skips need the flag). Stock path:
+  main's 328 non-Route-L parity tests collect unchanged here and pass on both builds (main: 1137
+  pass / 31 skip, flag off). GPU guards `-k "lcpp or first_call"` 168 pass / 30 skip (x_q8 cases
+  on MMQ ops) / 0 fail; every bad x_q8 (short, misaligned, int8, 2-D, strided, on the CPU) is
+  rejected before a launch. CPU guards 73 + routing / shared-quantize table 63 pass.
+  compute-sanitizer memcheck and initcheck 0 errors on 73 cases: 16 per owned op (n = 1..8, all
+  tail shapes), the Q4_K/IQ2_S kernel at 8192 rows, apply()-level Q4_K / IQ2_S / mma layers, x_q8
+  and shared-quantize tests (graph cases excluded: capture is unsupported under the sanitizer).
+  CPU suite locally 480 pass / 73 skip / 54 xfail. Vendored files unchanged (VENDORED.md sha256).
 - Profile (torch profiler, 5 complete decode steps, `runs/profile-c1-c4.txt`):
   - c=1 (4 rows per target pass): 2005 GPU activities per step, busy 25.6 ms, span 34.0 ms
     (8.4 ms idle). GEMM 21.3 ms: dp4a IQ3 10.3 ms (192 launches), MMVQ 8.3 ms (142; IQ4_XS 4.1,
