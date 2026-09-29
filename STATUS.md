@@ -103,7 +103,7 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
     kernel (~1e-7 rel from MMVQ, ~35% bit-equal, `iq3-vs-mmvq.txt`). Fixed by building both
     references through `_fused_mul_mat_gguf` (production's dispatch); bit-exact at n <= 8
     (MMVQ / IQ3 kernel, rows independent), 1e-3 relative where MMQ's stream-k reorders the sum.
-    GPU guards `-k lcpp` 80 pass (`item5/guards.log`), CPU guards 52 pass. memcheck/initcheck
+    GPU guards `-k lcpp` 80 pass (`item5/guards.log`, pre-alignment build), CPU guards 52 pass. memcheck/initcheck
     0 errors on 12 `test_lcpp_iq3` cases (`item5/review/`; graph replay excluded, capture is
     unsupported under compute-sanitizer). The first memcheck (`item5/sanitizer-memcheck.log`)
     had 26 errors, all in vendored MMVQ (the test's reference) reading past a 203-row W; the
