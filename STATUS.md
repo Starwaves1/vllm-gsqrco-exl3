@@ -55,10 +55,12 @@ only, profiles at c=1/c=4). Decode pass 2 T=0 tok/s and ms/step (C x 1000 / tok/
 | 1: MMQ tail zeroed by the quantize kernel | 100.5 | 171.7 | 262.1 | 437.2 | 30.6 / 34.8 / 46.1 / 55.8 | yes |
 | 2: IQ1_M on vendored MMVQ | 100.9 | 179.2 | 267.6 | 433.8 | 30.5 / 34.6 / 46.3 / 55.7 | yes |
 | 6: fp32 product, cast in the traced graph | 100.5 | 175.1 | 265.6 | 439.3 | 30.4 / 34.5 / 46.2 / 55.4 | no |
+| final (= item 2 stage), repeat | 96.9 | 175.3 | 258.7 | 436.0 | 30.8 / 34.9 / 46.7 / 56.1 | |
 | prod W4A16 | 94.1 | 194.4 | 344.5 | 513.5 | 27.6 / 27.3 / 30.0 / 41.3 | |
 
-- e2e noise (~1-3%) exceeds every item, so items are judged on profiled kernel time and launch
-  counts. Item 1: -360 launches, -0.37 ms/step at c=4 (memset 0.41 ms gone, quantize +0.04).
+- e2e noise (~1-3%; the two runs of the final code differ by 0.3-0.4 ms/step) exceeds every
+  item, so items are judged on profiled kernel time and launch counts; e2e is flat vs base.
+  Kernel time: -0.12 / -0.64 / ~-0.8 ms/step at c=1 / 4 / 8. Item 1: -360 launches, -0.37 ms/step at c=4 (memset 0.41 ms gone, quantize +0.04).
   Item 2: IQ1_M -0.12 ms (c=1), -0.27 ms (c=4); vLLM's CUDA-graph memory 0.35 -> 0.20 GiB (the
   stock path dequantized the whole blk.13 ffn_gate inside the 9..32-row captures), KV cache
   +4.7k tokens. IQ1_M: MMVQ up to 32 rows in 8-row calls, stock dequantize + GEMM above.
@@ -68,6 +70,9 @@ only, profiles at c=1/c=4). Decode pass 2 T=0 tok/s and ms/step (C x 1000 / tok/
   changes); removing the runs' cat for mixed gate/up (0.12 / 0.17 ms, needs the owned kernels
   to write strided dst); embedding host path (<= 0.06 ms/step removable); lm_head fp32 logits
   (~0.01 ms, changes greedy ties); in_proj_ba above 8 rows (already at its cuBLAS floor).
+- Checks on the final code: parity 2007 / 146 skip (on), 1973 / 180 (off); GPU guards 132 / 10
+  skip / 0 fail; compute-sanitizer memcheck + initcheck 0 errors on 53 cases (incl. MMQ at 1..9
+  rows: the quantize kernel writes every tail byte MMQ reads); vendored files unchanged.
 - After: plugin plumbing 1.13 ms/step at c=1, 1.75 at c=4 (was 2.61); Route L GEMM 21.3 / 35.0
   ms. Gap to the c=1 floor (~13 ms weights + ~4.7 ms vLLM idle, opt-p): 30.5 ms/step = ~17.7
   floor + ~8.3 GEMM efficiency + ~3.2 vLLM GPU work + ~1.1 plugin plumbing (+ rounding).

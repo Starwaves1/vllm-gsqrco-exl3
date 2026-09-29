@@ -21,7 +21,11 @@ base   6c2759f                              100.5 (100.3) 175.9 (173.6) 256.4 (2
 s1     1: MMQ tail memset -> quantize kernel 100.5 (100.7) 171.7 (171.5) 262.1 (259.6) 437.2 (437.2) 30.6 / 34.8 / 46.1 / 55.8  248,437    yes
 s2     2: IQ1_M on vendored MMVQ            100.9 (100.7) 179.2 (179.1) 267.6 (263.2) 433.8 (438.4) 30.5 / 34.6 / 46.3 / 55.7  253,125    yes
 s3     6: fp32 out, cast in traced graph    100.5 (100.6) 175.1 (175.3) 265.6 (265.8) 439.3 (438.4) 30.4 / 34.5 / 46.2 / 55.4  250,000    no (reverted)
-fin    = s2 code, repeat                    (pending)
+fin    = s2 code, repeat                     96.9 (97.3)  175.3 (175.4) 258.7 (258.2) 436.0 (432.2) 30.8 / 34.9 / 46.7 / 56.1  253,125    -
+
+The two runs of the final code (s2, fin) differ by 0.3-0.4 ms/step at every c: the e2e effect of
+items 1 + 2 (-0.12 / -0.64 / ~-0.8 ms of kernel time at c=1 / 4 / 8) is inside that; e2e is
+flat against base (30.3 / 34.8 / 47.0 / 56.1) within noise. fin's acceptance read 0.645.
 
 Kernel time per step from the profiles (runs/kdiff-*.txt, runs/owned-base-s2.txt):
   item  c=1                                   c=4
@@ -38,8 +42,8 @@ read tail (J_max + 128 blocks after the quantized data, <= 36 KiB) with a grid-s
 all its threads before quantizing; mul_mat_q no longer calls cudaMemsetAsync. One launch fewer
 per MMQ call (360 per step at c=4). Parity unchanged (1970 / 128 skip on, 1939 / 159 off); the
 MMQ tests at 1..9 rows run on a poisoned allocator (0xFF free blocks). The end-of-run job
-(box-scripts/final.sh) adds compute-sanitizer initcheck without the caching allocator on MMQ at
-1/5/8/9 rows, which would flag a read of any tail byte the kernel did not write: result below.
+(box-scripts/final.sh) ran compute-sanitizer initcheck without the caching allocator on MMQ at
+1/5/8/9 rows, which flags a read of any tail byte the kernel did not write: 0 errors (below).
 
 Item 2 (IQ1_M, one tensor: blk.13 ffn_gate 17408 x 5120). llama.cpp b11211 has no IQ1_M MMQ
 instance (template-instances: iq1_s, not iq1_m), but its MMVQ serves IQ1_M. Microbench
@@ -106,7 +110,7 @@ Other plumbing checked (not in the item list):
    (as opt-p did for MMVQ): ~75 launches, ~0.11 ms at c=4; needs an x_q8 on lcpp_mul_mat_q
    with the zeroed tail. Left: K3's 16-64-row kernels may change which layout those runs read.
 
-Profile after (s2 = the final code; runs/owned-base-s2.txt), per step:
+Profile after (s2 and fin = the final code; runs/owned-base-s2.txt, runs/owned-fin.txt incl. c=8), per step:
   c=1: bench 30.5 ms/step. GPU busy 25.7 ms: Route L GEMM 21.34 (IQ3 dp4a 10.36, MMVQ 8.13,
        owned Q4_K/IQ2_S 2.76, IQ1_M 0.08), plugin plumbing 1.13 (q8_1 quantize 0.41 / 275,
        in_proj_ba gemv 0.30 / 48, output casts 0.29 / 183, runs' cat 0.12 / 75, embedding
@@ -116,6 +120,10 @@ Profile after (s2 = the final code; runs/owned-base-s2.txt), per step:
        1.19, MMVQ draft 1.01, owned Q4_K 0.66, IQ1_M 0.24), plugin plumbing 1.75 (output casts
        0.62 / 376, MMQ quantize 0.58 / 361, in_proj_ba 0.32, runs' cat 0.17), vLLM 4.85.
        Plumbing was 2.61 ms at base (memset 0.41, IQ1_M dequant + cuBLAS 0.51 gone).
+  c=8: bench 55.7-56.1 ms/step. GPU busy 51.7 ms: Route L GEMM 42.0 (MMQ 38.98, stream-k fixups
+       1.77, owned Q4_K 0.77, IQ1_M 0.48 in four 8-row calls; opt-p's c=8 profile had IQ1_M
+       dequant + cuBLAS 0.85 and 370 memsets 0.44), plugin plumbing 2.00 (casts 0.88 / 378, MMQ
+       quantize 0.71 / 371, runs' cat 0.27, in_proj_ba 0.11), vLLM 7.78 (GDN gating grows).
 Top remaining plugin-owned non-GEMM costs: output casts 0.29 / 0.62 ms (c=1 / c=4; 16-bit dst
 from the owned mma and Q4_K/IQ2_S kernels would take ~41 / ~0 of them, the vendored kernels'
 need item 6's trade), q8_1 quantize 0.41 / 0.60 (item 3), in_proj_ba 0.30 / 0.32 (at its
@@ -127,6 +135,16 @@ final 30.5 ms/step (prod W4A16 27.6). The ~12.8 ms over it: Route L GEMM 21.3 - 
 (kernel efficiency, K agents), vLLM GPU work ~3.2 ms (GDN core, attention, norms, act; not in
 the floor), plugin plumbing ~1.1 ms, idle ~4.8 vs ~4.7 ms (~0.1); the rest is rounding. ninfer-all: 108.7 tok/s at c=1 against 100.9
 here (-7%).
+
+End-of-run checks on the final code (runs/fin-final.log, one job): CPU guards + routing table
+139 pass; GPU guards (-k "lcpp or first_call") 132 pass / 10 skip / 0 fail (as Integration 1);
+compute-sanitizer memcheck and initcheck 0 errors on 53 cases (MMQ IQ3_S/Q4_K/Q2_K/IQ4_XS at
+1/5/8/9 rows, IQ1_M MMVQ at 1/4/8 rows and its 8-row chunks at 9/20/32, x_q8, the shared-quantize
+test, the owned IQ3 kernels; ids in runs/fin-sanitizer-ids.txt); vendored files unchanged
+(VENDORED.md sha256). Parity on the final code: 2007 pass / 146 skip (Route L on), 1973 / 180 off.
+
+Box: 2026-09-29 14:02-21:05 UTC on the shared box, mostly queued behind other agents' jobs;
+7 gpuq jobs, 3.0 GPU-hours (base, 3 stages, the repeat, one microbench, guards + sanitizer).
 
 Review (/check, one Fable reviewer, on 6c2759f..19fbe23): no blocker in items 1 and 2 (tail
 pointer / size / int4 alignment / grid-stride coverage re-derived; x_q8 slice offsets and
