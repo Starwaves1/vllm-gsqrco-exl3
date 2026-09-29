@@ -33,7 +33,7 @@ ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
 out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
                                     "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
-                                    "lcpp_iq3_unpack") if hasattr(ops, n)]}
+                                    "lcpp_mul_mat_iq3_packed") if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
     stride = stride or row_bytes
@@ -52,10 +52,7 @@ for name, c in cases.items():
     if c.get("x_t"):
         X = torch.zeros(c["k"], c["n"], dtype=X.dtype).t()
     try:
-        if c["op"] == "lcpp_iq3_unpack":
-            ops.lcpp_iq3_unpack(W, c["type"])
-        else:
-            getattr(ops, c["op"])(W, X, c["type"], c["row"])
+        getattr(ops, c["op"])(W, X, c["type"], c["row"])
         res[name] = "no error"
     except RuntimeError as e:
         res[name] = str(e).splitlines()[0][:300]
@@ -99,34 +96,26 @@ CASES["lcpp_mul_mat_vec_q-9_rows"] = (_case("lcpp_mul_mat_vec_q", n=9), "at most
 CASES["lcpp_mul_mat_q-9_rows"] = (_case("lcpp_mul_mat_q", n=9), "must be CUDA tensors")
 CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), "must be CUDA tensors")
 # the owned IQ3 kernels share check_inputs (MMVQ limits) and add a type check
-for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed"):
+for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+               "lcpp_mul_mat_iq3_packed"):
     packed = IQ3_OP.endswith("_packed")
     for t in (IQ3_S, IQ3_XXS):
         CASES[f"{IQ3_OP}-valid-{t}"] = (_case(IQ3_OP, t), "must be CUDA tensors")
         CASES[f"{IQ3_OP}-row_strided-{t}"] = (_case(IQ3_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
     CASES[f"{IQ3_OP}-q4_k"] = (_case(IQ3_OP, Q4_K), "IQ3_S or IQ3_XXS only")
     CASES[f"{IQ3_OP}-1_row"] = (_case(IQ3_OP, n=1), "must be CUDA tensors")
-    if packed:  # up to 32 rows; 16-row tiles
+    if packed:  # 16-row tiles; the vec kernel up to 32 rows, the tiled one any
         CASES[f"{IQ3_OP}-32_rows"] = (_case(IQ3_OP, n=32), "must be CUDA tensors")
-        CASES[f"{IQ3_OP}-33_rows"] = (_case(IQ3_OP, n=33), "at most 32 rows")
+        if IQ3_OP == "lcpp_mul_mat_iq3_packed":
+            CASES[f"{IQ3_OP}-2048_rows"] = (_case(IQ3_OP, n=2048), "must be CUDA tensors")
+        else:
+            CASES[f"{IQ3_OP}-33_rows"] = (_case(IQ3_OP, n=33), "at most 32 rows")
         CASES[f"{IQ3_OP}-row_not_16"] = (_case(IQ3_OP, row=200), "must be a multiple of 16")
     else:
         CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
     CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
     CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
     CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
-
-# packed -> GGUF bytes: W only
-U = "lcpp_iq3_unpack"
-for t in (IQ3_S, IQ3_XXS):
-    CASES[f"{U}-valid-{t}"] = (_case(U, t), "must be a CUDA tensor")
-CASES[f"{U}-q4_k"] = (_case(U, Q4_K), "IQ3_S or IQ3_XXS only")
-CASES[f"{U}-w_float"] = (_case(U, w_dtype="float32"), "must be 2-D uint8")
-CASES[f"{U}-rows_not_16"] = (_case(U, rows=200), "must be [16 i")
-CASES[f"{U}-row_bytes_not_blocks"] = (_case(U, row_bytes=2201), "must be [16 i")
-CASES[f"{U}-w_narrow_view"] = (_case(U, stride=K // 256 * 110 + 256), "must be contiguous")
-CASES[f"{U}-w_misaligned"] = (_case(U, w_offset=1), "16-byte aligned")
-
 
 @pytest.fixture(scope="module")
 def child():
@@ -146,7 +135,8 @@ def child():
 
 def test_ops_registered_without_cuda_init(child):
     assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed", "lcpp_iq3_unpack"]
+                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+                                   "lcpp_mul_mat_iq3_packed"]
     assert child["cuda_initialized"] is False
 
 

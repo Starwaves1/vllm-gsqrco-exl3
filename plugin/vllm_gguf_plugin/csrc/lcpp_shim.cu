@@ -12,7 +12,8 @@
 //                                          (lcpp_owned_iq3_mma.cu)
 //   lcpp_mul_mat_vec_iq3_mma_packed(W, X, type, row) the same on W packed by
 //                                          quantization/iq3_pack.py, 1..32 rows
-//   lcpp_iq3_unpack(W, type)             packed W -> its GGUF bytes (for MMQ)
+//   lcpp_mul_mat_iq3_packed(W, X, type, row) owned tiled int8 tensor-core kernel on
+//                                          the packed layout, any rows (lcpp_owned_iq3_mma.cu)
 // W: uint8 [>=row, row_bytes] GGUF blocks, contiguous rows. X: [n, K]
 // fp32/fp16/bf16, unit inner stride.
 // Returns [n, row] in X's dtype. All guards run before any launch.
@@ -693,22 +694,26 @@ void iq3_mma_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, fl
                               int nrows, int k, int64_t row_bytes, int ncols, cudaStream_t stream);
 void iq3_mma_packed_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, float* dst,
                                      int nrows, int k, int ncols, cudaStream_t stream);
-void iq3_unpack_cuda(ggml_type type, const char* src, char* dst, int nrows, int nblocks, cudaStream_t stream);
+size_t iq3_packed_mmq_work_bytes(ggml_type type, int nrows, int k, int ncols);
+void iq3_packed_mmq_cuda(ggml_type type, const char* vx, const void* vy, void* dst, int dst_kind, float* work,
+                         int nrows, int k, int ncols, cudaStream_t stream);
 
-enum class Kernel { mmvq, mmq, iq3, iq3_mma, iq3_mma_packed };
+enum class Kernel { mmvq, mmq, iq3, iq3_mma, iq3_mma_packed, iq3_packed };
 
 static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) {
-  const bool mmvq = kernel != Kernel::mmq;  // the iq3 kernels take MMVQ's q8_1 input
-  const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma || kernel == Kernel::iq3_mma_packed;
+  const bool mmvq = kernel != Kernel::mmq && kernel != Kernel::iq3_packed;  // the iq3 vec kernels take MMVQ's q8_1
+  const bool packed = kernel == Kernel::iq3_mma_packed || kernel == Kernel::iq3_packed;
+  const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma || packed;
   const char* op = kernel == Kernel::mmvq ? "lcpp_mul_mat_vec_q"
                    : kernel == Kernel::mmq ? "lcpp_mul_mat_q"
                    : kernel == Kernel::iq3 ? "lcpp_mul_mat_vec_iq3"
-                   : kernel == Kernel::iq3_mma ? "lcpp_mul_mat_vec_iq3_mma" : "lcpp_mul_mat_vec_iq3_mma_packed";
+                   : kernel == Kernel::iq3_mma ? "lcpp_mul_mat_vec_iq3_mma"
+                   : kernel == Kernel::iq3_mma_packed ? "lcpp_mul_mat_vec_iq3_mma_packed" : "lcpp_mul_mat_iq3_packed";
   STD_TORCH_CHECK(!iq3 || type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS,
                   op, ": IQ3_S or IQ3_XXS only, got type ", type);
-  STD_TORCH_CHECK(kernel != Kernel::iq3_mma_packed || row % 16 == 0, op, ": row=", row,
-                  " must be a multiple of 16 (packed 16-row tiles)");
-  const int64_t max_rows = kernel == Kernel::mmq ? 0 : kernel == Kernel::iq3_mma_packed ? 32 : MMVQ_MAX_BATCH_SIZE;
+  STD_TORCH_CHECK(!packed || row % 16 == 0, op, ": row=", row, " must be a multiple of 16 (packed 16-row tiles)");
+  const int64_t max_rows = kernel == Kernel::mmq || kernel == Kernel::iq3_packed ? 0
+                           : kernel == Kernel::iq3_mma_packed ? 32 : MMVQ_MAX_BATCH_SIZE;
   const int64_t k = check_inputs(W, X, type, row, max_rows, op);
   const int64_t n = X.size(0);
   const ScalarType out_dtype = X.scalar_type();
@@ -719,6 +724,27 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
   const int32_t device = X.get_device_index();
   const DeviceGuard guard(device);
   const cudaStream_t stream = torch_stream(device);
+
+  if (kernel == Kernel::iq3_packed) {
+    // MMQ's q8_1 layout (D4), no read tail (the kernel reads only the n quantized columns);
+    // the kernel writes X's dtype, so no output cast. Launches: quantize, the product, and a
+    // split-sum kernel when some tile is shared by CTAs.
+    Tensor y = torch::stable::new_empty(X, {n, row}, out_dtype);
+    ggml_backend_cuda_context ctx(device);
+    ctx.pools[device][0] = std::make_unique<TorchPool>(X);
+    ggml_cuda_pool_alloc<char> q8(ctx.pool(), n * k / QK8_1_MMQ * sizeof(block_q8_1_mmq));
+    quantize_x(X, q8.get(), (ggml_type)type, true, k, stream);
+    const size_t work_bytes = iq3_packed_mmq_work_bytes((ggml_type)type, (int)row, (int)k, (int)n);
+    ggml_cuda_pool_alloc<float> work(ctx.pool());
+    if (work_bytes > 0) {
+      work.alloc(work_bytes / sizeof(float));
+    }
+    const int dst_kind = out_dtype == ScalarType::Float ? 0 : out_dtype == ScalarType::Half ? 1 : 2;
+    iq3_packed_mmq_cuda((ggml_type)type, (const char*)W.data_ptr(), q8.get(), y.data_ptr(), dst_kind, work.get(),
+                        (int)row, (int)k, (int)n, stream);
+    CUDA_CHECK(cudaGetLastError());
+    return y;
+  }
 
   // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast);
   // MMVQ/MMQ write fp32 dst only, so 16-bit X costs one output cast.
@@ -801,26 +827,8 @@ Tensor lcpp_mul_mat_vec_iq3_mma_packed(Tensor W, Tensor X, int64_t type, int64_t
   return run(W, X, type, row, Kernel::iq3_mma_packed);
 }
 
-// The GGUF bytes of W packed by quantization/iq3_pack.py (a new tensor, W's shape).
-Tensor lcpp_iq3_unpack(Tensor W, int64_t type) {
-  const char* op = "lcpp_iq3_unpack";
-  STD_TORCH_CHECK(type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS, op, ": IQ3_S or IQ3_XXS only, got type ", type);
-  STD_TORCH_CHECK(W.dim() == 2 && W.scalar_type() == ScalarType::Byte, op, ": W must be 2-D uint8");
-  const int64_t bs = (int64_t)ggml_type_size((ggml_type)type);
-  STD_TORCH_CHECK(W.size(0) % 16 == 0 && W.size(1) % bs == 0 && W.size(0) <= INT_MAX && W.size(1) / bs <= INT_MAX,
-                  op, ": W must be [16 i, n * ", bs, "] bytes, got [", W.size(0), ", ", W.size(1), "]");
-  STD_TORCH_CHECK(W.stride(1) == 1 && W.stride(0) == W.size(1), op, ": W must be contiguous");
-  STD_TORCH_CHECK(reinterpret_cast<uintptr_t>(W.data_ptr()) % 16 == 0, op, ": W data must be 16-byte aligned");
-  STD_TORCH_CHECK(W.is_cuda(), op, ": W must be a CUDA tensor");
-  const int32_t device = W.get_device_index();
-  const DeviceGuard guard(device);
-  Tensor out = torch::stable::new_empty(W, {W.size(0), W.size(1)}, ScalarType::Byte);
-  if (W.numel() > 0) {
-    iq3_unpack_cuda((ggml_type)type, (const char*)W.data_ptr(), (char*)out.data_ptr(), (int)W.size(0),
-                    (int)(W.size(1) / bs), torch_stream(device));
-    CUDA_CHECK(cudaGetLastError());
-  }
-  return out;
+Tensor lcpp_mul_mat_iq3_packed(Tensor W, Tensor X, int64_t type, int64_t row) {
+  return run(W, X, type, row, Kernel::iq3_packed);
 }
 
 // Test hook: the q8_1 bytes the ops feed MMVQ (mmq false) or MMQ (mmq true,
@@ -856,7 +864,7 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
   ops.def("lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def("lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def("lcpp_mul_mat_vec_iq3_mma_packed(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
-  ops.def("lcpp_iq3_unpack(Tensor W, int type) -> Tensor");
+  ops.def("lcpp_mul_mat_iq3_packed(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def("lcpp_quantize_q8_1(Tensor X, int type, bool mmq, bool vendored) -> Tensor");
 }
 
@@ -866,7 +874,7 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
   ops.impl("lcpp_mul_mat_vec_iq3_mma_packed", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma_packed));
-  ops.impl("lcpp_iq3_unpack", TORCH_BOX(&lcpp_iq3_unpack));
+  ops.impl("lcpp_mul_mat_iq3_packed", TORCH_BOX(&lcpp_mul_mat_iq3_packed));
   ops.impl("lcpp_quantize_q8_1", TORCH_BOX(&lcpp_quantize_q8_1));
 }
 
@@ -878,5 +886,5 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
   ops.impl("lcpp_mul_mat_vec_iq3_mma_packed", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma_packed));
-  ops.impl("lcpp_iq3_unpack", TORCH_BOX(&lcpp_iq3_unpack));
+  ops.impl("lcpp_mul_mat_iq3_packed", TORCH_BOX(&lcpp_mul_mat_iq3_packed));
 }

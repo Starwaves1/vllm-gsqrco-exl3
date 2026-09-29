@@ -36,7 +36,7 @@ from .utils import (
 
 
 IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
-PACKED_MAX_ROWS = 32  # lcpp_mul_mat_vec_iq3_mma_packed's limit
+PACKED_VEC_MAX_ROWS = 8  # packed IQ3: lcpp_mul_mat_vec_iq3_mma_packed up to here, lcpp_mul_mat_iq3_packed above
 
 
 def _fused_mul_mat_gguf(
@@ -52,14 +52,11 @@ def _fused_mul_mat_gguf(
         return x @ weight.T
     if packed and weight_type in IQ3_TYPES:
         # IQ3_S / IQ3_XXS in iq3_pack's layout (GGUFLinearMethod._pack_iq3): the owned int8
-        # tensor-core kernel up to 32 rows (cloud/results/phase3/r1); above, MMQ on the GGUF
-        # bytes, unpacked into a scratch copy of W first
-        if x.shape[0] <= PACKED_MAX_ROWS:
-            return torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma_packed(
-                weight, x, weight_type, weight.shape[0]
-            )
-        weight = torch.ops._C_gguf.lcpp_iq3_unpack(weight, weight_type)
-        return torch.ops._C_gguf.lcpp_mul_mat_q(weight, x, weight_type, weight.shape[0])
+        # tensor-core kernels, the decode one up to PACKED_VEC_MAX_ROWS (cloud/results/phase3/r1),
+        # the tiled one above (r2)
+        op = (torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma_packed if x.shape[0] <= PACKED_VEC_MAX_ROWS
+              else torch.ops._C_gguf.lcpp_mul_mat_iq3_packed)
+        return op(weight, x, weight_type, weight.shape[0])
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
         # IQ3_S / IQ3_XXS up to 8 rows: the shim's own kernels beat MMVQ and MMQ;
         # the dp4a one at 1..5 rows (cloud/results/phase3/item5), the int8

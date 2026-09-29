@@ -9,7 +9,7 @@
 // kernel (iq3_mul_mat_vec in lcpp_shim.cu) is gone and the cost is flat in ncols.
 //
 // (Below the kernel on the GGUF bytes, the same kernel on the packed layout of
-// quantization/iq3_pack.py, and the packed -> GGUF unpack for MMQ.)
+// quantization/iq3_pack.py, and a tiled kernel on the packed layout for any row count.)
 //
 // Layout: persistent CTAs of 4 warps; a CTA takes 16-row tiles, its warps split
 // K by weight block (warp w: blocks w, w+4, ...). Per block a warp
@@ -35,10 +35,13 @@
 // d_w * d_q8), then blocks in K order per warp, then the 4 warps in order.
 
 #include "common.cuh"
+#include "mmq.cuh"
 #include "vecdotq.cuh"
 
 #include <algorithm>
+#include <climits>
 #include <cstddef>
+#include <cstdint>
 
 namespace {
 
@@ -453,24 +456,14 @@ static __device__ __forceinline__ void pslice(const pwords<GGML_TYPE_IQ3_XXS>& w
   a3 = table[4096 + (prmt(qb, w.x[6 + r], s1) & 0x0FFFu)];
 }
 
-// NG groups of 8 activation columns (1..8 * NG columns): per slice the A fragment is cut once
-// and used by NG mmas. Each output column is computed as at NG = 1, in the same order.
-template <ggml_type type, int NG>
-static __global__ void __launch_bounds__(THREADS)
-iq3_mma_packed(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, float* __restrict__ dst,
-               const int nrows, const int nblocks, const int ncols) {
-  using tr = traits<type>;
-  constexpr int ycols = 8 * NG;
-  constexpr int nstage = (ycols * 18 + WARP_SIZE - 1) / WARP_SIZE;
-  constexpr int64_t tbytes = ROWS * sizeof(typename tr::block);
-  // IQ3_S: T[q | sign nibble << 8 | qh << 12]; IQ3_XXS: T[q | n << 8] for a pair's first word
-  // (n = its 3 signs + the nibble's parity) and T[4096 + (q | n << 8)] for the second (n = the
-  // first's parity + its 3 signs); the 4th sign is the parity of the other 3 and n's parity bit.
-  __shared__ uint32_t table[8192];
-  extern __shared__ __align__(16) int dyn_p[];  // [WARPS][ycols * Y_COL] staging, [WARPS][NG * 128] sums
-
-  const int lane = threadIdx.x, warp = threadIdx.y, tid = warp * WARP_SIZE + lane;
-  for (int i = tid; i < 8192; i += THREADS) {
+// The signed grid table of the packed kernels (pslice's indices), PTABLE words. IQ3_S:
+// T[q | sign nibble << 8 | qh << 12]; IQ3_XXS: T[q | n << 8] for a pair's first word (n = its
+// 3 signs + the nibble's parity) and T[4096 + (q | n << 8)] for the second (n = the first's
+// parity + its 3 signs); the 4th sign is the parity of the other 3 and n's parity bit.
+constexpr int PTABLE = 8192;
+template <ggml_type type>
+static __device__ __forceinline__ void build_ptable(uint32_t* table, int tid, int nthreads) {
+  for (int i = tid; i < PTABLE; i += nthreads) {
     const uint32_t q = i & 0xFF, n = (i >> 8) & 0xF;
     uint32_t gv, signs;
     if (type == GGML_TYPE_IQ3_S) {
@@ -483,6 +476,23 @@ iq3_mma_packed(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, f
     }
     table[i] = negate(gv, signs);
   }
+}
+
+// NG groups of 8 activation columns (1..8 * NG columns): per slice the A fragment is cut once
+// and used by NG mmas. Each output column is computed as at NG = 1, in the same order.
+template <ggml_type type, int NG>
+static __global__ void __launch_bounds__(THREADS)
+iq3_mma_packed(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, float* __restrict__ dst,
+               const int nrows, const int nblocks, const int ncols) {
+  using tr = traits<type>;
+  constexpr int ycols = 8 * NG;
+  constexpr int nstage = (ycols * 18 + WARP_SIZE - 1) / WARP_SIZE;
+  constexpr int64_t tbytes = ROWS * sizeof(typename tr::block);
+  __shared__ uint32_t table[PTABLE];
+  extern __shared__ __align__(16) int dyn_p[];  // [WARPS][ycols * Y_COL] staging, [WARPS][NG * 128] sums
+
+  const int lane = threadIdx.x, warp = threadIdx.y, tid = warp * WARP_SIZE + lane;
+  build_ptable<type>(table, tid, THREADS);
   int* yt = dyn_p + warp * ycols * Y_COL;
   float* red = (float*)(dyn_p + WARPS * ycols * Y_COL);
   for (int i = ncols * Y_COL + lane; i < ycols * Y_COL; i += WARP_SIZE) yt[i] = 0;  // columns >= ncols
@@ -601,75 +611,484 @@ void launch_packed(const char* vx, const block_q8_1* y, float* dst, int nrows, i
       vx, y, dst, nrows, nblocks, ncols);
 }
 
-// Packed -> GGUF bytes (the inverse of quantization/iq3_pack.py's pack), for the paths that
-// read the GGUF layout (vendored MMQ). One warp per tile-block: it decodes its lane words as
-// the product kernel does, assembles the 16 rows' blocks in shared memory and writes them out.
-template <ggml_type type>
-static __global__ void __launch_bounds__(THREADS)
-iq3_unpack(const char* __restrict__ src, char* __restrict__ dst, const int ntb, const int nblocks) {
-  using block = typename traits<type>::block;
-  constexpr int bs = sizeof(block);
-  constexpr int64_t tbytes = ROWS * bs;
-  __shared__ __align__(4) uint8_t out[WARPS][ROWS * bs];
-  const int lane = threadIdx.x, warp = threadIdx.y;
-  const int g = lane / 4, t = lane % 4;
-  uint8_t* o = out[warp];
-  for (int tb = blockIdx.x * WARPS + warp; tb < ntb; tb += gridDim.x * WARPS) {
-    pfrag f;
-    pload<type>(f, src + tb * tbytes, lane);
-    pwords<type> w;
-    pdecode(w, f);
+// ---------------------------------------------------------------------------
+// The packed layout at any number of activation rows (prefill chunks, decode at 9+ rows):
+// a tiled int8 tensor-core product, op lcpp_mul_mat_iq3_packed. cloud/results/phase3/r2 has
+// the data and the variants tried.
+//
+// Inputs as the vendored MMQ's except W: X quantized by the shim's quantize_x into MMQ's
+// block_q8_1_mmq layout (IQ3: D4, one fp32 scale per 32 values), W packed.
+// A CTA is 8 warps; a warp owns 32 weight rows (two 16-row packed tiles) x TN = 16 / 32 / 48 / 64
+// activation columns (NT = TN / 8 mma column tiles); a CTA tile is 256 rows x TN columns.
+//  - A: per weight block, each warp loads its two tile-blocks' records from global memory
+//    straight into registers (pload, one block ahead) and cuts the fragments with the packed
+//    decode kernel's table and words (pdecode / pslice). No decoded A tile in shared memory.
+//  - B: per weight block (one pipeline step, one CTA barrier), the two block_q8_1_mmq of every
+//    column of the tile go to shared memory by cp.async, STAGES - 1 blocks ahead: the quants
+//    at a 160-byte column stride (the lane's 8-byte B fragment loads are then free of bank
+//    conflicts), the 4 scales per 128 values transposed to [slice][column] (a lane's two
+//    columns in one 8-byte load). Columns >= ncols are zero-filled.
+//  - scaling: per slice the vendored ggml_cuda_mmq_vec_dot_q8_0_q8_1_mma term,
+//    sum += float(C) * dA * dB (dA: x_df of ggml_cuda_mmq_load_tiles_iq3_s / _iq3_xxs, exact),
+//    computed as fma(fma(M + C, dA, -M * dA), dB, sum) with M = 1.5 * 2^23: the mma adds its
+//    int32 C to M's bits, so M + C is exact in fp32 (|C| < 2^22), -M * dA is exact, and the inner
+//    fma rounds float(C) * dA once, the value of the vendored I2F + FMUL. The slices are added
+//    in K order, as in MMQ; a tile one CTA computes whole is then bit-identical to MMQ's
+//    fp32 sum if MMQ also computes it whole (MMQ's stream-k splits its own 128 x J tiles).
+//  - schedule: persistent CTAs, one per SM (G). Whole tiles go out in waves, CTA c taking
+//    tiles c, c + G, ... (row tile major, column tile fastest, so a wave's CTAs share weight and
+//    activation blocks in L2); the (tile, weight block) units of the last tiles % G tiles are
+//    split evenly over the G CTAs (stream-K), unless whole-tile waves on fewer CTAs are
+//    estimated faster (plan below). A tile a CTA covers whole is written in X's dtype; the
+//    pieces of a shared tile go to fp32 scratch and a second kernel adds them in CTA (= K) order.
+
+namespace tiled {
+
+constexpr int WARPS = 8;
+constexpr int THREADS = WARPS * WARP_SIZE;
+constexpr int TM = 2 * ROWS * WARPS;         // 256 weight rows per tile
+constexpr int YB = sizeof(block_q8_1_mmq);  // 144 B: one column's 128 values (d4[4], then qs)
+constexpr int YS = 160;                      // staged column stride of the 128 quants
+constexpr int STAGES = 3;
+constexpr float MAGIC = 12582912.0f;         // 1.5 * 2^23
+constexpr int MAGIC_BITS = 0x4B400000;
+constexpr int FIXUP_MAX_CTAS = 256;
+static_assert(YB == 144, "block_q8_1_mmq layout");
+
+template <int NT_>
+struct cfg {
+  static constexpr int NT = NT_;
+  static constexpr int TN = 8 * NT;                  // activation columns per tile
+  static constexpr int BLOCK_Q = TN * YS;            // one 128-value block's quants: [column][YS]
+  static constexpr int BLOCK = BLOCK_Q + 4 * TN * 4; // then its scales: [slice][column] fp32
+  static constexpr int STAGE = 2 * BLOCK;            // a weight block's 256 values
+  static constexpr size_t SMEM = PTABLE * 4 + (size_t)STAGES * STAGE + 16;  // + the mma addend
+};
+
+// The launch's work split (see above). Units of a tile: its nkb weight blocks.
+struct sched {
+  int nkb;         // weight blocks per row
+  int nct;         // column tiles; tile = row tile * nct + column tile
+  int tail0;       // tiles 0 .. tail0 - 1 go out whole (CTA c: c, c + G, ...); the rest are split
+  int tail_units;  // the split tiles' units, (tiles - tail0) * nkb
+};
+
+static __device__ __forceinline__ int tail_begin(const sched& s, int c, int nctas) {
+  return (int)((int64_t)c * s.tail_units / nctas);
+}
+
+static __device__ __forceinline__ void cp_async16(void* dst, const void* src, int src_bytes) {
+  const uint32_t d = (uint32_t)__cvta_generic_to_shared(dst);
+  asm volatile("cp.async.cg.shared.global [%0], [%1], 16, %2;" ::"r"(d), "l"(src), "r"(src_bytes));
+}
+static __device__ __forceinline__ void cp_async4(void* dst, const void* src, int src_bytes) {
+  const uint32_t d = (uint32_t)__cvta_generic_to_shared(dst);
+  asm volatile("cp.async.ca.shared.global [%0], [%1], 4, %2;" ::"r"(d), "l"(src), "r"(src_bytes));
+}
+static __device__ __forceinline__ void cp_async_commit() { asm volatile("cp.async.commit_group;"); }
+template <int N>
+static __device__ __forceinline__ void cp_async_wait() { asm volatile("cp.async.wait_group %0;" ::"n"(N)); }
+
+// d = a x b + m as int32. m is M's bits x 4, loaded from shared memory by the kernel: as a
+// known constant ptxas re-materializes the 4-register operand whenever it needs the registers
+// (~2 moves per mma, 11 % of the loop at 8 column tiles).
+static __device__ __forceinline__ void mma_m(int (&d)[4], const int (&a)[4], int b0, int b1, const int (&m)[4]) {
+  asm("mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 {%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, "
+      "{%10, %11, %12, %13};"
+      : "=r"(d[0]), "=r"(d[1]), "=r"(d[2]), "=r"(d[3])
+      : "r"(a[0]), "r"(a[1]), "r"(a[2]), "r"(a[3]), "r"(b0), "r"(b1), "r"(m[0]), "r"(m[1]), "r"(m[2]), "r"(m[3]));
+}
+
+template <typename T> static __device__ __forceinline__ T from_float(float v);
+template <> __device__ __forceinline__ float from_float<float>(float v) { return v; }
+template <> __device__ __forceinline__ half from_float<half>(float v) { return __float2half_rn(v); }
+template <> __device__ __forceinline__ nv_bfloat16 from_float<nv_bfloat16>(float v) { return __float2bfloat16_rn(v); }
+
+// One 32-value slice s of the warp's 32 rows x 8 NT columns: y points at the tile's first
+// column's quants of the slice's 128-value block in the stage, ys at that block's scales
+// ([slice % 4][TN columns]).
+template <ggml_type type, int NT, int s>
+static __device__ __forceinline__ void slice_product(const pfrag (&f)[2], const pwords<type> (&w)[2],
+                                                     const float (&dq)[2][2], const uint32_t* table,
+                                                     const char* __restrict__ y, const float* __restrict__ ys,
+                                                     int g, int t, const int (&mg)[4], float (&acc)[2][NT][4]) {
+  int a[2][4];
+  float dA[2][2], nm[2][2];
 #pragma unroll
-    for (int R = 0; R < 2; ++R) {
-      uint8_t* ob = o + (g + 8 * R) * bs;
-      const int4 q = R ? f.q1 : f.q0;
-      const uint32_t qw[4] = {(uint32_t)q.x, (uint32_t)q.y, (uint32_t)q.z, (uint32_t)q.w};
-      if (t == 0) {
-        *(uint16_t*)ob = (uint16_t)((R ? f.d >> 16 : f.d) & 0xFFFF);
-      }
+  for (int mt = 0; mt < 2; ++mt) {
+    pslice<s>(w[mt], f[mt], table, a[mt][0], a[mt][1], a[mt][2], a[mt][3]);
 #pragma unroll
-      for (int s = 0; s < SLICES; ++s) {
-        const int c = s / 2, j0 = 2 * (s % 2);
-        ob[2 + 8 * s + 2 * t] = (uint8_t)(qw[c] >> (8 * j0));
-        ob[2 + 8 * s + 2 * t + 1] = (uint8_t)(qw[c] >> (8 * (j0 + 1)));
-        uint32_t v;  // this lane's bits of the slice's qh byte (IQ3_S) / sign word (IQ3_XXS)
-        if (type == GGML_TYPE_IQ3_S) {
-          const uint32_t h0 = (w.x[4 * R + c] >> (8 * j0)) & 0x1F, h1 = (w.x[4 * R + c] >> (8 * (j0 + 1))) & 0x1F;
-          ob[offsetof(block_iq3_s, signs) + 4 * s + t] = (uint8_t)((h0 & 0xF) | (h1 & 0xF) << 4);
-          v = (h0 >> 4 | (h1 >> 4) << 1) << (2 * t);
-        } else {
-          const uint32_t b = (w.x[2 * R + s / 4] >> (8 * (s % 4))) & 0x7F;  // re-coded 7 bits
-          const uint32_t e3 = ((b >> 3) ^ __popc(b & 7)) & 1;
-          v = ((b & 7) | e3 << 3 | (b & 0x70)) << (7 * t);
-        }
-        v |= __shfl_xor_sync(0xFFFFFFFFu, v, 1);
-        v |= __shfl_xor_sync(0xFFFFFFFFu, v, 2);
-        const uint32_t sc = ((R ? f.sc.y : f.sc.x) >> (4 * s)) & 0xF;
-        if (t == 0) {
-          if (type == GGML_TYPE_IQ3_S) {
-            ob[offsetof(block_iq3_s, qh) + s] = (uint8_t)v;
-          } else {
-            const uint32_t aux = v | sc << 28;
-#pragma unroll
-            for (int i = 0; i < 4; ++i) ob[2 + QK_K / 4 + 4 * s + i] = (uint8_t)(aux >> (8 * i));
-          }
-        }
-        if (type == GGML_TYPE_IQ3_S && t == 1 && s % 2 == 0) {
-          const uint32_t sc2 = ((R ? f.sc.y : f.sc.x) >> (4 * s)) & 0xFF;
-          ob[offsetof(block_iq3_s, scales) + s / 2] = (uint8_t)sc2;
-        }
-      }
+    for (int r = 0; r < 2; ++r) {
+      // (2 ls + 1) * dq, exact; float(ls) as the bits of 2^23 + ls (I2F is quarter rate on sm_86)
+      const uint32_t ls = ((r ? f[mt].sc.y : f[mt].sc.x) >> (4 * s)) & 0xF;
+      dA[mt][r] = fmaf(__uint_as_float(0x4B000000u | ls) - 8388608.0f, 2.0f * dq[mt][r], dq[mt][r]);
+      nm[mt][r] = dA[mt][r] * -MAGIC;
     }
-    __syncwarp();
-    const int tile = tb / nblocks, b = tb - tile * nblocks;
-    char* d0 = dst + (int64_t)tile * tbytes * nblocks + (int64_t)b * bs;  // row r at + r * nblocks * bs
-    for (int i = lane; i < ROWS * bs / 2; i += WARP_SIZE) {
-      const int r = i / (bs / 2), e = i - r * (bs / 2);
-      *(uint16_t*)(d0 + (int64_t)r * nblocks * bs + 2 * e) = *(const uint16_t*)(o + r * bs + 2 * e);
+  }
+  constexpr int q = s % 4;
+#pragma unroll
+  for (int nt = 0; nt < NT; ++nt) {
+    const int2 b = *(const int2*)(y + (nt * 8 + g) * YS + 32 * q + 8 * t);
+    const float2 dB = *(const float2*)(ys + q * 8 * NT + nt * 8 + 2 * t);  // columns 2t, 2t + 1
+#pragma unroll
+    for (int mt = 0; mt < 2; ++mt) {
+      int c[4];
+      mma_m(c, a[mt], b.x, b.y, mg);
+      // ggml_cuda_mmq_vec_dot_q8_0_q8_1_mma: sum += C * dA * dB
+      acc[mt][nt][0] = fmaf(fmaf(__int_as_float(c[0]), dA[mt][0], nm[mt][0]), dB.x, acc[mt][nt][0]);
+      acc[mt][nt][1] = fmaf(fmaf(__int_as_float(c[1]), dA[mt][0], nm[mt][0]), dB.y, acc[mt][nt][1]);
+      acc[mt][nt][2] = fmaf(fmaf(__int_as_float(c[2]), dA[mt][1], nm[mt][1]), dB.x, acc[mt][nt][2]);
+      acc[mt][nt][3] = fmaf(fmaf(__int_as_float(c[3]), dA[mt][1], nm[mt][1]), dB.y, acc[mt][nt][3]);
     }
-    __syncwarp();
   }
 }
+
+// Local unit j of a CTA = (tile, kb): its whole tiles (cta, cta + G, ...), then its run of the
+// split part, from (tile0, kb0) on. Advanced one unit at a time (no division per step).
+struct cursor {
+  int j, tile, kb;
+};
+struct walk {
+  int nw, G, nkb, tile0, kb0;  // units of whole tiles; the split run's first unit
+  __device__ __forceinline__ cursor first(int cta) const { return nw > 0 ? cursor{0, cta, 0} : cursor{0, tile0, kb0}; }
+  __device__ __forceinline__ void next(cursor& c) const {
+    ++c.j;
+    if (c.j == nw) {
+      c.tile = tile0;
+      c.kb = kb0;
+    } else if (++c.kb == nkb) {
+      c.kb = 0;
+      c.tile += c.j < nw ? G : 1;
+    }
+  }
+};
+
+// dst [ncols, nrows] in OutT; part: fp32 scratch for shared tiles, [2 G][TN][TM].
+template <ggml_type type, class C, typename OutT>
+static __global__ void __launch_bounds__(THREADS, 1)
+iq3_packed_mmq(const char* __restrict__ vx, const char* __restrict__ vy, OutT* __restrict__ dst,
+               float* __restrict__ part, const int nrows, const int ncols, const sched s) {
+  constexpr int NT = C::NT, TN = C::TN;
+  constexpr int64_t tbytes = ROWS * sizeof(typename traits<type>::block);
+  extern __shared__ __align__(16) char smem_t[];
+  uint32_t* const table = reinterpret_cast<uint32_t*>(smem_t);
+  char* const stages = smem_t + PTABLE * 4;
+
+  const int lane = threadIdx.x, warp = threadIdx.y, tid = warp * WARP_SIZE + lane;
+  const int g = lane / 4, t = lane % 4;
+  const int G = gridDim.x, cta = blockIdx.x;
+  const int ntiles16 = nrows / ROWS;
+  const int nw = (cta < s.tail0 ? (s.tail0 - cta + G - 1) / G : 0) * s.nkb;  // units of the CTA's whole tiles
+  const int tb = tail_begin(s, cta, G);
+  const int nlocal = nw + tail_begin(s, cta + 1, G) - tb;
+  const int first_tail_tile = s.tail0 + tb / s.nkb;
+
+  build_ptable<type>(table, tid, THREADS);  // read after the first step's barrier
+
+  const walk wk{nw, G, s.nkb, first_tail_tile, tb - (first_tail_tile - s.tail0) * s.nkb};
+  cursor cu = wk.first(cta), ci = cu, cw = cu;  // compute, copies (issue), weight loads (wload)
+
+  // Unit ci's activations into stage i % STAGES: its 128-value blocks kq = 2 kb + b (b = 0, 1)
+  // of the tile's columns, block_q8_1_mmq kq of each, are one run of TN * 144 bytes in global
+  // memory each: every column's 128 quants (8 granules of 16 bytes after its 4 scales) go to
+  // [column][YS], its 4 scales (4 bytes each) to [slice][column]. Columns >= ncols are zero-filled.
+  constexpr int NQ = TN * 8, NS = TN * 4;  // copies per block: 16-byte quant granules, 4-byte scales
+  auto issue = [&](int i) {
+    const int ct = ci.tile % s.nct, nreal = ncols - ct * TN;
+    char* st = stages + (i % STAGES) * C::STAGE;
+#pragma unroll
+    for (int b = 0; b < 2; ++b) {
+      const char* src = vy + ((int64_t)(2 * ci.kb + b) * ncols + ct * TN) * YB;
+      char* sb = st + b * C::BLOCK;
+#pragma unroll
+      for (int c = 0; c < (NQ + THREADS - 1) / THREADS; ++c) {
+        const int idx = tid + c * THREADS, col = idx / 8, gr = idx % 8;
+        if (NQ % THREADS == 0 || idx < NQ) {
+          const bool ok = col < nreal;
+          cp_async16(sb + col * YS + 16 * gr, src + (ok ? col * YB + 16 + 16 * gr : 0), ok ? 16 : 0);
+        }
+      }
+#pragma unroll
+      for (int c = 0; c < (NS + THREADS - 1) / THREADS; ++c) {
+        const int idx = tid + c * THREADS, col = idx / 4, q = idx % 4;
+        if (NS % THREADS == 0 || idx < NS) {
+          const bool ok = col < nreal;
+          cp_async4(sb + C::BLOCK_Q + (q * TN + col) * 4, src + (ok ? col * YB + 4 * q : 0), ok ? 4 : 0);
+        }
+      }
+    }
+    wk.next(ci);
+  };
+  pfrag fn[2];
+  auto wload = [&] {
+    const int rt = cw.tile / s.nct;
+#pragma unroll
+    for (int mt = 0; mt < 2; ++mt) {
+      const int t16 = rt * (TM / ROWS) + warp * 2 + mt;
+      if (t16 < ntiles16) {
+        pload<type>(fn[mt], vx + ((int64_t)t16 * s.nkb + cw.kb) * tbytes, lane);
+      } else {
+        fn[mt] = pfrag{};
+      }
+    }
+    wk.next(cw);
+  };
+
+  for (int i = 0; i < STAGES - 1; ++i) {
+    if (i < nlocal) issue(i);
+    cp_async_commit();
+  }
+  if (nlocal > 0) wload();
+
+  int4* const smagic = reinterpret_cast<int4*>(stages + STAGES * C::STAGE);
+  if (tid == 0) *smagic = make_int4(MAGIC_BITS, MAGIC_BITS, MAGIC_BITS, MAGIC_BITS);
+  __syncthreads();
+  const int4 m4 = *smagic;
+  const int mg[4] = {m4.x, m4.y, m4.z, m4.w};
+  float acc[2][NT][4];
+  auto zero = [&] {
+#pragma unroll
+    for (int mt = 0; mt < 2; ++mt)
+#pragma unroll
+      for (int nt = 0; nt < NT; ++nt)
+#pragma unroll
+        for (int l = 0; l < 4; ++l) acc[mt][nt][l] = 0.0f;
+  };
+  zero();  // and after each store (not a select per unit)
+  int kb0 = cu.kb;
+  for (; cu.j < nlocal; wk.next(cu)) {
+    const int j = cu.j, tile = cu.tile, kb = cu.kb;
+    if (j == nw) kb0 = kb;  // the split run's first unit
+    const pfrag f[2] = {fn[0], fn[1]};
+    if (j + 1 < nlocal) wload();
+    pwords<type> w[2];
+    float dq[2][2];
+#pragma unroll
+    for (int mt = 0; mt < 2; ++mt) {
+      pdecode(w[mt], f[mt]);
+      const float2 d = __half22float2(*(const half2*)&f[mt].d);
+      const float k = type == GGML_TYPE_IQ3_S ? 1.0f : 0.25f;
+      dq[mt][0] = d.x * k;
+      dq[mt][1] = d.y * k;
+    }
+    cp_async_wait<STAGES - 2>();
+    __syncthreads();  // unit j's activations landed for every thread; unit j - 1's stage is free
+    if (j + STAGES - 1 < nlocal) issue(j + STAGES - 1);
+    cp_async_commit();
+    const char* st = stages + (j % STAGES) * C::STAGE;
+    // slices 4h .. 4h + 3 read the unit's 128-value block h
+#pragma unroll
+    for (int h = 0; h < 2; ++h) {
+      const char* y = st + h * C::BLOCK;
+      const float* ys = reinterpret_cast<const float*>(y + C::BLOCK_Q);
+      if (h == 0) {
+        slice_product<type, NT, 0>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 1>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 2>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 3>(f, w, dq, table, y, ys, g, t, mg, acc);
+      } else {
+        slice_product<type, NT, 4>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 5>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 6>(f, w, dq, table, y, ys, g, t, mg, acc);
+        slice_product<type, NT, 7>(f, w, dq, table, y, ys, g, t, mg, acc);
+      }
+    }
+    if (j + 1 == nlocal || j + 1 == nw || kb + 1 == s.nkb) {  // the tile's last unit here: store
+      const int rt = tile / s.nct, ct = tile - rt * s.nct;
+      const int r0 = warp * 2 * ROWS + g, c0 = 2 * t;  // the lane's first row / column in the tile
+      const int nvalid = min(2, ntiles16 - (rt * (TM / ROWS) + warp * 2));  // the warp's 16-row tiles in W
+      if (kb0 == 0 && kb + 1 == s.nkb) {  // whole: X's dtype into dst
+        OutT* d = dst + (int64_t)(ct * TN + c0) * nrows + rt * TM + r0;
+        const int cmax = ncols - ct * TN - c0;  // columns of this lane (c0 + ...) that exist
+#pragma unroll
+        for (int mt = 0; mt < 2; ++mt) {
+          if (mt >= nvalid) break;
+#pragma unroll
+          for (int nt = 0; nt < NT; ++nt) {
+#pragma unroll
+            for (int l = 0; l < 4; ++l) {
+              const int cc = nt * 8 + l % 2;
+              if (cc < cmax) d[(int64_t)cc * nrows + mt * ROWS + 8 * (l / 2)] = from_float<OutT>(acc[mt][nt][l]);
+            }
+          }
+        }
+      } else {  // a piece: fp32 into the CTA's slot (columns >= ncols are written, never read)
+        float* pp = part + ((int64_t)(2 * cta + (tile == first_tail_tile ? 0 : 1)) * TN + c0) * TM + r0;
+#pragma unroll
+        for (int mt = 0; mt < 2; ++mt) {
+#pragma unroll
+          for (int nt = 0; nt < NT; ++nt) {
+#pragma unroll
+            for (int l = 0; l < 4; ++l) pp[(nt * 8 + l % 2) * TM + mt * ROWS + 8 * (l / 2)] = acc[mt][nt][l];
+          }
+        }
+      }
+      zero();
+      kb0 = 0;  // the next tile of the CTA's run starts at its first block
+    }
+  }
+  cp_async_wait<0>();
+}
+
+// Per split tile (tail0 + blockIdx.x): the sum of its pieces in CTA order (= K order) into dst.
+// The contributing CTAs' slots are found once per tile (thread 0), then each thread adds its
+// elements' pieces.
+template <class C, typename OutT>
+static __global__ void __launch_bounds__(256)
+iq3_packed_fixup(const float* __restrict__ part, OutT* __restrict__ dst, const int nrows, const int ncols,
+                 const sched s, const int nctas) {
+  constexpr int TN = C::TN;
+  __shared__ int slots[FIXUP_MAX_CTAS];  // a tile's pieces come from at most every CTA
+  __shared__ int npieces;
+  const int tile = s.tail0 + blockIdx.x;
+  if (threadIdx.x == 0) {
+    // the CTAs whose tail units [tail_begin(c), tail_begin(c + 1)) meet the tile's [u0, u0 + nkb)
+    const int u0 = blockIdx.x * s.nkb, u1 = u0 + s.nkb;
+    int n = 0;
+    int c = (int)((int64_t)u0 * nctas / s.tail_units);  // tail_begin(c) <= u0
+    while (c > 0 && tail_begin(s, c, nctas) > u0) --c;
+    for (int b = tail_begin(s, c, nctas); c < nctas && b < u1; ++c) {
+      const int e = tail_begin(s, c + 1, nctas);
+      if (e > b && e > u0) {  // a non-empty run that meets the tile
+        slots[n++] = 2 * c + (tile == s.tail0 + b / s.nkb ? 0 : 1);
+      }
+      b = e;
+    }
+    npieces = n;
+  }
+  __syncthreads();
+  const int n = npieces;
+  if (n <= 1) return;  // one CTA covered the tile and wrote it
+  const int rt = tile / s.nct, ct = tile - rt * s.nct;
+  for (int i = threadIdx.x; i < TM * TN; i += blockDim.x) {
+    const int cc = i / TM, r = i - cc * TM, row = rt * TM + r, col = ct * TN + cc;
+    if (row >= nrows || col >= ncols) continue;
+    float sum = part[(int64_t)slots[0] * TN * TM + i];
+    for (int k = 1; k < n; ++k) sum += part[(int64_t)slots[k] * TN * TM + i];
+    dst[(int64_t)col * nrows + row] = from_float<OutT>(sum);
+  }
+}
+
+// Tile widths: 16 / 32 / 48 / 64 columns (2 / 4 / 6 / 8 mma column tiles per warp).
+using C16 = cfg<2>;
+using C32 = cfg<4>;
+using C48 = cfg<6>;
+using C64 = cfg<8>;
+
+template <ggml_type type, class C>
+static int sm_slots() {  // resident CTAs per device: 1 per SM (fewest over the output types)
+  static int slots[GGML_CUDA_MAX_DEVICES] = {};
+  int dev = 0;
+  CUDA_CHECK(cudaGetDevice(&dev));
+  GGML_ASSERT(dev < GGML_CUDA_MAX_DEVICES);
+  if (slots[dev] == 0) {
+    const int bytes = (int)C::SMEM;
+    int occ = INT_MAX, sms = 0;
+    auto one = [&](auto kernel) {
+      int o = 0;
+      CUDA_CHECK(cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, bytes));
+      CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&o, kernel, THREADS, bytes));
+      occ = std::min(occ, o);
+    };
+    one(iq3_packed_mmq<type, C, float>);
+    one(iq3_packed_mmq<type, C, half>);
+    one(iq3_packed_mmq<type, C, nv_bfloat16>);
+    CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, dev));
+    slots[dev] = std::max(1, occ) * sms;
+  }
+  return slots[dev];
+}
+
+struct plan {
+  int tn;      // tile width
+  int nctas;
+  sched s;
+  bool split;  // some tile is shared: scratch + fixup
+  size_t work_bytes;
+  double cost;
+};
+
+// Estimated time of a launch in units of the unit cost: per SM, a unit (weight block x tile)
+// costs ~1.7 + 0.55 NT us on the 3090 (it2: 2.8 / 4.1 / 6.2 us at NT = 2 / 4 / 8), and splitting
+// tiles costs ~7 units more (scratch, fixup; whole-tile waves on 68 CTAs beat the split on 82
+// at 17408 rows, 32 and 128 columns). it3: the plan's width is the fastest forced one at every
+// n and shape measured.
+static double unit_cost(int nt) { return 2.9 + nt; }
+constexpr double SPLIT_UNITS = 7.0;
+
+template <ggml_type type, class C>
+static plan make_plan(int nrows, int ncols, int nkb) {
+  plan p{};
+  p.tn = C::TN;
+  const int nrt = (nrows + TM - 1) / TM, nct = (ncols + C::TN - 1) / C::TN, tiles = nrt * nct;
+  const int gmax = std::max(1, std::min(sm_slots<type, C>(), tiles * nkb));
+  const int waves = (tiles + gmax - 1) / gmax;
+  const double whole = (double)waves * nkb, split = (double)tiles * nkb / gmax + (tiles % gmax ? SPLIT_UNITS : 0.0);
+  // whole-tile waves on as few CTAs as that many waves need, or the split tail on gmax
+  p.nctas = whole <= split ? (tiles + waves - 1) / waves : gmax;
+  p.cost = std::min(whole, split) * unit_cost(C::NT);
+  p.s.nkb = nkb;
+  p.s.nct = nct;
+  p.s.tail0 = whole <= split ? tiles : tiles / p.nctas * p.nctas;
+  p.s.tail_units = (tiles - p.s.tail0) * nkb;
+  // shared tiles exist unless the tail splits into whole tiles per CTA
+  p.split = p.s.tail_units % p.nctas != 0 || (p.s.tail_units / p.nctas) % nkb != 0;
+  p.work_bytes = p.split ? (size_t)2 * p.nctas * TM * C::TN * sizeof(float) : 0;
+  return p;
+}
+
+// The cheapest of the tile widths (a narrower one on a tie).
+template <ggml_type type>
+static plan best_plan(int nrows, int ncols, int nkb) {
+  plan best = make_plan<type, C16>(nrows, ncols, nkb);
+  for (const plan& p : {make_plan<type, C32>(nrows, ncols, nkb), make_plan<type, C48>(nrows, ncols, nkb),
+                        make_plan<type, C64>(nrows, ncols, nkb)}) {
+    if (p.cost < best.cost) best = p;
+  }
+  return best;
+}
+
+template <ggml_type type, class C, typename OutT>
+static void launch_t(const char* vx, const void* vy, void* dst, float* work, int nrows, int ncols, const plan& p,
+                     cudaStream_t stream) {
+  GGML_ASSERT(!p.split || work != nullptr);
+  GGML_ASSERT(p.nctas <= FIXUP_MAX_CTAS);  // the fixup's piece list
+  iq3_packed_mmq<type, C, OutT><<<p.nctas, dim3(WARP_SIZE, WARPS), C::SMEM, stream>>>(
+      vx, (const char*)vy, (OutT*)dst, work, nrows, ncols, p.s);
+  if (p.split) {
+    iq3_packed_fixup<C, OutT><<<p.s.tail_units / p.s.nkb, 256, 0, stream>>>(work, (OutT*)dst, nrows, ncols, p.s,
+                                                                            p.nctas);
+  }
+}
+
+template <ggml_type type, typename OutT>
+static void launch_out(const char* vx, const void* vy, void* dst, float* work, int nrows, int ncols, int nkb,
+                       cudaStream_t stream) {
+  const plan p = best_plan<type>(nrows, ncols, nkb);
+  switch (p.tn) {
+    case 16: launch_t<type, C16, OutT>(vx, vy, dst, work, nrows, ncols, p, stream); break;
+    case 32: launch_t<type, C32, OutT>(vx, vy, dst, work, nrows, ncols, p, stream); break;
+    case 48: launch_t<type, C48, OutT>(vx, vy, dst, work, nrows, ncols, p, stream); break;
+    default: launch_t<type, C64, OutT>(vx, vy, dst, work, nrows, ncols, p, stream); break;
+  }
+}
+
+template <ggml_type type>
+static size_t work_bytes_t(int nrows, int ncols, int nkb) {
+  return best_plan<type>(nrows, ncols, nkb).work_bytes;
+}
+
+template <ggml_type type>
+static void launch_type(const char* vx, const void* vy, void* dst, int dst_kind, float* work, int nrows,
+                        int ncols, int nkb, cudaStream_t stream) {
+  switch (dst_kind) {
+    case 0: launch_out<type, float>(vx, vy, dst, work, nrows, ncols, nkb, stream); break;
+    case 1: launch_out<type, half>(vx, vy, dst, work, nrows, ncols, nkb, stream); break;
+    default: launch_out<type, nv_bfloat16>(vx, vy, dst, work, nrows, ncols, nkb, stream); break;
+  }
+}
+
+}  // namespace tiled
 
 }  // namespace
 
@@ -699,11 +1118,18 @@ void iq3_mma_packed_mul_mat_vec_cuda(ggml_type type, const char* vx, const void*
       vx, y, dst, nrows, k / QK_K, ncols, stream);
 }
 
-// dst [nrows, nblocks * block bytes] GGUF blocks from src packed by quantization/iq3_pack.py.
-void iq3_unpack_cuda(ggml_type type, const char* src, char* dst, int nrows, int nblocks, cudaStream_t stream) {
-  GGML_ASSERT(nrows % ROWS == 0);
-  const int ntb = nrows / ROWS * nblocks;
-  const int grid = std::min((ntb + WARPS - 1) / WARPS, 65535);
-  (type == GGML_TYPE_IQ3_S ? iq3_unpack<GGML_TYPE_IQ3_S> : iq3_unpack<GGML_TYPE_IQ3_XXS>)
-      <<<grid, dim3(WARP_SIZE, WARPS), 0, stream>>>(src, dst, ntb, nblocks);
+// fp32 scratch iq3_packed_mmq_cuda needs for this product (0: none).
+size_t iq3_packed_mmq_work_bytes(ggml_type type, int nrows, int k, int ncols) {
+  return (type == GGML_TYPE_IQ3_S ? tiled::work_bytes_t<GGML_TYPE_IQ3_S> : tiled::work_bytes_t<GGML_TYPE_IQ3_XXS>)(
+      nrows, ncols, k / QK_K);
+}
+
+// W packed by quantization/iq3_pack.py (nrows % 16 == 0); vy: quantize_x's block_q8_1_mmq (D4)
+// for ncols >= 1 columns of k values (k % 256 == 0); dst [ncols, nrows] fp32 / fp16 / bf16
+// (dst_kind 0 / 1 / 2); work: iq3_packed_mmq_work_bytes of fp32 scratch or null.
+void iq3_packed_mmq_cuda(ggml_type type, const char* vx, const void* vy, void* dst, int dst_kind, float* work,
+                         int nrows, int k, int ncols, cudaStream_t stream) {
+  GGML_ASSERT(ncols >= 1 && nrows % ROWS == 0 && k % QK_K == 0);
+  (type == GGML_TYPE_IQ3_S ? tiled::launch_type<GGML_TYPE_IQ3_S> : tiled::launch_type<GGML_TYPE_IQ3_XXS>)(
+      vx, vy, dst, dst_kind, work, nrows, ncols, k / QK_K, stream);
 }

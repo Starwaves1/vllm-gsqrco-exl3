@@ -21,7 +21,8 @@ tensor cores) are checked the same way and against vendored MMVQ on fp32 X.
 lcpp_mul_mat_vec_iq3_mma_packed (the mma kernel on W packed by quantization/iq3_pack.py, 1..32
 rows) must be bit-exact with lcpp_mul_mat_vec_iq3_mma on the GGUF bytes 8 rows at a time; the
 pack must round-trip on every block of the GGUF, and GGUFLinearMethod._pack_iq3 + apply() on a
-packed layer must match the per-run ops.
+packed layer must match the per-run ops. lcpp_mul_mat_iq3_packed (R2: tiled kernel on the packed
+W, any rows, routed above 8) must match vendored MMQ on the GGUF bytes up to fp32 reordering.
 Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
 """
@@ -514,6 +515,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
 # ---------------------------------------------------------------------------- packed IQ3 (R1)
 
 PACKED_TOKENS = list(range(1, 33))  # every fill of the 1, 2 and 4 column groups
+TILED_RTOL = 1e-5  # lcpp_mul_mat_iq3_packed vs MMQ, fp32 reordering (see test_lcpp_iq3_packed_tiled)
 
 
 def _packed(w, qt):
@@ -525,7 +527,7 @@ def _packed(w, qt):
 @pytest.mark.parametrize("name", IQ3_TYPES)
 def test_iq3_pack_roundtrip(tensors_by_type, name):
     """pack is a bijection on real blocks: unpack(pack(w)) == w for every row of every tensor
-    of the type (torch on the GPU; the CUDA unpack op; torch on the CPU for one tensor), and
+    of the type (torch on the GPU; torch on the CPU for one tensor), and
     pack gives the same bytes on the CPU and the GPU. Also on random bytes (every bit pattern
     of a block, not only the ones a quantizer writes)."""
     import gguf
@@ -534,7 +536,6 @@ def test_iq3_pack_roundtrip(tensors_by_type, name):
 
     from vllm_gguf_plugin.quantization import iq3_pack
 
-    C = _lcpp()
     qt = int(gguf.GGMLQuantizationType[name])
     ts = tensors_by_type.get(name) or pytest.skip(f"{name} not in this GGUF")
     blocks = 0
@@ -543,7 +544,6 @@ def test_iq3_pack_roundtrip(tensors_by_type, name):
         p = iq3_pack.pack(w, qt)
         assert p.shape == w.shape and not torch.equal(p, w)
         assert torch.equal(iq3_pack.unpack(p, qt), w)
-        assert torch.equal(C.lcpp_iq3_unpack(p, qt), w)
         if i == 0:
             wc = w[:256].cpu()
             assert torch.equal(iq3_pack.pack(wc, qt), p[:256].cpu())
@@ -552,7 +552,7 @@ def test_iq3_pack_roundtrip(tensors_by_type, name):
     g = torch.Generator().manual_seed(0)
     r = torch.randint(0, 256, (64, 4 * gguf.GGML_QUANT_SIZES[qt][1]), generator=g, dtype=torch.uint8)
     assert torch.equal(iq3_pack.unpack(iq3_pack.pack(r, qt), qt), r)
-    assert torch.equal(C.lcpp_iq3_unpack(iq3_pack.pack(r, qt).cuda(), qt).cpu(), r)
+    assert torch.equal(iq3_pack.unpack(iq3_pack.pack(r.cuda(), qt), qt).cpu(), r)
     print(f"\n{name}: {len(ts)} tensors, {blocks} blocks round-trip")
 
 
@@ -597,18 +597,84 @@ def test_lcpp_iq3_packed_graph_replay(tensors_by_type, name, n):
     _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_vec_iq3_mma_packed, prep=_packed)
 
 
-@pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128])
+# ---------------------------------------------------------------------------- packed IQ3, tiled (R2)
+
+# every tile width (16 / 32 / 64 / 128 columns) full and part-filled, production's 128-row
+# prefill chunk, a mixed step (129), and the 2048-row chunk
+TILED_TOKENS = [1, 8, 16, 17, 32, 33, 48, 64, 65, 96, 128, 129, 200, 512, 2048]
+
+
+def _close_to_fp32(y, ref32, rtol):
+    """y (any float dtype) is ref32 rounded to y's dtype after an fp32 reordering error of at
+    most rtol * max|ref32|: |y - ref32| <= half an ulp of y's dtype at ref32 + that error."""
+    import torch
+
+    ref32 = ref32.float()
+    err = (y.float() - ref32).abs()
+    half_ulp = 0 if y.dtype == torch.float32 else torch.finfo(y.dtype).eps / 2 * ref32.abs()
+    tol = half_ulp + rtol * ref32.abs().max()
+    assert (err <= tol).all(), f"max err / tol {(err / tol).max().item():.3g}"
+
+
+@pytest.mark.parametrize("shape", ["real", "rows_208", "k_tail", "k_min", "many_tiles"])
+@pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
+@pytest.mark.parametrize("n", TILED_TOKENS)
+@pytest.mark.parametrize("name", IQ3_TYPES)
+def test_lcpp_iq3_packed_tiled(tensors_by_type, name, n, dtype, shape):
+    """lcpp_mul_mat_iq3_packed (tiled, packed W, any rows) against vendored MMQ on the GGUF
+    bytes: the same q8_1 input and per-slice fp32 term (float(C) * dA * dB added in K order),
+    so the fp32 results differ only where one of the two splits a tile's K range and adds the
+    pieces (TILED_RTOL, calibrated on the 3090: cloud/results/phase3/r2); 16-bit outputs are
+    MMQ's fp32 result rounded (half an ulp). 16-bit X also against the CPU reference models.
+    The allocator's free blocks are poisoned (stream-K scratch). rows_208: 13 16-row tiles (a
+    part-filled CTA tile); k_tail: K = 4608; k_min: K = 512 (2 weight blocks: every tile split
+    over CTAs); many_tiles: 8192 rows (whole-tile waves, then a split tail)."""
+    import gguf
+    import numpy as np
+    import torch
+
+    C = _lcpp()
+    qt = gguf.GGMLQuantizationType[name]
+    _, raw = _sample(tensors_by_type, name, rows=ROWS)
+    if shape == "many_tiles":
+        raw = np.tile(raw, (16, 1))
+    elif shape == "rows_208":
+        raw = raw[:208]
+    bsz = gguf.GGML_QUANT_SIZES[qt][1]
+    blocks = {"k_tail": 18, "k_min": 2}.get(shape)
+    raw = np.ascontiguousarray(raw[:, : blocks * bsz] if blocks else raw)
+    x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1400 + n).cuda()
+    w = torch.from_numpy(raw).cuda()
+    p = _packed(w, int(qt))
+    _poison_allocator()
+    y = C.lcpp_mul_mat_iq3_packed(p, x, int(qt), p.shape[0])
+    ref32 = C.lcpp_mul_mat_q(w, x.float(), int(qt), w.shape[0])  # fp32 X: the same q8_1 bytes
+    torch.cuda.synchronize()
+    assert y.shape == (n, raw.shape[0]) and y.dtype == x.dtype
+    _close_to_fp32(y, ref32, TILED_RTOL)
+    if dtype != "float32" and shape == "real":
+        _check(y, raw, name, x.cpu(), mmq=True, lcpp=True)
+
+
+@pytest.mark.parametrize("n", [16, 32, 129, 512])
+@pytest.mark.parametrize("name", IQ3_TYPES)
+def test_lcpp_iq3_packed_tiled_graph_replay(tensors_by_type, name, n):
+    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_iq3_packed, prep=_packed)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
 @pytest.mark.parametrize("name", IQ3_TYPES)
 def test_routing_packed_whole_tensor(tensors_by_type, name, n):
-    """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to 32 rows the packed
-    kernel (bit-exact with the mma kernel 8 rows at a time), above it MMQ on the unpacked
-    bytes (bit-exact with MMQ on the GGUF bytes)."""
+    """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+    the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+    tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+    bytes)."""
     import gguf
     import numpy as np
     import torch
 
     from vllm_gguf_plugin import ops
-    from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+    from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
 
     C = _lcpp()
     if not ops.LCPP_ENABLED:
@@ -620,26 +686,29 @@ def test_routing_packed_whole_tensor(tensors_by_type, name, n):
     x = _x(n, int(t.shape[0]), "bfloat16", seed=1200 + n).cuda()
     _poison_allocator()
     y = _fused_mul_mat_gguf(x, p, qt, True)
-    if n <= 32:
+    if n <= PACKED_VEC_MAX_ROWS:
         ref = torch.cat([C.lcpp_mul_mat_vec_iq3_mma(w, x[i:i + 8], qt, w.shape[0]) for i in range(0, n, 8)])
     else:
-        ref = C.lcpp_mul_mat_q(w, x, qt, w.shape[0])
+        ref = C.lcpp_mul_mat_iq3_packed(p, x, qt, p.shape[0])
+        _close_to_fp32(y, C.lcpp_mul_mat_q(w, x.float(), qt, w.shape[0]), TILED_RTOL)
     torch.cuda.synchronize()
     assert torch.equal(y, ref)
-    if n in (16, 32):  # replaces MMQ here: against the CPU reference models too
-        _check(y[:, :512], raw[:512], name, x.cpu(), mmq=False, lcpp=True)
+    if n in (16, 32, 128):  # replaces MMQ here: against the CPU reference models too
+        _check(y[:, :512], raw[:512], name, x.cpu(), mmq=n > PACKED_VEC_MAX_ROWS, lcpp=True)
 
 
 def _routed_packed_ref(w, x, qt, iq3):
     """What apply() must give for GGUF bytes w when their run is packed (iq3) or not."""
     import torch
 
+    from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS
+
     C = torch.ops._C_gguf
     if not iq3:
         return _routed(w, x, qt)
-    if x.shape[0] <= 32:
+    if x.shape[0] <= PACKED_VEC_MAX_ROWS:
         return torch.cat([C.lcpp_mul_mat_vec_iq3_mma(w, x[i:i + 8], qt, w.shape[0]) for i in range(0, x.shape[0], 8)])
-    return C.lcpp_mul_mat_q(w, x, qt, w.shape[0])
+    return C.lcpp_mul_mat_iq3_packed(_packed(w, qt), x, qt, w.shape[0])
 
 
 def _qkvz_block(gguf_reader, z_iq3):
@@ -661,7 +730,7 @@ def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
     """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
     single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
     (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
-    apply() is bit-exact with the packed kernel / unpacked MMQ on each IQ3 run's own bytes and
+    apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
     with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
     import numpy as np
     import torch

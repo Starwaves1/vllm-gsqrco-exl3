@@ -13,6 +13,8 @@ Variants (only where production could route them):
   lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
   lcpp_iq3_mma   torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma (the same on int8 tensor cores), n <= 8
   lcpp_iq3_mma_packed  the same on W packed by quantization/iq3_pack.py, n <= 32
+  lcpp_iq3_packed      torch.ops._C_gguf.lcpp_mul_mat_iq3_packed (tiled int8 tensor-core kernel on
+                       the packed W, any n; routed above 8 rows)
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -69,6 +71,8 @@ def variants(name, qt, rows, k, n, packed=None):
             v["lcpp_iq3_mma"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma(w, x, qt, rows)
     if n <= 32 and name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_vec_iq3_mma_packed"):
         v["lcpp_iq3_mma_packed"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma_packed(packed, x, qt, rows)
+    if name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_iq3_packed"):
+        v["lcpp_iq3_packed"] = lambda w, x: C.lcpp_mul_mat_iq3_packed(packed, x, qt, rows)
     return v
 
 
