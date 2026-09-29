@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
-RATE = 0.155  # $/h
+RATE = 0.20  # $/h (box 2, 350 W host)
 MAX_POINTS = 1500
 
 
