@@ -6,7 +6,8 @@ mean KLD <= 0.001 and top-1 agreement >= 99%, overall and for the 100k+ sequence
 
   python bench/parity/compare.py -d PROMPT_DIR -l LLAMA_OUT -v VLLM_OUT [--json out.json]
 
-Exit code 0 = pass, 1 = fail. CPU only.
+--json keeps each sequence's per-position KLD and top-1 hits, so runs can be compared position
+by position after the logit dumps are deleted. Exit code 0 = pass, 1 = fail. CPU only.
 """
 
 import argparse
@@ -60,7 +61,7 @@ def compare_seq(lpath: Path, vpath: Path) -> dict:
     return {"n_pos": len(lpos), "vocab_llama": L.shape[1], "vocab_vllm": V.shape[1],
             "kld_mean": float(np.mean(kld)), "kld_p99": float(np.percentile(kld, 99)),
             "kld_max": float(np.max(kld)), "top1": float(np.mean(top1)), "llama_top1_in_vllm_top5": float(np.mean(top5)),
-            "kld": kld, "top1_hits": [bool(x) for x in top1]}
+            "positions": [int(x) for x in lpos], "kld": kld, "top1_hits": [bool(x) for x in top1]}
 
 
 def main() -> None:
@@ -80,8 +81,7 @@ def main() -> None:
         all_k += r["kld"]; all_t += r["top1_hits"]
         if s["n_tokens"] >= LONG:
             long_k += r["kld"]; long_t += r["top1_hits"]
-        r.pop("kld"); r.pop("top1_hits")
-        res[s["name"]] = {"kind": s["kind"], "n_tokens": s["n_tokens"], **r}
+        res[s["name"]] = {"kind": s["kind"], "n_tokens": s["n_tokens"], **r}  # per-position lists kept
         print(f"{s['name']} {s['kind']:6s} {s['n_tokens']:7d} tok  KLD mean {r['kld_mean']:.5f} "
               f"p99 {r['kld_p99']:.5f} max {r['kld_max']:.4f}  top1 {r['top1']:.4f}")
     if not all_k:
