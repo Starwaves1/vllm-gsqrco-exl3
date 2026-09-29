@@ -36,11 +36,17 @@ from .utils import (
 
 # Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
-# lcpp_mul_mat_mma_k (int8 tensor cores, lcpp_owned_mma_k.cu): the types and activation rows
-# it is routed at, for W above 2048 rows (cloud/results/opt/k3). From 33 rows it runs 64-column
-# tiles and loses to MMQ.
 _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
-_MMA_K_ROWS = (9, 32)
+
+
+def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
+    """Where lcpp_mul_mat_mma_k (int8 tensor cores, lcpp_owned_mma_k.cu) beats MMQ by more than
+    the noise (cloud/results/opt/k3/route-*.tsv): 9..32 activation rows on W above 2048 rows,
+    IQ4_XS at 17..32 rows only on the large W (from 12288 x 5120). From 33 rows it runs 64-column
+    tiles and loses, bar 64 rows on large Q4_K W (+3..6 %, not routed)."""
+    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048:
+        return False
+    return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 
 
 def _fused_mul_mat_gguf(
@@ -68,10 +74,8 @@ def _fused_mul_mat_gguf(
             return torch.ops._C_gguf.lcpp_mul_mat_vec_own(
                 weight, x, weight_type, weight.shape[0]
             )
-        # Q4_K / IQ4_XS / IQ2_S at 9..32 rows (MTP verify at c = 3..8): the owned int8
-        # tensor-core kernel beats MMQ there (cloud/results/opt/k3)
-        if (weight_type in _MMA_K_TYPES and _MMA_K_ROWS[0] <= x.shape[0] <= _MMA_K_ROWS[1]
-                and weight.shape[0] > 2048):
+        # Q4_K / IQ4_XS / IQ2_S at 9..32 rows (MTP verify at c = 3..8)
+        if _mma_k_wins(weight_type, x.shape[0], weight.shape[0], x.shape[1]):
             return torch.ops._C_gguf.lcpp_mul_mat_mma_k(
                 weight, x, weight_type, weight.shape[0]
             )
