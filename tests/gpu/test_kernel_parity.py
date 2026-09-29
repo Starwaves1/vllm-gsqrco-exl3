@@ -15,8 +15,9 @@ Route L (llama.cpp b11211 MMVQ/MMQ behind csrc/lcpp_shim.cu; needs the VLLM_GGUF
 build, skipped otherwise): lcpp_mul_mat_vec_q at 1..8 tokens and lcpp_mul_mat_q at 1..2048
 against the same references (plus the D2S6 model for Q2_K MMQ, see _refs.py), with the
 allocator's free blocks poisoned (0xFF) first so an unzeroed scratch read shows up; CUDA-graph
-capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 (the shim's own
-IQ3_S/IQ3_XXS kernel for 1..8 rows) is checked the same way and against vendored MMVQ on fp32 X.
+capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 and
+lcpp_mul_mat_vec_iq3_mma (the shim's own IQ3_S/IQ3_XXS kernels for 1..8 rows, dp4a and int8
+tensor cores) are checked the same way and against vendored MMVQ on fp32 X.
 Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
 """
@@ -43,7 +44,8 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # 1..8: MMQ below upstream's J_max tail (only the shim's zeroed 128-block tail protects the
 # reads); 128 = production's prefill chunk (--long-prefill-token-threshold 128).
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
-IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
+IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3[_mma] kernels
+IQ3_OPS = ["lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"]  # dp4a, int8 tensor cores
 
 
 def _sample(tensors_by_type, name, rows=ROWS, big=None):
@@ -271,33 +273,47 @@ def test_lcpp_mmq_odd_rows(tensors_by_type, name, n):
     _check(y, raw, name, x, mmq=True, lcpp=True)
 
 
-@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail"])
+@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail", "odd_rows", "k_min", "few_rows", "many_tiles"])
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
 @pytest.mark.parametrize("n", LCPP_MMVQ_TOKENS)
 @pytest.mark.parametrize("name", IQ3_TYPES)
-def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
-    """The owned IQ3 kernel (lcpp_mul_mat_vec_iq3) takes MMVQ's q8_1 input and computes each
-    32-value slice exactly as the vendored vec_dot; only the fp32 order of a row's slice sums
-    differs. 16-bit X: the CPU reference models, as for MMVQ. fp32 X (fp32 output, no final
-    rounding): within 1e-5 of vendored MMVQ itself. row_tail: 202 rows (the last CTA's 16
+@pytest.mark.parametrize("op", IQ3_OPS)
+def test_lcpp_iq3(tensors_by_type, op, name, n, dtype, shape):
+    """The owned IQ3 kernels (lcpp_mul_mat_vec_iq3, dp4a; lcpp_mul_mat_vec_iq3_mma, int8 tensor
+    cores) take MMVQ's q8_1 input and compute each 32-value slice's scaled integer sum exactly as
+    the vendored vec_dot; only the fp32 order of a row's slice terms differs (the mma kernel also
+    applies d_w once per weight block). 16-bit X: the CPU reference models, as for MMVQ. fp32 X
+    (fp32 output, no final rounding): within 1e-5 of vendored MMVQ itself. row_tail: 202 rows (the last CTA's 16
     rows are part-filled; even, because vendored MMVQ, the reference, reads one weight row past
     the end at an odd row count: compute-sanitizer memcheck); k_tail: K = 4608 (the last staged
-    chunk is 16 q8_1 blocks, not 32; this model's K are all multiples of 1024)."""
+    chunk is 16 q8_1 blocks, not 32; this model's K are all multiples of 1024). odd_rows: 201
+    rows of K = 4608, so W's size is 4 mod 8 (fp32 reference for the mma kernel: the dp4a
+    kernel, which stays in bounds); k_min: K = 512 (2 weight blocks: the mma kernel's warps 2
+    and 3 have none); few_rows: 20 rows (fewer 16-row tiles than CTAs); many_tiles: the 512
+    rows 16 times over, fp32 only (more tiles than resident CTAs: each CTA takes several)."""
     import _refs
     import gguf
     import numpy as np
     import torch
 
+    if shape == "many_tiles" and dtype != "float32":
+        pytest.skip("fp32 only: the reference is MMVQ on the GPU")
     C = _lcpp()
     qt = gguf.GGMLQuantizationType[name]
-    _, raw = _sample(tensors_by_type, name, rows=202 if shape == "row_tail" else ROWS)
+    rows = {"row_tail": 202, "odd_rows": 201, "few_rows": 20}.get(shape, ROWS)
+    _, raw = _sample(tensors_by_type, name, rows=rows)
+    if shape == "many_tiles":
+        raw = np.tile(raw, (16, 1))
     bsz = gguf.GGML_QUANT_SIZES[qt][1]
-    raw = np.ascontiguousarray(raw[:, : 18 * bsz] if shape == "k_tail" else raw)
+    blocks = {"k_tail": 18, "odd_rows": 18, "k_min": 2}.get(shape)
+    raw = np.ascontiguousarray(raw[:, : blocks * bsz] if blocks else raw)
     x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1000 + n)
     w = torch.from_numpy(raw).cuda()
     _poison_allocator()
-    y = C.lcpp_mul_mat_vec_iq3(w, x.cuda(), int(qt), w.shape[0])
-    ref = C.lcpp_mul_mat_vec_q(w, x.cuda(), int(qt), w.shape[0])
+    y = getattr(C, op)(w, x.cuda(), int(qt), w.shape[0])
+    mma_odd = shape == "odd_rows" and op.endswith("_mma")  # under memcheck MMVQ would read past W
+    ref_op = C.lcpp_mul_mat_vec_iq3 if mma_odd else C.lcpp_mul_mat_vec_q
+    ref = ref_op(w, x.cuda(), int(qt), w.shape[0])
     torch.cuda.synchronize()
     assert y.shape == (n, raw.shape[0]) and y.dtype == x.dtype
     if dtype == "float32":
@@ -343,10 +359,11 @@ def test_lcpp_graph_replay(tensors_by_type, name, op_n):
     _graph_replay(tensors_by_type, name, n, C.lcpp_mul_mat_vec_q if op == "mmvq" else C.lcpp_mul_mat_q)
 
 
-@pytest.mark.parametrize("n", [1, 4, 8])
+@pytest.mark.parametrize("n", [1, 4, 6, 8])
 @pytest.mark.parametrize("name", IQ3_TYPES)
-def test_lcpp_iq3_graph_replay(tensors_by_type, name, n):
-    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_vec_iq3)
+@pytest.mark.parametrize("op", IQ3_OPS)
+def test_lcpp_iq3_graph_replay(tensors_by_type, op, name, n):
+    _graph_replay(tensors_by_type, name, n, getattr(_lcpp(), op))
 
 
 def _graph_replay(tensors_by_type, name, n, fn):

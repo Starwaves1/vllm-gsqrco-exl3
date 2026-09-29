@@ -1,0 +1,99 @@
+K2: int8 tensor-core (mma.sync m16n8k32 s8) IQ3_S/IQ3_XXS kernel for 1..8 activation rows
+(lcpp_mul_mat_vec_iq3_mma, csrc/lcpp_owned_iq3_mma.cu). Same microbench and box as item 5
+(bench/micro/gemm.py: op time per call incl. q8_1 quantize and output cast, 10 calls per CUDA
+graph, bf16 X, real GGUF blocks, 350 W 3090). us at 17408 x 5120 / 5120 x 17408.
+Reference, same session (it0 ref run): dp4a iq3 kernel S n1 55.1/57.2 n4 70.4/73.0 n8 99.3/94.7,
+XXS n1 53.2/54.7 n4 71.1/72.1 n8 100.4/98.2; MMVQ S n8 145.6/144.0; MMQ S 123/128, XXS 110/110.
+"instr/unit" = SASS instructions in the weight-block loop per 16 rows x 32 values (one mma),
+IQ3_S n=4.
+
+Shape shared by all variants: one mma = 16 weight rows x one 32-value slice x 8 activation
+columns (columns >= n are zero), exact int32 per slice, then the vendored sub-scale and
+(d_w * d_q8) * float(sum). Every variant is flat in n: the n-dependent dp4a work is gone.
+
+it  variant                                                        instr/unit IQ3_S n1/n4/n8 (17408x5120)  XXS n1/n4/n8
+0   v1: 4 warps split K over 16 rows; decode as the dp4a kernel       104     74.4/79.7/94.8   69.5/78.1/85.7
+    (lane = slice, 4 rows), int8 words -> smem A tile -> ldmatrix
+1   v2: decode straight into mma fragments (lane holds rows g, g+8,     72     76.4/79.7/88.2   69.5/76.1/85.8
+    values 8t..8t+7 of each slice; k order permuted on A and B), from a
+    per-CTA signed grid table (grid x 16 sign nibbles: 32 KB IQ3_S, 16 KB
+    XXS; one prmt + one LDS per 4 values); persistent CTAs build it once
+2   v3: v2 + cheaper index build, d_w applied once per weight block,    56     76.7/79.9/85.8   70.3/77.5/86.8
+    unpredicated B from an 8-column tile, staging offsets precomputed
+      + L2 prefetch of the next block (1 / 2 iterations ahead)                 74.9/76.4/83.6   69.5/75.4/84.2
+                                                                                77.9/78.7/85.0   74.3/80.2/87.2
+      ablation: every tile reads rows 0..15 (weights L1/L2 resident)           67.4/71.6/71.8   55.7/61.1/68.1
+      -> not DRAM-bound: the SM side alone takes ~70 us (the dp4a kernel's
+         L1-resident time was 20.6 us at n1). IPC ~0.2 with 2 warps per SM
+         sub-partition (32 KB table: 2 CTAs/SM).
+    v4: 1..4 groups of 4 warps per CTA sharing the table (dynamic smem):  ~58   122/109/125 (G=1) 93/95/130
+         nvcc dropped to 64 registers, loads no longer hoisted: much slower; dropped
+3   v5: small tables for occupancy (grid pairs {g, -g} + 256-entry prmt    ~58   117/107/99       110/125/106
+    selector per sign byte; 12-20 KB smem, up to 6 CTAs/SM)
+      ablation (weights resident)                                              87.8/86.2/85.4   77.0/87.7/87.1
+      -> more warps did not help; more shared loads per word made it slower.
+4   v6: v3 + next block's weight bytes and staged activations prefetched   ~58  78.3/80.7/88.3   74.9/81.9/87.5
+    into registers (~160 regs; 2 warps/SMSP cannot hide the load latency)
+      ablation (weights resident)                                              72.3/72.6/77.0   63.5/68.9/74.8
+      -> prefetch alone changes nothing: the SM side is the limit.
+    Diagnosis: fragment-direct decode reads its bytes with 2-byte global loads that touch 8
+    rows per instruction (~46 per warp per block, 8 L1 lines each), several times the L1
+    wavefronts of the dp4a kernel's slice-per-lane loads (4 rows or 1 row x 4 blocks each).
+5   v7: v6 with each warp's 16 row-windows copied into shared memory by  ~60   70.0/73.6/94.9   62.9/70.7/82.7
+    coalesced 8-byte loads (prefetched a block ahead in registers); the
+    fragment lanes read their bytes from shared memory (8 rows per
+    instruction, conflict-free row stride)                              5120x17408: 63.2/70.0/89.0  71.3/80.7/80.6
+      ablation (weights resident)                                              67.6/65.0/86.3   55.1/61.9/73.5
+    IQ3_S n >= 5: 1 CTA/SM (32 KB table + 18.7 KB staging > 49 KB), hence the n8 step.
+Correctness notes: it1-it5 timings were taken before two fixes that do not change the
+instruction mix (v3/v6 prmt selector for the odd word; the d_q8 conversion covered only
+columns 0..3, which also made n >= 5 look slightly cheaper). v1 passed fp32 parity (16/16).
+6   v7 with d_q8 read per slice from the staged tile (no separate array) and no zero column
+    at n = 8, so IQ3_S keeps 2 CTAs/SM up to n = 8. us, same run, dp4a kernel in brackets:
+      n            1            4            5            6            8
+      S  17408  70.9 (55.6)  76.6 (71.4)  78.3 (80.0)  79.2 (86.8)  81.4 (99.6)
+      S   5120  66.8 (57.5)  72.8 (73.8)  74.4 (77.0)  76.2 (89.2)  80.4 (94.1)
+      XXS 17408 65.5 (53.4)  72.5 (72.6)  74.6 (77.7)  77.2 (90.3)  80.7 (99.1)
+      XXS  5120 74.3 (55.3)  82.4 (73.5)  84.9 (80.3)  87.4 (93.4)  78.5 (97.8)
+7   final, committed (review fixes): ncols a runtime argument (one instantiation per type,
+    8-column staging always, unused columns zeroed once), window words past the end of W read
+    as 0 (the 15th word of an IQ3_S window can lie wholly past W). us, same run
+    (cloud/results/phase3/k2/micro-final.tsv), dp4a kernel in brackets:
+      n            1            4            5            6            7            8
+      S  17408  73.9 (55.2)  78.1 (71.9)  79.2 (79.9)  80.5 (86.6)  81.7 (95.9)  83.6 (99.1)
+      S   5120  70.0 (57.7)  74.0 (74.2)  75.9 (77.1)  77.1 (88.5)  78.7 (92.0)  81.4 (93.1)
+      XXS 17408 72.9 (53.2)  77.2 (72.5)  78.2 (76.3)  79.1 (89.6)  81.0 (97.6)  82.4 (98.7)
+      XXS  5120 68.0 (54.9)  72.5 (73.9)  73.7 (79.4)  74.7 (92.7)  76.6 (95.7)  79.7 (97.2)
+    Runtime ncols costs ~1-2 us on IQ3_S vs the per-ncols instantiations (it 6), gains on XXS
+    5120x17408; kept for the smaller code.
+    -> routed from 6 rows (wins at every shape/type from 6; n = 5 is mixed); dp4a keeps 1..5.
+    Targets (n4 <= 58, n8 <= 75 us at 17408x5120) not met: n4 78.1, n8 83.6 (GB/s 490 / 458).
+
+Tests (committed kernel): kernel parity 1594 passed / 16 skipped (VLLM_GGUF_LCPP=1; +442: the
+mma op across n=1..8, 3 dtypes, shapes real/row_tail/k_tail/odd_rows/k_min/few_rows, graph
+replay n=1/4/6/8); added after that run and run separately: many_tiles (8192 rows, CTAs take
+several tiles) + odd_rows 128 passed, first call of the op inside graph capture 2 passed; CPU guards 62 pass; GPU guards -k iq3: 58 pass, 6 fail, all in the stock
+e2b8ad5 MMVQ path (IQ3_S-mmvq: no guards there; untouched here), every lcpp_iq3 and
+lcpp_iq3_mma case passes; compute-sanitizer memcheck + initcheck 0 errors on 20 mma cases
+(exact allocations). Files: parity.txt, final-guards.log, final-sanitizer-*.log.
+
+End to end (production run_benchmarks.sh single, decode pass, T=0 real prompts, 350 W, same
+session A/B; base = this build with item-5 routing, i.e. the dp4a kernel at 1..8 rows):
+            c=1 tok/s (tok/step)   c=2 tok/s (tok/step)   ms/step c=1 / c=2
+  base        90.6 (2.99)           160.4 (3.04)           33.0 / 37.9
+  mma >= 6    90.3 (2.98)           173.2 (3.08)           33.0 / 35.6
+(pass 2 of 2; pass 1: base 90.5 / 158.4, mma 90.4 / 170.4). c=1 decodes 4 rows per step and
+keeps the dp4a kernel; c=2 (8 rows) gets the mma kernel: -6 % ms/step. Files: speed-*.txt.
+
+Beyond 8 rows (c=4/c=8 decode = 16/32 rows; the op is limited to 8 by its guard): vendored MMQ,
+same session, us (GB/s): IQ3_S 17408x5120 n8 125.3 (306) n16 133.5 (287) n32 158.7 (241);
+5120x17408 129.7/142.6/168.9; XXS 17408x5120 109.0/128.1/149.3; 5120x17408 108.6/131.0/147.9.
+The mma kernel does not extend cheaply: its per-warp activation staging (8 columns x 8 slices)
+plus the 32 KB IQ3_S table already fill 2 CTAs/SM; 16/32 columns need the columns shared
+across warps (warps splitting rows, not K) or a smaller table. Estimate from the instruction
+mix (decode ~2/3 of the per-mma work, B + epilogue ~1/3 per 8 columns): ~107 us at n16 (MMQ
+134), ~160 at n32 (MMQ 159), i.e. worth it at 16 rows only. Not built.
+
+Gaps (IQ3_S 17408x5120): DRAM floor ~47 us. c=1 shape (n4): dp4a kernel 71.9 us (1.53x the
+floor), mma 78.1. c=2 shape (n8): mma 83.6 (1.78x). End to end c=1 90.3 tok/s vs ninfer-all's
+published 108.7 for this model (-17 %).

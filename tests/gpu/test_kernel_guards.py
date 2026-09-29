@@ -14,7 +14,7 @@ cudaMalloc boundaries, so the case then runs with PYTORCH_NO_CUDA_MEMORY_CACHING
 allocation per tensor; graph_replay excepted, as capture cannot cudaMalloc); under torch's
 caching allocator a read past a tensor stays inside its segment and goes unreported.
 Cases failing at e2b8ad5 are recorded in STATUS.md (Phase 1). The Route L ops
-(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3, csrc/lcpp_shim.cu) check every one of these before
+(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3[_mma], csrc/lcpp_shim.cu) check every one of these before
 launching, so their rows must all pass; they skip without the VLLM_GGUF_BUILD_LCPP=1 build.
 """
 
@@ -33,7 +33,8 @@ CASES = ["x_noncontig", "x_misaligned", "x_rowstride", "w_narrow_view", "w_misal
 TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "mmq"), ("Q6_K", "mmq"),
              ("IQ3_S", "lcpp_mmvq"), ("IQ4_XS", "lcpp_mmvq"), ("Q4_K", "lcpp_mmvq"),
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
-             ("Q6_K", "lcpp_mmq"), ("IQ3_S", "lcpp_iq3"), ("IQ3_XXS", "lcpp_iq3")]
+             ("Q6_K", "lcpp_mmq"), ("IQ3_S", "lcpp_iq3"), ("IQ3_XXS", "lcpp_iq3"),
+             ("IQ3_S", "lcpp_iq3_mma"), ("IQ3_XXS", "lcpp_iq3_mma")]
 FAULT = ("illegal memory access", "misaligned address", "unspecified launch failure", "CUDA error", "an illegal instruction")
 
 
@@ -59,3 +60,10 @@ def test_guard_case(case, type_op):
     assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
     res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
     assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+
+
+@pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
+def test_iq3_mma_first_call_in_capture(name):
+    """The mma op sets its launch attributes (dynamic shared memory, resident CTAs) on its first
+    call in a process; that call may happen inside CUDA-graph capture."""
+    test_guard_case("graph_first", (name, "lcpp_iq3_mma"))
