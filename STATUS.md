@@ -69,8 +69,8 @@ only, profiles at c=1/c=4). Decode pass 2 T=0 tok/s and ms/step (C x 1000 / tok/
   to write strided dst); embedding host path (<= 0.06 ms/step removable); lm_head fp32 logits
   (~0.01 ms, changes greedy ties); in_proj_ba above 8 rows (already at its cuBLAS floor).
 - After: plugin plumbing 1.13 ms/step at c=1, 1.75 at c=4 (was 2.61); Route L GEMM 21.3 / 35.0
-  ms. Gap to the c=1 floor (13 ms weights + 4.7 ms vLLM idle): 30.5 ms/step = floor + 8.3 GEMM
-  efficiency + 3.2 vLLM GPU work + 1.1 plugin plumbing.
+  ms. Gap to the c=1 floor (~13 ms weights + ~4.7 ms vLLM idle, opt-p): 30.5 ms/step = ~17.7
+  floor + ~8.3 GEMM efficiency + ~3.2 vLLM GPU work + ~1.1 plugin plumbing (+ rounding).
 
 ## Integration 1: opt-p + K1 + K2 merged (2026-09-29, same 350 W 3090)
 

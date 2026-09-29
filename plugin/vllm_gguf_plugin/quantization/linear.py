@@ -50,7 +50,7 @@ def _lcpp_op(n: int, weight_type: int, rows: int) -> str | None:
     q8_1 blocks."""
     if weight_type == WeightType.IQ1_M:
         # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then the
-        # stock dequantize + x @ W.T (cloud/results/opt-p2/micro-iq1m.txt)
+        # stock dequantize + x @ W.T (cloud/results/opt-p2/runs/micro-iq1m-host.txt)
         return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS else None
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the shim's own IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one at

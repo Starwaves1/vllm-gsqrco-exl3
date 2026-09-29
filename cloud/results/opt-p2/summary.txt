@@ -37,9 +37,9 @@ Item 1 (fold the MMQ tail memset into the owned quantizer). quantize_mmq_q8_1_x 
 read tail (J_max + 128 blocks after the quantized data, <= 36 KiB) with a grid-stride loop over
 all its threads before quantizing; mul_mat_q no longer calls cudaMemsetAsync. One launch fewer
 per MMQ call (360 per step at c=4). Parity unchanged (1970 / 128 skip on, 1939 / 159 off); the
-MMQ tests at 1..9 rows run on a poisoned allocator, and the final sanitizer job runs initcheck
-without the caching allocator on MMQ at 1/5/8/9 rows, which flags any read of the tail that the
-kernel did not write.
+MMQ tests at 1..9 rows run on a poisoned allocator (0xFF free blocks). The end-of-run job
+(box-scripts/final.sh) adds compute-sanitizer initcheck without the caching allocator on MMQ at
+1/5/8/9 rows, which would flag a read of any tail byte the kernel did not write: result below.
 
 Item 2 (IQ1_M, one tensor: blk.13 ffn_gate 17408 x 5120). llama.cpp b11211 has no IQ1_M MMQ
 instance (template-instances: iq1_s, not iq1_m), but its MMVQ serves IQ1_M. Microbench
@@ -121,8 +121,18 @@ from the owned mma and Q4_K/IQ2_S kernels would take ~41 / ~0 of them, the vendo
 need item 6's trade), q8_1 quantize 0.41 / 0.60 (item 3), in_proj_ba 0.30 / 0.32 (at its
 cuBLAS floor), cats 0.12 / 0.17 (item 4), stream-k fixups 1.19 at c=4 (vendored).
 
-Gap to the floor at c=1: floor = ~13 ms weight traffic + ~4.7 ms vLLM idle = 17.7 ms/step;
-final 30.5 ms/step (prod W4A16 27.6). Over the floor: Route L GEMM 21.3 - 13 = 8.3 ms (kernel
-efficiency, K agents), vLLM GPU work 3.2 ms (GDN core, attention, norms, act; not in the floor),
-plugin plumbing 1.1 ms, idle ~0.1 ms over vLLM's. ninfer-all: 108.7 tok/s at c=1 against 100.9
+Gap to the floor at c=1: floor = ~13 ms weight traffic + ~4.7 ms vLLM host idle = ~17.7 ms/step
+(the campaign's floor, from opt-p's profile: cloud/results/opt-p/summary.txt "Next levers");
+final 30.5 ms/step (prod W4A16 27.6). The ~12.8 ms over it: Route L GEMM 21.3 - 13 = ~8.3 ms
+(kernel efficiency, K agents), vLLM GPU work ~3.2 ms (GDN core, attention, norms, act; not in
+the floor), plugin plumbing ~1.1 ms, idle ~4.8 vs ~4.7 ms (~0.1); the rest is rounding. ninfer-all: 108.7 tok/s at c=1 against 100.9
 here (-7%).
+
+Review (/check, one Fable reviewer, on 6c2759f..19fbe23): no blocker in items 1 and 2 (tail
+pointer / size / int4 alignment / grid-stride coverage re-derived; x_q8 slice offsets and
+alignment; _lcpp_op None callers; guard ordering; parity count reconciliation 1970 -> 2007 pass).
+Fixed: the IQ1_M comment's microbench path; the sanitizer claim restated as pending; stale
+reverted-item ids in final.sh; the gap-to-floor terms marked approximate with the floor's
+source. Not taken: moving tail_bytes before the stream parameter (churn); doing IQ1_M's 8-row
+chunking inside the shim (saves ~10 of 520 us at 32 rows but needs a per-kernel exception to the
+uniform 8-row MMVQ guard).
