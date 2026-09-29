@@ -22,7 +22,11 @@ it  change                                                          us, n=4 (174
     time -> at 4+ rows the kernel is issue/latency-bound, not DRAM-bound.
 2   same reordering / sums done in the staging copy itself (one q8_1 block per thread, no
     extra barrier)                                                    IQ4_XS 69.3/66.3  Q4_K 72.3/66.3
-    variant sweep on it2 (ab3-ab.tsv, interleaved): integer sub-scale folded into the fp32
+    variant sweep on it2 (ab3-ab.tsv, interleaved; columns own0..own7 = warps x rows, staging,
+    sub-scale fold, slices per lane: own0 4x4 int4-copy no-fold 1 (= it0 staging), own1 4x4
+    per-block no-fold 1 (= it2), own2 4x4 per-block fold 1 (final), own3 4x4 per-block fold 2,
+    own4 8x2 per-block fold 1, own5 8x2 per-block fold 2, own6 4x4 int4-copy fold 2, own7 4x2
+    per-block fold 2; IQ2_S ignores staging and fold): integer sub-scale folded into the fp32
     block scale (kept), 2 slices per lane per chunk (kept for IQ2_S at <= 4 rows only: n4
     64.3/59.4 vs 67.6/66.7; slower for IQ4_XS/Q4_K and for IQ2_S at 8), 8x2 / 4x2 (slower).
 final (fin1-ab.tsv)                                                   IQ4_XS 69.5/69.7  Q4_K 70.4/70.2
@@ -30,11 +34,12 @@ final (fin1-ab.tsv)                                                   IQ4_XS 69.
 
 Other shapes of this model (small-ab.tsv; the review asked): the 16-row CTA underfills the GPU at
 1024 / 2048 rows (64 / 128 CTAs on 82 SMs): IQ4_XS n4 11.7 vs MMVQ 9.5 / 12.2 vs 11.2, Q4_K 10.4 vs
-9.7 / 12.6 vs 13.1 (n1-3 worse), IQ2_S mixed. From 5120 rows on, Q4_K and IQ2_S win at 3+ / 1+
-rows; IQ4_XS stays within +-2 us of MMVQ at n4 (10240 rows: 45.5 vs 43.9) and of MMQ at n8.
+9.7 / 12.6 vs 13.1 (n1-3 worse), IQ2_S mixed. From 5120 rows on, IQ2_S wins from 1 row and Q4_K
+from 4 (ties at 3 below 12288 rows: 27.1 vs 26.8, 27.4 vs 27.7, 43.3 vs 43.2; wins at 3 from 12288); IQ4_XS stays within +-2 us of MMVQ at n4 (10240 rows: 45.5 vs 43.9) and of MMQ at n8.
 
 In situ (torch profiler, 6 c=1 decode steps, opt-k1-final-speed vs opt-p-base-speed, first routing
 with IQ4_XS from 4 rows and no row gate), us per call at 4 rows:
+  (bucketed by grid size: "5120" mixes K=6144 and K=17408 products, identically on both sides)
   Q4_K   1024 rows 8.4 -> 10.8, 2048 12.5 -> 13.3, 5120 50.2 -> 43.3, 6144 30.5 -> 25.9,
          17408 78.0 -> 65.2, lm_head 1088 -> 836
   IQ2_S  5120 78.7 -> 52.8, 6144 35.7 -> 26.5, 17408 89.8 -> 56.9
@@ -44,7 +49,7 @@ So IQ4_XS was dropped (kernel code included; commit 8f78f3b has it) and routing 
 more than 2048 rows.
 
 Routing (linear.py _OWN_MIN_ROWS, up to 8 rows, W above 2048 rows): IQ2_S from 1 row, Q4_K from 3.
-MMVQ keeps Q4_K at 1..2 (within 1-3 us of ours, MMVQ ahead). At 8 rows ours beats MMQ for both.
+MMVQ keeps Q4_K at 1..2 (0.8-5.1 us ahead of ours). At 8 rows ours beats MMQ for both.
 lm_head (248320 x 5120 Q4_K, eager at c=1 with 4 rows): 857 us vs MMVQ 1229 (its route until
 now) and MMQ 1190.
 k1_bench.py: the interleaved A/B timer (its K1_CFG variant switch existed only in the experiment builds).

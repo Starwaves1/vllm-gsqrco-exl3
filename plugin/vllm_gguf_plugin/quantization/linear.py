@@ -34,7 +34,7 @@ from .utils import (
 )
 
 
-# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8, W above 2048 rows).
+# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 
 
