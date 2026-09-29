@@ -16,7 +16,7 @@ build, skipped otherwise): lcpp_mul_mat_vec_q at 1..8 tokens and lcpp_mul_mat_q 
 against the same references (plus the D2S6 model for Q2_K MMQ, see _refs.py), with the
 allocator's free blocks poisoned (0xFF) first so an unzeroed scratch read shows up; CUDA-graph
 capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 (the shim's own
-IQ3_S/IQ3_XXS kernel for 1..8 rows) and lcpp_mul_mat_vec_own (IQ4_XS/Q4_K/IQ2_S, lcpp_owned_k4.cu)
+IQ3_S/IQ3_XXS kernel for 1..8 rows) and lcpp_mul_mat_vec_own (Q4_K/IQ2_S, lcpp_owned_k4.cu)
 are checked the same way and against vendored MMVQ on fp32 X.
 Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
@@ -45,7 +45,7 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # reads); 128 = production's prefill chunk (--long-prefill-token-threshold 128).
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
 IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
-OWN_TYPES = ["IQ4_XS", "Q4_K", "IQ2_S"]  # the owned lcpp_mul_mat_vec_own kernel
+OWN_TYPES = ["Q4_K", "IQ2_S"]  # the owned lcpp_mul_mat_vec_own kernel
 
 
 def _owned_op(C, name):

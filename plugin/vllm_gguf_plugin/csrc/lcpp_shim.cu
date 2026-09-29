@@ -8,7 +8,7 @@
 //   lcpp_mul_mat_vec_q(W, X, type, row)  MMVQ, 1..8 activation rows
 //   lcpp_mul_mat_q(W, X, type, row)      MMQ (int8 tensor cores), any rows
 //   lcpp_mul_mat_vec_iq3(W, X, type, row) owned IQ3_S/IQ3_XXS kernel, 1..8 rows
-//   lcpp_mul_mat_vec_own(W, X, type, row) owned IQ4_XS/Q4_K/IQ2_S kernel, 1..8 rows
+//   lcpp_mul_mat_vec_own(W, X, type, row) owned Q4_K/IQ2_S kernel, 1..8 rows
 //                                         (lcpp_owned_k4.cu)
 // W: uint8 [>=row, row_bytes] GGUF blocks, contiguous rows. X: [n, K]
 // fp32/fp16/bf16, unit inner stride.
@@ -701,7 +701,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
   STD_TORCH_CHECK(kernel != Kernel::iq3 || type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS,
                   op, ": IQ3_S or IQ3_XXS only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::own || own_mul_mat_vec_supported((int)type),
-                  op, ": IQ4_XS, Q4_K or IQ2_S only, got type ", type);
+                  op, ": Q4_K or IQ2_S only, got type ", type);
   const int64_t k = check_inputs(W, X, type, row, mmvq, op);
   const int64_t n = X.size(0);
   const ScalarType out_dtype = X.scalar_type();

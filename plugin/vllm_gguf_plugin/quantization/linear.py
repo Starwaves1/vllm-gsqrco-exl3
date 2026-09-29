@@ -34,8 +34,8 @@ from .utils import (
 )
 
 
-# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
-_OWN_MIN_ROWS = {WeightType.IQ4_XS: 4, WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8, W above 2048 rows).
+_OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 
 
 def _fused_mul_mat_gguf(
@@ -56,9 +56,10 @@ def _fused_mul_mat_gguf(
             return torch.ops._C_gguf.lcpp_mul_mat_vec_iq3(
                 weight, x, weight_type, weight.shape[0]
             )
-        # IQ4_XS / Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and
-        # MMQ (cloud/results/opt/k1)
-        if x.shape[0] <= 8 and x.shape[0] >= _OWN_MIN_ROWS.get(weight_type, 9):
+        # Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and MMQ; its
+        # 16-row CTAs underfill the GPU at <= 2048 rows (cloud/results/opt/k1)
+        if (weight_type in _OWN_MIN_ROWS and _OWN_MIN_ROWS[weight_type] <= x.shape[0] <= 8
+                and weight.shape[0] > 2048):
             return torch.ops._C_gguf.lcpp_mul_mat_vec_own(
                 weight, x, weight_type, weight.shape[0]
             )

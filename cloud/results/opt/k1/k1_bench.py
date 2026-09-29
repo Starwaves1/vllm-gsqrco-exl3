@@ -1,5 +1,5 @@
 """K1 A/B microbench: interleaved rounds of CUDA-graph timings per variant, median us.
-python k1_bench.py OUT TYPES TOKENS CFGS [lm]"""
+python k1_bench.py OUT TYPES TOKENS CFGS [lm]   (K1_SHAPES=ROWSxK,... overrides the shapes)"""
 import os, sys, statistics, time
 sys.path.insert(0, os.environ["K1_ROOT"] + "/bench/micro"); sys.path.insert(0, os.environ["K1_ROOT"] + "/tests/gpu")
 import torch, gguf, gemm
@@ -8,7 +8,8 @@ out, types, tokens, cfgs = sys.argv[1], sys.argv[2].split(","), [int(t) for t in
 lm = len(sys.argv) > 5 and sys.argv[5] == "lm"
 C = torch.ops._C_gguf
 reader = gguf.GGUFReader(str(GGUF))
-cases = [(t, s) for t in types for s in gemm.SHAPES] + ([("Q4_K", gemm.LM_HEAD)] if lm else [])
+shapes = [tuple(map(int, x.split("x"))) for x in os.environ["K1_SHAPES"].split(",")] if os.environ.get("K1_SHAPES") else gemm.SHAPES
+cases = [(t, s) for t in types for s in shapes] + ([("Q4_K", gemm.LM_HEAD)] if lm else [])
 lines = ["type\trows\tK\tn\tvariant\tmedian_us\tmin_us\tGBps"]
 PER = 10
 for name, (rows, k) in cases:

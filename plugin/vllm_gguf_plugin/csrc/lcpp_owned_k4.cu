@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Owned IQ4_XS / Q4_K / IQ2_S product for 1..8 activation rows (MTP decode: 4
-// rows per sequence, 8 at c=2), op lcpp_mul_mat_vec_own in lcpp_shim.cu.
+// Owned Q4_K / IQ2_S product for 1..8 activation rows (MTP decode: 4 rows per
+// sequence, 8 at c=2), op lcpp_mul_mat_vec_own in lcpp_shim.cu.
 // cloud/results/opt/k1 has the data and the variants tried.
 //
 // Same CTA structure as the shim's IQ3 kernel (iq3_mul_mat_vec, phase 3 item 5):
@@ -10,24 +10,23 @@
 // then reads each activation slice once and dots it with all of them. The
 // vendored MMVQ reuses each q8_1 load over only 1-2 weight rows per warp.
 // Per type:
-//  - IQ4_XS: the 16-entry table lookup (vendored get_int_from_table_16) drops
-//    its last two __byte_perm per word; the activation words are staged in the
-//    matching order instead (own_iq4_order), once per CTA.
 //  - Q4_K: the min term needs the sum of each activation slice's quants; it is
 //    computed once per CTA at staging, not per warp.
 //  - IQ2_S: grid in shared memory; at <= 4 rows a chunk is 2 slices per lane
 //    (half the barriers), which measured faster there and slower at 8 rows.
-// Measured and dropped (iterations in the results): an extra barrier-separated
-// staging pass, weight loads hoisted above the staging barrier or prefetched a
-// chunk ahead (more registers, slower), 8 warps x 2 rows, 2 x 4, 4 x 2,
-// __launch_bounds__ min-blocks 5 / 6.
+// The CTA owns 16 rows, so it underfills the GPU below a few thousand rows:
+// linear.py routes it only above 2048. Measured and dropped (see the results):
+// an IQ4_XS version (no faster than MMVQ / MMQ in situ), an extra
+// barrier-separated staging pass, weight loads hoisted above the staging
+// barrier or prefetched a chunk ahead (more registers, slower), 8 warps x 2
+// rows, 2 x 4, 4 x 2, __launch_bounds__ min-blocks 5 / 6.
 //
 // Numerics: IQ2_S computes each slice's integer sum and the term d_w * d_q8 *
 // (sub-scaled sum) exactly as vendored vec_dot_iq2_s_q8_1 (vecdotq.cuh).
-// IQ4_XS / Q4_K sum a slice's 32 products in one integer as the vendored
-// vec_dot (Q4_K: splits over 4 threads), then fold the integer sub-scale into
-// the fp32 block scale; Q4_K's min term uses the integer sum of the q8_1 quants,
-// as MMVQ does. Same model as MMVQ, different fp32 rounding and order.
+// Q4_K sums a slice's 32 products in one integer (the vendored vec_dot splits
+// them over 4 threads), then folds the integer sub-scale into the fp32 block
+// scale; its min term uses the integer sum of the q8_1 quants, as MMVQ does.
+// Same model as MMVQ, different fp32 rounding and order.
 
 #include "common.cuh"
 #include "vecdotq.cuh"
@@ -36,8 +35,8 @@ constexpr int OWN_WARPS = 4;          // warps per CTA
 constexpr int OWN_ROWS_PER_WARP = 4;  // weight rows per warp
 
 // One weight row's decoded 32-value slice: 8 int8x4 words and its scales:
-// IQ4_XS d = block scale * sub-scale; Q4_K d = dm.x * sub-scale, b = dm.y * min;
-// IQ2_S d = block scale, s / s2 = sub-scales of values 0..15 / 16..31.
+// Q4_K d = dm.x * sub-scale, b = dm.y * min; IQ2_S d = block scale, s / s2 =
+// sub-scales of values 0..15 / 16..31.
 struct own_slice {
   int w[8];
   int s, s2;
@@ -53,61 +52,8 @@ static __device__ __forceinline__ int own_negate(uint32_t g, uint32_t bits) {
   return (int)((g ^ (ones * 0xFFu)) + ones);
 }
 
-// The vendored get_int_from_table_16 (CUDA branch) with the 16-byte table held
-// in registers and without its last two __byte_perm: the 8 4-bit indices of q4
-// -> table bytes in index order (.x indices 0..3, .y 4..7).
-static __device__ __forceinline__ int2 own_table16(const uint32_t q4, const uint32_t (&t)[4]) {
-  uint32_t tmp[2];
-  const uint32_t sel = 0x32103210 | ((q4 & 0x88888888) >> 1);
-#pragma unroll
-  for (uint32_t i = 0; i < 2; ++i) {
-    const uint32_t shift = 16 * i;
-    const uint32_t low = __byte_perm(t[0], t[1], q4 >> shift);
-    const uint32_t high = __byte_perm(t[2], t[3], q4 >> shift);
-    tmp[i] = __byte_perm(low, high, sel >> shift);
-  }
-  return make_int2(tmp[0], tmp[1]);
-}
-
-// IQ4_XS: byte b of qs int j holds values 4j+b (low nibble) and 16+4j+b (high
-// nibble), so own_table16 yields words [4j, 16+4j, 4j+1, 17+4j] and [4j+2,
-// 18+4j, 4j+3, 19+4j]. Reorders a q8_1 slice's 8 words the same way; the
-// integer dot is unchanged.
-static __device__ __forceinline__ void own_iq4_order(int (&q)[8]) {
-  int y[8];
-#pragma unroll
-  for (int i = 0; i < 8; ++i) {
-    y[i] = q[i];
-  }
-#pragma unroll
-  for (int j = 0; j < 4; ++j) {
-    q[2 * j + 0] = __byte_perm(y[j], y[j + 4], 0x5140);
-    q[2 * j + 1] = __byte_perm(y[j], y[j + 4], 0x7362);
-  }
-}
-
-// IQ4_XS slice u of b: vec_dot_iq4_xs_q8_1 with iqs = 4u; words in
-// own_iq4_order.
-static __device__ __forceinline__ void own_decode(const block_iq4_xs* b, int u, const uint32_t (&t)[4],
-                                                  const uint2*, own_slice& o) {
-  const uint2 h = *(const uint2*)b;  // d, scales_h, scales_l[0..3] (blocks are 8-byte aligned)
-  const int2 qa = *(const int2*)(b->qs + 16 * u);
-  const int2 qb = *(const int2*)(b->qs + 16 * u + 8);
-  const int q[4] = {qa.x, qa.y, qb.x, qb.y};
-#pragma unroll
-  for (int j = 0; j < 4; ++j) {
-    const int2 v = own_table16(q[j], t);
-    o.w[2 * j] = v.x;
-    o.w[2 * j + 1] = v.y;
-  }
-  const uint32_t sh = h.x >> 16, sl = h.y >> (8 * (u / 2));
-  const int ls = (((sl >> (4 * (u & 1))) & 0x0F) | (((sh >> (2 * u)) & 0x03) << 4)) - 32;
-  o.d = __half2float(__ushort_as_half((unsigned short)(h.x & 0xFFFF))) * ls;
-}
-
 // Q4_K slice u of b = sub-block u: 6-bit scale and min (get_scale_min_k4).
-static __device__ __forceinline__ void own_decode(const block_q4_K* b, int u, const uint32_t (&)[4],
-                                                  const uint2*, own_slice& o) {
+static __device__ __forceinline__ void own_decode(const block_q4_K* b, int u, const uint2*, own_slice& o) {
   const int4 h = *(const int4*)b;  // dm, scales[0..11] (blocks are 16-byte aligned)
   const int4 qa = *(const int4*)(b->qs + 32 * (u / 2));
   const int4 qb = *(const int4*)(b->qs + 32 * (u / 2) + 16);
@@ -135,8 +81,7 @@ static __device__ __forceinline__ void own_decode(const block_q4_K* b, int u, co
 
 // IQ2_S slice u of b: vec_dot_iq2_s_q8_1 with iqs = 2u, grid read from shared
 // memory.
-static __device__ __forceinline__ void own_decode(const block_iq2_s* b, int u, const uint32_t (&)[4],
-                                                  const uint2* grid, own_slice& o) {
+static __device__ __forceinline__ void own_decode(const block_iq2_s* b, int u, const uint2* grid, own_slice& o) {
   const uint32_t qs = get_int_b2(b->qs, u);
   const uint32_t signs = get_int_b2(b->qs, QK_K / 32 + u);
   const int qh = b->qh[u];
@@ -157,9 +102,7 @@ static __device__ __forceinline__ void own_decode(const block_iq2_s* b, int u, c
 template <ggml_type type>
 static __device__ __forceinline__ void own_term(float& acc, int sumi0, int sumi1, const own_slice& o,
                                                 float d8, float fs) {
-  if constexpr (type == GGML_TYPE_IQ4_XS) {
-    acc += (o.d * d8) * (float)(sumi0 + sumi1);
-  } else if constexpr (type == GGML_TYPE_Q4_K) {
+  if constexpr (type == GGML_TYPE_Q4_K) {
     acc += (o.d * d8) * (float)(sumi0 + sumi1) - fs * o.b;
   } else {  // IQ2_S
     acc += (o.d * d8) * ((sumi0 * o.s + sumi1 * o.s2 + (sumi0 + sumi1) / 2) / 4);
@@ -167,7 +110,6 @@ static __device__ __forceinline__ void own_term(float& acc, int sumi0, int sumi1
 }
 
 template <ggml_type type> struct own_traits;
-template <> struct own_traits<GGML_TYPE_IQ4_XS> { using block = block_iq4_xs; };
 template <> struct own_traits<GGML_TYPE_Q4_K> { using block = block_q4_K; };
 template <> struct own_traits<GGML_TYPE_IQ2_S> { using block = block_iq2_s; };
 
@@ -183,21 +125,15 @@ own_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
   constexpr int slices = QK_K / QK8_1;  // 32-value slices (q8_1 blocks) per weight block
   constexpr bool grid_type = type == GGML_TYPE_IQ2_S;
   __shared__ uint2 grid[grid_type ? 1024 : 1];
-  __shared__ block_q8_1 ys[ncols][CH];
+  __shared__ __align__(16) block_q8_1 ys[ncols][CH];  // int4 stores (IQ2_S staging)
   static_assert(sizeof(ys[0]) % sizeof(int4) == 0, "16-byte staging");
   __shared__ float ysum[type == GGML_TYPE_Q4_K ? ncols : 1][CH];  // Q4_K: d8 * sum of quants
 
   const int lane = threadIdx.x, tid = threadIdx.y * WARP_SIZE + threadIdx.x;
-  uint32_t tab[4] = {0, 0, 0, 0};
   if constexpr (grid_type) {
     for (int i = tid; i < 1024; i += NT) {
       grid[i] = make_uint2((uint32_t)iq2s_grid[i], (uint32_t)(iq2s_grid[i] >> 32));
     }  // visible after the first __syncthreads below
-  } else if constexpr (type == GGML_TYPE_IQ4_XS) {
-#pragma unroll
-    for (int i = 0; i < 4; ++i) {
-      tab[i] = get_int_b1(kvalues_iq4nl, i);
-    }
   }
   const int row0 = (blockIdx.x * OWN_WARPS + threadIdx.y) * R;
   const int nby = ncols_x / QK8_1;  // q8_1 blocks per activation row
@@ -219,7 +155,7 @@ own_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
           reinterpret_cast<int4*>(ys[j])[e] = reinterpret_cast<const int4*>(vy + (int64_t)j * nby + by0)[e];
         }
       }
-    } else {  // one q8_1 block per thread: IQ4_XS reorders its words, Q4_K also stores d8 * (sum of its quants)
+    } else {  // Q4_K: one q8_1 block per thread, also storing d8 * (sum of its quants)
       for (int i = tid; i < ncols * CH; i += NT) {
         const int j = i / CH, b = i % CH;
         if (b >= nb) {
@@ -232,16 +168,12 @@ own_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
           q[e] = get_int_b4(src->qs, e);
         }
         const half2 ds = src->ds;
-        if constexpr (type == GGML_TYPE_IQ4_XS) {
-          own_iq4_order(q);
-        } else {
-          int sum = 0;
+        int sum = 0;
 #pragma unroll
-          for (int e = 0; e < 8; ++e) {
-            sum = ggml_cuda_dp4a(0x01010101, q[e], sum);
-          }
-          ysum[j][b] = __low2float(ds) * sum;
+        for (int e = 0; e < 8; ++e) {
+          sum = ggml_cuda_dp4a(0x01010101, q[e], sum);
         }
+        ysum[j][b] = __low2float(ds) * sum;
 #pragma unroll
         for (int e = 0; e < 8; ++e) {
           ((int*)ys[j][b].qs)[e] = q[e];
@@ -258,7 +190,7 @@ own_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
         own_slice o[R];
 #pragma unroll
         for (int r = 0; r < R; ++r) {
-          own_decode(wr[r] + kbx, u, tab, grid, o[r]);
+          own_decode(wr[r] + kbx, u, grid, o[r]);
         }
         // each activation slice is read from shared memory once, for all rows
 #pragma unroll
@@ -320,7 +252,7 @@ static void own_launch(const char* vx, const block_q8_1* y, float* dst, int nrow
 }
 
 bool own_mul_mat_vec_supported(int type) {
-  return type == GGML_TYPE_IQ4_XS || type == GGML_TYPE_Q4_K || type == GGML_TYPE_IQ2_S;
+  return type == GGML_TYPE_Q4_K || type == GGML_TYPE_IQ2_S;
 }
 
 // W [nrows, row_bytes] blocks of type (own_mul_mat_vec_supported), 16-byte
@@ -330,7 +262,6 @@ void own_mul_mat_vec_cuda(int type, const char* vx, const void* vy, float* dst, 
                           int64_t row_bytes, int ncols, cudaStream_t stream) {
   const block_q8_1* y = (const block_q8_1*)vy;
   switch (type) {
-    case GGML_TYPE_IQ4_XS: own_launch<GGML_TYPE_IQ4_XS>(vx, y, dst, nrows, k, row_bytes, ncols, stream); break;
     case GGML_TYPE_Q4_K: own_launch<GGML_TYPE_Q4_K>(vx, y, dst, nrows, k, row_bytes, ncols, stream); break;
     case GGML_TYPE_IQ2_S: own_launch<GGML_TYPE_IQ2_S>(vx, y, dst, nrows, k, row_bytes, ncols, stream); break;
     default: GGML_ABORT("own_mul_mat_vec: type %d", type);

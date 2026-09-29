@@ -104,12 +104,13 @@ CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
 CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
 CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
 CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
-# the owned IQ4_XS / Q4_K / IQ2_S kernel: the same, with its own type check
+# the owned Q4_K / IQ2_S kernel: the same, with its own type check
 OWN_OP = "lcpp_mul_mat_vec_own"
-for t in (IQ4_XS, Q4_K, IQ2_S):
+for t in (Q4_K, IQ2_S):
     CASES[f"{OWN_OP}-valid-{t}"] = (_case(OWN_OP, t), "must be CUDA tensors")
     CASES[f"{OWN_OP}-row_strided-{t}"] = (_case(OWN_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
-CASES[f"{OWN_OP}-iq3_s"] = (_case(OWN_OP, IQ3_S), "IQ4_XS, Q4_K or IQ2_S only")
+CASES[f"{OWN_OP}-iq3_s"] = (_case(OWN_OP, IQ3_S), "Q4_K or IQ2_S only")
+CASES[f"{OWN_OP}-iq4_xs"] = (_case(OWN_OP, IQ4_XS), "Q4_K or IQ2_S only")
 CASES[f"{OWN_OP}-1_row"] = (_case(OWN_OP, Q4_K, n=1), "must be CUDA tensors")
 CASES[f"{OWN_OP}-9_rows"] = (_case(OWN_OP, Q4_K, n=9), "at most 8 rows")
 CASES[f"{OWN_OP}-k_not_512"] = (_case(OWN_OP, Q4_K, row_bytes=144, k=256), "must be a multiple of 512")
