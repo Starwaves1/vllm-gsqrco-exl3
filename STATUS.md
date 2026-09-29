@@ -86,7 +86,10 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
   CUDA-vs-CPU floor) PASS on seq_000-005. Worse than phase 2 on two prompts: seq_009 KLD 0.00191
   vs 0.00167 and seq_010 0.00902 vs 0.00740 (max 0.487 vs 0.155), with top-1 up on both; that is
   inside the spread between stock and Route L on other prompts (seq_002 +46%), but no repeat run
-  exists to bound single-prompt noise. MTP acceptance vs llama.cpp (8 real prompts, k=3): greedy
+  exists to bound single-prompt noise. Repeat (`parity/repeat/`, 2 more process starts): seq_009 /
+  seq_010 reproduce bit-identically per position (0.00191 / 0.00902, max 0.487 at pos 119966, llama
+  '(request' 0.52 vs vLLM '_token' 0.41), so run-to-run noise is zero and the change vs phase 2 is
+  deterministic numerics of the merged kernels, not noise. MTP acceptance vs llama.cpp (8 real prompts, k=3): greedy
   0.664 vs 0.673 (-0.95 pt, within the 2-pt gate); T=1.0 0.656 vs 0.628 (+2.9, FAIL as in phase 1b).
 - Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
   - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
