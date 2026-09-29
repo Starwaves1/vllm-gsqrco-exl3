@@ -60,17 +60,26 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
 | Integration 1 | 101.1 | 175.0 | 264.4 | 436.7 | 1152 | 900 | 622 |
 | prod W4A16 (phase 1b, pass 2) | 94.1 | 194.4 | 345.1 | 505.4 | 1108 | 868 | 603 |
 | ratio | 1.07 | 0.90 | 0.77 | 0.86 | 1.04 | 1.04 | 1.03 |
+| ms/step Integration 1 / W4A16 | 30.5 / 27.6 | 34.9 / 27.3 | 46.7 / 30.0 | 55.7 / 41.3 | | | |
 | pre-campaign, f6b96bf (opt-p base run; no prefill ladder) | 88.1 | 154.3 | 258.4 | 432.9 | - | - | - |
 | ratio | 1.15 | 1.13 | 1.02 | 1.01 | - | - | - |
+| ms/step Integration 1 / f6b96bf | 30.5 / 33.7 | 34.9 / 38.5 | 46.7 / 47.2 | 55.7 / 56.4 | | | |
 | phase 2 (prefill only) | | | | | 1036 | - | 589 |
 | ratio vs phase 2 | | | | | 1.11 | - | 1.06 |
 
-- ms/step 30.5 / 34.9 / 46.7 / 55.7 (c=1/2/4/8); tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP
-  acceptance 0.657 over the run (pre-campaign 0.630 with the 40,960-row draft head; opt-p's
-  61,440 rows). Decode clocks: median SM 1740-1755 MHz, 344 W, 89% util (both passes). The
-  campaign's gain is at c=1/c=2 (4 / 8 rows per target pass); c=4/c=8 run MMQ in target passes
-  and move 1-2%. No prefill ladder ran at f6b96bf: the prefill gain vs phase 2 is attributed to
-  phase 3 items 1, 4, 4b (INFERRED: none of these branches changes the >= 9-row MMQ path).
+- ms/step = C x 1000 / tok/s x tok/step. tok/step 3.08 / 3.05 / 3.09 / 3.04 here vs the
+  W4A16 baseline's 2.60 / 2.65 / 2.59 / 2.61 (its own MTP head; 2.57 is phase 1b's c=1 whole-run
+  mean). **The c=1 1.07x is throughput bought with higher MTP acceptance: per engine step this
+  build is slower than the W4A16 baseline at every concurrency** (30.5 vs 27.6 ms at c=1, 1.10x;
+  1.28x / 1.56x / 1.35x at c=2/4/8).
+- MTP acceptance 0.657 over the run (pre-campaign 0.630 with the 40,960-row draft head; opt-p's
+  61,440 rows). Decode clocks: median SM 1740-1755 MHz, 344 W, 89% util (both passes).
+- Noise: the same code measured 154.2 and 160.4 tok/s at c=2 in two sessions (phase 3 item 5
+  vs K2's same-session A/B), so c=2 moves under ~4% are not signal; opt-p saw ~1% at c=1. The
+  campaign's gain is at c=1/c=2 (4 / 8 rows per target pass); the c=4/c=8 moves (+2% / +1%,
+  target passes on MMQ) are within noise.
+- No prefill ladder ran at f6b96bf: the prefill gain vs phase 2 is attributed to phase 3 items 4
+  and 4b (INFERRED: none of these branches changes the >= 9-row MMQ path).
 - Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
   - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
     ROUTE-L.md. IQ3 1..5 rows dp4a, 6..8 mma; Q4_K from 3 rows and IQ2_S from 1, both only above
@@ -107,8 +116,7 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
     draft step: the draft head, rows of output.weight, which is Q4_K).
   - Idle is inflated by the profiler: phase 3 item 2 measured ~4.7 ms/step unprofiled.
   - Round 2: c >= 4 is K3's 16-64-row range (MMQ is 78% of busy time at c=4). At c=1 the
-    largest non-owned GEMM is IQ4_XS on MMVQ (4.1 ms; K1 dropped IQ4_XS), then the 8.4 ms of
-    idle per step.
+    largest non-owned GEMM is IQ4_XS on MMVQ (4.1 ms; K1 dropped IQ4_XS).
 - Open, left for round 2 (review and test audit, low severity):
   - 16-bit output from the mma and Q4_K/IQ2_S kernels (a `dst_t` template as in
     `iq3_mul_mat_vec_y`) would drop one cast launch per product: ~41 per c=1 step, ~230 at c=2
@@ -168,7 +176,8 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   - Iteration swept CTA shape (8x2 warps x rows down to 4x4), staged vs unstaged q8_1, and two
     overlap schemes (register-prefetch, cp.async double buffering); both overlap attempts were
     slower and dropped. Not tried: int8 tensor-core (mma) fragments — a much larger kernel;
-    MMQ already uses them and loses to tile overhead at n <= 8.
+    MMQ already uses them and loses to tile overhead at n <= 8. (K2 did it later:
+    `lcpp_mul_mat_vec_iq3_mma`, routed at 6..8 rows.)
   - Goal (>=600 GB/s op-level at 4 rows) not reached: 541/520 GB/s (IQ3_S/IQ3_XXS).
   - Tests: kernel parity 1002 -> 1152 pass / 16 skip / 0 fail (`VLLM_GGUF_LCPP=1`; new:
     `test_lcpp_iq3` correctness across n=1..8, 3 dtypes, real/row_tail/k_tail shapes, and
@@ -263,7 +272,7 @@ code changed. Test and bench changes: be506ce.
 
 Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
 
-## Done
+## Done (2026-09-27 handoff)
 
 1. **Isolated venv `.venv` = production's package set** (VERIFIED)
    - How it was built, and how to rebuild it:
@@ -300,9 +309,10 @@ Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
    - `tools/no_gpu.py`: import it first in any Python that touches torch or vLLM. It blocks NVML/driver dlopen through ctypes, so vLLM resolves `UnspecifiedPlatform` and nothing talks to the GPU.
    - `tools/pytest`: pytest living in `build/pytest`, outside the venv.
 
-## Half-done
+## Half-done (2026-09-27 handoff)
 
-- **CPU tensor-mapping dry run** (deliverable 3, second half): not written. Plan:
+- **CPU tensor-mapping dry run** (deliverable 3, second half): not written at this point; done later
+  the same day (`tools/meta_dry_run.py`, 866/866 tensors mapped). Plan as it was:
   - Run `GGUFModelLoader.load_model` (the plugin's real loader) with vLLM's real `Qwen3_5ForConditionalGeneration`, and separately `Qwen3_5MTP` for `blk.64`, on the meta device, feeding memory-mapped GGUF tensors through the adapter.
   - Assert: no unmapped names (851 main + 15 MTP = 866); every non-vision parameter loaded; GGUF logical shapes equal each shard's partition size; the 48 `linear_attn.out_proj` layers got the GDN layout.
   - Needs:
@@ -323,9 +333,9 @@ Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
   - How to resume: fake the converter with `Qwen3_5TextModel.__new__` plus hparams, `tensor_map=gguf.get_tensor_name_map(QWEN35, 65)`, `fuse_qkv=False`, `fuse_gate_up_exps=False`. Fixture `.npz` keys were fixed as `raw, ref, ggml_type, tensor, rows, shape`, named `tests/fixtures/dequant/<TYPE>__<tensor>__r<row>.npz`, plus `manifest.json`.
 - **README.md** (end state, phases, build and test): not written. This file stands in for it.
 
-## Not started
+## Not started (2026-09-27 handoff)
 
-- Deliverable 5, all of it (paused).
+- Deliverable 5, all of it (paused then; resumed as Route L in phases 2-3).
 - Deliverable 4 files: `tools/ggml_ref.py`, `tools/make_dequant_fixtures.py`, `tests/cpu/test_{dequant_fixtures,kernel_tables,gdn_roundtrip}.py` (findings above).
 - Deliverable 6, all harness files: `tests/gpu/`, `bench/parity/`, `bench/speed/`, `cloud/bootstrap.sh`, `scripts/serve-{gguf,llamacpp}.sh`. The agent stopped while it was still reading source. What it found, all VERIFIED:
   - **q8_1 activation quantization:** float `d = amax/127`, `q = roundf(x/d)`, with `half(d)` and `half(sum x)` stored (`csrc/gguf/gguf_kernel.cu:32-67`). The build uses `--use_fast_math` (`setup.py:42`), so a reference must allow rare ±1 flips in q.
@@ -363,9 +373,9 @@ Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
 - The GGUF was only memory-mapped and its header read, never loaded whole.
 - /tmp is tmpfs (RAM). Scratch was kept tiny and deleted. `build/` holds only `cu130/` (271 MB toolchain) and `pytest/` (3 MB); keep both, the build needs them. `.venv/` is 7.9 GB.
 
-## Open questions for Garrett
+## Open questions for Garrett (2026-09-27 handoff)
 
-- The kernel route (waiting on the prior-art survey).
+- The kernel route: answered, Route L (docs/adr/0001, accepted 2026-09-28).
 - Cloud baseline: production's `Starw1/Qwen3.8-27B-absolute-heresy-W4A16`, or `Swift-1.5-Qwen3.8-27B-W4A16-AutoRound`, which has the same Swift weights as the GGUF? The speed is the same architecture either way. Only the Swift checkpoint gives a quality-comparable baseline.
 - GGUF download access for a cloud box (HF token?).
 
@@ -445,7 +455,7 @@ Defaults I chose, all visible in the argv diff:
 - Parity dumps are about 3 GB per engine and are deleted unless `KEEP=1`.
 - The production environment variables come from this file's "Production's start script" notes, not from reading production's process environment.
 
-STATUS.md itself is not committed by me: it held other agents' uncommitted sections.
+(2026-09-27) STATUS.md itself was not committed then: it held other agents' uncommitted sections. It has been committed since phase 2.
 
 ## 2026-09-27 evening: CPU tests
 

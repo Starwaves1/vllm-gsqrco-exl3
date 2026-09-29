@@ -31,3 +31,52 @@ def test_lcpp_op(qt, n, rows, want):
     from vllm_gguf_plugin.quantization.linear import _lcpp_op
 
     assert _lcpp_op(n, int(qt), rows) == want
+
+
+class _Quantizer:
+    """Stands in for torch.ops._C_gguf: records which type the shared quantize runs with."""
+
+    def __init__(self):
+        self.calls = []
+
+    def lcpp_quantize_q8_1(self, x, qt, mmq, vendored):
+        self.calls.append((qt, mmq, vendored))
+        return "filled"
+
+
+@pytest.mark.parametrize("n,types,rows,want", [
+    (4, [T.IQ1_M, T.IQ2_XS], [BIG, BIG], T.IQ2_XS),    # first Route L run that reads q8_1
+    (8, [T.Q4_K], [BIG], T.Q4_K),                      # the Q4_K kernel reads it at 8 rows
+    (8, [T.Q4_K], [2048], None),                       # MMQ quantizes for itself
+    (8, [T.IQ4_XS, T.Q4_K], [BIG, BIG], T.Q4_K),       # MMQ beside the Q4_K kernel
+    (8, [T.Q4_K, T.IQ3_S], [2048, BIG], T.IQ3_S),      # MMQ beside the IQ3 mma kernel
+    (9, [T.IQ3_S, T.Q4_K], [BIG, BIG], None),          # all MMQ
+    (4, [T.IQ1_M], [BIG], None),                       # stock path only
+    (0, [T.IQ3_S], [BIG], None),                       # no rows: nothing to quantize
+], ids=lambda v: str(v) if not isinstance(v, list) else "+".join(getattr(t, "name", str(t)) for t in v))
+def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want):
+    """apply()'s shared quantize runs (once, MMVQ layout) iff some run's op reads q8_1; else it
+    returns an unfilled buffer of the q8_1 size that nothing reads."""
+    import torch
+
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    q = _Quantizer()
+    monkeypatch.setattr(torch.ops, "_C_gguf", q, raising=False)
+    x = torch.zeros(n, 512, dtype=torch.bfloat16)
+    out = _quantize_x_q8_1(x, [int(t) for t in types], rows)
+    if want is None:
+        assert q.calls == [] and out.dtype == torch.uint8 and out.numel() == n * 512 // 32 * 36
+    else:
+        assert q.calls == [(int(want), False, False)] and out == "filled"
+
+
+def test_fused_mul_mat_gguf_zero_rows():
+    """0 activation rows return an empty [0, rows] result before any routing or launch."""
+    import torch
+
+    from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+
+    y = _fused_mul_mat_gguf(torch.zeros(0, 512, dtype=torch.bfloat16),
+                            torch.zeros(BIG, 512 // 256 * 110, dtype=torch.uint8), int(T.IQ3_S))
+    assert y.shape == (0, BIG) and y.dtype == torch.bfloat16

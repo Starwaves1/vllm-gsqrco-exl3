@@ -29,7 +29,8 @@ import pytest
 from gsq_gpu import GGUF, ROOT
 
 CASES = ["x_noncontig", "x_misaligned", "x_rowstride", "w_narrow_view", "w_misaligned", "row_too_big",
-         "k_mismatch", "graph_replay", "x_q8_short", "x_q8_misaligned"]
+         "k_mismatch", "graph_replay", "x_q8_short", "x_q8_misaligned", "x_q8_dtype", "x_q8_2d",
+         "x_q8_strided", "x_q8_cpu"]
 TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "mmq"), ("Q6_K", "mmq"),
              ("IQ3_S", "lcpp_mmvq"), ("IQ4_XS", "lcpp_mmvq"), ("Q4_K", "lcpp_mmvq"),
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
@@ -42,6 +43,8 @@ FAULT = ("illegal memory access", "misaligned address", "unspecified launch fail
 @pytest.mark.parametrize("case", CASES)
 def test_guard_case(case, type_op):
     res = _run_case(case, type_op)
+    if case.startswith("x_q8"):  # every bad x_q8 must be refused before a launch
+        assert res["status"] == "rejected", res
     assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
 
 

@@ -293,13 +293,16 @@ def test_lcpp_iq3(tensors_by_type, op, name, n, dtype, shape):
     rows of K = 4608, so W's size is 4 mod 8 (fp32 reference for the mma kernel: the dp4a
     kernel, which stays in bounds); k_min: K = 512 (2 weight blocks: the mma kernel's warps 2
     and 3 have none); few_rows: 20 rows (fewer 16-row tiles than CTAs); many_tiles: the 512
-    rows 16 times over, fp32 only (more tiles than resident CTAs: each CTA takes several)."""
+    rows 16 times over, fp32 (+ bf16 for the Q4_K/IQ2_S kernel) (more tiles than resident CTAs:
+    each CTA takes several)."""
     import _refs
     import gguf
     import numpy as np
     import torch
 
-    if shape == "many_tiles" and dtype != "float32":
+    if shape == "many_tiles" and dtype != "float32" and (op != "lcpp_mul_mat_vec_own" or dtype != "bfloat16"):
+        # bf16 for the Q4_K/IQ2_S kernel: 8192 rows, above its 2048-row routing floor, against the
+        # CPU reference instead of MMVQ
         pytest.skip("fp32 only: the reference is MMVQ on the GPU")
     if shape == "odd_rows" and op == "lcpp_mul_mat_vec_own" and dtype == "float32":
         pytest.skip("fp32 reference is MMVQ, which reads past this W (no in-bounds Q4_K/IQ2_S one)")
@@ -434,6 +437,18 @@ def test_lcpp_iq3_graph_replay(tensors_by_type, op, name, n):
     _graph_replay(tensors_by_type, name, n, getattr(_lcpp(), op))
 
 
+@pytest.mark.parametrize("n", [1, 4, 6, 8])
+@pytest.mark.parametrize("name,op", OWNED)
+def test_lcpp_x_q8_graph_replay(tensors_by_type, op, name, n):
+    """The production decode path in one graph: apply()'s shared quantize (_quantize_x_q8_1,
+    weight rows as in the model, so it fills) and the owned op reading that x_q8."""
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    f = getattr(_lcpp(), op)
+    _graph_replay(tensors_by_type, name, n,
+                  lambda w, x, qt, rows: f(w, x, qt, rows, _quantize_x_q8_1(x, [qt], [17408])))
+
+
 def _graph_replay(tensors_by_type, name, n, fn):
     import torch
 
@@ -500,8 +515,10 @@ def _mixed_block(gguf_reader, a, b, a_narrower=False, types=None):
 
 
 # IQ4_XS + Q4_K: at 8 rows MMQ (quantizes X itself) beside the Q4_K kernel (reads apply()'s x_q8)
-@pytest.mark.parametrize("types", [None, ("IQ4_XS", "Q4_K")], ids=["first", "IQ4_XS+Q4_K"])
-@pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+# IQ3_XXS + IQ2_S: up on the IQ2_S kernel from 1 row, reading the gate run's x_q8 (mma from 6)
+@pytest.mark.parametrize("types", [None, ("IQ4_XS", "Q4_K"), ("IQ3_XXS", "IQ2_S")],
+                         ids=["first", "IQ4_XS+Q4_K", "IQ3_XXS+IQ2_S"])
+@pytest.mark.parametrize("n", [1, 4, 6, 7, 8, 9, 128])
 def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, types, monkeypatch):
     """A fused gate/up layer whose shards have different quant types, through
     GGUFLinearMethod's padded-weight build and apply(): with VLLM_GGUF_LCPP=1 each shard is
@@ -538,16 +555,20 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, types, monkeypa
 
 
 # IQ3_XXS + Q4_K: z (6144 rows) on the Q4_K kernel from 3 rows, reading the qkv run's shared x_q8
-@pytest.mark.parametrize("types", [None, ("IQ3_XXS", "Q4_K")], ids=["first", "IQ3_XXS+Q4_K"])
+# Q4_K + IQ3_S: a 10240-row Q4_K q/k/v run on the Q4_K kernel from 3 rows, while its 2048-row
+# shards alone would take MMVQ / MMQ
+@pytest.mark.parametrize("types", [None, ("IQ3_XXS", "Q4_K"), ("Q4_K", "IQ3_S")],
+                         ids=["first", "IQ3_XXS+Q4_K", "Q4_K+IQ3_S"])
 @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
-@pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+@pytest.mark.parametrize("n", [1, 4, 6, 7, 8, 9, 128])
 def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, types, monkeypatch):
     """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
     attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
     the routed op on each of the four shards alone it is bit-exact through MMVQ and the IQ3
     kernel (rows are independent); through MMQ, stream-k splits K differently for a 10240-row
     than a 2048-row product, so the fp32 partial sums add in another order and ~1 bf16 ulp can
-    flip (measured max 0.03)."""
+    flip (measured max 0.03). The same tolerance where a shard alone would take another kernel
+    than its run (a Q4_K run above 2048 rows takes the Q4_K kernel, its 2048-row shards not)."""
     import numpy as np
     import torch
 
@@ -573,7 +594,11 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, types, 
     print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
           f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
     assert torch.equal(y, whole)  # one product per run
-    if n <= 8:  # 1..8-row kernels, rows independent (the qkv runs used here are IQ3 types)
+    from vllm_gguf_plugin.quantization.linear import _lcpp_op
+
+    run_rows = [qkv.shape[0]] * 3 + [z.shape[0]]
+    same_ops = all(_lcpp_op(n, q, s.shape[0]) == _lcpp_op(n, q, r) for s, q, r in zip(shards, qts, run_rows))
+    if n <= 8 and same_ops:  # 1..8-row kernels, rows independent
         assert torch.equal(y, per_shard)
     else:
         assert _refs.rel_err(y, per_shard.double().cpu()) <= 1e-3

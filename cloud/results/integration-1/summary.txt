@@ -21,13 +21,18 @@ Decode (pass 2, T=0, decode(C/meanTPOT) tok/s) and prefill (salted ladder, c=1, 
 Integration 1          101.1  175.0  264.4  436.7  1152   900   622
 prod W4A16 (1b, pass 2) 94.1  194.4  345.1  505.4  1108   868   603
 ratio                   1.07   0.90   0.77   0.86  1.04  1.04  1.03
+ms/step ours / W4A16  30.5/27.6 34.9/27.3 46.7/30.0 55.7/41.3  (per engine step: slower at every c)
 pre-campaign f6b96bf    88.1  154.3  258.4  432.9     -     -     -
 ratio                   1.15   1.13   1.02   1.01     -     -     -
+ms/step ours / f6b96bf 30.5/33.7 34.9/38.5 46.7/47.2 55.7/56.4
 phase 2 (prefill)                                   1036     -   589
 ratio vs phase 2                                    1.11     -  1.06
-tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP acceptance 0.657 (61,440-row draft head; f6b96bf: 0.630).
+tok/step 3.08 / 3.05 / 3.09 / 3.04 (W4A16: 2.60 / 2.65 / 2.59 / 2.61), so c=1's 1.07x is throughput
+from higher MTP acceptance; ms/step = C x 1000 / tok/s x tok/step. MTP acceptance 0.657
+(61,440-row draft head; f6b96bf: 0.630). c=2 run-to-run noise is ~4% (same code: 154.2 vs 160.4);
+the c=4/c=8 moves vs f6b96bf are within noise.
 Pre-campaign decode is opt-p's base run (runs/base-speed-summary.txt there); it had no prefill
-ladder, so prefill compares with phase 2, and that gain is phase 3's (INFERRED: these branches
+ladder, so prefill compares with phase 2, and that gain is phase 3 items 4/4b's (INFERRED: these branches
 do not change the >= 9-row MMQ path).
 
 Profile idle (8.4 ms/step at c=1, 7.4 at c=4) is inflated by the profiler; phase 3 item 2

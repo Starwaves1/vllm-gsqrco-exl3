@@ -14,7 +14,7 @@ env -u VLLM_GGUF_LCPP tools/pytest $T -q -rs > $L/parity-stock.log 2>&1; echo "s
 ( cd /workspace/gsq-vllm; git log --oneline -1
   env -u VLLM_GGUF_LCPP PYTHONPATH=/workspace/gsq-vllm/plugin:/workspace/gsq-vllm/tools tools/pytest $T -q ) > $L/parity-stock-main.log 2>&1
 tail -1 $L/parity-stock-main.log
-ids=$(tools/pytest $T --collect-only -q 2>/dev/null | grep -E "^$T::(test_lcpp_iq3\[.*-(1-bfloat16-real|4-bfloat16-row_tail|8-float16-k_tail|6-bfloat16-odd_rows|7-bfloat16-k_min|3-float16-few_rows|5-float32-row_tail|8-float32-real)\]|test_lcpp_x_q8\[(IQ3_S|IQ3_XXS|Q4_K|IQ2_S)-(4|8)\]|test_quantize_x_q8_1_mixed_route)")
+ids=$(tools/pytest $T --collect-only -q 2>/dev/null | grep -E "^$T::(test_lcpp_iq3\[.*-(1-bfloat16-real|4-bfloat16-row_tail|8-float16-k_tail|6-bfloat16-odd_rows|7-bfloat16-k_min|3-float16-few_rows|5-float32-row_tail|8-float32-real)\]|test_lcpp_x_q8\[(IQ3_S|IQ3_XXS|Q4_K|IQ2_S)-(4|8)\]|test_quantize_x_q8_1_mixed_route|test_lcpp_iq3\[.*own-(3|8)-bfloat16-many_tiles\]|test_lcpp_mixed_shard_layer\[(4|6|8)-(IQ4_XS\+Q4_K|IQ3_XXS\+IQ2_S)\]|test_lcpp_same_type_run\[(4|6|8)-qkv_widest-(IQ3_XXS\+Q4_K|Q4_K\+IQ3_S)\])")
 echo "$ids" > $L/sanitizer-ids.txt; echo "sanitizer cases: $(echo "$ids" | wc -l)"
 for tool in memcheck initcheck; do
   PYTORCH_NO_CUDA_MEMORY_CACHING=1 /usr/local/cuda/bin/compute-sanitizer --tool $tool --error-exitcode 99 --print-limit 20 \

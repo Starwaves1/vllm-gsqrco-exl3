@@ -49,8 +49,9 @@ phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
     | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
     | other Route L types; Q4_K/IQ2_S ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | phase3 item 1 |
 
-  - Fused layers quantize X once (`_quantize_x_q8_1`, opt-p) for all their
-    shard runs whose op reads q8_1 (every op above but MMQ) and pass it as
+  - A fused layer with several shard runs (mixed types) quantizes X once up
+    front in `apply()` (`_quantize_x_q8_1`, opt-p) when any run's op reads
+    q8_1 (every op above but MMQ) and passes it to those runs as
     `x_q8`. The dp4a IQ3 kernel writes X's dtype; MMVQ, MMQ and the other two
     owned kernels write fp32 and the shim casts.
   - GGUF BF16/F16/F32 linears (GDN `in_proj_ba`) go through
@@ -81,8 +82,9 @@ profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
 | MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup | 4: memset tail, quantize_x, mul_mat_q, cast Y; 5 with fixup | same as phase 3 |
 | fp32 X | two fewer (no casts) | two fewer | one fewer (no cast Y) | one fewer where there is a cast Y |
 
-[quantize_x] is skipped when a fused layer's earlier run already quantized X
-(`x_q8`, shared by every q8_1-reading run of the layer).
+[quantize_x] is skipped when the op gets `x_q8`: in a layer with several shard
+runs, `apply()` quantizes X once before the runs and every q8_1-reading run
+uses it. Single-run layers quantize inside the op.
 
 - Nothing is zero-filled except the MMQ tail. The quantizers write every byte
   of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is

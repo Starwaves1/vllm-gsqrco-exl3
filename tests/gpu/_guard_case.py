@@ -18,6 +18,7 @@ gguf_kernel.cu:98,118-285 per STATUS):
   graph_replay     capture the op in a CUDA graph, replay with new X contents, compare
   x_q8_short       pre-quantized X (x_q8, the 1..8-row lcpp ops only) one byte short
   x_q8_misaligned  x_q8 starts 1 byte into its storage
+  x_q8_dtype, x_q8_2d, x_q8_strided, x_q8_cpu   x_q8 as int8, 2-D, stride 2, on the CPU
 """
 
 import json
@@ -90,12 +91,14 @@ def main() -> None:
         wide = torch.zeros(n, k + 512, dtype=torch.bfloat16, device="cuda")
         wide[:, :k] = xc
         xc = wide[:, :k]
-    elif case in ("x_q8_short", "x_q8_misaligned"):
+    elif case.startswith("x_q8_"):
         q8 = torch.ops._C_gguf.lcpp_quantize_q8_1(xc, qt, False, False)
-        if case == "x_q8_short":
-            q8 = q8[:-1].clone()  # its own, short allocation
-        else:
-            q8 = torch.cat([q8.new_zeros(1), q8])[1:]
+        q8 = {"x_q8_short": lambda: q8[:-1].clone(),  # its own, short allocation
+              "x_q8_misaligned": lambda: torch.cat([q8.new_zeros(1), q8])[1:],
+              "x_q8_dtype": lambda: q8.view(torch.int8),
+              "x_q8_2d": lambda: q8.view(1, -1),
+              "x_q8_strided": lambda: torch.stack([q8, q8], 1).view(-1)[::2],
+              "x_q8_cpu": lambda: q8.cpu()}[case]()
         extra = (q8,)
     elif case not in ("graph_replay", "graph_first"):
         raise SystemExit(f"unknown case {case}")

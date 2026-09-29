@@ -4,7 +4,7 @@
 //
 // This file provides the few pieces of ggml-base / ggml-cuda.cu that the
 // vendored kernels link against (device info, context, pool, type sizes,
-// error hooks) and two torch ops:
+// error hooks), an owned q8_1 quantizer and IQ3 kernel, and these torch ops:
 //   lcpp_mul_mat_vec_q(W, X, type, row)  MMVQ, 1..8 activation rows
 //   lcpp_mul_mat_q(W, X, type, row)      MMQ (int8 tensor cores), any rows
 //   lcpp_mul_mat_vec_iq3(W, X, type, row) owned IQ3_S/IQ3_XXS kernel, 1..8 rows
@@ -380,8 +380,9 @@ static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq, int6
 }
 
 // ---------------------------------------------------------------------------
-// IQ3_S / IQ3_XXS product for 1..8 activation rows (MTP decode: 4 rows per
-// sequence, 8 at c=2). Owned code; cloud/results/phase3/item5 has the data.
+// IQ3_S / IQ3_XXS dp4a product for 1..8 activation rows (MTP decode: 4 rows per
+// sequence, 8 at c=2); linear.py routes it at 1..5 rows and 6..8 to the mma
+// kernel (lcpp_owned_iq3_mma.cu). Owned code; cloud/results/phase3/item5 has the data.
 //
 // The vendored MMVQ does not re-decode weights per activation row: nvcc merges
 // the per-row decodes (its sm_86 loop has 27 / 70 / 106 global loads at 1 / 4 /
@@ -759,8 +760,8 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   // IQ3 mma kernel and the Q4_K/IQ2_S kernel write fp32 dst only, so for them
   // 16-bit X costs one output cast.
   // Launches per call with 16-bit X:
-  //   IQ3:  [quantize], iq3_mul_mat_vec                              = 1 or 2
-  //   MMVQ, iq3_mma, own: [quantize], mul_mat_vec, cast Y            = 2 or 3
+  //   IQ3 dp4a: [quantize], iq3_mul_mat_vec                          = 1 or 2
+  //   MMVQ, iq3_mma, own: [quantize], the kernel, cast Y             = 2 or 3
   //   MMQ:  tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
   const ScalarType y_dtype = kernel == Kernel::iq3 ? out_dtype : ScalarType::Float;
   Tensor y = torch::stable::new_empty(X, {n, row}, y_dtype);

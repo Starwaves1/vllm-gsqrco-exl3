@@ -5,7 +5,8 @@ d7fb90e8e2494b2908934d956a3202fd60152ee0 (local checkout ~/llama.cpp-b11211).
 License: MIT, see `LICENSE` (copied verbatim from the same commit).
 
 Files are byte-identical copies at their upstream relative paths. **Do not edit
-them**; all adaptation lives in `../lcpp_shim.cu`. To update, re-copy the same
+them**; all adaptation lives in `../lcpp_shim.cu`, owned kernels in
+`../lcpp_shim.cu` and `../lcpp_owned_*.cu`. To update, re-copy the same
 list from a new commit and rebuild. Check: `cmp` each file against the checkout.
 
 Only what the MMVQ / MMQ / q8_1-quantize path needs (found with `nvcc -M`), and
