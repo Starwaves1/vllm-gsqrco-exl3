@@ -60,7 +60,11 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | 5 | owned IQ3_S/IQ3_XXS decode-once kernel (`lcpp_mul_mat_vec_iq3`), routed at 1..8 rows | 90.9 | 154.2 | 33.1 / 37.9 | yes |
 | K2 | owned IQ3 int8 tensor-core kernel (`lcpp_mul_mat_vec_iq3_mma`), routed at 6..8 rows (c) | 90.3 | 173.2 | 33.0 / 35.6 | yes |
 | R1 | IQ3 weights repacked at load into mma fragment order; packed mma kernel at 1..32 rows (d) | 99.9 | 184.0 | 30.0 / 32.2 | trade-off |
+| R2 | tiled int8 tensor-core kernel on the packed layout above 8 rows; unpack + MMQ path removed (e) | 99.1 | 188.5 | 30.3 / 32.6 | yes |
 
+(e) c=4 / c=8 319.5 / 533.7 tok/s, ms/step 37.3 / 45.6 (R1 39.9 / 55.7, production 30.0 / 41.3); 8k
+prefill 1248 tok/s, 102.5 ms per 128-token step (same-session opt-k2 base 1157, R1 1009, production
+1108); 180k prefill 646 tok/s (base 614, production 603). c=1 / c=2 run R1's kernels (cloud/results/phase3/r2).
 (d) same-session A/B against opt-k2, base = its pass 1 (90.6 / 172.7; its pass 2 c=1 / c=2 ran slow,
 81.5 / 154.3, cause unconfirmed), R1 = pass 2: c=4 259.9 -> 310.1, c=8 439.6 -> 425.3 tok/s (ms/step
 55.9 -> 55.7; tok/step 3.07 -> 2.96), 8k prefill 1164 -> 1009 tok/s, TTFT up at every C
@@ -168,6 +172,30 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   pack that would have corrupted dequantizing methods (embeddings, diffusion), a broken unit test,
   test gaps and write-up precision. Kept or not is Garrett's
   call (decode vs prefill). Log: cloud/results/phase3/r1/iterations.txt.
+- R2 (opt-r2): `lcpp_mul_mat_iq3_packed` (csrc/lcpp_owned_iq3_mma.cu, namespace `tiled`) multiplies
+  the packed IQ3_S / IQ3_XXS layout at any row count, so nothing unpacks any more (`lcpp_iq3_unpack`
+  and the unpack + MMQ route are deleted). CTA = 8 warps x 32 rows (256-row tiles) x 16 / 32 / 48 /
+  64 columns; A fragments straight from R1's per-lane records and table (no shared-memory A tile),
+  MMQ's block_q8_1_mmq activations staged by cp.async per weight block (3 stages, one CTA barrier
+  per block, scales transposed for one 8-byte load per column pair); per slice MMQ's own term
+  float(C) * dA * dB, computed as fma(fma(M + C, dA, -M dA), dB, acc) with the mma adding C to
+  M = 1.5 x 2^23 (exact, no I2F), so a tile computed whole is bit-identical to MMQ's; persistent
+  CTAs with whole-tile waves or a stream-K tail (fp32 pieces, ordered fixup kernel), the width and
+  schedule picked per call from a measured unit-cost model; output written in X's dtype. Routed
+  above 8 rows (R1's decode kernel keeps 1..8). Beats vendored MMQ at every n >= 8 on the three
+  IQ3 shapes (IQ3_S 17408 x 5120: n=32 77.8 vs 160.7 us, 128 221 vs 288, 2048 3035 vs 4079 = 42 %
+  of the int8 peak vs MMQ's 32 %; n=16 60 us = 84 % of the DRAM floor). Numerics vs MMQ on fp32 X:
+  0 .. 1.1e-6 relative. ms/step c=1/2/4/8 30.3 / 32.6 / 37.3 / 45.6 (R1 30.0 / 32.2 / 39.9 / 55.7),
+  8k prefill 1248 tok/s (+7.9 % over the unpacked-MMQ base, +13 % over production), 180k 646
+  (+5 %, +7 %); still slower per step than production at every c. KV cache back to 250,000
+  tokens (no unpack scratch). Tests: kernel parity 3086 pass / 80 skip / 0 fail (R1 2626: + the
+  tiled op at 15 row counts x 3 dtypes x 5 shapes vs MMQ, graph replay, routing to 2048 rows),
+  GPU guards -k iq3 96 pass + the known 6 stock IQ3_S-mmvq failures, CPU guards + pack 99, plugin
+  CPU 86; memcheck + initcheck 0 errors on 59 cases (split tiles, part-filled tiles, K = 512).
+  Review (/check, Fable, 1 round): no blockers (it modelled the schedule on the CPU over 175k
+  configurations); applied: two simplifications (split flag, a dead search loop), an occupancy
+  assert, comments; declined with reasons: 3. Iterations (ablations, no ncu in the container,
+  the fixup and schedule fixes that mattered): cloud/results/phase3/r2/iterations.txt.
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
   Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment
   assumption (`__align__(16)` on the staged q8_1 tile), the unlogged test claims (logs now

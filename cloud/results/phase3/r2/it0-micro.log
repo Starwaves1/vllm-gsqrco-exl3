@@ -1,0 +1,23 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 233.5 us
+  n=    8 new     69.6 | r1     59.3 | mmq    125.0 | unpack_mmq    223.7   floors dram 234 int8 5  rel 3.9e-07
+  n=   16 new     84.6 | r1     83.6 | mmq    135.0 | unpack_mmq    232.0   floors dram 234 int8 10  rel 4.8e-07
+  n=   32 new    124.3 | r1    155.6 | mmq    159.0 | unpack_mmq    258.3   floors dram 234 int8 20  rel 3.9e-07
+  n=   33 new    171.4 | mmq    167.2 | unpack_mmq    268.6   floors dram 234 int8 21  rel 4.0e-07
+  n=   64 new    240.0 | mmq    187.2 | unpack_mmq    285.3   floors dram 234 int8 40  rel 4.9e-07
+  n=  128 new    366.1 | mmq    283.3 | unpack_mmq    381.8   floors dram 234 int8 80  rel 3.8e-07
+  n=  129 new    456.3 | mmq    401.0 | unpack_mmq    499.8   floors dram 234 int8 81  rel 4.4e-07
+  n=  512 new   1099.2 | mmq   1031.6 | unpack_mmq   1140.4   floors dram 234 int8 321  rel 2.8e-07
+  n= 2048 new   4049.8 | mmq   4047.3 | unpack_mmq   4171.5   floors dram 234 int8 1285  rel 2.5e-07
+
+IQ3_XXS 17408x5120: 34.1 MB, DRAM floor 207.9 us
+  n=    8 new     68.6 | r1     59.7 | mmq    112.3 | unpack_mmq    200.5   floors dram 208 int8 5  rel 5.3e-07
+  n=   16 new     82.6 | r1     88.2 | mmq    129.6 | unpack_mmq    215.2   floors dram 208 int8 10  rel 3.6e-07
+  n=   32 new    126.6 | r1    160.7 | mmq    150.5 | unpack_mmq    236.7   floors dram 208 int8 20  rel 5.5e-07
+  n=   33 new    173.4 | mmq    158.6 | unpack_mmq    245.7   floors dram 208 int8 21  rel 4.6e-07
+  n=   64 new    245.8 | mmq    180.6 | unpack_mmq    268.0   floors dram 208 int8 40  rel 4.8e-07
+  n=  128 new    375.2 | mmq    277.6 | unpack_mmq    367.8   floors dram 208 int8 80  rel 4.9e-07
+  n=  129 new    463.0 | mmq    391.2 | unpack_mmq    478.0   floors dram 208 int8 81  rel 3.9e-07
+  n=  512 new   1129.1 | mmq   1017.5 | unpack_mmq   1107.2   floors dram 208 int8 321  rel 3.6e-07
+  n= 2048 new   4143.2 | mmq   3970.1 | unpack_mmq   4093.3   floors dram 208 int8 1285  rel 2.5e-07
+rc=0

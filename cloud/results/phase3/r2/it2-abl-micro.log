@@ -1,0 +1,6 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 50.1 us
+  n=   32 new     89.4 | new_abl1     84.9 | new_abl2     82.3 | new_abl4     83.4 | new_abl8     84.3 | new_abl16     73.2 | new_abl7     78.6 | new_abl31     45.6   floors dram 50 int8 20  rel 4.9e-07
+  n=  128 new    258.4 | new_abl1    248.1 | new_abl2    226.9 | new_abl4    243.2 | new_abl8    212.4 | new_abl16    250.3 | new_abl7    212.6 | new_abl31    144.8   floors dram 50 int8 80  rel 3.5e-07
+  n= 2048 new   3386.6 | new_abl1   3185.2 | new_abl2   2845.5 | new_abl4   3060.7 | new_abl8   2573.3 | new_abl16   3261.9 | new_abl7   2499.5 | new_abl31   1438.5   floors dram 50 int8 1285  rel 2.7e-07
+rc=0

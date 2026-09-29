@@ -1,0 +1,61 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 50.1 us
+  n=    9 new     61.7   floors dram 50 int8 6  rel 4.3e-07
+  n=   12 new     61.2   floors dram 50 int8 8  rel 4.0e-07
+  n=   16 new     62.1   floors dram 50 int8 10  rel 1.3e+33
+  n=   24 new     76.9   floors dram 50 int8 15  rel 1.9e-02
+  n=   32 new     78.9   floors dram 50 int8 20  rel 4.8e+33
+  n=   48 new    123.2   floors dram 50 int8 30  rel 2.1e+33
+  n=   64 new    126.5   floors dram 50 int8 40  rel 1.7e+31
+  n=  128 new    235.0   floors dram 50 int8 80  rel 3.0e+31
+
+IQ3_S 5120x17408: 38.3 MB, DRAM floor 49.3 us
+  n=    9 new     66.7   floors dram 49 int8 6  rel 2.1e+28
+  n=   12 new     68.8   floors dram 49 int8 8  rel 5.0e-07
+  n=   16 new     70.9   floors dram 49 int8 10  rel 4.1e-07
+  n=   24 new     86.0   floors dram 49 int8 15  rel 4.0e+18
+  n=   32 new     91.8   floors dram 49 int8 20  rel 1.3e+04
+  n=   48 new    141.0   floors dram 49 int8 30  rel 1.3e+35
+  n=   64 new    148.5   floors dram 49 int8 40  rel 1.3e+35
+  n=  128 new    264.8   floors dram 49 int8 80  rel 7.0e+33
+
+IQ3_S 10240x5120: 22.5 MB, DRAM floor 31.4 us
+  n=    9 new     47.5   floors dram 31 int8 3  rel 8.0e+17
+  n=   12 new     49.7   floors dram 31 int8 4  rel 5.1e-07
+  n=   16 new     51.9   floors dram 31 int8 6  rel 4.5e-02
+  n=   24 new     59.6   floors dram 31 int8 9  rel 0.0e+00 exact
+  n=   32 new     61.5   floors dram 31 int8 12  rel 8.7e+09
+  n=   48 new     77.9   floors dram 31 int8 18  rel 3.8e+22
+  n=   64 new     82.7   floors dram 31 int8 24  rel 2.7e+31
+  n=  128 new    131.0   floors dram 31 int8 47  rel 2.5e+34
+
+IQ3_XXS 17408x5120: 34.1 MB, DRAM floor 44.6 us
+  n=    9 new     61.4   floors dram 45 int8 6  rel 3.2e-02
+  n=   12 new     63.2   floors dram 45 int8 8  rel 4.1e-07
+  n=   16 new     64.1   floors dram 45 int8 10  rel 4.2e-07
+  n=   24 new     79.0   floors dram 45 int8 15  rel 4.5e-07
+  n=   32 new     81.1   floors dram 45 int8 20  rel 4.3e+31
+  n=   48 new    126.6   floors dram 45 int8 30  rel 9.1e+32
+  n=   64 new    126.5   floors dram 45 int8 40  rel 5.3e+34
+  n=  128 new    240.3   floors dram 45 int8 80  rel 3.9e+34
+
+IQ3_XXS 5120x17408: 34.1 MB, DRAM floor 44.3 us
+  n=    9 new     63.7   floors dram 44 int8 6  rel 6.1e-07
+  n=   12 new     66.7   floors dram 44 int8 8  rel 6.7e-07
+  n=   16 new     68.9   floors dram 44 int8 10  rel 4.8e-07
+  n=   24 new     87.3   floors dram 44 int8 15  rel 5.6e-07
+  n=   32 new     92.9   floors dram 44 int8 20  rel 1.1e+34
+  n=   48 new    142.2   floors dram 44 int8 30  rel 8.3e+31
+  n=   64 new    148.9   floors dram 44 int8 40  rel 2.0e+32
+  n=  128 new    266.9   floors dram 44 int8 80  rel 2.5e+34
+
+IQ3_XXS 10240x5120: 20.1 MB, DRAM floor 28.4 us
+  n=    9 new     45.3   floors dram 28 int8 3  rel 5.0e-07
+  n=   12 new     47.4   floors dram 28 int8 4  rel 4.0e-07
+  n=   16 new     49.7   floors dram 28 int8 6  rel 4.7e-07
+  n=   24 new     61.9   floors dram 28 int8 9  rel 4.4e+31
+  n=   32 new     63.7   floors dram 28 int8 12  rel 3.3e-02
+  n=   48 new     80.0   floors dram 28 int8 18  rel 1.0e+30
+  n=   64 new     84.8   floors dram 28 int8 24  rel 3.7e+31
+  n=  128 new    132.2   floors dram 28 int8 47  rel 8.0e+34
+rc=0

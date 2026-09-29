@@ -1,0 +1,55 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 50.2 us
+  n=    8 new     63.9 | r1     59.2 | mmq    125.0 | unpack_mmq    222.3   floors dram 50 int8 5  rel 5.4e-07
+  n=   16 new     70.1 | r1     82.9 | mmq    134.5 | unpack_mmq    231.3   floors dram 50 int8 10  rel 3.2e-07
+  n=   32 new     92.2 | r1    155.6 | mmq    159.5 | unpack_mmq    256.2   floors dram 50 int8 20  rel 3.6e-07
+  n=   64 new    155.1 | mmq    188.1 | unpack_mmq    285.3   floors dram 50 int8 40  rel 4.8e-07
+  n=  128 new    261.7 | mmq    284.6 | unpack_mmq    382.5   floors dram 50 int8 80  rel 5.7e-07
+  n=  256 new    463.2 | mmq    541.5 | unpack_mmq    638.9   floors dram 50 int8 161  rel 4.0e-07
+  n= 2048 new   3354.1 | mmq   4040.5 | unpack_mmq   4167.5   floors dram 50 int8 1285  rel 2.5e-07
+
+IQ3_S 5120x17408: 38.3 MB, DRAM floor 49.3 us
+  n=    8 new     63.6 | r1     58.9 | mmq    129.6 | unpack_mmq    228.3   floors dram 49 int8 5  rel 5.7e-07
+  n=   16 new     69.2 | r1     93.2 | mmq    141.9 | unpack_mmq    239.1   floors dram 49 int8 10  rel 7.0e-07
+  n=   32 new     89.8 | r1    165.8 | mmq    168.9 | unpack_mmq    266.4   floors dram 49 int8 20  rel 4.5e-07
+  n=   64 new    145.3 | mmq    191.5 | unpack_mmq    289.0   floors dram 49 int8 40  rel 5.0e-07
+  n=  128 new    262.1 | mmq    277.8 | unpack_mmq    375.1   floors dram 49 int8 80  rel 0.0e+00 exact
+  n=  256 new    467.5 | mmq    493.3 | unpack_mmq    593.3   floors dram 49 int8 161  rel 1.3e-06
+  n= 2048 new   3418.1 | mmq   3891.1 | unpack_mmq   4006.5   floors dram 49 int8 1285  rel 6.2e-07
+
+IQ3_S 10240x5120: 22.5 MB, DRAM floor 31.4 us
+  n=    8 new     44.6 | r1     37.9 | mmq     75.3 | unpack_mmq    134.7   floors dram 31 int8 3  rel 4.1e-07
+  n=   16 new     50.1 | r1     51.8 | mmq     82.2 | unpack_mmq    139.7   floors dram 31 int8 6  rel 3.9e-07
+  n=   32 new     66.0 | r1     97.1 | mmq     93.4 | unpack_mmq    153.0   floors dram 31 int8 12  rel 4.2e-07
+  n=   64 new    115.0 | mmq    106.9 | unpack_mmq    166.5   floors dram 31 int8 24  rel 5.2e-07
+  n=  128 new    163.9 | mmq    156.2 | unpack_mmq    214.8   floors dram 31 int8 47  rel 4.3e-07
+  n=  256 new    285.5 | mmq    307.2 | unpack_mmq    365.0   floors dram 31 int8 95  rel 3.8e-07
+  n= 2048 new   2042.2 | mmq   2405.4 | unpack_mmq   2466.4   floors dram 31 int8 756  rel 3.3e-07
+
+IQ3_XXS 17408x5120: 34.1 MB, DRAM floor 44.5 us
+  n=    8 new     61.7 | r1     59.8 | mmq    112.2 | unpack_mmq    198.8   floors dram 44 int8 5  rel 5.2e-07
+  n=   16 new     70.0 | r1     88.6 | mmq    130.0 | unpack_mmq    213.5   floors dram 44 int8 10  rel 5.1e-07
+  n=   32 new     92.5 | r1    161.8 | mmq    150.5 | unpack_mmq    233.8   floors dram 44 int8 20  rel 4.7e-07
+  n=   64 new    158.5 | mmq    181.5 | unpack_mmq    267.8   floors dram 44 int8 40  rel 6.1e-07
+  n=  128 new    268.4 | mmq    278.5 | unpack_mmq    367.5   floors dram 44 int8 80  rel 3.5e-07
+  n=  256 new    474.4 | mmq    527.9 | unpack_mmq    617.3   floors dram 44 int8 161  rel 4.0e-07
+  n= 2048 new   3494.9 | mmq   3943.6 | unpack_mmq   4045.2   floors dram 44 int8 1285  rel 2.3e-07
+
+IQ3_XXS 5120x17408: 34.1 MB, DRAM floor 44.5 us
+  n=    8 new     61.2 | r1     58.2 | mmq    112.7 | unpack_mmq    197.6   floors dram 44 int8 5  rel 5.7e-07
+  n=   16 new     68.7 | r1     95.7 | mmq    132.1 | unpack_mmq    216.7   floors dram 44 int8 10  rel 4.9e-07
+  n=   32 new     90.9 | r1    170.0 | mmq    148.8 | unpack_mmq    234.6   floors dram 44 int8 20  rel 5.2e-07
+  n=   64 new    146.7 | mmq    183.6 | unpack_mmq    268.9   floors dram 44 int8 40  rel 5.2e-07
+  n=  128 new    268.8 | mmq    271.8 | unpack_mmq    358.6   floors dram 44 int8 80  rel 0.0e+00 exact
+  n=  256 new    478.7 | mmq    481.5 | unpack_mmq    569.9   floors dram 44 int8 161  rel 1.2e-06
+  n= 2048 new   3535.7 | mmq   3832.2 | unpack_mmq   3890.8   floors dram 44 int8 1285  rel 7.7e-07
+
+IQ3_XXS 10240x5120: 20.1 MB, DRAM floor 28.5 us
+  n=    8 new     42.3 | r1     36.3 | mmq     68.6 | unpack_mmq    119.7   floors dram 28 int8 3  rel 4.1e-07
+  n=   16 new     48.5 | r1     54.9 | mmq     77.7 | unpack_mmq    129.8   floors dram 28 int8 6  rel 5.1e-07
+  n=   32 new     66.5 | r1     98.7 | mmq     86.9 | unpack_mmq    139.6   floors dram 28 int8 12  rel 5.9e-07
+  n=   64 new    117.3 | mmq    103.2 | unpack_mmq    155.7   floors dram 28 int8 24  rel 4.8e-07
+  n=  128 new    167.7 | mmq    153.9 | unpack_mmq    206.3   floors dram 28 int8 47  rel 4.7e-07
+  n=  256 new    291.8 | mmq    300.5 | unpack_mmq    351.7   floors dram 28 int8 95  rel 4.2e-07
+  n= 2048 new   2097.3 | mmq   2353.3 | unpack_mmq   2402.1   floors dram 28 int8 756  rel 3.1e-07
+rc=0

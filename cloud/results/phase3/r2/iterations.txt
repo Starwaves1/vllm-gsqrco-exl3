@@ -1,0 +1,139 @@
+R2: owned tiled int8 tensor-core kernel for the packed IQ3_S / IQ3_XXS layout at any row count
+(op lcpp_mul_mat_iq3_packed, csrc/lcpp_owned_iq3_mma.cu namespace tiled), replacing the unpack +
+vendored MMQ path above 32 rows. Branch opt-r2 from opt-r1 (3b47510). Same microbench conventions
+as R1 / K2 (GPU time per call incl. q8_1 quantize; 10 calls per CUDA graph; bf16 X; real GGUF
+blocks; 350 W 3090), plus the output in X's dtype written by the kernel (MMQ: + a cast kernel).
+Floors: DRAM = torch.sum over the weight bytes (same timing); int8 = 2 * rows * K * n / 284 TOPS.
+
+Design (iterations 0-2; iteration 3 changes the tile set, the plan and the pipeline step):
+  CTA = 8 warps (WM x WN), warp = 32 weight rows (two packed 16-row tiles) x 8 NT columns; tiles
+  256 x 16 / 32 / 64 (8 x 1 warps) and 128 x 128 (4 x 2), the width with the fewest computed
+  columns per n. A: R1's per-lane loads straight into registers one weight block ahead and R1's
+  table decode (pdecode / pslice), no A tile in shared memory. B: MMQ's block_q8_1_mmq (D4)
+  copied by cp.async per 128 values, 3 stages. Scaling: MMQ's per-slice term float(C) * dA * dB
+  (dA = load_tiles' x_df), as fma(fma(M + C, dA, -M dA), dB, acc): the mma adds C to M = 1.5 x 2^23
+  so M + C is exact, the inner fma rounds C * dA once (= I2F + FMUL). Schedule: persistent CTAs
+  (1 per SM); whole tiles in waves, the last tiles % G split in K over all CTAs (stream-K), pieces
+  summed in CTA (= K) order by a fixup kernel; whole tiles written in X's dtype.
+
+MMQ on the unpacked bytes, same runs (it2), us, IQ3_S / IQ3_XXS:
+  n                 8       16      32      64      128     256     2048
+  17408 x 5120   125/112 135/130 160/151 188/182 285/279 542/528 4041/3944   (+ unpack: 222 .. 4168 / 199 .. 4045)
+  5120 x 17408   130/113 142/132 169/149 192/184 278/272 493/482 3891/3832
+  10240 x 5120    75/69   82/78   93/87  107/103 156/154 307/301 2405/2353
+DRAM floor (torch.sum over the weight bytes as fp32, same timing): 50.2 / 49.3 / 31.4 us IQ3_S, 44.5 / 44.5 / 28.5
+IQ3_XXS (it0 / it1 printed 233 us: the int32 sum is not bandwidth-bound; fixed in it2).
+
+it  variant (IQ3_S 17408 x 5120 unless noted)                    n=16   32     64     128    2048 us
+0   v0: tiles 256 x 16/32/64 (8 x 1 warps) and 128 x 128 (4 x 2),   84.6   124.3  240.0  366.1  4049.8
+    stream-K tail; C128 / C64 spill 48-64 B; MMQ-exact per slice (rel 2.5e-7 .. 5.5e-7 vs MMQ on
+    fp32 X at every n, both types)
+1   instruction count (SASS loop, C128, per unit and warp: 2250 -> 1900 instrs / 128 mma):
+      v1 per-thread copy offsets without division, unit cursors     -    120.5    -    374.3  4442.5 (spills more)
+      v2 activation scales one slice per (volatile) load: no spills 81.9  119.3  208.7  315.8  3458.2
+      v3 mma addend quad from shared memory (ptxas re-materialized 82.0 119.7 206.0 310.0 3299.9
+         the constant: 245 moves per unit, 11 %), accumulators reset per tile, not per unit
+      v4 scales staged [slice][column]: 1 load per column pair      82.2 114.8 207.7 313.3 3376.8
+      v5 store epilogue without per-element branches (1449 -> 740) 81.8 114.5 209.3 314.7 3424.0
+      v7 v5 + the two half-block steps as a real loop (hot loop     82.2 116.1 210.4 316.8 3499.8
+         966 instead of ~1900 instrs) and v8 the four slice pairs    82.9 121.8 210.8 330.7 3685.6
+         (593): no gain, so not instruction-fetch bound; dropped
+      tile width sweep (v2): 256 x 64 beats 128 x 128 at every n >= 128 (n=2048 3292 vs 3467).
+    ncu is not permitted in this container (ERR_NVGPUCTRPERM); the rest by ablation and model.
+2   v9: v5 + a fixup kernel that finds a tile's pieces once       69.4   91.1  155.1  261.7  3354.1
+       (the old one did 2 64-bit divisions per element and piece)
+    ablations of v9 (dev builds, us): n=32 / 128 / 2048
+      base 89.4 / 258.4 / 3387; no table lookups 84.9 / 248.1 / 3185; one add per element instead
+      of the two fmas 82.3 / 226.9 / 2846; no B loads 83.4 / 243.2 / 3061; no barrier + copies
+      84.3 / 212.4 / 2573; no weight loads 73.2 / 250.3 / 3262; all five 45.6 / 144.8 / 1439
+      (1439 us = 89 % of the int8 peak: the mma + dA path is not the limit; no single cause,
+      the per-step CTA barrier the largest at large n, the weight loads at 32 rows)
+    CTA count: whole tiles on 68 CTAs vs the split tail on 82 at 17408 rows: n=16 59.6 vs 69.4,
+      n=32 76.2 vs 91.1, n=128 241.3 vs 264.4; at 5120 rows (20 row tiles) the split wins.
+    v10: 256 x 16 / 32 at 2 CTAs per SM (<= 128 registers): slower at every n (C32 spills). Dropped.
+    Per SM a unit (weight block x tile) costs ~1.7 + 0.55 NT us (NT = 8-column tiles per warp).
+3   v11: tiles 256 x 16 / 32 / 64 only (all 8 x 1 warps), width and schedule picked per call by a
+    unit-cost model: per tile width, whole-tile waves on ceil(tiles / waves) CTAs vs the split tail
+    on all SMs (+ 7 units for pieces and fixup), cost (waves or units) x (2.9 + NT); SPB = 128-value
+    blocks per pipeline step (one CTA barrier each), 1 vs 2 (it3-d / it3-f, same job):
+      IQ3_S 17408 x 5120   n=9    16     32     64     128    129    256    2048
+        SPB 1              59.6   61.2   75.4   121.5  227.1  323.8  439.6  3116.9
+        SPB 2              58.7   60.2   75.2   118.4  219.1  313.2  424.9  3023.5
+      SPB 2 is faster at every n, shape and type (1-5 %): one barrier per weight block. Kept.
+    model check (it3-tn, forced widths 16 / 32 / 64): the picked width is the fastest at every
+      n = 16 .. 2048 on all three shapes (within 2 %).
+    R1's decode kernel vs the tiled one: n=8 58.9 vs 59.2 / 58.7 vs 63.7 / 37.7 vs 44.7 (R1 wins),
+      n=9 73.2 vs 59.6 / 72.0 vs 65.3 / 44.3 vs 46.3, n=16 84.6 vs 61.2 / 92.7 vs 68.8 / 51.2 vs 50.6:
+      routed above 8 rows (PACKED_VEC_MAX_ROWS = 8; 10240 x 5120 at 9..16 rows is within 2 us).
+    v12: v11 + weights through one shared-memory stage (cp.async, ~1.5 units ahead instead of 1):
+      slower everywhere (n=32 78.9 vs 75.4, n=128 235.0 vs 227.1). Dropped.
+    final: v11, SPB 2, + a 48-column tile (n = 33..48, 129..144 waste a third of a 64-wide tile).
+
+Routing (linear.py): packed IQ3 weights go to lcpp_mul_mat_vec_iq3_mma_packed (R1) up to 8 rows
+(PACKED_VEC_MAX_ROWS) and to lcpp_mul_mat_iq3_packed above. The unpack + MMQ path and the CUDA
+unpack op (lcpp_iq3_unpack) are gone; iq3_pack.unpack (torch) stays for the round-trip tests.
+
+End to end (production run_benchmarks.sh single, T=0 real prompts, 350 W; one server per job;
+wt-r2x = the final code; decode tok/s = C / mean TPOT, tok/step in brackets; ms/step = C x 1000 /
+tok/s x tok/step; R1 numbers are R1's session, the base prefill is this session's opt-k2 build):
+                      c=1           c=2           c=4           c=8           8k prefill        180k prefill
+  R2 pass 1           99.6 (3.00)   188.7 (3.07)  326.8 (3.06)  529.5 (3.04)
+  R2 pass 2           99.1 (3.00)   188.5 (3.07)  319.5 (2.98)  533.7 (3.04)  1248 tok/s 6.56 s  646 tok/s 278.7 s
+  R1 pass 2           99.9 (3.00)   184.0 (2.96)  310.1 (3.09)  425.3 (2.96)  1009 tok/s 8.12 s
+  base (opt-k2)                                                               1157 tok/s 7.08 s  614 tok/s 292.9 s
+  ms/step R2          30.3          32.6          37.3          45.6          102.5 (128-token steps)
+  ms/step R1          30.0          32.2          39.9          55.7          126.9
+  production          27.6          27.3          30.0          41.3          (1108 tok/s)  (603 tok/s)
+  -> c=4 -7 %, c=8 -18 % ms/step vs R1 (c=1 / c=2 run the same kernels: within noise); 8k prefill
+     +24 % vs R1, +7.9 % vs the unpacked-MMQ base, +13 % vs production; 180k +5.2 % vs base, +7 %
+     vs production. Still slower per step than production at c=1 / 2 / 4 / 8 (+10 / +19 / +24 / +10 %).
+  TTFT (mean, ms) c=1 / 2 / 4 / 8: 206 / 291 / 415 / 1088 (R1 256 / 352 / 555 / 1264).
+  MTP whole-run acceptance 0.647 (R1 0.641).
+Load: "Model loading took" 131.2 s (base 123.5: the pack), first start after the change 406 s to
+serve (torch.compile recompiles once for the new op, 130 s), warm restart 210 s (base 200). KV
+cache 8.64 GiB, 250,000 tokens (R1 246,875, base 249,218): no unpack scratch in the profile run.
+
+Final microbench (micro-final.tsv, wt-r2 = the committed code, us; MMQ = vendored MMQ on the
+unpacked bytes, without the 95 us unpack R1 paid above 32 rows; % = binding floor / time, the
+floor being max(DRAM, int8 at 284 TOPS)):
+  IQ3_S 17408 x 5120   n=9    16     32     48     64     128    129    256    512    2048
+    tiled (routed)     58.1   60.0   77.8   98.3   117.3  221.2  261.2  423.5  792.5  3034.5
+    MMQ                134.2  135.9  160.7  170.6  190.2  287.9  411.0  545.4  1051.7 4078.7
+    % floor (tiled)    86     84     65     51     43     36     31     38     41     42
+  IQ3_S 5120 x 17408   64.8   68.7   89.4   115.4  140.5  249.4  284.2  385.2  762.7  3070.6
+    MMQ                139.2  142.4  169.1  181.6  192.6  278.3  376.3  496.4  988.1  3944.7
+  IQ3_S 10240 x 5120   45.8   50.0   60.1   75.2   77.3   120.3  172.1  233.2  452.5  1845.5
+    MMQ                79.7   81.6   94.2   101.9  110.5  159.9  228.8  310.9  613.1  2431.5
+  IQ3_XXS 17408 x 5120 58.4   60.3   77.5   97.3   119.4  225.3  262.7  434.6  812.9  3137.1
+    MMQ                129.0  130.9  150.4  162.1  183.6  282.2  395.6  535.1  1034.4 4001.2
+  IQ3_XXS 5120 x 17408 61.0   65.4   88.7   114.6  141.8  253.4  282.1  394.9  786.4  3142.9
+    MMQ                129.0  130.7  147.5  160.5  183.1  274.3  371.4  487.4  976.2  3888.6
+  IQ3_XXS 10240 x 5120 43.5   47.5   60.7   74.6   76.7   124.1  172.6  239.4  463.4  1899.4
+    MMQ                76.3   78.3   88.5   95.6   105.8  157.4  223.3  305.4  603.1  2384.3
+  R1's decode kernel at 1..8 rows (routed there): n=1 52.6 / 4 53.9 / 8 60.3 us (IQ3_S 17408).
+  vs MMQ on fp32 X: max |diff| / max |ref| 0 (bit-exact where both compute a tile whole) .. 1.1e-6.
+
+Tests (r2-final.sh on wt-r2 = 75a0380): kernel parity, whole file, VLLM_GGUF_LCPP=1: 3086 passed,
+80 skipped, 0 failed (final-parity.log; R1 2626); GPU guards -k iq3: 96 passed, 6 failed, all
+IQ3_S-mmvq (the stock e2b8ad5 path, the same 6 as R1 / K2; final-guards.log); CPU guards + pack
+tests 99 passed (final-cpu.log); plugin CPU tests 86 passed, 1 skipped (final-plugin-cpu.log);
+compute-sanitizer memcheck and initcheck 0 errors on 59 cases (56 tiled-op cases at 1 / 16 / 17 /
+32 / 33 / 129 / 512 rows on real / 208-row / K = 512 / K = 4608 weights, 3 packed layers;
+final-sanitizer-*.log).
+
+Review (/check, Fable, one round; no blockers). It modelled make_plan / best_plan, the cursor, the
+store branch and the fixup's piece search on the CPU over 175,329 (rows, cols, nkb, G) configs:
+every unit computed once, no slot reuse, pieces contiguous and summed in K order; checked the
+cp.async group accounting, the out-of-bounds guards, the fragment mapping, the numerics claim and
+the write-up numbers against the logs. Applied: p.split = tail_units > 0 (equivalent: fewer tail
+tiles than CTAs), the fixup's search loop that cannot move deleted, kb0 = 0, GGML_ASSERT(occ > 0),
+the reason -M dA is exact (dA <= 16 significant bits), the cost constants marked 3090-calibrated,
+a stale test comment. Declined: the plan computed twice per call (deterministic host work, keeps
+the work-bytes API the shim uses); an abort at 0 rows (run() returns before any launch at n = 0);
+production shapes untested (test_routing_packed_whole_tensor runs the whole 17408-row tensor at
+9 .. 2048 rows against MMQ). Verification of the fixes: r2-verify.sh (verify-*.log).
+  -> after the fixes (26dee14): packed parity (-k "packed or pack_roundtrip or tiled") 1460 passed,
+     GPU guards -k packed 36 passed, CPU guards 86 passed; IQ3_S n = 16 / 32 / 128 / 129 / 2048:
+     58.2 / 75.3 / 212.3 / 256.8 / 2983.9 us (17408 x 5120), 67.6 / 87.1 / 241.4 / 288.9 / 2949.5
+     (5120 x 17408), rel vs MMQ <= 8.5e-7 (verify-micro.log).
+GPU time for R2's jobs: ~1.9 h (iteration microbenches 0.4 h, end to end 0.7 h, tests + sanitizer 0.8 h).

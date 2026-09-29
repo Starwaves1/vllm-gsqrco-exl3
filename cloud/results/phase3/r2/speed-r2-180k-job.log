@@ -1,0 +1,10 @@
+start 2026-09-29T22:27:48Z /workspace/wt-r2x
+server up after 210 s
+(EngineCore pid=809751) INFO 09-29 22:30:37 [gpu_model_runner.py:5455] Model loading took 12.41 GiB memory and 131.161589 seconds
+(EngineCore pid=809751) INFO 09-29 22:30:50 [gpu_worker.py:563] Available KV cache memory: 8.63 GiB
+(EngineCore pid=809751) INFO 09-29 22:30:50 [kv_cache_utils.py:2389] GPU KV cache size: 250,000 tokens
+(EngineCore pid=809751) INFO 09-29 22:31:02 [core.py:348] init engine (profile, create kv cache, warmup model) took 25.15 s (compilation: 9.20 s)
+22505 MiB
+prefill rc=0
+ROW prefill len=180000 conc=1 | 646 tok/s | meanTTFT=278746.86 ms
+end 2026-09-29T22:36:24Z
