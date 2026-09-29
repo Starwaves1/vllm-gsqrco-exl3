@@ -870,7 +870,7 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("lcpp_quantize_q8_1", TORCH_BOX(&lcpp_quantize_q8_1));
 }
 
-// CPU: guards only (always ends in "must be CUDA tensors"); lets the guard
+// CPU: guards only (always ends in "must be CUDA tensors" / "must be a CUDA tensor"); lets the guard
 // tests run on a machine without a GPU.
 STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
   ops.impl("lcpp_mul_mat_vec_q", TORCH_BOX(&lcpp_mul_mat_vec_q));

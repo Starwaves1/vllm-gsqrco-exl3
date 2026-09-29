@@ -148,7 +148,7 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   each mma lane's bytes contiguous: grid-index bytes in the A fragment's k order, then the 5 bits
   above each index (IQ3_S) or the pair's 7 sign bits re-coded so the table rebuilds both 4th
   signs (IQ3_XXS), then sub-scales and d per row pair. `lcpp_mul_mat_vec_iq3_mma_packed` is K2's
-  kernel reading that layout: 6 coalesced loads per lane per block, one prmt per table index, no
+  kernel reading that layout: 6 (IQ3_S) / 7 (IQ3_XXS) coalesced loads per lane per block, one prmt per table index, no
   shared-memory staging of weights. Bit-exact with K2's kernel (per output column, 8 rows at a
   time, also at 9..32 rows). IQ3_S 17408x5120 n=1/4/8/16/32: 52.5/53.8/59.9/82.5/156.1 us (was
   55.1 dp4a / 71.7 dp4a / 83.0 mma / 134.7 MMQ / 158.7 MMQ; DRAM floor ~47 at ~815 GB/s). At 32
@@ -158,11 +158,14 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   32 rows unpacks the 5.72 GB of IQ3 weights (~14 ms), so with production's 128-token prefill
   chunks 8k prefill is -13 % (+1.08 s TTFT) and mean TTFT rises at every C (c=1 223 -> 256 ms,
   c=8 1226 -> 1264). Decode tok/s c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 -3 % (ms/step -9 / -9 /
-  -15 / -0.3 %; tok/step shifts with the new numerics). Load +7.9 s (first start after the change
-  also recompiles, 205 -> 401 s to serve), KV cache -0.9 %. Repacking only tensors whose every
+  -15 / -0.3 %; tok/step shifts with the new numerics). Load +5..8 s (warm start 206 s to serve
+  vs 205; the first start after a code change recompiles once), KV cache -0.9 %. Repacking only tensors whose every
   row count the owned kernels take would pack nothing today. The unpack goes only when owned
-  kernels take prefill-sized row counts too. Tests: see iterations.txt (packed subset 454 +
-  review additions; full suite, guards and sanitizer in final-*.log). Kept or not is Garrett's
+  kernels take prefill-sized row counts too. Tests: kernel parity 2626 pass / 80 skip / 0 fail,
+  GPU guards -k iq3 78 pass + the known 6 stock IQ3_S-mmvq failures, CPU guards + pack 95, plugin
+  CPU 86; sanitizer in final-sanitizer-*.log. Review (/check, Fable, 2 rounds): fixed an inherited
+  pack that would have corrupted dequantizing methods (embeddings, diffusion), a broken unit test,
+  test gaps and write-up precision. Kept or not is Garrett's
   call (decode vs prefill). Log: cloud/results/phase3/r1/iterations.txt.
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
   Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment

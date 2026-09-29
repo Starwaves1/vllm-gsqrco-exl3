@@ -32,7 +32,7 @@ def test_roundtrip_fixture_rows(qt):
     for f in files:
         raw = np.load(f)["raw"]
         rows.setdefault(raw.size, []).append(raw)
-    for same_k in rows.values():  # 16 rows cycled from the fixture rows of one K
+    for same_k in rows.values():  # 32 rows cycled from the fixture rows of one K
         w = torch.from_numpy(np.stack([same_k[i % len(same_k)] for i in range(32)]))
         p = iq3_pack.pack(w, qt)
         assert p.shape == w.shape and not torch.equal(p, w)

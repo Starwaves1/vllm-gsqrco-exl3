@@ -1,0 +1,29 @@
+........................................................................ [ 83%]
+..............                                                           [100%]
+=============================== warnings summary ===============================
+../../gsq-vllm/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/diffusion/test_diffusion_config.py:20
+  /workspace/wt-r1/plugin/tests/diffusion/test_diffusion_config.py:20: PytestUnknownMarkWarning: Unknown pytest.mark.cpu - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.cpu]
+
+tests/diffusion/test_diffusion_loader.py:22
+  /workspace/wt-r1/plugin/tests/diffusion/test_diffusion_loader.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.cpu - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.cpu]
+
+tests/diffusion/test_flux2_klein_adapter.py:15
+  /workspace/wt-r1/plugin/tests/diffusion/test_flux2_klein_adapter.py:15: PytestUnknownMarkWarning: Unknown pytest.mark.cpu - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.cpu]
+
+tests/diffusion/test_qwen_image_adapter.py:14
+  /workspace/wt-r1/plugin/tests/diffusion/test_qwen_image_adapter.py:14: PytestUnknownMarkWarning: Unknown pytest.mark.cpu - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.cpu]
+
+tests/diffusion/test_z_image_adapter.py:15
+  /workspace/wt-r1/plugin/tests/diffusion/test_z_image_adapter.py:15: PytestUnknownMarkWarning: Unknown pytest.mark.cpu - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.cpu]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+86 passed, 1 skipped, 19 warnings in 7.14s
