@@ -86,3 +86,28 @@ it  change                                                 us at 17408x5120, n =
 Not done (ideas measured or reasoned, left): hybrid data-parallel + stream-K (whole waves tiled, only
 the tail stream-K) for tile counts just above the resident slots (Q4_K 17408 n=16); 48-column
 (6-tile) instance for 33..48 rows; Q6_K / Q2_K (Q2_K's MMQ layout is D2S6, a different min term).
+
+Final (v8, commits 15b8ef1..c96ba32). Same-process routing sweep over every weight shape of this GGUF
+(route-*-ab.tsv; k3[] = final stream-K, k3[tiled] = the same kernel under v4's fixed-split CTA count,
+mmq = vendored), us, and % of the DRAM floor (floor.txt time / kernel time):
+                     n=16                    n=32                    n=64
+  Q4_K 17408x5120    80.7 81% (MMQ 111.2)    95.4 69% (129.5)       169.6 39% (177.9)
+  Q4_K 5120x17408    84.4 73% (109.8)        98.5 63% (129.2)       169.8 37% (175.8)
+  Q4_K 10240x5120    51.1 76% (65.5)         62.2 62% (73.4)        109.8 35% (101.6)
+  Q4_K lm_head       975.9 (1364.0)          1165.1 (1744.7)        2209.2 (2345.6)
+  IQ4_XS 17408x5120  83.4 71% (99.5)        111.0 53% (126.0)       165.3 36% (162.7)
+  IQ4_XS 5120x17408  87.4 67% (99.7)        113.5 52% (124.9)       164.7 36% (161.9)
+  IQ4_XS 10240x5120  53.4 69% (59.2)         71.7 52% (73.6)        107.2 35% (91.5)
+  IQ2_S 17408x5120   91.4 41% (127.8)       124.1 30% (158.3)       205.4 18% (210.8)
+  IQ2_S 5120x17408   92.2 41% (132.9)       126.8 30% (159.5)       206.7 18% (206.4)
+  Routing (linear.py _mma_k_wins): wins by more than the ~3 % run-to-run band at 9..32 rows on every W
+  above 2048 rows for Q4_K / IQ2_S (8-27 %), IQ4_XS at 9..16 everywhere above 2048 rows (9-20 %) but at
+  17..32 only from 12288 x 5120 (5120x6144 / 6144x5120 / 10240x5120 are within +-4 % there); 1024 / 2048
+  rows mostly lose; 33..48 rows lose everywhere (64-column tiles); 64 rows: Q4_K large W +3..6 %, IQ4_XS /
+  IQ2_S within noise, 10240 x 5120 -8 % -> not routed. Where the final loses to v4's schedule inside the
+  routed range: Q4_K 17408x5120 n=12..16 (80.7 vs 76.5, +5 %), lm_head n=9..16 (976 vs 902, +8 %).
+Checks (final code): kernel parity -k "lcpp or routing" 1516 passed / 61 skipped (45 = the no_pieces
+shape outside 9..16 rows; 16 as before) / 0 failed; mma_k vs MMQ fp32 rel <= 5.4e-7 (129 cases, whole
+tensors incl.), 16-bit output within 1 ulp of MMQ (222 cases, 0 elements beyond); GPU guards -k lcpp
+120 passed; CPU guards 76 passed; compute-sanitizer memcheck + initcheck 0 errors on 36 mma_k cases
+(ragged n, part-filled tiles, no-fixup layout, whole tensors). Vendored files unchanged.

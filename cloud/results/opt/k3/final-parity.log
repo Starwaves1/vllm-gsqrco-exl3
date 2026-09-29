@@ -1,0 +1,2814 @@
+
+IQ1_M rows=17408 n=1: rel err vs full 1.08e-02
+.s
+IQ1_M rows=17408 n=4: rel err vs full 1.05e-02
+.s
+IQ1_M rows=17408 n=8: rel err vs full 1.12e-02
+.s
+IQ1_M rows=17408 n=9: rel err vs full 2.68e-03
+.s
+IQ1_M rows=17408 n=16: rel err vs full 2.75e-03
+.s
+IQ1_M rows=17408 n=32: rel err vs full 2.40e-03
+.s
+IQ1_M rows=17408 n=128: rel err vs full 2.77e-03
+.s
+IQ1_M rows=17408 n=512: rel err vs full 2.40e-03
+.s
+IQ2_S rows=17408 n=1: rel err vs full 1.08e-02
+.
+IQ2_S rows=5120 n=1: rel err vs full 1.01e-02
+.
+IQ2_S rows=17408 n=4: rel err vs full 1.05e-02
+.
+IQ2_S rows=5120 n=4: rel err vs full 1.08e-02
+.
+IQ2_S rows=17408 n=8: rel err vs full 1.13e-02
+.
+IQ2_S rows=5120 n=8: rel err vs full 1.08e-02
+.
+IQ2_S rows=17408 n=9: rel err vs full 1.11e-02
+.
+IQ2_S rows=5120 n=9: rel err vs full 1.11e-02
+.
+IQ2_S rows=17408 n=16: rel err vs full 1.15e-02
+.
+IQ2_S rows=5120 n=16: rel err vs full 1.23e-02
+.
+IQ2_S rows=17408 n=32: rel err vs full 1.15e-02
+.
+IQ2_S rows=5120 n=32: rel err vs full 1.10e-02
+.
+IQ2_S rows=17408 n=128: rel err vs full 1.17e-02
+.
+IQ2_S rows=5120 n=128: rel err vs full 1.16e-02
+.
+IQ2_S rows=17408 n=512: rel err vs full 1.19e-02
+.
+IQ2_S rows=5120 n=512: rel err vs full 1.26e-02
+.
+IQ2_XS rows=17408 n=1: rel err vs full 1.06e-02
+.
+IQ2_XS rows=5120 n=1: rel err vs full 1.02e-02
+.
+IQ2_XS rows=17408 n=4: rel err vs full 1.08e-02
+.
+IQ2_XS rows=5120 n=4: rel err vs full 1.05e-02
+.
+IQ2_XS rows=17408 n=8: rel err vs full 1.12e-02
+.
+IQ2_XS rows=5120 n=8: rel err vs full 1.09e-02
+.
+IQ2_XS rows=17408 n=9: rel err vs full 1.11e-02
+.
+IQ2_XS rows=5120 n=9: rel err vs full 1.08e-02
+.
+IQ2_XS rows=17408 n=16: rel err vs full 1.16e-02
+.
+IQ2_XS rows=5120 n=16: rel err vs full 1.12e-02
+.
+IQ2_XS rows=17408 n=32: rel err vs full 1.16e-02
+.
+IQ2_XS rows=5120 n=32: rel err vs full 1.10e-02
+.
+IQ2_XS rows=17408 n=128: rel err vs full 1.18e-02
+.
+IQ2_XS rows=5120 n=128: rel err vs full 1.15e-02
+.
+IQ2_XS rows=17408 n=512: rel err vs full 1.18e-02
+.
+IQ2_XS rows=5120 n=512: rel err vs full 1.16e-02
+.
+IQ2_XXS rows=17408 n=1: rel err vs full 1.07e-02
+.s
+IQ2_XXS rows=17408 n=4: rel err vs full 1.06e-02
+.s
+IQ2_XXS rows=17408 n=8: rel err vs full 1.11e-02
+.s
+IQ2_XXS rows=17408 n=9: rel err vs full 1.12e-02
+.s
+IQ2_XXS rows=17408 n=16: rel err vs full 1.15e-02
+.s
+IQ2_XXS rows=17408 n=32: rel err vs full 1.14e-02
+.s
+IQ2_XXS rows=17408 n=128: rel err vs full 1.17e-02
+.s
+IQ2_XXS rows=17408 n=512: rel err vs full 1.18e-02
+.s
+IQ3_S rows=10240 n=1: rel err vs full 1.06e-02
+.
+IQ3_S rows=5120 n=1: rel err vs full 1.04e-02
+.
+IQ3_S rows=10240 n=4: rel err vs full 1.06e-02
+.
+IQ3_S rows=5120 n=4: rel err vs full 1.09e-02
+.
+IQ3_S rows=10240 n=8: rel err vs full 1.14e-02
+.
+IQ3_S rows=5120 n=8: rel err vs full 1.10e-02
+.
+IQ3_S rows=10240 n=9: rel err vs full 1.11e-02
+.
+IQ3_S rows=5120 n=9: rel err vs full 1.06e-02
+.
+IQ3_S rows=10240 n=16: rel err vs full 1.19e-02
+.
+IQ3_S rows=5120 n=16: rel err vs full 1.12e-02
+.
+IQ3_S rows=10240 n=32: rel err vs full 1.15e-02
+.
+IQ3_S rows=5120 n=32: rel err vs full 1.11e-02
+.
+IQ3_S rows=10240 n=128: rel err vs full 1.19e-02
+.
+IQ3_S rows=5120 n=128: rel err vs full 1.14e-02
+.
+IQ3_S rows=10240 n=512: rel err vs full 1.18e-02
+.
+IQ3_S rows=5120 n=512: rel err vs full 1.15e-02
+.
+IQ3_XXS rows=6144 n=1: rel err vs full 1.10e-02
+.
+IQ3_XXS rows=5120 n=1: rel err vs full 1.04e-02
+.
+IQ3_XXS rows=6144 n=4: rel err vs full 1.05e-02
+.
+IQ3_XXS rows=5120 n=4: rel err vs full 1.08e-02
+.
+IQ3_XXS rows=6144 n=8: rel err vs full 1.15e-02
+.
+IQ3_XXS rows=5120 n=8: rel err vs full 1.08e-02
+.
+IQ3_XXS rows=6144 n=9: rel err vs full 1.12e-02
+.
+IQ3_XXS rows=5120 n=9: rel err vs full 1.08e-02
+.
+IQ3_XXS rows=6144 n=16: rel err vs full 1.18e-02
+.
+IQ3_XXS rows=5120 n=16: rel err vs full 1.11e-02
+.
+IQ3_XXS rows=6144 n=32: rel err vs full 1.16e-02
+.
+IQ3_XXS rows=5120 n=32: rel err vs full 1.11e-02
+.
+IQ3_XXS rows=6144 n=128: rel err vs full 1.21e-02
+.
+IQ3_XXS rows=5120 n=128: rel err vs full 1.13e-02
+.
+IQ3_XXS rows=6144 n=512: rel err vs full 1.18e-02
+.
+IQ3_XXS rows=5120 n=512: rel err vs full 1.14e-02
+.
+IQ4_XS rows=10240 n=1: rel err vs full 1.18e-02
+.
+IQ4_XS rows=5120 n=1: rel err vs full 9.86e-03
+.
+IQ4_XS rows=10240 n=4: rel err vs full 1.08e-02
+.
+IQ4_XS rows=5120 n=4: rel err vs full 1.11e-02
+.
+IQ4_XS rows=10240 n=8: rel err vs full 1.07e-02
+.
+IQ4_XS rows=5120 n=8: rel err vs full 1.16e-02
+.
+IQ4_XS rows=10240 n=9: rel err vs full 1.08e-02
+.
+IQ4_XS rows=5120 n=9: rel err vs full 1.17e-02
+.
+IQ4_XS rows=10240 n=16: rel err vs full 1.29e-02
+.
+IQ4_XS rows=5120 n=16: rel err vs full 1.48e-02
+.
+IQ4_XS rows=10240 n=32: rel err vs full 1.32e-02
+.
+IQ4_XS rows=5120 n=32: rel err vs full 1.29e-02
+.
+IQ4_XS rows=10240 n=128: rel err vs full 1.29e-02
+.
+IQ4_XS rows=5120 n=128: rel err vs full 1.38e-02
+.
+IQ4_XS rows=10240 n=512: rel err vs full 1.32e-02
+.
+IQ4_XS rows=5120 n=512: rel err vs full 1.42e-02
+.
+Q2_K rows=12288 n=1: rel err vs full 1.06e-02
+.
+Q2_K rows=5120 n=1: rel err vs full 1.01e-02
+.
+Q2_K rows=12288 n=4: rel err vs full 1.05e-02
+.
+Q2_K rows=5120 n=4: rel err vs full 1.09e-02
+.
+Q2_K rows=12288 n=8: rel err vs full 4.23e-02
+.
+Q2_K rows=5120 n=8: rel err vs full 3.04e-02
+.
+Q2_K rows=12288 n=9: rel err vs full 3.41e-02
+.
+Q2_K rows=5120 n=9: rel err vs full 3.51e-02
+.
+Q2_K rows=12288 n=16: rel err vs full 4.04e-02
+.
+Q2_K rows=5120 n=16: rel err vs full 4.72e-02
+.
+Q2_K rows=12288 n=32: rel err vs full 6.57e-02
+.
+Q2_K rows=5120 n=32: rel err vs full 4.31e-02
+.
+Q2_K rows=12288 n=128: rel err vs full 6.61e-02
+.
+Q2_K rows=5120 n=128: rel err vs full 4.47e-02
+.
+Q2_K rows=12288 n=512: rel err vs full 6.54e-02
+.
+Q2_K rows=5120 n=512: rel err vs full 6.36e-02
+.
+Q4_K rows=6144 n=1: rel err vs full 1.04e-02
+.
+Q4_K rows=5120 n=1: rel err vs full 9.47e-03
+.
+Q4_K rows=6144 n=4: rel err vs full 1.05e-02
+.
+Q4_K rows=5120 n=4: rel err vs full 1.16e-02
+.
+Q4_K rows=6144 n=8: rel err vs full 1.11e-02
+.
+Q4_K rows=5120 n=8: rel err vs full 1.12e-02
+.
+Q4_K rows=6144 n=9: rel err vs full 4.86e-02
+.
+Q4_K rows=5120 n=9: rel err vs full 5.36e-02
+.
+Q4_K rows=6144 n=16: rel err vs full 3.32e-02
+.
+Q4_K rows=5120 n=16: rel err vs full 3.42e-02
+.
+Q4_K rows=6144 n=32: rel err vs full 4.54e-02
+.
+Q4_K rows=5120 n=32: rel err vs full 4.38e-02
+.
+Q4_K rows=6144 n=128: rel err vs full 6.31e-02
+.
+Q4_K rows=5120 n=128: rel err vs full 6.40e-02
+.
+Q4_K rows=6144 n=512: rel err vs full 7.64e-02
+.
+Q4_K rows=5120 n=512: rel err vs full 8.71e-02
+.
+Q6_K rows=17408 n=1: rel err vs full 1.06e-02
+.
+Q6_K rows=5120 n=1: rel err vs full 9.56e-03
+.
+Q6_K rows=17408 n=4: rel err vs full 1.06e-02
+.
+Q6_K rows=5120 n=4: rel err vs full 1.07e-02
+.
+Q6_K rows=17408 n=8: rel err vs full 1.14e-02
+.
+Q6_K rows=5120 n=8: rel err vs full 1.10e-02
+.
+Q6_K rows=17408 n=9: rel err vs full 1.18e-02
+.
+Q6_K rows=5120 n=9: rel err vs full 1.15e-02
+.
+Q6_K rows=17408 n=16: rel err vs full 1.15e-02
+.
+Q6_K rows=5120 n=16: rel err vs full 1.19e-02
+.
+Q6_K rows=17408 n=32: rel err vs full 1.16e-02
+.
+Q6_K rows=5120 n=32: rel err vs full 1.14e-02
+.
+Q6_K rows=17408 n=128: rel err vs full 1.18e-02
+.
+Q6_K rows=5120 n=128: rel err vs full 1.17e-02
+.
+Q6_K rows=17408 n=512: rel err vs full 1.21e-02
+.
+Q6_K rows=5120 n=512: rel err vs full 1.24e-02
+.
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=9.66e-03 q81=1.53e-03 wround=9.76e-03
+.
+IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=9.64e-03 q81=2.17e-04 wround=9.65e-03
+.
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=9.91e-03 q81=1.78e-03 wround=9.86e-03
+.
+IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=9.61e-03 q81=2.15e-04 wround=9.63e-03
+.
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.71e-03 wround=1.04e-02
+.
+IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.24e-04 wround=1.04e-02
+.
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.72e-03 wround=1.09e-02
+.
+IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+.
+IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.74e-03 wround=1.10e-02
+.
+IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+.
+IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.18e-02
+.
+IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.24e-04 wround=1.14e-02
+.
+IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.76e-03 wround=1.14e-02
+.
+IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.30e-04 wround=1.12e-02
+.
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.76e-03 wround=1.14e-02
+.
+IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.25e-04 wround=1.13e-02
+.
+IQ2_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=9.73e-03 q81=1.70e-03 wround=9.91e-03
+.
+IQ2_XS n=1 torch.float16 mmq=False lcpp=True: full=9.88e-03 q81=2.33e-04 wround=9.88e-03
+.
+IQ2_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.68e-03 wround=1.17e-02
+.
+IQ2_XS n=2 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.26e-04 wround=1.15e-02
+.
+IQ2_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.74e-03 wround=1.06e-02
+.
+IQ2_XS n=3 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.26e-04 wround=1.02e-02
+.
+IQ2_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.75e-03 wround=1.11e-02
+.
+IQ2_XS n=4 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.25e-04 wround=1.06e-02
+.
+IQ2_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.76e-03 wround=1.15e-02
+.
+IQ2_XS n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.20e-04 wround=1.10e-02
+.
+IQ2_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.74e-03 wround=1.08e-02
+.
+IQ2_XS n=6 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.33e-04 wround=1.04e-02
+.
+IQ2_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.70e-03 wround=1.11e-02
+.
+IQ2_XS n=7 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.22e-04 wround=1.10e-02
+.
+IQ2_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.79e-03 wround=1.12e-02
+.
+IQ2_XS n=8 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.23e-04 wround=1.09e-02
+.
+IQ2_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.73e-03 wround=1.05e-02
+.
+IQ2_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.20e-04 wround=1.04e-02
+.
+IQ2_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.64e-03 wround=1.14e-02
+.
+IQ2_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.18e-04 wround=1.11e-02
+.
+IQ2_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.75e-03 wround=1.13e-02
+.
+IQ2_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.25e-04 wround=1.07e-02
+.
+IQ2_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.74e-03 wround=1.09e-02
+.
+IQ2_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+.
+IQ2_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.72e-03 wround=1.16e-02
+.
+IQ2_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.21e-04 wround=1.14e-02
+.
+IQ2_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.76e-03 wround=1.11e-02
+.
+IQ2_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.20e-04 wround=1.08e-02
+.
+IQ2_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.70e-03 wround=1.20e-02
+.
+IQ2_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.22e-04 wround=1.22e-02
+.
+IQ2_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.83e-03 wround=1.09e-02
+.
+IQ2_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.20e-04 wround=1.05e-02
+.
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.65e-03 wround=1.06e-02
+.
+IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.19e-04 wround=1.04e-02
+.
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.24e-02 q81=1.76e-03 wround=1.25e-02
+.
+IQ3_S n=2 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.13e-04 wround=1.22e-02
+.
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.86e-03 wround=1.06e-02
+.
+IQ3_S n=3 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.17e-04 wround=1.05e-02
+.
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.74e-03 wround=1.18e-02
+.
+IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.11e-04 wround=1.11e-02
+.
+IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.67e-03 wround=1.13e-02
+.
+IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.21e-04 wround=1.11e-02
+.
+IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.82e-03 wround=1.07e-02
+.
+IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.24e-04 wround=1.03e-02
+.
+IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.76e-03 wround=1.12e-02
+.
+IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.20e-04 wround=1.13e-02
+.
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.73e-03 wround=1.09e-02
+.
+IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.29e-04 wround=1.07e-02
+.
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.67e-03 wround=1.06e-02
+.
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.06e-04 wround=1.07e-02
+.
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.66e-03 wround=1.18e-02
+.
+IQ3_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.11e-04 wround=1.17e-02
+.
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.72e-03 wround=1.06e-02
+.
+IQ3_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.24e-04 wround=1.01e-02
+.
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.72e-03 wround=1.10e-02
+.
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.22e-04 wround=1.10e-02
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.71e-03 wround=1.20e-02
+.
+IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.23e-04 wround=1.18e-02
+.
+IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.73e-03 wround=1.11e-02
+.
+IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+.
+IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.74e-03 wround=1.21e-02
+.
+IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.22e-02 q81=2.28e-04 wround=1.22e-02
+.
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.73e-03 wround=1.07e-02
+.
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.19e-04 wround=1.04e-02
+.
+IQ4_XS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+.
+IQ4_XS n=1 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.12e-04 wround=1.10e-02
+.
+IQ4_XS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.78e-03 wround=1.27e-02
+.
+IQ4_XS n=2 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.21e-04 wround=1.23e-02
+.
+IQ4_XS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.57e-03 wround=1.11e-02
+.
+IQ4_XS n=3 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.05e-04 wround=1.10e-02
+.
+IQ4_XS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.27e-02 q81=1.81e-03 wround=1.29e-02
+.
+IQ4_XS n=4 torch.float16 mmq=False lcpp=True: full=1.23e-02 q81=2.15e-04 wround=1.23e-02
+.
+IQ4_XS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.69e-03 wround=1.22e-02
+.
+IQ4_XS n=5 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.13e-04 wround=1.16e-02
+.
+IQ4_XS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.74e-03 wround=1.12e-02
+.
+IQ4_XS n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.26e-04 wround=1.08e-02
+.
+IQ4_XS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.68e-03 wround=1.13e-02
+.
+IQ4_XS n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.08e-04 wround=1.12e-02
+.
+IQ4_XS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.23e-02 q81=1.74e-03 wround=1.25e-02
+.
+IQ4_XS n=8 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.26e-04 wround=1.14e-02
+.
+Q2_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.86e-03 q81=1.63e-03 wround=1.00e-02
+.
+Q2_K n=1 torch.float16 mmq=False lcpp=True: full=9.67e-03 q81=1.95e-04 wround=9.67e-03
+.
+Q2_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.72e-03 wround=1.14e-02
+.
+Q2_K n=2 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.20e-04 wround=1.12e-02
+.
+Q2_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.79e-03 wround=1.11e-02
+.
+Q2_K n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.11e-04 wround=1.07e-02
+.
+Q2_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.70e-03 wround=1.07e-02
+.
+Q2_K n=4 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.16e-04 wround=1.03e-02
+.
+Q2_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.67e-03 wround=1.15e-02
+.
+Q2_K n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.08e-04 wround=1.10e-02
+.
+Q2_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.62e-03 wround=1.23e-02
+.
+Q2_K n=6 torch.float16 mmq=False lcpp=True: full=1.19e-02 q81=2.18e-04 wround=1.19e-02
+.
+Q2_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.80e-03 wround=1.15e-02
+.
+Q2_K n=7 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.21e-04 wround=1.13e-02
+.
+Q2_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.73e-03 wround=1.25e-02
+.
+Q2_K n=8 torch.float16 mmq=False lcpp=True: full=1.19e-02 q81=2.18e-04 wround=1.19e-02
+.
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.87e-03 q81=1.74e-03 wround=9.91e-03
+.
+Q4_K n=1 torch.float16 mmq=False lcpp=True: full=9.76e-03 q81=2.07e-04 wround=9.77e-03
+.
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.74e-03 wround=1.17e-02
+.
+Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.18e-04 wround=1.16e-02
+.
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.66e-03 wround=1.17e-02
+.
+Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.08e-04 wround=1.12e-02
+.
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.63e-03 wround=1.09e-02
+.
+Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.09e-04 wround=1.08e-02
+.
+Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.74e-03 wround=1.11e-02
+.
+Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.13e-04 wround=1.09e-02
+.
+Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.77e-03 wround=1.17e-02
+.
+Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.18e-04 wround=1.15e-02
+.
+Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.18e-02
+.
+Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.19e-04 wround=1.14e-02
+.
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.25e-02 q81=1.70e-03 wround=1.27e-02
+.
+Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.13e-04 wround=1.17e-02
+.
+Q6_K n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.55e-03 wround=1.04e-02
+.
+Q6_K n=1 torch.float16 mmq=False lcpp=True: full=9.91e-03 q81=1.99e-04 wround=9.92e-03
+.
+Q6_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+.
+Q6_K n=2 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.17e-04 wround=1.08e-02
+.
+Q6_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.85e-03 wround=1.12e-02
+.
+Q6_K n=3 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.25e-04 wround=1.07e-02
+.
+Q6_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.80e-03 wround=1.03e-02
+.
+Q6_K n=4 torch.float16 mmq=False lcpp=True: full=1.00e-02 q81=2.09e-04 wround=1.01e-02
+.
+Q6_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.92e-03 wround=1.06e-02
+.
+Q6_K n=5 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.49e-04 wround=1.03e-02
+.
+Q6_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.72e-03 wround=1.05e-02
+.
+Q6_K n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.21e-04 wround=1.03e-02
+.
+Q6_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.20e-02 q81=1.68e-03 wround=1.21e-02
+.
+Q6_K n=7 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.26e-04 wround=1.17e-02
+.
+Q6_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.73e-03 wround=1.18e-02
+.
+Q6_K n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.35e-04 wround=1.18e-02
+.
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.00e-02 q81=1.74e-03 wround=1.01e-02
+.
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.86e-03 q81=2.80e-04 wround=9.86e-03
+.
+IQ2_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.65e-03 wround=1.12e-02
+.
+IQ2_S n=2 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.30e-04 wround=1.09e-02
+.
+IQ2_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.81e-03 wround=1.11e-02
+.
+IQ2_S n=3 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.10e-04 wround=1.07e-02
+.
+IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=1.70e-03 wround=1.08e-02
+.
+IQ2_S n=5 torch.float16 mmq=True lcpp=True: full=1.03e-02 q81=3.06e-04 wround=1.03e-02
+.
+IQ2_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.76e-03 wround=1.10e-02
+.
+IQ2_S n=7 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.17e-04 wround=1.10e-02
+.
+IQ2_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.73e-03 wround=1.10e-02
+.
+IQ2_S n=8 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.26e-04 wround=1.11e-02
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.73e-03 wround=1.12e-02
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.21e-04 wround=1.09e-02
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.82e-03 wround=1.14e-02
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.29e-04 wround=1.12e-02
+.
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.81e-03 wround=1.19e-02
+.
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.27e-04 wround=1.21e-02
+.
+IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.84e-03 wround=1.18e-02
+.
+IQ2_S n=128 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.39e-04 wround=1.14e-02
+.
+IQ2_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.86e-03 wround=1.24e-02
+.
+IQ2_S n=512 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.39e-04 wround=1.21e-02
+.
+IQ2_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.93e-03 wround=1.29e-02
+.
+IQ2_S n=2048 torch.float16 mmq=True lcpp=True: full=1.26e-02 q81=3.52e-04 wround=1.26e-02
+.
+IQ2_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.78e-03 q81=1.59e-03 wround=9.91e-03
+.
+IQ2_XS n=1 torch.float16 mmq=True lcpp=True: full=9.76e-03 q81=2.94e-04 wround=9.76e-03
+.
+IQ2_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.72e-03 wround=1.13e-02
+.
+IQ2_XS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.17e-04 wround=1.08e-02
+.
+IQ2_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.77e-03 wround=1.11e-02
+.
+IQ2_XS n=3 torch.float16 mmq=True lcpp=True: full=1.06e-02 q81=2.98e-04 wround=1.05e-02
+.
+IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=1.73e-03 wround=1.26e-02
+.
+IQ2_XS n=5 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=3.05e-04 wround=1.24e-02
+.
+IQ2_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.72e-03 wround=1.17e-02
+.
+IQ2_XS n=7 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.50e-04 wround=1.18e-02
+.
+IQ2_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.73e-03 wround=1.21e-02
+.
+IQ2_XS n=8 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.38e-04 wround=1.17e-02
+.
+IQ2_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.80e-03 wround=1.20e-02
+.
+IQ2_XS n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.32e-04 wround=1.15e-02
+.
+IQ2_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.83e-03 wround=1.23e-02
+.
+IQ2_XS n=16 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.52e-04 wround=1.20e-02
+.
+IQ2_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.81e-03 wround=1.23e-02
+.
+IQ2_XS n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.32e-04 wround=1.21e-02
+.
+IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.84e-03 wround=1.27e-02
+.
+IQ2_XS n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.50e-04 wround=1.22e-02
+.
+IQ2_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.89e-03 wround=1.32e-02
+.
+IQ2_XS n=512 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=3.70e-04 wround=1.28e-02
+.
+IQ2_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.90e-03 wround=1.32e-02
+.
+IQ2_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.91e-04 wround=1.29e-02
+.
+IQ2_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.72e-03 q81=1.62e-03 wround=9.93e-03
+.
+IQ2_XXS n=1 torch.float16 mmq=True lcpp=True: full=9.56e-03 q81=3.02e-04 wround=9.55e-03
+.
+IQ2_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.76e-03 wround=1.13e-02
+.
+IQ2_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.19e-04 wround=1.07e-02
+.
+IQ2_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.76e-03 wround=1.12e-02
+.
+IQ2_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=2.92e-04 wround=1.11e-02
+.
+IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.69e-03 wround=1.27e-02
+.
+IQ2_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.37e-04 wround=1.21e-02
+.
+IQ2_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.74e-03 wround=1.12e-02
+.
+IQ2_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.48e-04 wround=1.09e-02
+.
+IQ2_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.74e-03 wround=1.19e-02
+.
+IQ2_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.19e-04 wround=1.21e-02
+.
+IQ2_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.72e-03 wround=1.19e-02
+.
+IQ2_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.36e-04 wround=1.19e-02
+.
+IQ2_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.82e-03 wround=1.19e-02
+.
+IQ2_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.43e-04 wround=1.16e-02
+.
+IQ2_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.82e-03 wround=1.21e-02
+.
+IQ2_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.39e-04 wround=1.20e-02
+.
+IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=1.89e-03 wround=1.25e-02
+.
+IQ2_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.52e-04 wround=1.21e-02
+.
+IQ2_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.93e-03 wround=1.30e-02
+.
+IQ2_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.78e-04 wround=1.23e-02
+.
+IQ2_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.89e-03 wround=1.30e-02
+.
+IQ2_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=3.82e-04 wround=1.27e-02
+.
+IQ3_S n=1 torch.bfloat16 mmq=True lcpp=True: full=9.68e-03 q81=1.65e-03 wround=9.91e-03
+.
+IQ3_S n=1 torch.float16 mmq=True lcpp=True: full=9.60e-03 q81=3.09e-04 wround=9.61e-03
+.
+IQ3_S n=2 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.68e-03 wround=1.13e-02
+.
+IQ3_S n=2 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.20e-04 wround=1.12e-02
+.
+IQ3_S n=3 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.73e-03 wround=1.11e-02
+.
+IQ3_S n=3 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.07e-04 wround=1.09e-02
+.
+IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.76e-03 wround=1.16e-02
+.
+IQ3_S n=5 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.43e-04 wround=1.13e-02
+.
+IQ3_S n=7 torch.bfloat16 mmq=True lcpp=True: full=1.13e-02 q81=1.76e-03 wround=1.15e-02
+.
+IQ3_S n=7 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.37e-04 wround=1.17e-02
+.
+IQ3_S n=8 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.77e-03 wround=1.23e-02
+.
+IQ3_S n=8 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.04e-04 wround=1.21e-02
+.
+IQ3_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.71e-03 wround=1.25e-02
+.
+IQ3_S n=9 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.15e-04 wround=1.18e-02
+.
+IQ3_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.77e-03 wround=1.22e-02
+.
+IQ3_S n=16 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.78e-04 wround=1.22e-02
+.
+IQ3_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.79e-03 wround=1.30e-02
+.
+IQ3_S n=64 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.38e-04 wround=1.29e-02
+.
+IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.83e-03 wround=1.24e-02
+.
+IQ3_S n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.56e-04 wround=1.23e-02
+.
+IQ3_S n=512 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.87e-03 wround=1.30e-02
+.
+IQ3_S n=512 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=3.85e-04 wround=1.27e-02
+.
+IQ3_S n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=1.90e-03 wround=1.33e-02
+.
+IQ3_S n=2048 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.93e-04 wround=1.29e-02
+.
+IQ3_XXS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.04e-02 q81=1.75e-03 wround=1.05e-02
+.
+IQ3_XXS n=1 torch.float16 mmq=True lcpp=True: full=1.01e-02 q81=3.21e-04 wround=1.01e-02
+.
+IQ3_XXS n=2 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.70e-03 wround=1.12e-02
+.
+IQ3_XXS n=2 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.21e-04 wround=1.08e-02
+.
+IQ3_XXS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.05e-02 q81=1.71e-03 wround=1.05e-02
+.
+IQ3_XXS n=3 torch.float16 mmq=True lcpp=True: full=1.02e-02 q81=2.80e-04 wround=1.02e-02
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.71e-03 wround=1.17e-02
+.
+IQ3_XXS n=5 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.18e-04 wround=1.14e-02
+.
+IQ3_XXS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.86e-03 wround=1.12e-02
+.
+IQ3_XXS n=7 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.36e-04 wround=1.08e-02
+.
+IQ3_XXS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.85e-03 wround=1.20e-02
+.
+IQ3_XXS n=8 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.34e-04 wround=1.16e-02
+.
+IQ3_XXS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.73e-03 wround=1.23e-02
+.
+IQ3_XXS n=9 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.25e-04 wround=1.21e-02
+.
+IQ3_XXS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.75e-03 wround=1.21e-02
+.
+IQ3_XXS n=16 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.46e-04 wround=1.22e-02
+.
+IQ3_XXS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=1.79e-03 wround=1.29e-02
+.
+IQ3_XXS n=64 torch.float16 mmq=True lcpp=True: full=1.29e-02 q81=3.43e-04 wround=1.29e-02
+.
+IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.85e-03 wround=1.23e-02
+.
+IQ3_XXS n=128 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.68e-04 wround=1.23e-02
+.
+IQ3_XXS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.30e-02 q81=1.92e-03 wround=1.31e-02
+.
+IQ3_XXS n=512 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=3.72e-04 wround=1.30e-02
+.
+IQ3_XXS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.34e-02 q81=1.90e-03 wround=1.35e-02
+.
+IQ3_XXS n=2048 torch.float16 mmq=True lcpp=True: full=1.32e-02 q81=3.73e-04 wround=1.32e-02
+.
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=1.58e-03 wround=1.10e-02
+.
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.20e-04 wround=1.07e-02
+.
+IQ4_XS n=2 torch.bfloat16 mmq=True lcpp=True: full=9.83e-03 q81=1.72e-03 wround=1.01e-02
+.
+IQ4_XS n=2 torch.float16 mmq=True lcpp=True: full=9.59e-03 q81=3.10e-04 wround=9.59e-03
+.
+IQ4_XS n=3 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.66e-03 wround=1.11e-02
+.
+IQ4_XS n=3 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=2.85e-04 wround=1.05e-02
+.
+IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.78e-03 wround=1.13e-02
+.
+IQ4_XS n=5 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.23e-04 wround=1.07e-02
+.
+IQ4_XS n=7 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.78e-03 wround=1.19e-02
+.
+IQ4_XS n=7 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.40e-04 wround=1.16e-02
+.
+IQ4_XS n=8 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.85e-03 wround=1.26e-02
+.
+IQ4_XS n=8 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.35e-04 wround=1.21e-02
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.31e-02 q81=1.77e-03 wround=1.33e-02
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.28e-02 q81=3.09e-04 wround=1.28e-02
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.78e-03 wround=1.19e-02
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.54e-04 wround=1.17e-02
+.
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.26e-02 q81=1.82e-03 wround=1.30e-02
+.
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.34e-02 q81=3.36e-04 wround=1.35e-02
+.
+IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.36e-02 q81=1.83e-03 wround=1.37e-02
+.
+IQ4_XS n=128 torch.float16 mmq=True lcpp=True: full=1.37e-02 q81=3.61e-04 wround=1.37e-02
+.
+IQ4_XS n=512 torch.bfloat16 mmq=True lcpp=True: full=1.35e-02 q81=1.94e-03 wround=1.37e-02
+.
+IQ4_XS n=512 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=3.62e-04 wround=1.30e-02
+.
+IQ4_XS n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.42e-02 q81=1.90e-03 wround=1.43e-02
+.
+IQ4_XS n=2048 torch.float16 mmq=True lcpp=True: full=1.41e-02 q81=3.98e-04 wround=1.41e-02
+.
+Q2_K n=1 torch.bfloat16 mmq=True lcpp=True: full=3.14e-02 q81=3.00e-02 wround=3.14e-02 d2s6=1.83e-03
+.
+Q2_K n=1 torch.float16 mmq=True lcpp=True: full=2.88e-02 q81=2.67e-02 wround=2.87e-02 d2s6=6.13e-04
+.
+Q2_K n=2 torch.bfloat16 mmq=True lcpp=True: full=2.76e-02 q81=2.63e-02 wround=2.76e-02 d2s6=1.83e-03
+.
+Q2_K n=2 torch.float16 mmq=True lcpp=True: full=2.89e-02 q81=2.78e-02 wround=2.89e-02 d2s6=5.49e-04
+.
+Q2_K n=3 torch.bfloat16 mmq=True lcpp=True: full=2.35e-02 q81=2.21e-02 wround=2.35e-02 d2s6=1.85e-03
+.
+Q2_K n=3 torch.float16 mmq=True lcpp=True: full=2.69e-02 q81=2.60e-02 wround=2.69e-02 d2s6=5.68e-04
+.
+Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.63e-02 q81=3.62e-02 wround=3.64e-02 d2s6=1.74e-03
+.
+Q2_K n=5 torch.float16 mmq=True lcpp=True: full=3.21e-02 q81=3.15e-02 wround=3.21e-02 d2s6=5.91e-04
+.
+Q2_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.94e-02 q81=4.87e-02 wround=4.94e-02 d2s6=1.85e-03
+.
+Q2_K n=7 torch.float16 mmq=True lcpp=True: full=5.27e-02 q81=5.18e-02 wround=5.27e-02 d2s6=6.10e-04
+.
+Q2_K n=8 torch.bfloat16 mmq=True lcpp=True: full=3.31e-02 q81=3.08e-02 wround=3.31e-02 d2s6=1.87e-03
+.
+Q2_K n=8 torch.float16 mmq=True lcpp=True: full=3.00e-02 q81=2.81e-02 wround=3.00e-02 d2s6=6.02e-04
+.
+Q2_K n=9 torch.bfloat16 mmq=True lcpp=True: full=2.89e-02 q81=2.77e-02 wround=2.90e-02 d2s6=1.84e-03
+.
+Q2_K n=9 torch.float16 mmq=True lcpp=True: full=2.38e-02 q81=2.31e-02 wround=2.38e-02 d2s6=6.05e-04
+.
+Q2_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.25e-02 q81=3.20e-02 wround=3.26e-02 d2s6=1.95e-03
+.
+Q2_K n=16 torch.float16 mmq=True lcpp=True: full=3.63e-02 q81=3.60e-02 wround=3.63e-02 d2s6=5.93e-04
+.
+Q2_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.40e-02 q81=5.19e-02 wround=5.40e-02 d2s6=1.91e-03
+.
+Q2_K n=64 torch.float16 mmq=True lcpp=True: full=5.22e-02 q81=5.03e-02 wround=5.22e-02 d2s6=6.10e-04
+.
+Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.00e-02 q81=5.66e-02 wround=6.01e-02 d2s6=1.90e-03
+.
+Q2_K n=128 torch.float16 mmq=True lcpp=True: full=5.98e-02 q81=5.71e-02 wround=5.98e-02 d2s6=6.63e-04
+.
+Q2_K n=512 torch.bfloat16 mmq=True lcpp=True: full=6.90e-02 q81=6.52e-02 wround=6.89e-02 d2s6=1.98e-03
+.
+Q2_K n=512 torch.float16 mmq=True lcpp=True: full=6.84e-02 q81=6.86e-02 wround=6.84e-02 d2s6=6.43e-04
+.
+Q2_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.71e-02 q81=7.58e-02 wround=7.70e-02 d2s6=2.00e-03
+.
+Q2_K n=2048 torch.float16 mmq=True lcpp=True: full=6.86e-02 q81=6.75e-02 wround=6.86e-02 d2s6=6.62e-04
+.
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.61e-02 q81=1.26e-02 wround=1.61e-02 xsum=1.65e-03
+.
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.62e-02 q81=1.32e-02 wround=1.62e-02 xsum=6.92e-04
+.
+Q4_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=8.38e-03 wround=1.25e-02 xsum=1.83e-03
+.
+Q4_K n=2 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=6.79e-03 wround=1.15e-02 xsum=7.20e-04
+.
+Q4_K n=3 torch.bfloat16 mmq=True lcpp=True: full=5.34e-02 q81=5.28e-02 wround=5.34e-02 xsum=1.79e-03
+.
+Q4_K n=3 torch.float16 mmq=True lcpp=True: full=4.29e-02 q81=4.21e-02 wround=4.29e-02 xsum=7.38e-04
+.
+Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=2.23e-02 q81=2.05e-02 wround=2.23e-02 xsum=1.85e-03
+.
+Q4_K n=5 torch.float16 mmq=True lcpp=True: full=3.29e-02 q81=3.20e-02 wround=3.29e-02 xsum=6.87e-04
+.
+Q4_K n=7 torch.bfloat16 mmq=True lcpp=True: full=4.07e-02 q81=3.93e-02 wround=4.08e-02 xsum=1.90e-03
+.
+Q4_K n=7 torch.float16 mmq=True lcpp=True: full=3.84e-02 q81=3.72e-02 wround=3.84e-02 xsum=7.68e-04
+.
+Q4_K n=8 torch.bfloat16 mmq=True lcpp=True: full=2.96e-02 q81=2.72e-02 wround=2.96e-02 xsum=1.97e-03
+.
+Q4_K n=8 torch.float16 mmq=True lcpp=True: full=2.90e-02 q81=2.69e-02 wround=2.90e-02 xsum=7.28e-04
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=3.92e-02 q81=3.83e-02 wround=3.93e-02 xsum=1.90e-03
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.96e-02 q81=3.86e-02 wround=3.96e-02 xsum=8.33e-04
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=4.79e-02 q81=4.65e-02 wround=4.80e-02 xsum=1.95e-03
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=4.75e-02 q81=4.62e-02 wround=4.76e-02 xsum=7.92e-04
+.
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.68e-02 q81=5.64e-02 wround=5.68e-02 xsum=1.95e-03
+.
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=6.12e-02 q81=6.02e-02 wround=6.12e-02 xsum=8.31e-04
+.
+Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=5.43e-02 q81=5.28e-02 wround=5.43e-02 xsum=1.92e-03
+.
+Q4_K n=128 torch.float16 mmq=True lcpp=True: full=6.02e-02 q81=5.86e-02 wround=6.02e-02 xsum=7.98e-04
+.
+Q4_K n=512 torch.bfloat16 mmq=True lcpp=True: full=7.02e-02 q81=6.92e-02 wround=7.02e-02 xsum=1.97e-03
+.
+Q4_K n=512 torch.float16 mmq=True lcpp=True: full=6.56e-02 q81=6.47e-02 wround=6.56e-02 xsum=9.09e-04
+.
+Q4_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=7.31e-02 q81=7.21e-02 wround=7.31e-02 xsum=2.05e-03
+.
+Q4_K n=2048 torch.float16 mmq=True lcpp=True: full=7.03e-02 q81=6.95e-02 wround=7.03e-02 xsum=8.68e-04
+.
+Q6_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.48e-03 wround=1.11e-02
+.
+Q6_K n=1 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.25e-04 wround=1.13e-02
+.
+Q6_K n=2 torch.bfloat16 mmq=True lcpp=True: full=1.05e-02 q81=1.78e-03 wround=1.07e-02
+.
+Q6_K n=2 torch.float16 mmq=True lcpp=True: full=1.05e-02 q81=2.97e-04 wround=1.05e-02
+.
+Q6_K n=3 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.92e-03 wround=1.08e-02
+.
+Q6_K n=3 torch.float16 mmq=True lcpp=True: full=1.04e-02 q81=3.18e-04 wround=1.04e-02
+.
+Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=1.78e-03 wround=1.10e-02
+.
+Q6_K n=5 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.27e-04 wround=1.08e-02
+.
+Q6_K n=7 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.80e-03 wround=1.16e-02
+.
+Q6_K n=7 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=3.36e-04 wround=1.11e-02
+.
+Q6_K n=8 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.96e-03 wround=1.15e-02
+.
+Q6_K n=8 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.31e-04 wround=1.12e-02
+.
+Q6_K n=9 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.76e-03 wround=1.17e-02
+.
+Q6_K n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.17e-04 wround=1.15e-02
+.
+Q6_K n=16 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=2.00e-03 wround=1.17e-02
+.
+Q6_K n=16 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.72e-04 wround=1.18e-02
+.
+Q6_K n=64 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=2.48e-03 wround=1.16e-02
+.
+Q6_K n=64 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.74e-04 wround=1.18e-02
+.
+Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=2.93e-03 wround=1.25e-02
+.
+Q6_K n=128 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.68e-04 wround=1.22e-02
+.
+Q6_K n=512 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=2.49e-03 wround=1.26e-02
+.
+Q6_K n=512 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=4.83e-04 wround=1.24e-02
+.
+Q6_K n=2048 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=2.53e-03 wround=1.25e-02
+.
+Q6_K n=2048 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=5.81e-04 wround=1.23e-02
+.
+IQ2_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.06e-02 q81=1.70e-03 wround=1.09e-02
+.
+IQ2_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=1.92e-03 wround=1.28e-02
+.
+IQ2_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.77e-03 wround=1.17e-02
+.
+IQ2_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.32e-02 q81=2.07e-03 wround=1.34e-02
+.
+IQ2_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.78e-03 wround=1.14e-02
+.
+IQ2_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.29e-02 q81=2.01e-03 wround=1.31e-02
+.
+IQ3_S n=5 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.76e-03 wround=1.07e-02
+.
+IQ3_S n=128 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=2.01e-03 wround=1.23e-02
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.85e-03 wround=1.19e-02
+.
+IQ3_XXS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.94e-03 wround=1.20e-02
+.
+IQ4_XS n=5 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.83e-03 wround=1.19e-02
+.
+IQ4_XS n=128 torch.bfloat16 mmq=True lcpp=True: full=1.46e-02 q81=1.95e-03 wround=1.47e-02
+.
+Q2_K n=5 torch.bfloat16 mmq=True lcpp=True: full=5.15e-02 q81=4.98e-02 wround=5.13e-02 d2s6=1.85e-03
+.
+Q2_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.64e-02 q81=6.50e-02 wround=6.64e-02 d2s6=2.00e-03
+.
+Q4_K n=5 torch.bfloat16 mmq=True lcpp=True: full=3.77e-02 q81=3.50e-02 wround=3.76e-02 xsum=1.90e-03
+.
+Q4_K n=128 torch.bfloat16 mmq=True lcpp=True: full=6.26e-02 q81=6.20e-02 wround=6.24e-02 xsum=2.16e-03
+.
+Q6_K n=5 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.82e-03 wround=1.20e-02
+.
+Q6_K n=128 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=2.00e-03 wround=1.26e-02
+.
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.65e-03 wround=1.05e-02
+.
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.60e-03 wround=1.10e-02
+.
+IQ3_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.64e-03 wround=1.18e-02
+.
+IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.13e-04 wround=1.01e-02
+.
+IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.01e-04 wround=1.06e-02
+.
+IQ3_S n=1 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.08e-04 wround=1.14e-02
+.
+IQ3_S n=1 real: vs MMVQ rel 9.8e-08, bit-equal 0.338
+.
+IQ3_S n=1 row_tail: vs MMVQ rel 9.1e-08, bit-equal 0.366
+.
+IQ3_S n=1 k_tail: vs MMVQ rel 9.0e-08, bit-equal 0.373
+.
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.72e-03 wround=1.07e-02
+.
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.81e-03 wround=1.15e-02
+.
+IQ3_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.00e-02 q81=1.73e-03 wround=1.00e-02
+.
+IQ3_S n=2 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.00e-04 wround=1.04e-02
+.
+IQ3_S n=2 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=1.94e-04 wround=1.14e-02
+.
+IQ3_S n=2 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.04e-04 wround=1.01e-02
+.
+IQ3_S n=2 real: vs MMVQ rel 1.0e-07, bit-equal 0.348
+.
+IQ3_S n=2 row_tail: vs MMVQ rel 1.0e-07, bit-equal 0.371
+.
+IQ3_S n=2 k_tail: vs MMVQ rel 9.4e-08, bit-equal 0.366
+.
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=9.59e-03 q81=1.70e-03 wround=9.94e-03
+.
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=9.04e-03 q81=1.82e-03 wround=9.07e-03
+.
+IQ3_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.69e-03 wround=1.14e-02
+.
+IQ3_S n=3 torch.float16 mmq=False lcpp=True: full=9.41e-03 q81=2.28e-04 wround=9.43e-03
+.
+IQ3_S n=3 torch.float16 mmq=False lcpp=True: full=9.10e-03 q81=2.16e-04 wround=9.10e-03
+.
+IQ3_S n=3 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.08e-04 wround=1.13e-02
+.
+IQ3_S n=3 real: vs MMVQ rel 9.9e-08, bit-equal 0.348
+.
+IQ3_S n=3 row_tail: vs MMVQ rel 1.0e-07, bit-equal 0.347
+.
+IQ3_S n=3 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.340
+.
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.67e-03 wround=1.07e-02
+.
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.00e-02 q81=1.68e-03 wround=9.92e-03
+.
+IQ3_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.73e-03 wround=1.22e-02
+.
+IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.15e-04 wround=1.07e-02
+.
+IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.25e-04 wround=1.04e-02
+.
+IQ3_S n=4 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.17e-04 wround=1.17e-02
+.
+IQ3_S n=4 real: vs MMVQ rel 1.1e-07, bit-equal 0.363
+.
+IQ3_S n=4 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.371
+.
+IQ3_S n=4 k_tail: vs MMVQ rel 9.9e-08, bit-equal 0.361
+.
+IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.73e-03 wround=1.07e-02
+.
+IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.88e-03 wround=1.08e-02
+.
+IQ3_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.76e-03 wround=1.21e-02
+.
+IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.15e-04 wround=1.03e-02
+.
+IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.15e-04 wround=1.09e-02
+.
+IQ3_S n=5 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.19e-04 wround=1.16e-02
+.
+IQ3_S n=5 real: vs MMVQ rel 9.7e-08, bit-equal 0.379
+.
+IQ3_S n=5 row_tail: vs MMVQ rel 1.0e-07, bit-equal 0.354
+.
+IQ3_S n=5 k_tail: vs MMVQ rel 9.7e-08, bit-equal 0.370
+.
+IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.80e-03 wround=1.11e-02
+.
+IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.84e-03 wround=1.07e-02
+.
+IQ3_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.73e-03 wround=1.17e-02
+.
+IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.16e-04 wround=1.09e-02
+.
+IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.25e-04 wround=1.09e-02
+.
+IQ3_S n=6 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.18e-04 wround=1.12e-02
+.
+IQ3_S n=6 real: vs MMVQ rel 9.9e-08, bit-equal 0.361
+.
+IQ3_S n=6 row_tail: vs MMVQ rel 9.9e-08, bit-equal 0.349
+.
+IQ3_S n=6 k_tail: vs MMVQ rel 9.9e-08, bit-equal 0.363
+.
+IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.82e-03 wround=1.11e-02
+.
+IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.85e-03 wround=1.13e-02
+.
+IQ3_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.68e-03 wround=1.08e-02
+.
+IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.24e-04 wround=1.09e-02
+.
+IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.12e-02 q81=2.24e-04 wround=1.12e-02
+.
+IQ3_S n=7 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.24e-04 wround=1.05e-02
+.
+IQ3_S n=7 real: vs MMVQ rel 9.5e-08, bit-equal 0.366
+.
+IQ3_S n=7 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.368
+.
+IQ3_S n=7 k_tail: vs MMVQ rel 9.8e-08, bit-equal 0.366
+.
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.75e-03 wround=1.22e-02
+.
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.18e-02 q81=1.84e-03 wround=1.21e-02
+.
+IQ3_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.68e-03 wround=1.12e-02
+.
+IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.21e-02 q81=2.22e-04 wround=1.21e-02
+.
+IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.32e-04 wround=1.15e-02
+.
+IQ3_S n=8 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.21e-04 wround=1.10e-02
+.
+IQ3_S n=8 real: vs MMVQ rel 9.7e-08, bit-equal 0.366
+.
+IQ3_S n=8 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.364
+.
+IQ3_S n=8 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.373
+.
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.64e-03 wround=1.04e-02
+.
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=9.56e-03 q81=1.79e-03 wround=9.78e-03
+.
+IQ3_XXS n=1 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.70e-03 wround=1.10e-02
+.
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.12e-04 wround=1.02e-02
+.
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=9.38e-03 q81=2.20e-04 wround=9.37e-03
+.
+IQ3_XXS n=1 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.17e-04 wround=1.06e-02
+.
+IQ3_XXS n=1 real: vs MMVQ rel 1.0e-07, bit-equal 0.328
+.
+IQ3_XXS n=1 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.297
+.
+IQ3_XXS n=1 k_tail: vs MMVQ rel 9.3e-08, bit-equal 0.361
+.
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.73e-03 wround=1.11e-02
+.
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.68e-03 wround=1.12e-02
+.
+IQ3_XXS n=2 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.64e-03 wround=1.07e-02
+.
+IQ3_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.06e-04 wround=1.02e-02
+.
+IQ3_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.13e-04 wround=1.04e-02
+.
+IQ3_XXS n=2 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.16e-04 wround=1.06e-02
+.
+IQ3_XXS n=2 real: vs MMVQ rel 1.0e-07, bit-equal 0.361
+.
+IQ3_XXS n=2 row_tail: vs MMVQ rel 9.8e-08, bit-equal 0.354
+.
+IQ3_XXS n=2 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.350
+.
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.71e-03 wround=1.05e-02
+.
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.71e-03 wround=1.05e-02
+.
+IQ3_XXS n=3 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.71e-03 wround=1.02e-02
+.
+IQ3_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.09e-04 wround=1.04e-02
+.
+IQ3_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.13e-04 wround=1.02e-02
+.
+IQ3_XXS n=3 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.06e-04 wround=1.02e-02
+.
+IQ3_XXS n=3 real: vs MMVQ rel 1.1e-07, bit-equal 0.351
+.
+IQ3_XXS n=3 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.360
+.
+IQ3_XXS n=3 k_tail: vs MMVQ rel 9.7e-08, bit-equal 0.352
+.
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.79e-03 wround=1.08e-02
+.
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.86e-03 wround=1.13e-02
+.
+IQ3_XXS n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.71e-03 wround=1.07e-02
+.
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.22e-04 wround=1.07e-02
+.
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.32e-04 wround=1.11e-02
+.
+IQ3_XXS n=4 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.20e-04 wround=1.06e-02
+.
+IQ3_XXS n=4 real: vs MMVQ rel 1.0e-07, bit-equal 0.358
+.
+IQ3_XXS n=4 row_tail: vs MMVQ rel 1.0e-07, bit-equal 0.363
+.
+IQ3_XXS n=4 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.379
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.70e-03 wround=1.10e-02
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.64e-03 wround=1.12e-02
+.
+IQ3_XXS n=5 torch.bfloat16 mmq=False lcpp=True: full=1.16e-02 q81=1.70e-03 wround=1.18e-02
+.
+IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.17e-04 wround=1.07e-02
+.
+IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.00e-02 q81=2.28e-04 wround=1.00e-02
+.
+IQ3_XXS n=5 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.16e-04 wround=1.14e-02
+.
+IQ3_XXS n=5 real: vs MMVQ rel 9.6e-08, bit-equal 0.361
+.
+IQ3_XXS n=5 row_tail: vs MMVQ rel 9.9e-08, bit-equal 0.372
+.
+IQ3_XXS n=5 k_tail: vs MMVQ rel 9.5e-08, bit-equal 0.369
+.
+IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.70e-03 wround=1.08e-02
+.
+IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.27e-02 q81=1.68e-03 wround=1.27e-02
+.
+IQ3_XXS n=6 torch.bfloat16 mmq=False lcpp=True: full=1.19e-02 q81=1.76e-03 wround=1.19e-02
+.
+IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.09e-04 wround=1.07e-02
+.
+IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.27e-02 q81=2.21e-04 wround=1.27e-02
+.
+IQ3_XXS n=6 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.19e-04 wround=1.16e-02
+.
+IQ3_XXS n=6 real: vs MMVQ rel 9.5e-08, bit-equal 0.373
+.
+IQ3_XXS n=6 row_tail: vs MMVQ rel 9.7e-08, bit-equal 0.381
+.
+IQ3_XXS n=6 k_tail: vs MMVQ rel 9.8e-08, bit-equal 0.382
+.
+IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.72e-03 wround=1.16e-02
+.
+IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.75e-03 wround=1.09e-02
+.
+IQ3_XXS n=7 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.79e-03 wround=1.05e-02
+.
+IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.21e-04 wround=1.11e-02
+.
+IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.21e-04 wround=1.05e-02
+.
+IQ3_XXS n=7 torch.float16 mmq=False lcpp=True: full=9.93e-03 q81=2.16e-04 wround=9.94e-03
+.
+IQ3_XXS n=7 real: vs MMVQ rel 9.8e-08, bit-equal 0.370
+.
+IQ3_XXS n=7 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.375
+.
+IQ3_XXS n=7 k_tail: vs MMVQ rel 9.4e-08, bit-equal 0.382
+.
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.23e-02 q81=1.80e-03 wround=1.24e-02
+.
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.31e-02 q81=1.87e-03 wround=1.32e-02
+.
+IQ3_XXS n=8 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.77e-03 wround=1.13e-02
+.
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.21e-02 q81=2.15e-04 wround=1.21e-02
+.
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.27e-02 q81=2.26e-04 wround=1.27e-02
+.
+IQ3_XXS n=8 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.24e-04 wround=1.11e-02
+.
+IQ3_XXS n=8 real: vs MMVQ rel 9.9e-08, bit-equal 0.370
+.
+IQ3_XXS n=8 row_tail: vs MMVQ rel 1.1e-07, bit-equal 0.365
+.
+IQ3_XXS n=8 k_tail: vs MMVQ rel 1.1e-07, bit-equal 0.361
+.
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.35e-03 q81=1.62e-03 wround=9.62e-03
+.
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=9.48e-03 q81=1.61e-03 wround=9.58e-03
+.
+Q4_K n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.63e-03 wround=1.04e-02
+.
+Q4_K n=1 torch.float16 mmq=False lcpp=True: full=9.47e-03 q81=2.20e-04 wround=9.48e-03
+.
+Q4_K n=1 torch.float16 mmq=False lcpp=True: full=9.43e-03 q81=2.18e-04 wround=9.45e-03
+.
+Q4_K n=1 torch.float16 mmq=False lcpp=True: full=1.00e-02 q81=2.05e-04 wround=1.00e-02
+.
+Q4_K n=1 real: vs MMVQ rel 1.8e-07, bit-equal 0.176
+.
+Q4_K n=1 row_tail: vs MMVQ rel 1.7e-07, bit-equal 0.188
+.
+Q4_K n=1 k_tail: vs MMVQ rel 1.6e-07, bit-equal 0.184
+.
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.75e-03 wround=1.11e-02
+.
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.59e-03 wround=1.12e-02
+.
+Q4_K n=2 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.59e-03 wround=1.06e-02
+.
+Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.14e-04 wround=1.06e-02
+.
+Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.03e-04 wround=1.08e-02
+.
+Q4_K n=2 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.03e-04 wround=1.01e-02
+.
+Q4_K n=2 real: vs MMVQ rel 1.7e-07, bit-equal 0.152
+.
+Q4_K n=2 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.136
+.
+Q4_K n=2 k_tail: vs MMVQ rel 1.9e-07, bit-equal 0.178
+.
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.73e-03 wround=1.12e-02
+.
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.81e-03 wround=1.17e-02
+.
+Q4_K n=3 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.78e-03 wround=1.11e-02
+.
+Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.11e-04 wround=1.08e-02
+.
+Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.25e-04 wround=1.16e-02
+.
+Q4_K n=3 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.17e-04 wround=1.04e-02
+.
+Q4_K n=3 real: vs MMVQ rel 1.8e-07, bit-equal 0.168
+.
+Q4_K n=3 row_tail: vs MMVQ rel 1.7e-07, bit-equal 0.178
+.
+Q4_K n=3 k_tail: vs MMVQ rel 1.8e-07, bit-equal 0.174
+.
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.69e-03 wround=1.11e-02
+.
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.72e-03 wround=1.12e-02
+.
+Q4_K n=4 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.63e-03 wround=1.04e-02
+.
+Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.16e-04 wround=1.13e-02
+.
+Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.15e-02 q81=2.30e-04 wround=1.15e-02
+.
+Q4_K n=4 torch.float16 mmq=False lcpp=True: full=1.02e-02 q81=2.19e-04 wround=1.02e-02
+.
+Q4_K n=4 real: vs MMVQ rel 1.8e-07, bit-equal 0.174
+.
+Q4_K n=4 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.163
+.
+Q4_K n=4 k_tail: vs MMVQ rel 1.8e-07, bit-equal 0.186
+.
+Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.78e-03 wround=1.12e-02
+.
+Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.74e-03 wround=1.10e-02
+.
+Q4_K n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.77e-03 wround=1.16e-02
+.
+Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.11e-04 wround=1.06e-02
+.
+Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.21e-04 wround=1.04e-02
+.
+Q4_K n=5 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.20e-04 wround=1.13e-02
+.
+Q4_K n=5 real: vs MMVQ rel 1.9e-07, bit-equal 0.171
+.
+Q4_K n=5 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.157
+.
+Q4_K n=5 k_tail: vs MMVQ rel 1.9e-07, bit-equal 0.168
+.
+Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.05e-02 q81=1.79e-03 wround=1.06e-02
+.
+Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.04e-02 q81=1.75e-03 wround=1.06e-02
+.
+Q4_K n=6 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.77e-03 wround=1.19e-02
+.
+Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.03e-02 q81=2.14e-04 wround=1.03e-02
+.
+Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.05e-02 q81=2.21e-04 wround=1.05e-02
+.
+Q4_K n=6 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.11e-04 wround=1.17e-02
+.
+Q4_K n=6 real: vs MMVQ rel 1.8e-07, bit-equal 0.176
+.
+Q4_K n=6 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.190
+.
+Q4_K n=6 k_tail: vs MMVQ rel 1.9e-07, bit-equal 0.179
+.
+Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.77e-03 wround=1.16e-02
+.
+Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.13e-02 q81=1.82e-03 wround=1.15e-02
+.
+Q4_K n=7 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.71e-03 wround=1.14e-02
+.
+Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.14e-02 q81=2.19e-04 wround=1.14e-02
+.
+Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.31e-04 wround=1.10e-02
+.
+Q4_K n=7 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.33e-04 wround=1.11e-02
+.
+Q4_K n=7 real: vs MMVQ rel 1.9e-07, bit-equal 0.173
+.
+Q4_K n=7 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.180
+.
+Q4_K n=7 k_tail: vs MMVQ rel 1.8e-07, bit-equal 0.178
+.
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.78e-03 wround=1.15e-02
+.
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.18e-02 q81=1.73e-03 wround=1.18e-02
+.
+Q4_K n=8 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.77e-03 wround=1.14e-02
+.
+Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.28e-04 wround=1.10e-02
+.
+Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.17e-02 q81=2.28e-04 wround=1.17e-02
+.
+Q4_K n=8 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.25e-04 wround=1.13e-02
+.
+Q4_K n=8 real: vs MMVQ rel 1.9e-07, bit-equal 0.171
+.
+Q4_K n=8 row_tail: vs MMVQ rel 1.9e-07, bit-equal 0.179
+.
+Q4_K n=8 k_tail: vs MMVQ rel 1.8e-07, bit-equal 0.177
+.
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.02e-02 q81=1.65e-03 wround=1.05e-02
+.
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=9.56e-03 q81=1.72e-03 wround=9.66e-03
+.
+IQ2_S n=1 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.62e-03 wround=1.07e-02
+.
+IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=1.01e-02 q81=2.17e-04 wround=1.01e-02
+.
+IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=9.75e-03 q81=2.31e-04 wround=9.74e-03
+.
+IQ2_S n=1 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.08e-04 wround=1.06e-02
+.
+IQ2_S n=1 real: vs MMVQ rel 1.4e-07, bit-equal 0.240
+.
+IQ2_S n=1 row_tail: vs MMVQ rel 1.4e-07, bit-equal 0.193
+.
+IQ2_S n=1 k_tail: vs MMVQ rel 8.3e-08, bit-equal 0.414
+.
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.71e-03 wround=1.08e-02
+.
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.80e-03 wround=1.01e-02
+.
+IQ2_S n=2 torch.bfloat16 mmq=False lcpp=True: full=1.03e-02 q81=1.67e-03 wround=1.04e-02
+.
+IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.10e-04 wround=1.09e-02
+.
+IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=1.00e-02 q81=2.11e-04 wround=1.00e-02
+.
+IQ2_S n=2 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.30e-04 wround=1.04e-02
+.
+IQ2_S n=2 real: vs MMVQ rel 1.2e-07, bit-equal 0.272
+.
+IQ2_S n=2 row_tail: vs MMVQ rel 1.2e-07, bit-equal 0.262
+.
+IQ2_S n=2 k_tail: vs MMVQ rel 9.6e-08, bit-equal 0.347
+.
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.10e-02 q81=1.77e-03 wround=1.12e-02
+.
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.17e-02 q81=1.65e-03 wround=1.19e-02
+.
+IQ2_S n=3 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.72e-03 wround=1.09e-02
+.
+IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.06e-02 q81=2.29e-04 wround=1.06e-02
+.
+IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.36e-04 wround=1.13e-02
+.
+IQ2_S n=3 torch.float16 mmq=False lcpp=True: full=1.04e-02 q81=2.18e-04 wround=1.04e-02
+.
+IQ2_S n=3 real: vs MMVQ rel 1.3e-07, bit-equal 0.255
+.
+IQ2_S n=3 row_tail: vs MMVQ rel 1.3e-07, bit-equal 0.269
+.
+IQ2_S n=3 k_tail: vs MMVQ rel 9.6e-08, bit-equal 0.358
+.
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.08e-02 q81=1.73e-03 wround=1.09e-02
+.
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.06e-02 q81=1.77e-03 wround=1.07e-02
+.
+IQ2_S n=4 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.72e-03 wround=1.12e-02
+.
+IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.26e-04 wround=1.07e-02
+.
+IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.32e-04 wround=1.09e-02
+.
+IQ2_S n=4 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.24e-04 wround=1.09e-02
+.
+IQ2_S n=4 real: vs MMVQ rel 1.2e-07, bit-equal 0.265
+.
+IQ2_S n=4 row_tail: vs MMVQ rel 1.2e-07, bit-equal 0.287
+.
+IQ2_S n=4 k_tail: vs MMVQ rel 9.5e-08, bit-equal 0.382
+.
+IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.12e-02 q81=1.67e-03 wround=1.14e-02
+.
+IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.69e-03 wround=1.15e-02
+.
+IQ2_S n=5 torch.bfloat16 mmq=False lcpp=True: full=1.09e-02 q81=1.70e-03 wround=1.10e-02
+.
+IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.26e-04 wround=1.10e-02
+.
+IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.10e-02 q81=2.20e-04 wround=1.10e-02
+.
+IQ2_S n=5 torch.float16 mmq=False lcpp=True: full=1.08e-02 q81=2.37e-04 wround=1.08e-02
+.
+IQ2_S n=5 real: vs MMVQ rel 1.2e-07, bit-equal 0.287
+.
+IQ2_S n=5 row_tail: vs MMVQ rel 1.2e-07, bit-equal 0.293
+.
+IQ2_S n=5 k_tail: vs MMVQ rel 9.4e-08, bit-equal 0.368
+.
+IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.15e-02 q81=1.77e-03 wround=1.15e-02
+.
+IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.21e-02 q81=1.78e-03 wround=1.24e-02
+.
+IQ2_S n=6 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.73e-03 wround=1.11e-02
+.
+IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.16e-02 q81=2.30e-04 wround=1.16e-02
+.
+IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.21e-02 q81=2.40e-04 wround=1.21e-02
+.
+IQ2_S n=6 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.20e-04 wround=1.09e-02
+.
+IQ2_S n=6 real: vs MMVQ rel 1.2e-07, bit-equal 0.271
+.
+IQ2_S n=6 row_tail: vs MMVQ rel 1.3e-07, bit-equal 0.258
+.
+IQ2_S n=6 k_tail: vs MMVQ rel 9.3e-08, bit-equal 0.378
+.
+IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.11e-02 q81=1.76e-03 wround=1.13e-02
+.
+IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.87e-03 wround=1.07e-02
+.
+IQ2_S n=7 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.69e-03 wround=1.14e-02
+.
+IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.09e-02 q81=2.27e-04 wround=1.09e-02
+.
+IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.37e-04 wround=1.07e-02
+.
+IQ2_S n=7 torch.float16 mmq=False lcpp=True: full=1.11e-02 q81=2.30e-04 wround=1.11e-02
+.
+IQ2_S n=7 real: vs MMVQ rel 1.3e-07, bit-equal 0.258
+.
+IQ2_S n=7 row_tail: vs MMVQ rel 1.3e-07, bit-equal 0.262
+.
+IQ2_S n=7 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.364
+.
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.07e-02 q81=1.71e-03 wround=1.09e-02
+.
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.18e-02 q81=1.73e-03 wround=1.20e-02
+.
+IQ2_S n=8 torch.bfloat16 mmq=False lcpp=True: full=1.14e-02 q81=1.78e-03 wround=1.15e-02
+.
+IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.07e-02 q81=2.28e-04 wround=1.07e-02
+.
+IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.18e-02 q81=2.21e-04 wround=1.18e-02
+.
+IQ2_S n=8 torch.float16 mmq=False lcpp=True: full=1.13e-02 q81=2.34e-04 wround=1.13e-02
+.
+IQ2_S n=8 real: vs MMVQ rel 1.3e-07, bit-equal 0.272
+.
+IQ2_S n=8 row_tail: vs MMVQ rel 1.4e-07, bit-equal 0.270
+.
+IQ2_S n=8 k_tail: vs MMVQ rel 1.0e-07, bit-equal 0.379
+......................................................................................................................................................................................................................................................................................................................
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.28e-02 q81=6.99e-03 wround=1.29e-02 xsum=1.68e-03
+
+Q4_K n=1 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.24e-02 q81=6.39e-03 wround=1.24e-02 xsum=1.75e-03
+
+Q4_K n=1 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.54e-02 q81=1.19e-02 wround=1.54e-02 xsum=1.63e-03
+
+Q4_K n=1 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=3.83e-02 q81=3.69e-02 wround=3.84e-02 xsum=1.74e-03
+
+Q4_K n=1 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+Q4_K n=1 torch.bfloat16 mmq=True lcpp=True: full=1.67e-02 q81=1.38e-02 wround=1.68e-02 xsum=1.79e-03
+
+Q4_K n=1 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.88e-02 q81=1.58e-02 wround=1.88e-02 xsum=7.09e-04
+
+Q4_K n=1 float16 real: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.79e-02 q81=1.43e-02 wround=1.79e-02 xsum=6.89e-04
+
+Q4_K n=1 float16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=5.66e-03 wround=1.11e-02 xsum=7.58e-04
+
+Q4_K n=1 float16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=2.79e-02 q81=2.60e-02 wround=2.79e-02 xsum=6.38e-04
+
+Q4_K n=1 float16 down: vs MMQ equal 0.996, > 1 ulp 0
+.s
+Q4_K n=1 torch.float16 mmq=True lcpp=True: full=1.49e-02 q81=1.16e-02 wround=1.49e-02 xsum=6.97e-04
+
+Q4_K n=1 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=1 real: vs MMQ rel 1.8e-07, bit-equal 0.148
+.
+Q4_K n=1 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.144
+.
+Q4_K n=1 k_tail: vs MMQ rel 1.8e-07, bit-equal 0.154
+.
+Q4_K n=1 down: vs MMQ rel 2.0e-07, bit-equal 0.162
+.s
+Q4_K n=1 big_tail: vs MMQ rel 2.4e-07, bit-equal 0.327
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=4.10e-02 q81=3.96e-02 wround=4.12e-02 xsum=1.88e-03
+
+Q4_K n=9 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=4.07e-02 q81=3.92e-02 wround=4.09e-02 xsum=1.96e-03
+
+Q4_K n=9 bfloat16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=3.03e-02 q81=2.91e-02 wround=3.03e-02 xsum=1.93e-03
+
+Q4_K n=9 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=6.18e-02 q81=6.09e-02 wround=6.17e-02 xsum=1.86e-03
+
+Q4_K n=9 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=4.01e-02 q81=3.87e-02 wround=4.02e-02 xsum=1.81e-03
+
+Q4_K n=9 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.bfloat16 mmq=True lcpp=True: full=4.03e-02 q81=3.89e-02 wround=4.03e-02 xsum=1.81e-03
+
+Q4_K n=9 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.48e-02 q81=3.34e-02 wround=3.48e-02 xsum=7.37e-04
+
+Q4_K n=9 float16 real: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.47e-02 q81=3.30e-02 wround=3.47e-02 xsum=8.08e-04
+
+Q4_K n=9 float16 row_tail: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=3.46e-02 q81=3.38e-02 wround=3.46e-02 xsum=7.54e-04
+
+Q4_K n=9 float16 k_tail: vs MMQ equal 0.997, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=6.43e-02 q81=6.34e-02 wround=6.43e-02 xsum=7.22e-04
+
+Q4_K n=9 float16 down: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=4.06e-02 q81=3.92e-02 wround=4.06e-02 xsum=7.12e-04
+
+Q4_K n=9 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=9 torch.float16 mmq=True lcpp=True: full=4.08e-02 q81=3.93e-02 wround=4.08e-02 xsum=7.15e-04
+
+Q4_K n=9 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=9 real: vs MMQ rel 1.9e-07, bit-equal 0.159
+.
+Q4_K n=9 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.155
+.
+Q4_K n=9 k_tail: vs MMQ rel 2.1e-07, bit-equal 0.176
+.
+Q4_K n=9 down: vs MMQ rel 2.1e-07, bit-equal 0.159
+.
+Q4_K n=9 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+Q4_K n=9 big_tail: vs MMQ rel 2.7e-07, bit-equal 0.331
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=2.58e-02 q81=2.36e-02 wround=2.58e-02 xsum=1.92e-03
+
+Q4_K n=16 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=2.56e-02 q81=2.29e-02 wround=2.58e-02 xsum=2.18e-03
+
+Q4_K n=16 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.87e-02 q81=3.76e-02 wround=3.88e-02 xsum=1.90e-03
+
+Q4_K n=16 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=5.85e-02 q81=5.80e-02 wround=5.86e-02 xsum=1.95e-03
+
+Q4_K n=16 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.07e-02 q81=2.90e-02 wround=3.07e-02 xsum=1.81e-03
+
+Q4_K n=16 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.bfloat16 mmq=True lcpp=True: full=3.08e-02 q81=2.92e-02 wround=3.08e-02 xsum=1.81e-03
+
+Q4_K n=16 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=2.43e-02 q81=2.20e-02 wround=2.43e-02 xsum=8.22e-04
+
+Q4_K n=16 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=2.64e-02 q81=2.37e-02 wround=2.64e-02 xsum=8.91e-04
+
+Q4_K n=16 float16 row_tail: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=3.74e-02 q81=3.63e-02 wround=3.73e-02 xsum=8.06e-04
+
+Q4_K n=16 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=5.15e-02 q81=5.08e-02 wround=5.15e-02 xsum=7.27e-04
+
+Q4_K n=16 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=3.78e-02 q81=3.64e-02 wround=3.78e-02 xsum=7.49e-04
+
+Q4_K n=16 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=16 torch.float16 mmq=True lcpp=True: full=3.77e-02 q81=3.62e-02 wround=3.77e-02 xsum=7.48e-04
+
+Q4_K n=16 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=16 real: vs MMQ rel 2.0e-07, bit-equal 0.161
+.
+Q4_K n=16 row_tail: vs MMQ rel 2.1e-07, bit-equal 0.162
+.
+Q4_K n=16 k_tail: vs MMQ rel 2.0e-07, bit-equal 0.172
+.
+Q4_K n=16 down: vs MMQ rel 2.1e-07, bit-equal 0.159
+.
+Q4_K n=16 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+Q4_K n=16 big_tail: vs MMQ rel 2.6e-07, bit-equal 0.329
+.
+Q4_K n=17 torch.bfloat16 mmq=True lcpp=True: full=4.07e-02 q81=3.99e-02 wround=4.08e-02 xsum=1.91e-03
+
+Q4_K n=17 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=17 torch.bfloat16 mmq=True lcpp=True: full=4.14e-02 q81=4.05e-02 wround=4.16e-02 xsum=1.96e-03
+
+Q4_K n=17 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=17 torch.bfloat16 mmq=True lcpp=True: full=3.41e-02 q81=3.34e-02 wround=3.42e-02 xsum=1.96e-03
+
+Q4_K n=17 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=17 torch.bfloat16 mmq=True lcpp=True: full=3.95e-02 q81=3.86e-02 wround=3.95e-02 xsum=1.87e-03
+
+Q4_K n=17 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+Q4_K n=17 torch.bfloat16 mmq=True lcpp=True: full=4.91e-02 q81=4.83e-02 wround=4.91e-02 xsum=1.80e-03
+
+Q4_K n=17 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=17 torch.float16 mmq=True lcpp=True: full=4.56e-02 q81=4.53e-02 wround=4.56e-02 xsum=8.07e-04
+
+Q4_K n=17 float16 real: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=17 torch.float16 mmq=True lcpp=True: full=4.61e-02 q81=4.55e-02 wround=4.61e-02 xsum=8.56e-04
+
+Q4_K n=17 float16 row_tail: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=17 torch.float16 mmq=True lcpp=True: full=4.85e-02 q81=4.78e-02 wround=4.85e-02 xsum=8.20e-04
+
+Q4_K n=17 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=17 torch.float16 mmq=True lcpp=True: full=4.26e-02 q81=4.14e-02 wround=4.25e-02 xsum=7.37e-04
+
+Q4_K n=17 float16 down: vs MMQ equal 0.998, > 1 ulp 0
+.s
+Q4_K n=17 torch.float16 mmq=True lcpp=True: full=5.06e-02 q81=4.98e-02 wround=5.06e-02 xsum=7.11e-04
+
+Q4_K n=17 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=17 real: vs MMQ rel 1.9e-07, bit-equal 0.152
+.
+Q4_K n=17 row_tail: vs MMQ rel 2.1e-07, bit-equal 0.145
+.
+Q4_K n=17 k_tail: vs MMQ rel 1.9e-07, bit-equal 0.173
+.
+Q4_K n=17 down: vs MMQ rel 2.0e-07, bit-equal 0.166
+.s
+Q4_K n=17 big_tail: vs MMQ rel 2.5e-07, bit-equal 0.340
+.
+Q4_K n=32 torch.bfloat16 mmq=True lcpp=True: full=4.57e-02 q81=4.47e-02 wround=4.58e-02 xsum=1.92e-03
+
+Q4_K n=32 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=32 torch.bfloat16 mmq=True lcpp=True: full=4.78e-02 q81=4.62e-02 wround=4.79e-02 xsum=1.96e-03
+
+Q4_K n=32 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=32 torch.bfloat16 mmq=True lcpp=True: full=4.93e-02 q81=4.83e-02 wround=4.93e-02 xsum=1.92e-03
+
+Q4_K n=32 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=32 torch.bfloat16 mmq=True lcpp=True: full=6.69e-02 q81=6.57e-02 wround=6.68e-02 xsum=1.94e-03
+
+Q4_K n=32 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+Q4_K n=32 torch.bfloat16 mmq=True lcpp=True: full=5.24e-02 q81=5.14e-02 wround=5.24e-02 xsum=1.81e-03
+
+Q4_K n=32 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=32 torch.float16 mmq=True lcpp=True: full=4.89e-02 q81=4.86e-02 wround=4.89e-02 xsum=8.40e-04
+
+Q4_K n=32 float16 real: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=32 torch.float16 mmq=True lcpp=True: full=5.01e-02 q81=4.95e-02 wround=5.01e-02 xsum=8.28e-04
+
+Q4_K n=32 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=32 torch.float16 mmq=True lcpp=True: full=6.18e-02 q81=6.09e-02 wround=6.18e-02 xsum=7.91e-04
+
+Q4_K n=32 float16 k_tail: vs MMQ equal 0.998, > 1 ulp 0
+.
+Q4_K n=32 torch.float16 mmq=True lcpp=True: full=8.14e-02 q81=8.05e-02 wround=8.14e-02 xsum=7.39e-04
+
+Q4_K n=32 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+Q4_K n=32 torch.float16 mmq=True lcpp=True: full=5.54e-02 q81=5.44e-02 wround=5.54e-02 xsum=7.41e-04
+
+Q4_K n=32 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=32 real: vs MMQ rel 2.1e-07, bit-equal 0.162
+.
+Q4_K n=32 row_tail: vs MMQ rel 2.2e-07, bit-equal 0.152
+.
+Q4_K n=32 k_tail: vs MMQ rel 1.9e-07, bit-equal 0.161
+.
+Q4_K n=32 down: vs MMQ rel 2.1e-07, bit-equal 0.163
+.s
+Q4_K n=32 big_tail: vs MMQ rel 2.6e-07, bit-equal 0.335
+.
+Q4_K n=33 torch.bfloat16 mmq=True lcpp=True: full=5.29e-02 q81=5.20e-02 wround=5.30e-02 xsum=1.95e-03
+
+Q4_K n=33 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=33 torch.bfloat16 mmq=True lcpp=True: full=5.31e-02 q81=5.22e-02 wround=5.32e-02 xsum=2.00e-03
+
+Q4_K n=33 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=33 torch.bfloat16 mmq=True lcpp=True: full=5.19e-02 q81=5.12e-02 wround=5.20e-02 xsum=1.90e-03
+
+Q4_K n=33 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=33 torch.bfloat16 mmq=True lcpp=True: full=6.24e-02 q81=6.15e-02 wround=6.23e-02 xsum=1.98e-03
+
+Q4_K n=33 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+Q4_K n=33 torch.bfloat16 mmq=True lcpp=True: full=4.80e-02 q81=4.72e-02 wround=4.81e-02 xsum=1.81e-03
+
+Q4_K n=33 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=33 torch.float16 mmq=True lcpp=True: full=5.04e-02 q81=4.98e-02 wround=5.04e-02 xsum=7.76e-04
+
+Q4_K n=33 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=33 torch.float16 mmq=True lcpp=True: full=5.03e-02 q81=4.97e-02 wround=5.03e-02 xsum=8.12e-04
+
+Q4_K n=33 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=33 torch.float16 mmq=True lcpp=True: full=6.34e-02 q81=6.29e-02 wround=6.34e-02 xsum=8.00e-04
+
+Q4_K n=33 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=33 torch.float16 mmq=True lcpp=True: full=6.19e-02 q81=6.17e-02 wround=6.19e-02 xsum=7.94e-04
+
+Q4_K n=33 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+Q4_K n=33 torch.float16 mmq=True lcpp=True: full=5.25e-02 q81=5.17e-02 wround=5.25e-02 xsum=7.37e-04
+
+Q4_K n=33 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=33 real: vs MMQ rel 2.0e-07, bit-equal 0.155
+.
+Q4_K n=33 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.151
+.
+Q4_K n=33 k_tail: vs MMQ rel 2.0e-07, bit-equal 0.169
+.
+Q4_K n=33 down: vs MMQ rel 2.4e-07, bit-equal 0.135
+.s
+Q4_K n=33 big_tail: vs MMQ rel 2.1e-07, bit-equal 0.520
+.
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.35e-02 q81=5.29e-02 wround=5.36e-02 xsum=1.98e-03
+
+Q4_K n=64 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.05e-02 q81=5.02e-02 wround=5.06e-02 xsum=2.08e-03
+
+Q4_K n=64 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=4.09e-02 q81=3.93e-02 wround=4.10e-02 xsum=1.97e-03
+
+Q4_K n=64 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=4.85e-02 q81=4.71e-02 wround=4.86e-02 xsum=1.96e-03
+
+Q4_K n=64 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+Q4_K n=64 torch.bfloat16 mmq=True lcpp=True: full=5.00e-02 q81=4.87e-02 wround=5.00e-02 xsum=1.81e-03
+
+Q4_K n=64 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=4.97e-02 q81=4.90e-02 wround=4.97e-02 xsum=8.18e-04
+
+Q4_K n=64 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=5.18e-02 q81=5.13e-02 wround=5.18e-02 xsum=9.24e-04
+
+Q4_K n=64 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=3.57e-02 q81=3.43e-02 wround=3.57e-02 xsum=7.99e-04
+
+Q4_K n=64 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=4.68e-02 q81=4.55e-02 wround=4.68e-02 xsum=7.36e-04
+
+Q4_K n=64 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+Q4_K n=64 torch.float16 mmq=True lcpp=True: full=5.37e-02 q81=5.24e-02 wround=5.37e-02 xsum=7.31e-04
+
+Q4_K n=64 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+Q4_K n=64 real: vs MMQ rel 2.0e-07, bit-equal 0.164
+.
+Q4_K n=64 row_tail: vs MMQ rel 2.3e-07, bit-equal 0.154
+.
+Q4_K n=64 k_tail: vs MMQ rel 2.0e-07, bit-equal 0.163
+.
+Q4_K n=64 down: vs MMQ rel 2.4e-07, bit-equal 0.145
+.s
+Q4_K n=64 big_tail: vs MMQ rel 2.1e-07, bit-equal 0.521
+.
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.90e-03 wround=1.12e-02
+
+IQ4_XS n=1 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.96e-03 wround=1.17e-02
+
+IQ4_XS n=1 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.01e-02 q81=1.72e-03 wround=1.03e-02
+
+IQ4_XS n=1 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=1.04e-02 q81=1.60e-03 wround=1.05e-02
+
+IQ4_XS n=1 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=1 torch.bfloat16 mmq=True lcpp=True: full=9.58e-03 q81=1.66e-03 wround=9.72e-03
+
+IQ4_XS n=1 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=2.97e-04 wround=1.09e-02
+
+IQ4_XS n=1 float16 real: vs MMQ equal 0.998, > 1 ulp 0
+.
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=2.89e-04 wround=1.10e-02
+
+IQ4_XS n=1 float16 row_tail: vs MMQ equal 0.995, > 1 ulp 0
+.
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.00e-02 q81=3.25e-04 wround=1.00e-02
+
+IQ4_XS n=1 float16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=1.00e-02 q81=3.05e-04 wround=1.00e-02
+
+IQ4_XS n=1 float16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=1 torch.float16 mmq=True lcpp=True: full=9.47e-03 q81=3.04e-04 wround=9.47e-03
+
+IQ4_XS n=1 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=1 real: vs MMQ rel 1.4e-07, bit-equal 0.193
+.
+IQ4_XS n=1 row_tail: vs MMQ rel 1.4e-07, bit-equal 0.223
+.
+IQ4_XS n=1 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.201
+.
+IQ4_XS n=1 down: vs MMQ rel 1.5e-07, bit-equal 0.158
+.s
+IQ4_XS n=1 big_tail: vs MMQ rel 1.7e-07, bit-equal 0.364
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.81e-03 wround=1.22e-02
+
+IQ4_XS n=9 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.85e-03 wround=1.21e-02
+
+IQ4_XS n=9 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.72e-03 wround=1.20e-02
+
+IQ4_XS n=9 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.77e-03 wround=1.15e-02
+
+IQ4_XS n=9 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.68e-03 wround=1.13e-02
+
+IQ4_XS n=9 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.68e-03 wround=1.14e-02
+
+IQ4_XS n=9 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.67e-04 wround=1.16e-02
+
+IQ4_XS n=9 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.79e-04 wround=1.16e-02
+
+IQ4_XS n=9 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.40e-04 wround=1.17e-02
+
+IQ4_XS n=9 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.21e-04 wround=1.14e-02
+
+IQ4_XS n=9 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.35e-04 wround=1.10e-02
+
+IQ4_XS n=9 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=9 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.36e-04 wround=1.10e-02
+
+IQ4_XS n=9 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=9 real: vs MMQ rel 1.6e-07, bit-equal 0.200
+.
+IQ4_XS n=9 row_tail: vs MMQ rel 1.7e-07, bit-equal 0.206
+.
+IQ4_XS n=9 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.211
+.
+IQ4_XS n=9 down: vs MMQ rel 1.6e-07, bit-equal 0.199
+.
+IQ4_XS n=9 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+IQ4_XS n=9 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.361
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.09e-02 q81=1.79e-03 wround=1.10e-02
+
+IQ4_XS n=16 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.91e-03 wround=1.16e-02
+
+IQ4_XS n=16 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.75e-03 wround=1.26e-02
+
+IQ4_XS n=16 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.86e-03 wround=1.14e-02
+
+IQ4_XS n=16 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.69e-03 wround=1.09e-02
+
+IQ4_XS n=16 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.bfloat16 mmq=True lcpp=True: full=1.07e-02 q81=1.69e-03 wround=1.09e-02
+
+IQ4_XS n=16 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.04e-02 q81=3.20e-04 wround=1.04e-02
+
+IQ4_XS n=16 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.42e-04 wround=1.12e-02
+
+IQ4_XS n=16 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.34e-04 wround=1.20e-02
+
+IQ4_XS n=16 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.20e-04 wround=1.13e-02
+
+IQ4_XS n=16 float16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.06e-02 q81=3.17e-04 wround=1.06e-02
+
+IQ4_XS n=16 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=16 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.19e-04 wround=1.07e-02
+
+IQ4_XS n=16 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=16 real: vs MMQ rel 1.6e-07, bit-equal 0.195
+.
+IQ4_XS n=16 row_tail: vs MMQ rel 1.8e-07, bit-equal 0.182
+.
+IQ4_XS n=16 k_tail: vs MMQ rel 1.6e-07, bit-equal 0.209
+.
+IQ4_XS n=16 down: vs MMQ rel 1.6e-07, bit-equal 0.187
+.
+IQ4_XS n=16 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+IQ4_XS n=16 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.363
+.
+IQ4_XS n=17 torch.bfloat16 mmq=True lcpp=True: full=1.27e-02 q81=1.74e-03 wround=1.29e-02
+
+IQ4_XS n=17 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=17 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.82e-03 wround=1.24e-02
+
+IQ4_XS n=17 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=17 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.72e-03 wround=1.21e-02
+
+IQ4_XS n=17 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=17 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.78e-03 wround=1.13e-02
+
+IQ4_XS n=17 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=17 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.70e-03 wround=1.15e-02
+
+IQ4_XS n=17 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=17 torch.float16 mmq=True lcpp=True: full=1.30e-02 q81=3.23e-04 wround=1.30e-02
+
+IQ4_XS n=17 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=17 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.40e-04 wround=1.19e-02
+
+IQ4_XS n=17 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=17 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.52e-04 wround=1.23e-02
+
+IQ4_XS n=17 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=17 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.18e-04 wround=1.14e-02
+
+IQ4_XS n=17 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ4_XS n=17 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.18e-04 wround=1.13e-02
+
+IQ4_XS n=17 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=17 real: vs MMQ rel 1.4e-07, bit-equal 0.218
+.
+IQ4_XS n=17 row_tail: vs MMQ rel 1.5e-07, bit-equal 0.215
+.
+IQ4_XS n=17 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.207
+.
+IQ4_XS n=17 down: vs MMQ rel 1.7e-07, bit-equal 0.182
+.s
+IQ4_XS n=17 big_tail: vs MMQ rel 1.8e-07, bit-equal 0.370
+.
+IQ4_XS n=32 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.77e-03 wround=1.25e-02
+
+IQ4_XS n=32 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=32 torch.bfloat16 mmq=True lcpp=True: full=1.25e-02 q81=1.84e-03 wround=1.26e-02
+
+IQ4_XS n=32 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=32 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.82e-03 wround=1.20e-02
+
+IQ4_XS n=32 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=32 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.82e-03 wround=1.14e-02
+
+IQ4_XS n=32 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=32 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.70e-03 wround=1.17e-02
+
+IQ4_XS n=32 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=32 torch.float16 mmq=True lcpp=True: full=1.23e-02 q81=3.49e-04 wround=1.23e-02
+
+IQ4_XS n=32 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=32 torch.float16 mmq=True lcpp=True: full=1.27e-02 q81=3.66e-04 wround=1.26e-02
+
+IQ4_XS n=32 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=32 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.56e-04 wround=1.20e-02
+
+IQ4_XS n=32 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=32 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.40e-04 wround=1.12e-02
+
+IQ4_XS n=32 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ4_XS n=32 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.46e-04 wround=1.15e-02
+
+IQ4_XS n=32 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=32 real: vs MMQ rel 1.6e-07, bit-equal 0.198
+.
+IQ4_XS n=32 row_tail: vs MMQ rel 1.6e-07, bit-equal 0.197
+.
+IQ4_XS n=32 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.205
+.
+IQ4_XS n=32 down: vs MMQ rel 1.7e-07, bit-equal 0.190
+.s
+IQ4_XS n=32 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.366
+.
+IQ4_XS n=33 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.81e-03 wround=1.20e-02
+
+IQ4_XS n=33 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=33 torch.bfloat16 mmq=True lcpp=True: full=1.31e-02 q81=1.94e-03 wround=1.32e-02
+
+IQ4_XS n=33 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=33 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.79e-03 wround=1.26e-02
+
+IQ4_XS n=33 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=33 torch.bfloat16 mmq=True lcpp=True: full=1.12e-02 q81=1.79e-03 wround=1.13e-02
+
+IQ4_XS n=33 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=33 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.69e-03 wround=1.19e-02
+
+IQ4_XS n=33 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=33 torch.float16 mmq=True lcpp=True: full=1.18e-02 q81=3.43e-04 wround=1.18e-02
+
+IQ4_XS n=33 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=33 torch.float16 mmq=True lcpp=True: full=1.37e-02 q81=3.61e-04 wround=1.37e-02
+
+IQ4_XS n=33 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=33 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.39e-04 wround=1.22e-02
+
+IQ4_XS n=33 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=33 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.28e-04 wround=1.12e-02
+
+IQ4_XS n=33 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ4_XS n=33 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.46e-04 wround=1.17e-02
+
+IQ4_XS n=33 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=33 real: vs MMQ rel 1.6e-07, bit-equal 0.201
+.
+IQ4_XS n=33 row_tail: vs MMQ rel 1.7e-07, bit-equal 0.206
+.
+IQ4_XS n=33 k_tail: vs MMQ rel 1.7e-07, bit-equal 0.206
+.
+IQ4_XS n=33 down: vs MMQ rel 1.9e-07, bit-equal 0.166
+.s
+IQ4_XS n=33 big_tail: vs MMQ rel 1.6e-07, bit-equal 0.546
+.
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.22e-02 q81=1.92e-03 wround=1.22e-02
+
+IQ4_XS n=64 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.98e-03 wround=1.23e-02
+
+IQ4_XS n=64 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.83e-03 wround=1.20e-02
+
+IQ4_XS n=64 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.20e-02 q81=1.82e-03 wround=1.20e-02
+
+IQ4_XS n=64 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ4_XS n=64 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.70e-03 wround=1.16e-02
+
+IQ4_XS n=64 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.22e-02 q81=3.61e-04 wround=1.22e-02
+
+IQ4_XS n=64 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.84e-04 wround=1.21e-02
+
+IQ4_XS n=64 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=3.41e-04 wround=1.24e-02
+
+IQ4_XS n=64 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.20e-02 q81=3.37e-04 wround=1.20e-02
+
+IQ4_XS n=64 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ4_XS n=64 torch.float16 mmq=True lcpp=True: full=1.13e-02 q81=3.73e-04 wround=1.13e-02
+
+IQ4_XS n=64 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ4_XS n=64 real: vs MMQ rel 1.6e-07, bit-equal 0.203
+.
+IQ4_XS n=64 row_tail: vs MMQ rel 1.6e-07, bit-equal 0.203
+.
+IQ4_XS n=64 k_tail: vs MMQ rel 1.6e-07, bit-equal 0.198
+.
+IQ4_XS n=64 down: vs MMQ rel 2.0e-07, bit-equal 0.169
+.s
+IQ4_XS n=64 big_tail: vs MMQ rel 1.5e-07, bit-equal 0.548
+.
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.02e-02 q81=1.73e-03 wround=1.03e-02
+
+IQ2_S n=1 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.01e-02 q81=1.68e-03 wround=1.02e-02
+
+IQ2_S n=1 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.02e-02 q81=1.62e-03 wround=1.03e-02
+
+IQ2_S n=1 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=1.02e-02 q81=1.73e-03 wround=1.03e-02
+
+IQ2_S n=1 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ2_S n=1 torch.bfloat16 mmq=True lcpp=True: full=9.81e-03 q81=1.67e-03 wround=9.95e-03
+
+IQ2_S n=1 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.89e-03 q81=3.06e-04 wround=9.90e-03
+
+IQ2_S n=1 float16 real: vs MMQ equal 0.996, > 1 ulp 0
+.
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=1.01e-02 q81=2.78e-04 wround=1.01e-02
+
+IQ2_S n=1 float16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=1.03e-02 q81=3.35e-04 wround=1.03e-02
+
+IQ2_S n=1 float16 k_tail: vs MMQ equal 0.998, > 1 ulp 0
+.
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.89e-03 q81=3.06e-04 wround=9.90e-03
+
+IQ2_S n=1 float16 down: vs MMQ equal 0.996, > 1 ulp 0
+.s
+IQ2_S n=1 torch.float16 mmq=True lcpp=True: full=9.69e-03 q81=3.05e-04 wround=9.70e-03
+
+IQ2_S n=1 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=1 real: vs MMQ rel 1.6e-07, bit-equal 0.232
+.
+IQ2_S n=1 row_tail: vs MMQ rel 1.9e-07, bit-equal 0.124
+.
+IQ2_S n=1 k_tail: vs MMQ rel 1.4e-07, bit-equal 0.232
+.
+IQ2_S n=1 down: vs MMQ rel 1.6e-07, bit-equal 0.232
+.s
+IQ2_S n=1 big_tail: vs MMQ rel 1.8e-07, bit-equal 0.362
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.85e-03 wround=1.16e-02
+
+IQ2_S n=9 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.91e-03 wround=1.11e-02
+
+IQ2_S n=9 bfloat16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.74e-03 wround=1.19e-02
+
+IQ2_S n=9 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.85e-03 wround=1.16e-02
+
+IQ2_S n=9 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.69e-03 wround=1.12e-02
+
+IQ2_S n=9 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.69e-03 wround=1.12e-02
+
+IQ2_S n=9 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.21e-04 wround=1.12e-02
+
+IQ2_S n=9 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.38e-04 wround=1.09e-02
+
+IQ2_S n=9 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.79e-04 wround=1.15e-02
+
+IQ2_S n=9 float16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.21e-04 wround=1.12e-02
+
+IQ2_S n=9 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.09e-02 q81=3.41e-04 wround=1.09e-02
+
+IQ2_S n=9 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=9 torch.float16 mmq=True lcpp=True: full=1.10e-02 q81=3.39e-04 wround=1.10e-02
+
+IQ2_S n=9 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=9 real: vs MMQ rel 1.7e-07, bit-equal 0.196
+.
+IQ2_S n=9 row_tail: vs MMQ rel 1.8e-07, bit-equal 0.144
+.
+IQ2_S n=9 k_tail: vs MMQ rel 1.6e-07, bit-equal 0.203
+.
+IQ2_S n=9 down: vs MMQ rel 1.7e-07, bit-equal 0.196
+.
+IQ2_S n=9 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+IQ2_S n=9 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.361
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.79e-03 wround=1.19e-02
+
+IQ2_S n=16 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.96e-03 wround=1.17e-02
+
+IQ2_S n=16 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.75e-03 wround=1.19e-02
+
+IQ2_S n=16 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.79e-03 wround=1.19e-02
+
+IQ2_S n=16 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.10e-02 q81=1.70e-03 wround=1.11e-02
+
+IQ2_S n=16 bfloat16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.bfloat16 mmq=True lcpp=True: full=1.08e-02 q81=1.69e-03 wround=1.09e-02
+
+IQ2_S n=16 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.24e-04 wround=1.15e-02
+
+IQ2_S n=16 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.43e-04 wround=1.17e-02
+
+IQ2_S n=16 float16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.51e-04 wround=1.16e-02
+
+IQ2_S n=16 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.24e-04 wround=1.15e-02
+
+IQ2_S n=16 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.08e-02 q81=3.19e-04 wround=1.08e-02
+
+IQ2_S n=16 float16 no_pieces: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=16 torch.float16 mmq=True lcpp=True: full=1.07e-02 q81=3.19e-04 wround=1.07e-02
+
+IQ2_S n=16 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=16 real: vs MMQ rel 1.7e-07, bit-equal 0.188
+.
+IQ2_S n=16 row_tail: vs MMQ rel 2.1e-07, bit-equal 0.153
+.
+IQ2_S n=16 k_tail: vs MMQ rel 1.6e-07, bit-equal 0.211
+.
+IQ2_S n=16 down: vs MMQ rel 1.7e-07, bit-equal 0.188
+.
+IQ2_S n=16 no_pieces: vs MMQ rel 0.0e+00, bit-equal 1.000
+.
+IQ2_S n=16 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.362
+.
+IQ2_S n=17 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.80e-03 wround=1.12e-02
+
+IQ2_S n=17 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=17 torch.bfloat16 mmq=True lcpp=True: full=1.21e-02 q81=1.81e-03 wround=1.24e-02
+
+IQ2_S n=17 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=17 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.89e-03 wround=1.18e-02
+
+IQ2_S n=17 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=17 torch.bfloat16 mmq=True lcpp=True: full=1.11e-02 q81=1.80e-03 wround=1.12e-02
+
+IQ2_S n=17 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ2_S n=17 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.69e-03 wround=1.16e-02
+
+IQ2_S n=17 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=17 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=3.20e-04 wround=1.11e-02
+
+IQ2_S n=17 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=17 torch.float16 mmq=True lcpp=True: full=1.21e-02 q81=3.30e-04 wround=1.21e-02
+
+IQ2_S n=17 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=17 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.29e-04 wround=1.17e-02
+
+IQ2_S n=17 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=17 torch.float16 mmq=True lcpp=True: full=1.11e-02 q81=3.20e-04 wround=1.11e-02
+
+IQ2_S n=17 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ2_S n=17 torch.float16 mmq=True lcpp=True: full=1.14e-02 q81=3.24e-04 wround=1.14e-02
+
+IQ2_S n=17 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=17 real: vs MMQ rel 1.7e-07, bit-equal 0.189
+.
+IQ2_S n=17 row_tail: vs MMQ rel 2.1e-07, bit-equal 0.151
+.
+IQ2_S n=17 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.212
+.
+IQ2_S n=17 down: vs MMQ rel 1.7e-07, bit-equal 0.189
+.s
+IQ2_S n=17 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.371
+.
+IQ2_S n=32 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.80e-03 wround=1.20e-02
+
+IQ2_S n=32 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=32 torch.bfloat16 mmq=True lcpp=True: full=1.40e-02 q81=2.00e-03 wround=1.40e-02
+
+IQ2_S n=32 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=32 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.81e-03 wround=1.18e-02
+
+IQ2_S n=32 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=32 torch.bfloat16 mmq=True lcpp=True: full=1.19e-02 q81=1.80e-03 wround=1.20e-02
+
+IQ2_S n=32 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ2_S n=32 torch.bfloat16 mmq=True lcpp=True: full=1.14e-02 q81=1.70e-03 wround=1.16e-02
+
+IQ2_S n=32 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=32 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.27e-04 wround=1.19e-02
+
+IQ2_S n=32 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=32 torch.float16 mmq=True lcpp=True: full=1.39e-02 q81=3.32e-04 wround=1.39e-02
+
+IQ2_S n=32 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=32 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.43e-04 wround=1.16e-02
+
+IQ2_S n=32 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=32 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.27e-04 wround=1.19e-02
+
+IQ2_S n=32 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ2_S n=32 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.45e-04 wround=1.13e-02
+
+IQ2_S n=32 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=32 real: vs MMQ rel 1.8e-07, bit-equal 0.191
+.
+IQ2_S n=32 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.153
+.
+IQ2_S n=32 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.212
+.
+IQ2_S n=32 down: vs MMQ rel 1.8e-07, bit-equal 0.191
+.s
+IQ2_S n=32 big_tail: vs MMQ rel 1.9e-07, bit-equal 0.366
+.
+IQ2_S n=33 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.75e-03 wround=1.17e-02
+
+IQ2_S n=33 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=33 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.84e-03 wround=1.25e-02
+
+IQ2_S n=33 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=33 torch.bfloat16 mmq=True lcpp=True: full=1.15e-02 q81=1.81e-03 wround=1.17e-02
+
+IQ2_S n=33 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=33 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.75e-03 wround=1.17e-02
+
+IQ2_S n=33 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ2_S n=33 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.70e-03 wround=1.17e-02
+
+IQ2_S n=33 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=33 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.29e-04 wround=1.17e-02
+
+IQ2_S n=33 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=33 torch.float16 mmq=True lcpp=True: full=1.24e-02 q81=3.51e-04 wround=1.23e-02
+
+IQ2_S n=33 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=33 torch.float16 mmq=True lcpp=True: full=1.16e-02 q81=3.32e-04 wround=1.16e-02
+
+IQ2_S n=33 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=33 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.29e-04 wround=1.17e-02
+
+IQ2_S n=33 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ2_S n=33 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.48e-04 wround=1.16e-02
+
+IQ2_S n=33 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=33 real: vs MMQ rel 1.9e-07, bit-equal 0.165
+.
+IQ2_S n=33 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.147
+.
+IQ2_S n=33 k_tail: vs MMQ rel 1.5e-07, bit-equal 0.211
+.
+IQ2_S n=33 down: vs MMQ rel 1.9e-07, bit-equal 0.165
+.s
+IQ2_S n=33 big_tail: vs MMQ rel 1.6e-07, bit-equal 0.546
+.
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.81e-03 wround=1.19e-02
+
+IQ2_S n=64 bfloat16 real: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.23e-02 q81=1.95e-03 wround=1.23e-02
+
+IQ2_S n=64 bfloat16 row_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.17e-02 q81=1.90e-03 wround=1.18e-02
+
+IQ2_S n=64 bfloat16 k_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.18e-02 q81=1.81e-03 wround=1.19e-02
+
+IQ2_S n=64 bfloat16 down: vs MMQ equal 1.000, > 1 ulp 0
+.s
+IQ2_S n=64 torch.bfloat16 mmq=True lcpp=True: full=1.16e-02 q81=1.70e-03 wround=1.18e-02
+
+IQ2_S n=64 bfloat16 big_tail: vs MMQ equal 1.000, > 1 ulp 0
+.
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.49e-04 wround=1.17e-02
+
+IQ2_S n=64 float16 real: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.19e-02 q81=3.59e-04 wround=1.19e-02
+
+IQ2_S n=64 float16 row_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.12e-02 q81=3.47e-04 wround=1.12e-02
+
+IQ2_S n=64 float16 k_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.17e-02 q81=3.49e-04 wround=1.17e-02
+
+IQ2_S n=64 float16 down: vs MMQ equal 0.999, > 1 ulp 0
+.s
+IQ2_S n=64 torch.float16 mmq=True lcpp=True: full=1.15e-02 q81=3.61e-04 wround=1.15e-02
+
+IQ2_S n=64 float16 big_tail: vs MMQ equal 0.999, > 1 ulp 0
+.
+IQ2_S n=64 real: vs MMQ rel 1.9e-07, bit-equal 0.173
+.
+IQ2_S n=64 row_tail: vs MMQ rel 2.0e-07, bit-equal 0.163
+.
+IQ2_S n=64 k_tail: vs MMQ rel 1.6e-07, bit-equal 0.203
+.
+IQ2_S n=64 down: vs MMQ rel 1.9e-07, bit-equal 0.173
+.s
+IQ2_S n=64 big_tail: vs MMQ rel 1.6e-07, bit-equal 0.549
+.
+Q4_K 17408x5120 n=16: vs MMQ rel 2.5e-07, bit-equal 0.330
+.
+Q4_K 17408x5120 n=32: vs MMQ rel 2.5e-07, bit-equal 0.332
+.
+Q4_K 17408x5120 n=64: vs MMQ rel 2.1e-07, bit-equal 0.521
+.
+Q4_K 5120x17408 n=16: vs MMQ rel 4.3e-07, bit-equal 0.125
+.
+Q4_K 5120x17408 n=32: vs MMQ rel 4.5e-07, bit-equal 0.125
+.
+Q4_K 5120x17408 n=64: vs MMQ rel 5.4e-07, bit-equal 0.068
+.
+IQ4_XS 17408x5120 n=16: vs MMQ rel 1.8e-07, bit-equal 0.365
+.
+IQ4_XS 17408x5120 n=32: vs MMQ rel 1.8e-07, bit-equal 0.368
+.
+IQ4_XS 17408x5120 n=64: vs MMQ rel 1.6e-07, bit-equal 0.549
+.
+IQ4_XS 5120x17408 n=16: vs MMQ rel 3.2e-07, bit-equal 0.153
+.
+IQ4_XS 5120x17408 n=32: vs MMQ rel 3.3e-07, bit-equal 0.149
+.
+IQ4_XS 5120x17408 n=64: vs MMQ rel 3.9e-07, bit-equal 0.091
+.
+IQ2_S 17408x5120 n=16: vs MMQ rel 1.8e-07, bit-equal 0.366
+.
+IQ2_S 17408x5120 n=32: vs MMQ rel 1.8e-07, bit-equal 0.370
+.
+IQ2_S 17408x5120 n=64: vs MMQ rel 1.6e-07, bit-equal 0.548
+.
+IQ2_S 5120x17408 n=16: vs MMQ rel 3.5e-07, bit-equal 0.152
+.
+IQ2_S 5120x17408 n=32: vs MMQ rel 3.6e-07, bit-equal 0.150
+.
+IQ2_S 5120x17408 n=64: vs MMQ rel 4.3e-07, bit-equal 0.091
+.............................
+blk.0 gate IQ2_XS + up IQ2_XXS, n=1
+.
+blk.0 gate IQ2_XS + up IQ2_XXS, n=4
+.
+blk.0 gate IQ2_XS + up IQ2_XXS, n=8
+.
+blk.0 gate IQ2_XS + up IQ2_XXS, n=9
+.
+blk.0 gate IQ2_XS + up IQ2_XXS, n=32
+.
+blk.0 gate IQ2_XS + up IQ2_XXS, n=128
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=1: max |run - per shard| 0
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=1: max |run - per shard| 0
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=4: max |run - per shard| 0
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=4: max |run - per shard| 0
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=8: max |run - per shard| 0
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=8: max |run - per shard| 0
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=9: max |run - per shard| 0.0156
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=9: max |run - per shard| 0.00781
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=32: max |run - per shard| 0.0156
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=32: max |run - per shard| 0.0156
+.
+blk.1 qkv IQ3_S + z IQ3_XXS, n=128: max |run - per shard| 0.0312
+.
+blk.2 qkv IQ3_XXS + z IQ3_S, n=128: max |run - per shard| 0.0312
+.
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_routing_whole_tensor[IQ1_M-1-True]
+  /workspace/wt-k3/tests/gpu/test_kernel_parity.py:196: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1516 passed, 61 skipped, 168 deselected, 15 warnings in 183.93s (0:03:03)
