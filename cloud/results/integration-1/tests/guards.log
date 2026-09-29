@@ -1,5 +1,6 @@
-........................................................................ [ 50%]
-...........................................sssss.........sssss........   [100%]
+........................................................................ [ 36%]
+...........................................sssss.........sssss.........s [ 72%]
+ssss.........sssss.........sssss.........sssss........                   [100%]
 =========================== short test summary info ============================
-SKIPPED [10] tests/gpu/test_kernel_guards.py:53: x_q8 is an argument of the 1..8-row Route L ops only
-132 passed, 10 skipped, 50 deselected in 2498.81s (0:41:38)
+SKIPPED [30] tests/gpu/test_kernel_guards.py:56: x_q8 is an argument of the 1..8-row Route L ops only
+168 passed, 30 skipped, 70 deselected in 3093.19s (0:51:33)

@@ -21,5 +21,5 @@ for tool in memcheck initcheck; do
     tools/pytest -q $ids > $L/sanitizer-$tool.log 2>&1
   echo "$tool rc=$?"; grep -E "passed|failed" $L/sanitizer-$tool.log | tail -1; tail -1 $L/sanitizer-$tool.log
 done
-tools/pytest tests/gpu/test_kernel_guards.py -q -rs -k "lcpp or first_call" > $L/guards.log 2>&1; echo "guards rc=$?"; tail -1 $L/guards.log
+[ -n "${SKIP_GUARDS:-}" ] || { tools/pytest tests/gpu/test_kernel_guards.py -q -rs -k "lcpp or first_call" > $L/guards.log 2>&1; echo "guards rc=$?"; tail -1 $L/guards.log; }
 date -u +"end %FT%TZ"

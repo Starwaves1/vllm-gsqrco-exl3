@@ -1,0 +1,35 @@
+{
+ "engine": "vllm",
+ "url": "http://127.0.0.1:18090",
+ "prompts": "/workspace/deploy/bench/prompts_real.jsonl",
+ "results": {
+  "default": {
+   "requests": 8,
+   "completion_tokens": 4096,
+   "per_position": [
+    0.8299565846599132,
+    0.650506512301013,
+    0.48842257597684513
+   ],
+   "mean_accepted_length": 2.9688856729377715,
+   "drafted": 4146.0,
+   "accepted": 2721.0,
+   "acceptance_rate": 0.6562952243125905,
+   "delta_vs_reference": 0.028705770451950108
+  },
+  "greedy": {
+   "requests": 8,
+   "completion_tokens": 4096,
+   "per_position": [
+    0.8328467153284671,
+    0.6547445255474452,
+    0.5036496350364964
+   ],
+   "mean_accepted_length": 2.9912408759124087,
+   "drafted": 4110.0,
+   "accepted": 2728.0,
+   "acceptance_rate": 0.6637469586374696,
+   "delta_vs_reference": -0.009495951350199983
+  }
+ }
+}

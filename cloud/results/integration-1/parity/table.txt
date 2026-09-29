@@ -1,0 +1,29 @@
+Logit parity vs llama.cpp b11211 CUDA (the phase-1b dumps, f16 KV; vLLM in-process, bf16 KV, no spec
+decode; bench/parity/vllm_logprobs.py + compare.py, box-scripts/parity.sh). KLD mean = KL(llama || vLLM),
+nats, full vocab; top-1 agreement. Floor = llama.cpp CUDA vs its own CPU backend (phase 1b, seq_000-005).
+
+seq      tokens  stock (1b)   Route L (p2)  Integration 1   floor     top-1 stock / L / Int1
+seq_000    1024  0.11645      0.13062       0.07832         0.22509   0.9492 / 0.9492 / 0.9570
+seq_001    2048  0.25106      0.15896       0.15468         0.39918   0.9479 / 0.9514 / 0.9549
+seq_002    1536  0.00505      0.00735       0.00702         0.01449   0.9861 / 0.9722 / 0.9722
+seq_003    4096  0.00186      0.00194       0.00142         0.00352   0.9792 / 0.9826 / 0.9861
+seq_004    8192  0.00238      0.00160       0.00157         0.00825   0.9965 / 0.9965 / 1.0000
+seq_005    8192  0.06073      0.00841       0.00817         0.07194   0.9826 / 0.9896 / 0.9861
+seq_006   32768  0.00127      0.00139       0.00096         n/a       0.9931 / 0.9861 / 0.9896
+seq_007   32768  0.00145      0.00138       0.00094         n/a       0.9896 / 0.9861 / 0.9896
+seq_008   65536  0.00271      0.00285       0.00278         n/a       0.9896 / 0.9896 / 0.9931
+seq_009  102400  0.00195      0.00167       0.00191         n/a       0.9792 / 0.9826 / 0.9861
+seq_010  120000  0.00820      0.00740       0.00902         n/a       0.9861 / 0.9792 / 0.9826
+overall          0.0404       0.0284        0.0237                    0.9802 / 0.9790 / 0.9818
+>= 100k          0.0051       0.0045        0.0055                    0.9826 / 0.9809 / 0.9844
+
+Absolute gate (KLD <= 0.001, top-1 >= 0.99): FAIL, as stock and phase 2. Relative gate (<= floor):
+PASS on seq_000-005. Worse than phase 2: seq_009 (+14%) and seq_010 (+22%, max 0.487 vs 0.155), both
+inside the stock-vs-Route-L spread seen on other prompts (seq_002 +46%, seq_005 -86%); top-1 on both
+went up. No repeat run exists to put a noise band on a single prompt.
+
+MTP acceptance, k=3, production's 8 real prompts (bench/speed/mtp_acceptance.py; llama-server readout
+from phase 1b):
+                 llama.cpp   vLLM stock (1b)   Integration 1 (61,440-row draft head)
+  greedy         0.6732      0.6650 (-0.8)     0.6637 (-0.95 pt, gate 2 pt: ok)
+  T=1.0 default  0.6276      0.6657 (+3.8)     0.6563 (+2.9 pt: FAIL, as in 1b; vLLM samples drafts)

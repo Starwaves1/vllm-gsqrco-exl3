@@ -80,6 +80,14 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
   target passes on MMQ) are within noise.
 - No prefill ladder ran at f6b96bf: the prefill gain vs phase 2 is attributed to phase 3 items 4
   and 4b (INFERRED: none of these branches changes the >= 9-row MMQ path).
+- Logit parity vs the phase-1b llama.cpp CUDA dumps (`parity/table.txt`): KLD 0.0237 / top-1
+  98.18% overall (phase 2 Route L 0.0284 / 97.90%, stock 0.0404 / 98.02%); >= 100k 0.0055 /
+  98.44% (phase 2 0.0045 / 98.09%). Absolute gate still FAIL; relative gate (<= llama.cpp's
+  CUDA-vs-CPU floor) PASS on seq_000-005. Worse than phase 2 on two prompts: seq_009 KLD 0.00191
+  vs 0.00167 and seq_010 0.00902 vs 0.00740 (max 0.487 vs 0.155), with top-1 up on both; that is
+  inside the spread between stock and Route L on other prompts (seq_002 +46%), but no repeat run
+  exists to bound single-prompt noise. MTP acceptance vs llama.cpp (8 real prompts, k=3): greedy
+  0.664 vs 0.673 (-0.95 pt, within the 2-pt gate); T=1.0 0.656 vs 0.628 (+2.9, FAIL as in phase 1b).
 - Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
   - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
     ROUTE-L.md. IQ3 1..5 rows dp4a, 6..8 mma; Q4_K from 3 rows and IQ2_S from 1, both only above

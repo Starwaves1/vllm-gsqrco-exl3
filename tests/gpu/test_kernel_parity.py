@@ -567,8 +567,10 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, types, 
     the routed op on each of the four shards alone it is bit-exact through MMVQ and the IQ3
     kernel (rows are independent); through MMQ, stream-k splits K differently for a 10240-row
     than a 2048-row product, so the fp32 partial sums add in another order and ~1 bf16 ulp can
-    flip (measured max 0.03). The same tolerance where a shard alone would take another kernel
-    than its run (a Q4_K run above 2048 rows takes the Q4_K kernel, its 2048-row shards not)."""
+    flip (measured max 0.03). Where a shard alone takes another kernel than its run (a Q4_K run
+    above 2048 rows takes the Q4_K kernel; its 2048-row shards take MMVQ, or at 8 rows MMQ, whose
+    Q4_K min term is ~7e-2 from full precision by design, Phase 1), the run is checked against
+    whole-run routing exactly and against the shards only within LOOSE_XSUM (measured 2.3e-2)."""
     import numpy as np
     import torch
 
@@ -597,8 +599,11 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, types, 
     from vllm_gguf_plugin.quantization.linear import _lcpp_op
 
     run_rows = [qkv.shape[0]] * 3 + [z.shape[0]]
-    same_ops = all(_lcpp_op(n, q, s.shape[0]) == _lcpp_op(n, q, r) for s, q, r in zip(shards, qts, run_rows))
-    if n <= 8 and same_ops:  # 1..8-row kernels, rows independent
+    pairs = [(_lcpp_op(n, q, s.shape[0]), _lcpp_op(n, q, r)) for s, q, r in zip(shards, qts, run_rows)]
+    if n <= 8 and all(a == b for a, b in pairs):  # 1..8-row kernels, rows independent
         assert torch.equal(y, per_shard)
+    elif any(a != b and "lcpp_mul_mat_q" in (a, b) for a, b in pairs):
+        # Q4_K at 8 rows: the run's Q4_K kernel vs MMQ's min-term model on its shards
+        assert _refs.rel_err(y, per_shard.double().cpu()) <= LOOSE_XSUM
     else:
         assert _refs.rel_err(y, per_shard.double().cpu()) <= 1e-3
