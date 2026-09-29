@@ -115,8 +115,9 @@ def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
 
 def _quantize_x_q8_1(x: torch.Tensor, weight_types: list[int]) -> torch.Tensor:
     """x as q8_1 blocks, quantized once for all products of weight_types on x
-    that read q8_1 (Route L; the same bytes each would make). Left unfilled
-    when none of them does: MMQ quantizes x itself, in its own layout."""
+    that read q8_1 (Route L; the same bytes each would make). When none of
+    them does (MMQ quantizes x itself, in its own layout), an unfilled buffer
+    of the same shape: no product reads it."""
     n = x.shape[0]
     q8_1 = [t for t in weight_types if t in ops.LCPP_QUANT_TYPES and _lcpp_reads_q8_1(n, t)]
     if n and q8_1:
@@ -136,13 +137,13 @@ def _fused_mul_mat_gguf_fake(
 def _unquantized_gemm(
     x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor | None = None
 ) -> torch.Tensor:
-    """x @ weight.T (+ bias) for a GGUF F32/F16/BF16 tensor. Up to 8 rows as a
-    batched gemv: for 2..8 rows x ~100 columns (GDN in_proj_ba) cuBLAS picks a
-    GEMM with a few 1-warp CTAs, 25-36 us instead of 4-7
-    (cloud/results/opt-p/micro-bf16b.txt)."""
-    if x.shape[0] <= 8:
-        y = torch.bmm(x.unsqueeze(1), weight.T.expand(x.shape[0], -1, -1)).squeeze(1)
-        return y if bias is None else y + bias
+    """x @ weight.T (+ bias) for a GGUF F32/F16/BF16 tensor. A weight with at
+    most 128 rows (GDN in_proj_ba: 96) times up to 8 activation rows runs as a
+    batched gemv: there cuBLAS picks a GEMM with a few 1-warp CTAs, 25-36 us
+    instead of 4-7 (cloud/results/opt-p/micro-bf16b.txt). The gemv reads the
+    weight once per activation row, which only a small weight makes free."""
+    if x.shape[0] <= 8 and weight.shape[0] <= 128 and bias is None:
+        return torch.bmm(x.unsqueeze(1), weight.T.expand(x.shape[0], -1, -1)).squeeze(1)
     return torch.nn.functional.linear(x, weight, bias)
 
 
@@ -180,6 +181,7 @@ except AttributeError as error:
     raise error
 
 
+@register_weight_loader_v2_supported_method  # vLLM keys this on the class name
 class GGUFUnquantizedLinearMethod(UnquantizedLinearMethod):
     """vLLM's unquantized linear for the GGUF's F32/F16/BF16 tensors, with the
     product in a custom op, so its row-count choice (_unquantized_gemm) is made

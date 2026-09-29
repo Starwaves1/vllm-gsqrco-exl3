@@ -11,11 +11,12 @@ tokenizer as the GGUF):
   generation_config.json, tokenizer.json, tokenizer_config.json, vocab.json,
   merges.txt, preprocessor_config.json, processor_config.json,
   video_preprocessor_config.json      byte-identical copies
-  mtp_draft_vocab_ids.pt the draft-head token ids: --draft-ids, by default the
-                         40,960 production's pipeline made for Swift
-                         (build_draft_vocab.py --ids, in the W4A16 -prepared
-                         dir); with it, the vLLM overlay's MTP draft scores only
-                         these rows of the lm_head
+  mtp_draft_vocab_ids.pt the draft-head token ids (tools/draft_vocab_ids.py:
+                         the 40,960 production's pipeline made for Swift plus
+                         ids the model emits outside them); kept as is unless
+                         --draft-ids names another list. With it, the vLLM
+                         overlay's MTP draft scores only these rows of the
+                         lm_head
   chat_template.jinja    production's template (--chat-template of the live
                          server). transformers prefers this file over the
                          chat_template entry in tokenizer_config.json
@@ -51,7 +52,7 @@ DEFAULT_GGUF = (
     / "Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf"
 )
 DEFAULT_OUT = ROOT / "hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp"
-DRAFT_IDS = MODELS / "Swift-1.5-Qwen3.8-27B-W4A16-AutoRound-prepared/mtp_draft_vocab_ids.pt"
+DRAFT_IDS = DEFAULT_OUT / "mtp_draft_vocab_ids.pt"  # made by tools/draft_vocab_ids.py
 
 COPIED = [
     "generation_config.json",
@@ -88,7 +89,8 @@ def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
     for name in COPIED:
         shutil.copyfile(src / name, out / name)
     shutil.copyfile(template, out / "chat_template.jinja")
-    shutil.copyfile(draft_ids, out / DRAFT_IDS.name)
+    if draft_ids.resolve() != (out / DRAFT_IDS.name).resolve():
+        shutil.copyfile(draft_ids, out / DRAFT_IDS.name)
     provenance = {
         "source_dir": str(src),
         "chat_template_source": str(template),

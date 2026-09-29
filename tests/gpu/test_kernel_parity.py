@@ -350,7 +350,8 @@ def test_quantize_x_q8_1_mixed_route():
 def test_unquantized_small_n(n):
     """A BF16 GGUF weight shaped like GDN in_proj_ba (96 x 5120): at <= 8 rows the product is a
     batched gemv, above that F.linear; both accumulate in fp32, so both sit within bf16 output
-    rounding of the fp64 product, and the result is a contiguous [n, 96] bf16 tensor."""
+    rounding of the fp64 product, and the result is a contiguous [n, 96] bf16 tensor. A weight
+    with more than 128 rows stays on F.linear (the gemv reads it once per row)."""
     import _refs
     import torch
 
@@ -363,6 +364,8 @@ def test_unquantized_small_n(n):
     ref = (x.double() @ w.double().T).cpu()
     assert y.shape == (n, 96) and y.dtype == torch.bfloat16 and y.is_contiguous()
     assert _refs.rel_err(y, ref) <= 4e-3
+    big = torch.cat([w, w])  # 192 rows
+    assert torch.equal(_unquantized_gemm(x, big), torch.nn.functional.linear(x, big))
 
 
 @pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])

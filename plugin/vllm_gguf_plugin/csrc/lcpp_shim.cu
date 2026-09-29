@@ -758,7 +758,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   src1.type = GGML_TYPE_F32;
   src1.ne[0] = k; src1.ne[1] = n; src1.ne[2] = 1; src1.ne[3] = 1;
 
-  ggml_tensor dst{};
+  ggml_tensor dst{};  // MMVQ / MMQ's fp32 dst (the IQ3 kernel writes y in X's dtype)
   dst.type = GGML_TYPE_F32;
   dst.ne[0] = row; dst.ne[1] = n; dst.ne[2] = 1; dst.ne[3] = 1;
   dst.nb[0] = sizeof(float); dst.nb[1] = row * sizeof(float);
