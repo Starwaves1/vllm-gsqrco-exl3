@@ -17,7 +17,8 @@
 // fp32/fp16/bf16, unit inner stride. The 1..8-row ops also take X already
 // quantized to q8_1 (x_q8 from lcpp_quantize_q8_1(X, type, false, false)), so
 // several products on one X quantize it once.
-// Returns [n, row] in X's dtype. All guards run before any launch.
+// Returns [n, row] in X's dtype, or in dtype if given (fp32 skips the output
+// cast of the kernels that write fp32). All guards run before any launch.
 // Nothing here touches CUDA until an op is called on CUDA tensors.
 
 #include <torch/csrc/inductor/aoti_torch/c/shim.h>
@@ -732,7 +733,7 @@ void iq3_mma_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, fl
 enum class Kernel { mmvq, mmq, iq3, iq3_mma, own };
 
 static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
-                  const std::optional<Tensor>& x_q8 = std::nullopt) {
+                  const std::optional<Tensor>& x_q8, std::optional<ScalarType> dtype) {
   const bool mmvq = kernel != Kernel::mmq;  // the owned kernels take MMVQ's q8_1 input and row limit
   const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma;
   const char* op = kernel == Kernel::mmvq ? "lcpp_mul_mat_vec_q"
@@ -746,7 +747,10 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   STD_TORCH_CHECK(kernel != Kernel::mmq || type != GGML_TYPE_IQ1_M, op, ": no MMQ for IQ1_M");
   const int64_t k = check_inputs(W, X, type, row, mmvq, op);
   const int64_t n = X.size(0);
-  const ScalarType out_dtype = X.scalar_type();
+  const ScalarType out_dtype = dtype.value_or(X.scalar_type());
+  STD_TORCH_CHECK(out_dtype == ScalarType::Float || out_dtype == ScalarType::Half ||
+                      out_dtype == ScalarType::BFloat16,
+                  op, ": dtype must be fp32, fp16 or bf16");
   const int64_t k_padded = GGML_PAD(k, MATRIX_ROW_PADDING);
   const int64_t q8_bytes = n * k_padded * (int64_t)sizeof(block_q8_1) / QK8_1;
   if (x_q8) {  // X's q8_1 blocks, made by the caller: trusted to come from this X
@@ -831,24 +835,28 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   return y_dtype == out_dtype ? y : torch::stable::to(y, std::optional<ScalarType>(out_dtype));
 }
 
-Tensor lcpp_mul_mat_vec_q(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8) {
-  return run(W, X, type, row, Kernel::mmvq, x_q8);
+Tensor lcpp_mul_mat_vec_q(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8,
+                         std::optional<ScalarType> dtype) {
+  return run(W, X, type, row, Kernel::mmvq, x_q8, dtype);
 }
 
-Tensor lcpp_mul_mat_q(Tensor W, Tensor X, int64_t type, int64_t row) {
-  return run(W, X, type, row, Kernel::mmq);
+Tensor lcpp_mul_mat_q(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<ScalarType> dtype) {
+  return run(W, X, type, row, Kernel::mmq, std::nullopt, dtype);
 }
 
-Tensor lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8) {
-  return run(W, X, type, row, Kernel::iq3, x_q8);
+Tensor lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8,
+                         std::optional<ScalarType> dtype) {
+  return run(W, X, type, row, Kernel::iq3, x_q8, dtype);
 }
 
-Tensor lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8) {
-  return run(W, X, type, row, Kernel::iq3_mma, x_q8);
+Tensor lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8,
+                         std::optional<ScalarType> dtype) {
+  return run(W, X, type, row, Kernel::iq3_mma, x_q8, dtype);
 }
 
-Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8) {
-  return run(W, X, type, row, Kernel::own, x_q8);
+Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row, std::optional<Tensor> x_q8,
+                         std::optional<ScalarType> dtype) {
+  return run(W, X, type, row, Kernel::own, x_q8, dtype);
 }
 
 // The q8_1 bytes the ops feed MMVQ and the owned kernels (mmq false; linear.py
@@ -881,11 +889,11 @@ Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
 }
 
 STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
-  ops.def("lcpp_mul_mat_vec_q(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
-  ops.def("lcpp_mul_mat_q(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
-  ops.def("lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
-  ops.def("lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
-  ops.def("lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
+  ops.def("lcpp_mul_mat_vec_q(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None, ScalarType? dtype=None) -> Tensor");
+  ops.def("lcpp_mul_mat_q(Tensor W, Tensor X, int type, SymInt row, ScalarType? dtype=None) -> Tensor");
+  ops.def("lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None, ScalarType? dtype=None) -> Tensor");
+  ops.def("lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None, ScalarType? dtype=None) -> Tensor");
+  ops.def("lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None, ScalarType? dtype=None) -> Tensor");
   ops.def("lcpp_quantize_q8_1(Tensor X, int type, bool mmq, bool vendored) -> Tensor");
 }
 

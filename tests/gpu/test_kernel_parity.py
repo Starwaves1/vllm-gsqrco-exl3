@@ -386,10 +386,50 @@ def test_lcpp_iq1_m_chunks(tensors_by_type, n):
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     _, x, w, qt = _lcpp_case(tensors_by_type, "IQ1_M", n, "bfloat16", seed=980 + n)
     x = x.cuda()
-    want = torch.cat([C.lcpp_mul_mat_vec_q(w, x[i : i + 8], qt, w.shape[0]) for i in range(0, n, 8)])
+    want = torch.cat([C.lcpp_mul_mat_vec_q(w, x[i : i + 8], qt, w.shape[0], dtype=torch.float32)
+                      for i in range(0, n, 8)])
     q8 = _quantize_x_q8_1(x, [qt], [w.shape[0]])
     assert torch.equal(_fused_mul_mat_gguf(x, w, qt), want)
     assert torch.equal(_fused_mul_mat_gguf(x, w, qt, q8), want)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8, 16])
+@pytest.mark.parametrize("name", LCPP_TYPES)
+def test_lcpp_out_dtype(tensors_by_type, name, n):
+    """dtype=torch.float32 returns the kernels' fp32 output (Route L's _fused_mul_mat_gguf asks
+    for it; apply() casts): cast to X's dtype it equals the default output, for every op that
+    serves this type at n rows."""
+    import torch
+
+    C = _lcpp()
+    if n > 8 and name not in LCPP_MMQ_TYPES:
+        pytest.skip(f"no {name} MMQ")
+    _, x, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=990 + n)
+    x = x.cuda()
+    ops_ = [C.lcpp_mul_mat_q] if n > 8 else [C.lcpp_mul_mat_vec_q] + [getattr(C, op) for t, op in OWNED if t == name]
+    for op in ops_:
+        y32 = op(w, x, qt, w.shape[0], dtype=torch.float32)
+        assert y32.dtype == torch.float32 and torch.equal(y32.to(x.dtype), op(w, x, qt, w.shape[0]))
+
+
+def test_cast_fused_by_inductor():
+    """apply() casts the fp32 product to bf16 in the traced graph, where inductor fuses the cast
+    into the consumer. Fused, it must round as the separate cast did: vLLM's native fused add +
+    RMSNorm, compiled, gives the same bits on (fp32 product, cast inside) and (its bf16 cast)."""
+    import torch
+
+    def add_norm(y, residual, weight):  # RMSNorm.forward_native with a residual
+        h = y.to(torch.float32) + residual.to(torch.float32)
+        out = (h * torch.rsqrt(h.pow(2).mean(-1, keepdim=True) + 1e-6)).to(y.dtype) * weight
+        return out, h.to(y.dtype)
+
+    g = torch.Generator(device="cuda").manual_seed(0)
+    y32 = torch.randn(16, 5120, device="cuda", generator=g) * 3
+    res = torch.randn(16, 5120, device="cuda", generator=g).bfloat16()
+    wt = torch.randn(5120, device="cuda", generator=g).bfloat16()
+    fused = torch.compile(lambda y, r, w: add_norm(y.to(torch.bfloat16), r, w))(y32, res, wt)
+    separate = torch.compile(add_norm)(y32.to(torch.bfloat16), res, wt)
+    assert all(torch.equal(a, b) for a, b in zip(fused, separate))
 
 
 @pytest.mark.parametrize("n", [1, 2, 4, 8, 9])
@@ -481,10 +521,11 @@ def _graph_replay(tensors_by_type, name, n, fn):
 
 
 def _routed(w, x, qt):
-    """One product through the production routing (the kernel apply() picks for this type and n)."""
+    """One product through the production routing (the kernel apply() picks for this type and n),
+    in x's dtype as apply() returns it."""
     from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
 
-    return _fused_mul_mat_gguf(x, w, qt)
+    return _fused_mul_mat_gguf(x, w, qt).to(x.dtype)
 
 
 def _padded_layer(shards, qts, k, monkeypatch):

@@ -65,20 +65,32 @@ def _lcpp_op(n: int, weight_type: int, rows: int) -> str | None:
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
 
+def _out_dtype(x: torch.Tensor, weight_type: int) -> torch.dtype:
+    """_fused_mul_mat_gguf's output dtype. Route L types: fp32, the kernels'
+    accumulator, so the cast to x's dtype is a traced op (apply()) that
+    inductor fuses into the consumer (residual add + norm, the cat of a fused
+    layer's runs) instead of a cast kernel per product."""
+    if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
+        return torch.float32
+    return x.dtype
+
+
 def _fused_mul_mat_gguf(
     x: torch.Tensor,
     weight: torch.Tensor,
     weight_type: int,
     x_q8: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """x @ weight.T. x_q8: x already quantized by _quantize_x_q8_1 for this
-    product and others on the same x; used if this product reads q8_1."""
+    """x @ weight.T in _out_dtype. x_q8: x already quantized by
+    _quantize_x_q8_1 for this product and others on the same x; used if this
+    product reads q8_1."""
     if weight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if weight.shape[0] > 5120 else 16
     else:
         mmvq_safe = 2 if weight.shape[0] > 5120 else 6
+    out_dtype = _out_dtype(x, weight_type)
     if x.shape[0] == 0:
-        return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
+        return torch.empty(x.shape[0], weight.shape[0], dtype=out_dtype, device=x.device)
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     name = None
@@ -87,15 +99,15 @@ def _fused_mul_mat_gguf(
     if name is not None:
         op = getattr(torch.ops._C_gguf, name)
         if name == "lcpp_mul_mat_q":
-            return op(weight, x, weight_type, weight.shape[0])
+            return op(weight, x, weight_type, weight.shape[0], out_dtype)
         if x.shape[0] > 8:  # IQ1_M on MMVQ, which takes at most 8 rows per call
             b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
             return torch.cat([
                 op(weight, x[i : i + 8], weight_type, weight.shape[0],
-                   None if x_q8 is None else x_q8[i * b : (i + 8) * b])
+                   None if x_q8 is None else x_q8[i * b : (i + 8) * b], out_dtype)
                 for i in range(0, x.shape[0], 8)
             ])
-        return op(weight, x, weight_type, weight.shape[0], x_q8)
+        return op(weight, x, weight_type, weight.shape[0], x_q8, out_dtype)
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
         y = ops.ggml_mul_mat_vec_a8(weight, x, weight_type, weight.shape[0])
     elif weight_type in MMQ_QUANT_TYPES:
@@ -108,7 +120,7 @@ def _fused_mul_mat_gguf(
     else:
         weight_type = WeightType(weight_type)
         raise NotImplementedError(f"Unsupported GGUF quantization type: {weight_type}")
-    return y
+    return y.to(out_dtype)  # IQ1_M above _IQ1_M_MAX_ROWS rows: stock path, fp32 out
 
 
 def _shard_weight(
@@ -165,7 +177,9 @@ def _fused_mul_mat_gguf_fake(
     weight_type: int,
     x_q8: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
+    return torch.empty(
+        x.shape[0], weight.shape[0], dtype=_out_dtype(x, weight_type), device=x.device
+    )
 
 
 def _unquantized_gemm(
@@ -407,7 +421,7 @@ class GGUFLinearMethod(LinearMethodBase):
                 for idx in shard_id
             ]
             if len(set(shard_weight_types)) == 1:
-                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0])
+                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0]).to(x.dtype)
                 if bias is not None:
                     out.add_(bias)
                 return out
@@ -421,11 +435,11 @@ class GGUFLinearMethod(LinearMethodBase):
             )
             out = torch.cat(
                 [fused_mul_mat_gguf_op(x, w, t, x_q8) for w, t in runs], axis=1
-            )
+            ).to(x.dtype)
         else:
             weight = layer.weight
             weight_type = layer.weight_type.weight_type
-            out = fused_mul_mat_gguf_op(x, weight, weight_type)
+            out = fused_mul_mat_gguf_op(x, weight, weight_type).to(x.dtype)
         if bias is not None:
             out.add_(bias)
         return out
