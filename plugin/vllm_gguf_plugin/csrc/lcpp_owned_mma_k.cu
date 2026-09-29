@@ -77,7 +77,7 @@ template <> struct traits<GGML_TYPE_IQ4_XS> {
   using block = block_iq4_xs;
   static constexpr int G = 8, WG = 17, WS = 36, TABLE = 4;  // kvalues_iq4nl
 };
-template <> struct traits<GGML_TYPE_IQ2_S> {
+template <> struct traits<GGML_TYPE_IQ2_S> {  // window within the row only for an even block count (K % 512)
   using block = block_iq2_s;
   static constexpr int G = 4, WG = 21, WS = 21, TABLE = 2048;  // iq2s_grid as 2 x 1024 words
 };
@@ -545,34 +545,36 @@ struct plan {
   size_t smem, work_bytes;
 };
 
-// Once per device and kernel instance: allow dynamic shared memory above 48 KB.
+// Resident CTAs per SM of the instance (the fewest over the output types), and on the
+// first call per device the dynamic shared memory limit above 48 KB.
+template <typename OutT>
+static int occupancy(void (*kernel)(const char*, const int4*, OutT*, float*, int, int, int64_t, int, int), size_t smem) {
+  CUDA_CHECK(cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, (int)smem));
+  int occ = 0;
+  CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, kernel, THREADS, smem));
+  return occ;
+}
 template <ggml_type type, int NT>
-static void set_smem_limit() {
-  using geo = geometry<type, NT>;
-  static bool done[GGML_CUDA_MAX_DEVICES] = {};
+static int ctas_per_sm() {
+  constexpr size_t smem = geometry<type, NT>::SMEM;
+  static int occ[GGML_CUDA_MAX_DEVICES] = {};
   int dev = 0;
   CUDA_CHECK(cudaGetDevice(&dev));
   GGML_ASSERT(dev < GGML_CUDA_MAX_DEVICES);
-  if (!done[dev]) {
-    const int bytes = (int)geo::SMEM;
-    CUDA_CHECK(cudaFuncSetAttribute(mma_k<type, NT, float>, cudaFuncAttributeMaxDynamicSharedMemorySize, bytes));
-    CUDA_CHECK(cudaFuncSetAttribute(mma_k<type, NT, half>, cudaFuncAttributeMaxDynamicSharedMemorySize, bytes));
-    CUDA_CHECK(cudaFuncSetAttribute(mma_k<type, NT, nv_bfloat16>, cudaFuncAttributeMaxDynamicSharedMemorySize, bytes));
-    done[dev] = true;
+  if (occ[dev] == 0) {
+    occ[dev] = std::max(1, std::min({occupancy(mma_k<type, NT, float>, smem), occupancy(mma_k<type, NT, half>, smem),
+                                     occupancy(mma_k<type, NT, nv_bfloat16>, smem)}));
   }
+  return occ[dev];
 }
 
 // Stream-K over every resident CTA slot (at least 4 units per CTA).
 template <ggml_type type, int NT>
 static plan make_plan(int nrows, int ncols, int nblocks, int nsm) {
-  using geo = geometry<type, NT>;
-  set_smem_limit<type, NT>();
   plan p{};
-  p.smem = geo::SMEM;
-  int occ = 0;
-  CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, mma_k<type, NT, float>, THREADS, p.smem));
+  p.smem = geometry<type, NT>::SMEM;
   p.units = (nrows + M - 1) / M * nblocks;
-  p.nctas = std::max(1, std::min(std::max(1, occ) * nsm, p.units / 4));
+  p.nctas = std::max(1, std::min(ctas_per_sm<type, NT>() * nsm, p.units / 4));
   p.pieces = p.units % p.nctas != 0 || (p.units / p.nctas) % nblocks != 0;
   p.work_bytes = p.pieces ? (size_t)2 * p.nctas * ncols * M * sizeof(float) : 0;
   return p;
