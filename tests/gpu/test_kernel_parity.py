@@ -346,6 +346,25 @@ def test_quantize_x_q8_1_mixed_route():
     assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.IQ2_XS), False, False))
 
 
+@pytest.mark.parametrize("n", [1, 2, 4, 8, 9])
+def test_unquantized_small_n(n):
+    """A BF16 GGUF weight shaped like GDN in_proj_ba (96 x 5120): at <= 8 rows the product is a
+    batched gemv, above that F.linear; both accumulate in fp32, so both sit within bf16 output
+    rounding of the fp64 product, and the result is a contiguous [n, 96] bf16 tensor."""
+    import _refs
+    import torch
+
+    from vllm_gguf_plugin.quantization.linear import _unquantized_gemm
+
+    g = torch.Generator().manual_seed(n)
+    w = (torch.randn(96, 5120, generator=g) * 0.02).bfloat16().cuda()
+    x = _x(n, 5120, "bfloat16", seed=n).cuda()
+    y = _unquantized_gemm(x, w)
+    ref = (x.double() @ w.double().T).cpu()
+    assert y.shape == (n, 96) and y.dtype == torch.bfloat16 and y.is_contiguous()
+    assert _refs.rel_err(y, ref) <= 4e-3
+
+
 @pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
 @pytest.mark.parametrize("n", [1, 4, 9])
 @pytest.mark.parametrize("mmq", [False, True], ids=["q8_1", "mmq"])

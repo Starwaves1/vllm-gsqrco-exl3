@@ -6,11 +6,14 @@ from itertools import groupby
 import gguf
 import torch
 from gguf import GGMLQuantizationType as WeightType
+from vllm import envs
 from vllm.model_executor.layers.linear import (
     LinearMethodBase,
+    UnquantizedLinearMethod,
     register_weight_loader_v2_supported_method,
 )
 from vllm.model_executor.utils import set_weight_attrs
+from vllm.platforms import current_platform
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
@@ -130,6 +133,25 @@ def _fused_mul_mat_gguf_fake(
     return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
 
 
+def _unquantized_gemm(
+    x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor | None = None
+) -> torch.Tensor:
+    """x @ weight.T (+ bias) for a GGUF F32/F16/BF16 tensor. Up to 8 rows as a
+    batched gemv: for 2..8 rows x ~100 columns (GDN in_proj_ba) cuBLAS picks a
+    GEMM with a few 1-warp CTAs, 25-36 us instead of 4-7
+    (cloud/results/opt-p/micro-bf16b.txt)."""
+    if x.shape[0] <= 8:
+        y = torch.bmm(x.unsqueeze(1), weight.T.expand(x.shape[0], -1, -1)).squeeze(1)
+        return y if bias is None else y + bias
+    return torch.nn.functional.linear(x, weight, bias)
+
+
+def _unquantized_gemm_fake(
+    x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor | None = None
+) -> torch.Tensor:
+    return x.new_empty(x.shape[0], weight.shape[0])
+
+
 def _quantize_x_q8_1_fake(x: torch.Tensor, weight_types: list[int]) -> torch.Tensor:
     # block_q8_1: 32 int8 values + a half2 (scale, sum) = 36 bytes
     return torch.empty(x.shape[0] * x.shape[1] // 32 * 36, dtype=torch.uint8, device=x.device)
@@ -146,10 +168,32 @@ try:
         op_func=_quantize_x_q8_1,
         fake_impl=_quantize_x_q8_1_fake,
     )
+    direct_register_custom_op(
+        op_name="_gguf_unquantized_gemm",
+        op_func=_unquantized_gemm,
+        fake_impl=_unquantized_gemm_fake,
+    )
     fused_mul_mat_gguf = torch.ops.vllm._fused_mul_mat_gguf
     quantize_x_q8_1 = torch.ops.vllm._quantize_x_q8_1
+    unquantized_gemm = torch.ops.vllm._gguf_unquantized_gemm
 except AttributeError as error:
     raise error
+
+
+class GGUFUnquantizedLinearMethod(UnquantizedLinearMethod):
+    """vLLM's unquantized linear for the GGUF's F32/F16/BF16 tensors, with the
+    product in a custom op, so its row-count choice (_unquantized_gemm) is made
+    per call, not fixed when the model is traced."""
+
+    def apply(
+        self,
+        layer: torch.nn.Module,
+        x: torch.Tensor,
+        bias: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if x.dim() != 2 or not current_platform.is_cuda() or envs.VLLM_BATCH_INVARIANT:
+            return super().apply(layer, x, bias)
+        return unquantized_gemm(x, layer.weight, bias)
 
 
 @register_weight_loader_v2_supported_method
