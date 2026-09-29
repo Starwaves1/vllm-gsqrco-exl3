@@ -1,0 +1,29 @@
+4c03cdd STATUS item 5: guards log predates the smem alignment fix
+........................................................................ [  6%]
+........................................................................ [ 12%]
+.........................s.s.s.s.s.s.s.s................................ [ 18%]
+.s.s.s.s.s.s.s.s........................................................ [ 24%]
+........................................................................ [ 30%]
+........................................................................ [ 36%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 55%]
+........................................................................ [ 61%]
+........................................................................ [ 67%]
+........................................................................ [ 73%]
+........................................................................ [ 80%]
+........................................................................ [ 86%]
+........................................................................ [ 92%]
+........................................................................ [ 98%]
+.sssssssssssssss                                                         [100%]
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_dequantize[IQ1_M-float32]
+  /workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:112: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1137 passed, 31 skipped, 15 warnings in 79.64s (0:01:19)

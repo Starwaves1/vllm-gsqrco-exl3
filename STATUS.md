@@ -1,6 +1,6 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: Phase 3 item 5 (owned IQ3_S/IQ3_XXS decode kernel): 90.9 / 154.2 tok/s c=1 / c=2 greedy, from 77.8 / 117.0 (phase 2); baseline 94.1 / 194.4. See "Phase 3" below.
+Latest: Integration 1 (opt-p + K1 + K2 on main): decode 101.1 / 175.0 / 264.4 / 436.7 tok/s c=1/2/4/8 greedy (W4A16 baseline 94.1 / 194.4 / 344.5 / 513.5), prefill 1152 / 900 / 622 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 1" below.
 
 ## Current state (2026-09-27 late)
 
@@ -42,6 +42,69 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
 - Box-only gotcha: a stopped vLLM leaves its CPU-tier mmap (`/dev/shm/vllm_offload_*.mmap`)
   behind; with a 15 GB /dev/shm the next start fails with EFAULT in
   `shared_offload_region.py`. Clear it between runs when no vLLM is running.
+
+## Integration 1: opt-p + K1 + K2 merged (2026-09-29, same 350 W 3090)
+
+Branch `integrate` = main + `opt-p` + `opt-k1` + `opt-k2` (merged in that order), fast-forwarded
+into main. Results, box scripts and profiles: `cloud/results/integration-1/`. One server per
+gpuq job; decode = pass 2 of production's `run_benchmarks.sh single`, T=0, decode(C/meanTPOT);
+prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks logged).
+
+| | c=1 | c=2 | c=4 | c=8 | 8k | 64k | 180k |
+|---|---|---|---|---|---|---|---|
+| Integration 1 | 101.1 | 175.0 | 264.4 | 436.7 | 1152 | 900 | 622 |
+| prod W4A16 | 94.1 | 194.4 | 344.5 | 513.5 | 1108 | 868 | 603 |
+| ratio | 1.07 | 0.90 | 0.77 | 0.85 | 1.04 | 1.04 | 1.03 |
+| Route L before the campaign | 90.9 | 154.2 | 238 | 370.7 | 1036 | - | 589 |
+| ratio | 1.11 | 1.13 | 1.11 | 1.18 | 1.11 | - | 1.06 |
+
+- ms/step 30.5 / 34.9 / 46.7 / 55.7 (c=1/2/4/8); tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP
+  acceptance 0.657 over the run (0.630 with the 40,960-row draft head; opt-p's 61,440 rows).
+  Decode clocks: median SM 1740-1755 MHz, 344 W, 89% util (both passes). The prefill gains over
+  the pre-campaign column are phase 3's (items 1, 4, 4b); none of these branches changes the
+  >= 9-row MMQ path.
+- Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
+  - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
+    ROUTE-L.md. IQ3 1..5 rows dp4a, 6..8 mma; Q4_K from 3 rows and IQ2_S from 1, both only above
+    2048 weight rows, up to 8; everything else MMVQ below 8 rows, MMQ from 8 (IQ1_M stock).
+  - opt-p's shared quantize (`_quantize_x_q8_1`) now takes the runs' row counts and asks
+    `_lcpp_op`: with K1, Q4_K/IQ2_S read q8_1 at 8 rows, where opt-p's type-only predicate said
+    MMQ and would have left `x_q8` unfilled for them (new test case).
+  - `lcpp_mul_mat_vec_own` and `lcpp_mul_mat_vec_iq3_mma` take opt-p's optional `x_q8`. They
+    keep fp32 dst + the shim's output cast (their kernels write `float*`); only the dp4a IQ3
+    kernel writes 16-bit directly.
+  - Tests: the owned-kernel parity and graph tests run over (type, op) for all three owned ops;
+    K2's extra shapes (odd_rows, k_min, few_rows, many_tiles) now cover `lcpp_mul_mat_vec_own`
+    too, except fp32 odd_rows (its only fp32 reference, MMVQ, reads past that W).
+- Tests on the box (this build; logs in `tests/`): kernel parity 1970 pass / 128 skip / 0 fail with
+  `VLLM_GGUF_LCPP=1` (1594 on opt-k2 alone, 1185 on opt-p); 1939 / 159 / 0 with it off, where
+  the 31 extra skips need the flag. Stock path: main's 328 non-Route-L parity tests collect
+  unchanged here (+6 new: opt-p's gemv and shared-quantize tests) and pass on both builds (main:
+  1137 pass / 31 skip, flag off). GPU guards `-k "lcpp or first_call"` 132 pass / 10 skip (x_q8
+  cases on MMQ ops) / 0 fail; CPU guards 73 + routing table 54 pass. compute-sanitizer memcheck
+  and initcheck 0 errors on 57 cases: 16 per owned op (IQ3_S/IQ3_XXS or Q4_K/IQ2_S, n = 1..8,
+  all tail shapes), x_q8 and shared-quantize tests. CPU suite locally 471 pass / 73 skip / 54
+  xfail. Vendored files unchanged (VENDORED.md sha256, 39 files).
+- Profile (torch profiler, 5 complete decode steps, `runs/profile-c1-c4.txt`):
+  - c=1 (4 rows per target pass): 2005 GPU activities per step, busy 25.6 ms, span 34.0 ms
+    (8.4 ms idle). GEMM 21.3 ms: dp4a IQ3 10.3 ms (192 launches), MMVQ 8.3 ms (142; IQ4_XS 4.1,
+    Q6_K 1.3, Q2_K 0.8, IQ2_XS 0.7, Q4_K 0.7, IQ2_XXS 0.4), owned Q4_K/IQ2_S 2.8 ms
+    (41; Q4_K 2.0, IQ2_S 0.8). q8_1 quantize 276 launches 0.40 ms, bf16 casts 182 launches 0.28 ms,
+    GDN in_proj_ba gemv 48 x 6 us.
+  - c=4 (16 rows per target pass): 3030 activities, busy 42.1 ms, span 49.5 ms (7.4 idle); the
+    same as opt-p's c=4 profile, since 16 rows is MMQ for every type: 686 MMQ launches 33.0 ms
+    (IQ3_S 12.2, IQ3_XXS 7.0, IQ4_XS 5.4, Q4_K 2.9, IQ2_S 1.5, IQ2_XS 1.0, Q2_K 0.8), plus 374
+    output casts 0.62 ms, 313 MMQ quantizes 0.47 ms, 360 memsets 0.41 ms.
+  - Round 2: c >= 4 is K3's 16-64-row range (MMQ is 78% of busy time at c=4). At c=1 the
+    largest non-owned GEMM is IQ4_XS on MMVQ (4.1 ms; K1 dropped IQ4_XS), then the 8.4 ms of
+    idle per step.
+- Open, left for round 2 (review and test audit, low severity):
+  - 16-bit output from the mma and Q4_K/IQ2_S kernels (a `dst_t` template as in
+    `iq3_mul_mat_vec_y`) would drop one cast launch per product: ~41 per c=1 step, ~230 at c=2
+    (casts cost ~1.5 us each: ~0.2% / ~1% of the step). Not done here: it edits kernels K3 and R1
+    are still changing and would invalidate this ladder.
+  - `_fused_mul_mat_gguf` looks the op up by name per call (`getattr(torch.ops._C_gguf, ...)`);
+    the branches did the same attribute access, so no regression.
 
 ## Phase 3: closing Route L's decode gap (2026-09-28, same 350 W 3090)
 

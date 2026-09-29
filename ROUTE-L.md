@@ -19,10 +19,13 @@ Every numeric property is untested.
     Maxwell-Lyu f1d38ffdd0.
   - A copy of the non-MoE q8_1 branch of upstream `ggml_cuda_mul_mat_q`.
   - Ops `_C_gguf::lcpp_mul_mat_vec_q` (1..8 rows), `lcpp_mul_mat_q` (any
-    rows), and `lcpp_mul_mat_vec_iq3` (1..8 rows, IQ3_S/IQ3_XXS only, phase 3
-    item 5: an owned decode-once kernel, `iq3_mul_mat_vec` in `lcpp_shim.cu`),
-    signature `(W uint8[rows,bytes], X [n,K] f32/f16/bf16, type, row) ->
-    [n,row]` in X's dtype.
+    rows), and three owned 1..8-row kernels: `lcpp_mul_mat_vec_iq3`
+    (IQ3_S/IQ3_XXS, dp4a, `iq3_mul_mat_vec` in `lcpp_shim.cu`, phase 3 item
+    5), `lcpp_mul_mat_vec_iq3_mma` (IQ3_S/IQ3_XXS, int8 tensor cores,
+    `lcpp_owned_iq3_mma.cu`, K2) and `lcpp_mul_mat_vec_own` (Q4_K/IQ2_S,
+    dp4a, `lcpp_owned_k4.cu`, K1). Signature `(W uint8[rows,bytes], X [n,K]
+    f32/f16/bf16, type, row[, x_q8]) -> [n,row]` in X's dtype; the 1..8-row
+    ops take an optional `x_q8`, X already quantized to MMVQ's q8_1 layout.
   - An owned fp32/fp16/bf16 → q8_1 quantizer (`quantize_x`, phase 3): the
     vendored quantizers' arithmetic and layouts line for line, reading X in
     its own dtype, so there is no input cast; its bytes equal the vendored
@@ -35,11 +38,24 @@ Every numeric property is untested.
 - Build: `VLLM_GGUF_BUILD_LCPP=1` in `plugin/setup.py`. The default build is
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
-  - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ4_XS, <8 rows go to
-    lcpp MMVQ and ≥8 to lcpp MMQ (phase 3 item 1). IQ3_S/IQ3_XXS at 1..8 rows go
-    to the owned `lcpp_mul_mat_vec_iq3` kernel instead (phase 3 item 5: faster
-    than both MMVQ and MMQ there, `cloud/results/phase3/item5`); ≥8 rows still
-    fall to lcpp MMQ. IQ1_M keeps the old path.
+  - `linear.py` routing (`_lcpp_op`; n = activation rows, W rows = the
+    weight's or shard run's rows). IQ1_M keeps the old path.
+
+    | type | n = 1..5 | n = 6, 7 | n = 8 | n ≥ 9 | source |
+    |---|---|---|---|---|---|
+    | IQ3_S, IQ3_XXS | `lcpp_mul_mat_vec_iq3` (dp4a) | `lcpp_mul_mat_vec_iq3_mma` | `lcpp_mul_mat_vec_iq3_mma` | MMQ | phase3/item5, phase3/k2 |
+    | Q4_K, W rows > 2048 | MMVQ at 1, 2; `lcpp_mul_mat_vec_own` from 3 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
+    | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
+    | other Route L types; Q4_K/IQ2_S ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | phase3 item 1 |
+
+  - Fused layers quantize X once (`_quantize_x_q8_1`, opt-p) for all their
+    shard runs whose op reads q8_1 (every op above but MMQ) and pass it as
+    `x_q8`. The dp4a IQ3 kernel writes X's dtype; MMVQ, MMQ and the other two
+    owned kernels write fp32 and the shim casts.
+  - GGUF BF16/F16/F32 linears (GDN `in_proj_ba`) go through
+    `GGUFUnquantizedLinearMethod`: ≤ 8 rows × ≤ 128 weight rows, no bias, as a
+    batched gemv (`torch.bmm`), otherwise `F.linear` (opt-p). Independent of
+    `VLLM_GGUF_LCPP`.
   - Mixed-type fused layers: each run of adjacent same-type shards is stored
     contiguously from the start of its first shard's region, so
     `_shard_weight` returns a view and the per-forward `.contiguous()` copy

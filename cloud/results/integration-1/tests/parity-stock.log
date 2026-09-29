@@ -1,0 +1,50 @@
+........................................................................ [  3%]
+........................................................................ [  6%]
+.........................s.s.s.s.s.s.s.s................................ [ 10%]
+.s.s.s.s.s.s.s.s........................................................ [ 13%]
+........................................................................ [ 17%]
+........................................................................ [ 20%]
+........................................................................ [ 24%]
+........................................................................ [ 27%]
+........................................................................ [ 30%]
+................................................................s......s [ 34%]
+.............s......s.............s......s.............s......s......... [ 37%]
+....s......s.............s......s.............s......s.............s.... [ 41%]
+..s.............s......s.............s......s.............s......s...... [ 44%]
+.......s......s.............s......s.............s......s.............s. [ 48%]
+.....s.............s......s.............s......s.............s......s... [ 51%]
+..........s......s.............s......s.............s......s............ [ 54%]
+.s......s.............s......s.............s......s.............s......s [ 58%]
+.............s......s.............s......s.............s......s......... [ 61%]
+....s......s.............s......s.............s......s.............s.... [ 65%]
+..s.............s......s...s.........s......s...s.........s......s...s.. [ 68%]
+.......s......s...s.........s......s...s.........s......s...s.........s. [ 72%]
+.....s...s.........s......s...s.........s......s...s.........s......s... [ 75%]
+s.........s......s...s.........s......s...s.........s......s...s........ [ 78%]
+.s......s...s.........s......s...s.........s......s...s................. [ 82%]
+.............s.......................................................... [ 85%]
+........................................................................ [ 89%]
+........................................................................ [ 92%]
+........................................................................ [ 96%]
+....................................................ssssssssssssssssssss [ 99%]
+ssssssssss                                                               [100%]
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/wt-int/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_dequantize[IQ1_M-float32]
+  /workspace/wt-int/tests/gpu/test_kernel_parity.py:117: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [8] tests/gpu/test_kernel_parity.py:59: no IQ1_M tensor with rows>5120 == False
+SKIPPED [8] tests/gpu/test_kernel_parity.py:59: no IQ2_XXS tensor with rows>5120 == False
+SKIPPED [96] tests/gpu/test_kernel_parity.py:303: fp32 only: the reference is MMVQ on the GPU
+SKIPPED [16] tests/gpu/test_kernel_parity.py:305: fp32 reference is MMVQ, which reads past this W (no in-bounds Q4_K/IQ2_S one)
+SKIPPED [1] tests/gpu/test_kernel_parity.py:363: needs VLLM_GGUF_LCPP=1
+SKIPPED [10] tests/gpu/test_kernel_parity.py:517: needs VLLM_GGUF_LCPP=1
+SKIPPED [20] tests/gpu/test_kernel_parity.py:558: needs VLLM_GGUF_LCPP=1
+1939 passed, 159 skipped, 15 warnings in 90.95s (0:01:30)
+stock rc=0

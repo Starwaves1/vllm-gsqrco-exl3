@@ -17,10 +17,10 @@ Accepted by Garrett on 2026-09-28 as the direction: vendor llama.cpp matmul kern
 
 ## Consequences
 
-- About 20k vendored lines, zero owned kernel code: all adaptation (device info, stream, scratch pool, ops, guards) lives in the shim. Updating means bumping the pinned tag and re-copying, never editing vendored files.
-- The fp32 casts of activations and outputs remain, because b11211's quantizers and kernels take and write fp32 only. Removing them means owning a 16-bit quantizer or editing vendored code.
+- About 20k vendored lines, still unmodified: all adaptation (device info, stream, scratch pool, ops, guards) lives in the shim. Updating means bumping the pinned tag and re-copying, never editing vendored files. Owned kernel code now sits beside it where it measured faster (Integration 1): a 16-bit-input q8_1 quantizer, and three 1..8-row kernels, IQ3_S/IQ3_XXS dp4a (`lcpp_shim.cu`) and int8 mma (`lcpp_owned_iq3_mma.cu`), Q4_K/IQ2_S dp4a (`lcpp_owned_k4.cu`), each tested against the vendored kernels.
+- The input cast is gone (owned quantizer, one quantize per fused layer input). The output cast remains for vendored MMVQ/MMQ, which write fp32 only, and for the mma and Q4_K/IQ2_S kernels; the dp4a IQ3 kernel writes 16-bit directly.
 - IQ1_M (one tensor, 0.2% of bytes) has no MMQ upstream and stays on the old dequant path.
 - The Route L build takes minutes instead of seconds (226 s clean under the caps).
-- Decode at 2–8 rows is the one regime where Route L may not be optimal; the follow-ups (MMQ at small row counts, fastllm small-mmvq) stay inside Route L's ops and numerics.
+- Decode at small row counts was the weak regime. After Integration 1, c=1 decode is 1.07x the W4A16 baseline, c=2..8 0.77-0.90x; target passes of 16-64 rows (c >= 4) still run on MMQ and are the next owned-kernel target. All of it stays inside Route L's ops and numerics.
 
 Sources: `~/gsq-rco-handoff/reports/10-11-kernel-prior-art-survey.md`, `~/gsq-rco-handoff/reports/14-beyond-route-l.md`.

@@ -1,0 +1,24 @@
+Integration 1: main + opt-p + opt-k1 + opt-k2 (branch integrate), rented RTX 3090, 350 W.
+Box worktree /workspace/wt-int, built in place (VLLM_GGUF_BUILD_LCPP=1), Route L on. Write-up with
+the merge resolutions and round-2 notes: STATUS.md "Integration 1".
+
+box-scripts/  lib.sh (env, serve, stopall), tests.sh, ladder.sh, profile.sh (one gpuq job each),
+              pstep.py / pstep2.py (opt-p's profile summarisers + the iq3_mma and own kernels)
+runs/         ladder-summary.txt + ladder.log + clocks-*.csv (bench/speed/run.sh gsq, unmodified),
+              profile-c1-c4.txt (5 decode steps at c=1 and c=4, per class and per type)
+tests/        build, CPU guards + routing table, parity (Route L on, off, and main off),
+              compute-sanitizer memcheck/initcheck (ids in sanitizer-ids.txt), GPU guards
+
+Decode (pass 2, T=0, decode(C/meanTPOT) tok/s) and prefill (salted ladder, c=1, tok/s):
+                         c=1    c=2    c=4    c=8    8k    64k   180k
+Integration 1          101.1  175.0  264.4  436.7  1152   900   622
+prod W4A16              94.1  194.4  344.5  513.5  1108   868   603
+ratio                   1.07   0.90   0.77   0.85  1.04  1.04  1.03
+Route L pre-campaign    90.9  154.2  238    370.7  1036     -   589
+ratio                   1.11   1.13   1.11   1.18  1.11     -  1.06
+tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP acceptance 0.657 (61,440-row draft head).
+
+The first test job ran without a build (the worktree lacked the build/cu130 CUDA symlink):
+its results were discarded, the .so was built, and the job re-ran after the ladder (tests/).
+The ladder and profile ran on that build; the tests job rebuilt from the same kernel and
+plugin sources (only test files changed in between).
