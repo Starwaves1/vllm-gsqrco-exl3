@@ -54,3 +54,12 @@ lm_head (248320 x 5120 Q4_K, eager at c=1 with 4 rows): 857 us vs MMVQ 1229 (its
 now) and MMQ 1190.
 k1_bench.py: the interleaved A/B timer (its K1_CFG variant switch existed only in the experiment builds).
 k1_tr.py: per-type, per-shape kernel times from a torch-profiler trace (the in-situ table above).
+
+End to end (final routing, 486e74b code; bench/speed decode pass 2, T=0, real prompts, 350 W;
+final2-summary.txt / final2-profile.txt / final2-insitu.txt), vs opt-p-base-speed (same box,
+f6b96bf, a few hours earlier):
+  c=1 decode 88.1 -> 93.0 tok/s (tok/step 2.97 / 2.96; ms/step 33.7 -> 31.8)
+  c=2 decode 154.3 -> 158.9 tok/s (ms/step 38.5 -> 37.3)
+  GPU busy per c=1 step 28.42 -> 27.29 ms (Q4_K incl. lm_head and IQ2_S calls: see final2-insitu.txt).
+The first routing (IQ4_XS too, no row gate) measured 94.8 / 160.1 with the same 27.30 ms busy per
+step: the 1.8 / 1.2 tok/s gap is acceptance noise (tok/step 3.01 vs 2.96), not kernel time.
