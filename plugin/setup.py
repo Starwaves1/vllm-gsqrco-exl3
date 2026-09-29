@@ -58,7 +58,7 @@ if _should_build_extension():
         lcpp = pathlib.Path("vllm_gguf_plugin/csrc/lcpp").resolve()
         cuda = lcpp / "ggml/src/ggml-cuda"
         sources += ["vllm_gguf_plugin/csrc/lcpp_shim.cu", "vllm_gguf_plugin/csrc/lcpp_owned_k4.cu",
-                    "vllm_gguf_plugin/csrc/lcpp_owned_iq3_mma.cu"] + [
+                    "vllm_gguf_plugin/csrc/lcpp_owned_iq3_mma.cu", "vllm_gguf_plugin/csrc/lcpp_owned_mma_k.cu"] + [
             str(cuda / f) for f in ["mmvq.cu", "quantize.cu"]
         ] + [
             str(cuda / "template-instances" / f"mmq-instance-{t}.cu")

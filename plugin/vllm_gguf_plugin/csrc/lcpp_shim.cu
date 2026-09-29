@@ -13,6 +13,8 @@
 //                                          (lcpp_owned_iq3_mma.cu)
 //   lcpp_mul_mat_vec_own(W, X, type, row) owned Q4_K/IQ2_S kernel, 1..8 rows
 //                                         (lcpp_owned_k4.cu)
+//   lcpp_mul_mat_mma_k(W, X, type, row)   owned Q4_K/IQ4_XS/IQ2_S int8 tensor-core
+//                                         kernel, 1..64 rows (lcpp_owned_mma_k.cu)
 // W: uint8 [>=row, row_bytes] GGUF blocks, contiguous rows. X: [n, K]
 // fp32/fp16/bf16, unit inner stride. The 1..8-row ops also take X already
 // quantized to q8_1 (x_q8 from lcpp_quantize_q8_1(X, type, false, false)), so
@@ -605,6 +607,13 @@ bool own_mul_mat_vec_supported(int type);
 void own_mul_mat_vec_cuda(int type, const char* vx, const void* vy, float* dst, int nrows, int k,
                           int64_t row_bytes, int ncols, cudaStream_t stream);
 
+// lcpp_owned_mma_k.cu
+bool mma_k_supported(int type);
+int mma_k_max_cols();
+size_t mma_k_work_bytes(int type, int nrows, int k, int ncols, int nsm);
+void mma_k_cuda(int type, const char* vx, const void* vy, void* dst, int dst_kind, float* work, size_t work_bytes,
+                int nrows, int k, int64_t row_bytes, int ncols, int nsm, cudaStream_t stream);
+
 // ---------------------------------------------------------------------------
 // MMQ host side. Mirrors the non-MoE, q8_1 branch of ggml_cuda_mul_mat_q in
 // llama.cpp b11211 ggml-cuda/mmq.cu (not vendored: its type switch needs all
@@ -672,9 +681,10 @@ static bool lcpp_type_supported(int64_t type) {
   }
 }
 
-// Shape / stride / alignment guards. Returns K (logical columns).
+// Shape / stride / alignment guards; max_rows: activation row limit (0: none). Returns K
+// (logical columns).
 static int64_t check_inputs(const Tensor& W, const Tensor& X, int64_t type,
-                            int64_t row, bool mmvq, const char* op) {
+                            int64_t row, int64_t max_rows, const char* op) {
   STD_TORCH_CHECK(lcpp_type_supported(type), op, ": unsupported ggml type ", type);
   STD_TORCH_CHECK(W.dim() == 2 && X.dim() == 2, op, ": W and X must be 2-D");
   STD_TORCH_CHECK(W.scalar_type() == ScalarType::Byte, op, ": W must be uint8");
@@ -705,9 +715,8 @@ static int64_t check_inputs(const Tensor& W, const Tensor& X, int64_t type,
                   " columns, W rows hold K=", k);
   STD_TORCH_CHECK(X.stride(1) == 1 && (X.size(0) <= 1 || X.stride(0) >= k), op,
                   ": X inner stride must be 1");
-  if (mmvq) {
-    STD_TORCH_CHECK(X.size(0) <= MMVQ_MAX_BATCH_SIZE, op, ": at most ",
-                    MMVQ_MAX_BATCH_SIZE, " rows, got ", X.size(0));
+  if (max_rows > 0) {
+    STD_TORCH_CHECK(X.size(0) <= max_rows, op, ": at most ", max_rows, " rows, got ", X.size(0));
   }
   STD_TORCH_CHECK(X.size(0) <= INT_MAX, op, ": X too large");
   // Device checks last, so the CPU registration below exercises every guard
@@ -730,22 +739,27 @@ static cudaStream_t torch_stream(int32_t device) {
 void iq3_mma_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, float* dst,
                               int nrows, int k, int64_t row_bytes, int ncols, cudaStream_t stream);
 
-enum class Kernel { mmvq, mmq, iq3, iq3_mma, own };
+enum class Kernel { mmvq, mmq, iq3, iq3_mma, own, mma_k };
 
 static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
                   const std::optional<Tensor>& x_q8 = std::nullopt) {
-  const bool mmvq = kernel != Kernel::mmq;  // the owned kernels take MMVQ's q8_1 input and row limit
+  // the 1..8-row owned kernels take MMVQ's q8_1 input and row limit
+  const bool mmvq = kernel != Kernel::mmq && kernel != Kernel::mma_k;
   const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma;
   const char* op = kernel == Kernel::mmvq ? "lcpp_mul_mat_vec_q"
                    : kernel == Kernel::mmq ? "lcpp_mul_mat_q"
                    : kernel == Kernel::iq3 ? "lcpp_mul_mat_vec_iq3"
-                   : kernel == Kernel::iq3_mma ? "lcpp_mul_mat_vec_iq3_mma" : "lcpp_mul_mat_vec_own";
+                   : kernel == Kernel::iq3_mma ? "lcpp_mul_mat_vec_iq3_mma"
+                   : kernel == Kernel::own ? "lcpp_mul_mat_vec_own" : "lcpp_mul_mat_mma_k";
   STD_TORCH_CHECK(!iq3 || type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS,
                   op, ": IQ3_S or IQ3_XXS only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::own || own_mul_mat_vec_supported((int)type),
                   op, ": Q4_K or IQ2_S only, got type ", type);
+  STD_TORCH_CHECK(kernel != Kernel::mma_k || mma_k_supported((int)type),
+                  op, ": Q4_K, IQ4_XS or IQ2_S only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::mmq || type != GGML_TYPE_IQ1_M, op, ": no MMQ for IQ1_M");
-  const int64_t k = check_inputs(W, X, type, row, mmvq, op);
+  const int64_t k = check_inputs(W, X, type, row,
+                                 mmvq ? MMVQ_MAX_BATCH_SIZE : kernel == Kernel::mma_k ? mma_k_max_cols() : 0, op);
   const int64_t n = X.size(0);
   const ScalarType out_dtype = X.scalar_type();
   const int64_t k_padded = GGML_PAD(k, MATRIX_ROW_PADDING);
@@ -766,6 +780,28 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
   const int32_t device = X.get_device_index();
   const DeviceGuard guard(device);
   const cudaStream_t stream = torch_stream(device);
+
+  if (kernel == Kernel::mma_k) {
+    // MMQ's q8_1 layout, no read tail (the kernel reads only the n quantized columns);
+    // the kernel writes X's dtype, so no output cast. Launches: quantize, mma_k, and the
+    // fixup summing the tiles its CTAs share (skipped when none is shared).
+    Tensor y = torch::stable::new_empty(X, {n, row}, out_dtype);
+    ggml_backend_cuda_context ctx(device);
+    ctx.pools[device][0] = std::make_unique<TorchPool>(X);
+    ggml_cuda_pool_alloc<char> q8(ctx.pool(), n * k / QK8_1_MMQ * sizeof(block_q8_1_mmq));
+    quantize_x(X, q8.get(), (ggml_type)type, true, k, stream);
+    const int nsm = ggml_cuda_info().devices[device].nsm;
+    const size_t work_bytes = mma_k_work_bytes((int)type, (int)row, (int)k, (int)n, nsm);
+    ggml_cuda_pool_alloc<float> work(ctx.pool());
+    if (work_bytes > 0) {
+      work.alloc(work_bytes / sizeof(float));
+    }
+    const int dst_kind = out_dtype == ScalarType::Float ? 0 : out_dtype == ScalarType::Half ? 1 : 2;
+    mma_k_cuda((int)type, (const char*)W.data_ptr(), q8.get(), y.data_ptr(), dst_kind, work.get(), work_bytes,
+               (int)row, (int)k, W.size(1), (int)n, nsm, stream);
+    CUDA_CHECK(cudaGetLastError());
+    return y;
+  }
 
   // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast)
   // unless x_q8 is given. The dp4a IQ3 kernel writes X's dtype; MMVQ/MMQ, the
@@ -852,6 +888,10 @@ Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row, std::
   return run(W, X, type, row, Kernel::own, x_q8);
 }
 
+Tensor lcpp_mul_mat_mma_k(Tensor W, Tensor X, int64_t type, int64_t row) {
+  return run(W, X, type, row, Kernel::mma_k);
+}
+
 // The q8_1 bytes the ops feed MMVQ and the owned kernels (mmq false; linear.py
 // passes them as x_q8 to share one quantize between products on one X) or MMQ
 // (mmq true, in type's ds layout; test only), from quantize_x, or from the
@@ -887,6 +927,7 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
   ops.def("lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
   ops.def("lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
   ops.def("lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row, Tensor? x_q8=None) -> Tensor");
+  ops.def("lcpp_mul_mat_mma_k(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def("lcpp_quantize_q8_1(Tensor X, int type, bool mmq, bool vendored) -> Tensor");
 }
 
@@ -896,6 +937,7 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
   ops.impl("lcpp_mul_mat_vec_own", TORCH_BOX(&lcpp_mul_mat_vec_own));
+  ops.impl("lcpp_mul_mat_mma_k", TORCH_BOX(&lcpp_mul_mat_mma_k));
   ops.impl("lcpp_quantize_q8_1", TORCH_BOX(&lcpp_quantize_q8_1));
 }
 
@@ -907,4 +949,5 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
   ops.impl("lcpp_mul_mat_vec_own", TORCH_BOX(&lcpp_mul_mat_vec_own));
+  ops.impl("lcpp_mul_mat_mma_k", TORCH_BOX(&lcpp_mul_mat_mma_k));
 }

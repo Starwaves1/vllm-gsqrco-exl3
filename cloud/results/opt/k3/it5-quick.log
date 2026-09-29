@@ -1,0 +1,5 @@
+cfg=0: worst rel vs MMQ so far 2.53e-07
+cfg=1: worst rel vs MMQ so far 2.64e-07
+cfg=1,0,2: worst rel vs MMQ so far 2.64e-07
+cfg=0,0,2: worst rel vs MMQ so far 2.64e-07
+cfg=1,0,3,20: worst rel vs MMQ so far 2.64e-07

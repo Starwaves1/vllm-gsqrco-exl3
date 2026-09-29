@@ -13,6 +13,7 @@ Variants (only where production could route them):
   lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
   lcpp_own       torch.ops._C_gguf.lcpp_mul_mat_vec_own (owned Q4_K/IQ2_S kernel), n <= 8
   lcpp_iq3_mma   torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma (IQ3 on int8 tensor cores), n <= 8
+  lcpp_mma_k     torch.ops._C_gguf.lcpp_mul_mat_mma_k (owned Q4_K/IQ4_XS/IQ2_S int8 mma kernel), n <= 64
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -36,7 +37,8 @@ from vllm_gguf_plugin import ops  # noqa: E402
 
 TYPES = ["IQ3_S", "IQ3_XXS", "IQ4_XS", "Q4_K", "IQ2_S"]
 OWN_TYPES = ["Q4_K", "IQ2_S"]
-SHAPES = [(17408, 5120), (5120, 17408)]
+MMA_K_TYPES = ["Q4_K", "IQ4_XS", "IQ2_S"]
+SHAPES = [(17408, 5120), (5120, 17408), (10240, 5120)]
 LM_HEAD = (248320, 5120)             # output.weight (Q4_K in this GGUF)
 TOKENS = [1, 2, 4, 8, 16, 32, 128, 2048]
 PER_GRAPH = 10
@@ -69,6 +71,8 @@ def variants(name, qt, rows, k, n):
             v["lcpp_iq3_mma"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma(w, x, qt, rows)
     if n <= 8 and name in OWN_TYPES:
         v["lcpp_own"] = lambda w, x: C.lcpp_mul_mat_vec_own(w, x, qt, rows)
+    if n <= 64 and name in MMA_K_TYPES:
+        v["lcpp_mma_k"] = lambda w, x: C.lcpp_mul_mat_mma_k(w, x, qt, rows)
     return v
 
 
@@ -112,13 +116,18 @@ def main():
     ap.add_argument("--types", default=",".join(TYPES), help="comma-separated subset of TYPES")
     ap.add_argument("--tokens", default=",".join(map(str, TOKENS)))
     ap.add_argument("--variants", help="comma-separated subset of variant names")
+    ap.add_argument("--shapes", help="comma-separated ROWSxK subset (default: SHAPES, plus the lm_head for Q4_K)")
     args = ap.parse_args()
     types = args.types.split(",")
     tokens = [int(t) for t in args.tokens.split(",")]
     if not hasattr(torch.ops._C_gguf, "lcpp_mul_mat_q"):
         sys.exit("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
     reader = gguf.GGUFReader(str(GGUF))
-    cases = [(t, s) for t in types for s in SHAPES] + ([("Q4_K", LM_HEAD)] if "Q4_K" in types else [])
+    if args.shapes:
+        shapes = [tuple(int(d) for d in s.split("x")) for s in args.shapes.split(",")]
+        cases = [(t, s) for t in types for s in shapes]
+    else:
+        cases = [(t, s) for t in types for s in SHAPES] + ([("Q4_K", LM_HEAD)] if "Q4_K" in types else [])
     lines = ["type\trows\tK\tn\tvariant\tgraph_us\teager_us\tGBps"]
     print(f"{torch.cuda.get_device_name()}  X bf16, {PER_GRAPH} calls per graph", flush=True)
     for name, (rows, k) in cases:

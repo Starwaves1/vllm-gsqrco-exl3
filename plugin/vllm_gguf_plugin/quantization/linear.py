@@ -42,12 +42,25 @@ _IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 # Most activation rows at which IQ1_M is routed to MMVQ (8 rows per call above 8).
 _IQ1_M_MAX_ROWS = 32
+_MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
+# Route L ops that quantize X themselves (MMQ's layout): the rest read apply()'s shared x_q8.
+_OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k")
 
 
-def _lcpp_op(n: int, weight_type: int, rows: int) -> str | None:
+def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
+    """Where lcpp_mul_mat_mma_k (int8 tensor cores, lcpp_owned_mma_k.cu) beats MMQ by more than
+    the noise (cloud/results/opt/k3/route-*.tsv): 9..32 activation rows on W above 2048 rows,
+    IQ4_XS at 17..32 rows only on the large W (from 12288 x 5120). From 33 rows it runs 64-column
+    tiles and loses, bar 64 rows on large Q4_K W (+3..6 %, not routed)."""
+    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048:
+        return False
+    return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
+
+
+def _lcpp_op(n: int, weight_type: int, rows: int, k: int) -> str | None:
     """The Route L op for n activation rows times a weight_type weight with
-    rows rows, or None if Route L has none. All but lcpp_mul_mat_q read X as
-    q8_1 blocks."""
+    rows rows and k columns, or None if Route L has none. All but
+    _OWN_QUANTIZE_OPS read X as q8_1 blocks."""
     if weight_type == WeightType.IQ1_M:
         # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then the
         # stock dequantize + x @ W.T (cloud/results/opt-p2/runs/micro-iq1m-host.txt)
@@ -61,6 +74,9 @@ def _lcpp_op(n: int, weight_type: int, rows: int) -> str | None:
         # Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and MMQ;
         # its 16-row CTAs underfill the GPU at <= 2048 rows (cloud/results/opt/k1)
         return "lcpp_mul_mat_vec_own"
+    if _mma_k_wins(weight_type, n, rows, k):
+        # Q4_K / IQ4_XS / IQ2_S at 9..32 rows (MTP verify at c = 3..8)
+        return "lcpp_mul_mat_mma_k"
     # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
@@ -83,10 +99,10 @@ def _fused_mul_mat_gguf(
         return x @ weight.T
     name = None
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0])
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1])
     if name is not None:
         op = getattr(torch.ops._C_gguf, name)
-        if name == "lcpp_mul_mat_q":
+        if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])
         if x.shape[0] > 8:  # IQ1_M on MMVQ, which takes at most 8 rows per call
             b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
@@ -148,11 +164,11 @@ def _quantize_x_q8_1(
     these types and row counts that read q8_1 (Route L; the same bytes each
     would make). When none of them does (MMQ quantizes x itself, in its own
     layout), an unfilled buffer of the same shape: no product reads it."""
-    n = x.shape[0]
+    n, k = x.shape
     q8_1 = [
         t
         for t, rows in zip(weight_types, weight_rows)
-        if t in ops.LCPP_QUANT_TYPES and _lcpp_op(n, t, rows) not in (None, "lcpp_mul_mat_q")
+        if t in ops.LCPP_QUANT_TYPES and _lcpp_op(n, t, rows, k) not in (None, *_OWN_QUANTIZE_OPS)
     ]
     if n and q8_1:
         return torch.ops._C_gguf.lcpp_quantize_q8_1(x, q8_1[0], False, False)
