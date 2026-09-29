@@ -1,0 +1,34 @@
+start 2026-09-28T22:32:31Z
+build rc=0
+52 passed in 1.45s
+6 failed, 1146 passed, 16 skipped, 15 warnings in 80.50s (0:01:20)
+rc=1
+48
+Terminated
+..............memcheck rc=99
+========= ERROR SUMMARY: 6 errors were not printed. Use --print-limit option to adjust the number of printed errors
+========= ERROR SUMMARY: 6 errors were not printed. Use --print-limit option to adjust the number of printed errors
+initcheck rc=1
+========= ERROR SUMMARY: 0 errors
+========= ERROR SUMMARY: 0 errors
+speed rc=0
+ROW cohort C8 real prompts T=0 | e2e=341.05 tok/s | decode(C/meanTPOT)=421.5 | tok/step=2.96 | meanTTFT=1231.65 ms
+ROW cohort C1 real prompts T=0 | e2e=89.07 tok/s | decode(C/meanTPOT)=90.9 | tok/step=3.01 | meanTTFT=224.35 ms
+ROW cohort C2 real prompts T=0 | e2e=137.93 tok/s | decode(C/meanTPOT)=154.2 | tok/step=2.92 | meanTTFT=323.34 ms
+ROW cohort C4 real prompts T=0 | e2e=223.55 tok/s | decode(C/meanTPOT)=260.2 | tok/step=3.07 | meanTTFT=489.69 ms
+ROW cohort C8 real prompts T=0 | e2e=356.95 tok/s | decode(C/meanTPOT)=431.0 | tok/step=3.04 | meanTTFT=1253.38 ms
+ROW MTP whole run | acceptance rate 0.6326 | mean accepted length 2.898 | per position 0.791 0.624 0.482
+ROW clocks /workspace/runs/p3-item5-speed/clocks-decode-pass1.csv: 439 s busy, median SM 1740 MHz, mem 9501 MHz, 344.6 W, util 89%
+ROW clocks /workspace/runs/p3-item5-speed/clocks-decode-pass2.csv: 438 s busy, median SM 1725 MHz, mem 9501 MHz, 344.1 W, util 89%
+PROFILE_DONE
+('21', 'iq3') 6.325 ms/step 127 calls void iq3_mul_mat_vec<(ggml_type)21, 4>(char const*, 
+('23', 'mmvq') 4.157 ms/step 86 calls void mul_mat_vec_q<(ggml_type)23, 4, false, false, f
+('18', 'iq3') 3.910 ms/step 65 calls void iq3_mul_mat_vec<(ggml_type)18, 4>(char const*, b
+('12', 'mmvq') 2.465 ms/step 35 calls void mul_mat_vec_q<(ggml_type)12, 4, false, false, f
+('22', 'mmvq') 1.183 ms/step 16 calls void mul_mat_vec_q<(ggml_type)22, 4, false, false, f
+('10', 'mmvq') 0.809 ms/step 13 calls void mul_mat_vec_q<(ggml_type)10, 4, false, false, f
+('17', 'mmvq') 0.702 ms/step 9 calls void mul_mat_vec_q<(ggml_type)17, 4, false, false, fa
+('16', 'mmvq') 0.364 ms/step 5 calls void mul_mat_vec_q<(ggml_type)16, 4, false, false, fa
+('void mul_mat_vec_q<c10::BFloat16, 256, 8', 'mmvq') 0.197 ms/step 1 calls void mul_mat_ve
+end 2026-09-28T23:04:51Z
+ITEM5_DONE

@@ -378,9 +378,8 @@ static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq, int6
 // sequence, 8 at c=2). Owned code; cloud/results/phase3/item5 has the data.
 //
 // The vendored MMVQ does not re-decode weights per activation row: nvcc merges
-// the per-row decodes (its sm_86 loop over 2 weight rows has 70 global loads at
-// 4 activation rows and 106 at 8: +9 per row = one q8_1 block, the weight and
-// grid loads are not repeated). Per activation row it pays those q8_1
+// the per-row decodes (its sm_86 loop has 27 / 70 / 106 global loads at 1 / 4 /
+// 8 rows, +9 per row = one q8_1 block). Per activation row it pays those q8_1
 // loads (a lane reads its 36-byte block as 8 separate words), shared by only
 // 2 weight rows per warp, on top of a heavy sign step.
 // Here a CTA of 4 warps owns 16 weight rows, 4 per warp, and lane l takes the

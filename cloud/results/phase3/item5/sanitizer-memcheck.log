@@ -1,0 +1,1024 @@
+========= COMPUTE-SANITIZER
+...========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (0,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8ca is out of bounds
+=========     and is 67 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (1,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8cb is out of bounds
+=========     and is 68 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (2,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8cc is out of bounds
+=========     and is 69 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (3,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8cd is out of bounds
+=========     and is 70 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (4,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8ce is out of bounds
+=========     and is 71 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (5,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8cf is out of bounds
+=========     and is 72 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (6,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8d0 is out of bounds
+=========     and is 73 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (7,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e8d1 is out of bounds
+=========     and is 74 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (8,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e938 is out of bounds
+=========     and is 177 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (9,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e939 is out of bounds
+=========     and is 178 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (10,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93a is out of bounds
+=========     and is 179 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (11,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93b is out of bounds
+=========     and is 180 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (12,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93c is out of bounds
+=========     and is 181 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (13,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93d is out of bounds
+=========     and is 182 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (14,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93e is out of bounds
+=========     and is 183 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (15,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e93f is out of bounds
+=========     and is 184 bytes after the nearest allocation at 0x7f8e07521800 of size 446600 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (16,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e9a6 is out of bounds
+=========     and is 90 bytes before the nearest allocation at 0x7f8e0758ea00 of size 40960 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (17,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e9a7 is out of bounds
+=========     and is 89 bytes before the nearest allocation at 0x7f8e0758ea00 of size 40960 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (18,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e9a8 is out of bounds
+=========     and is 88 bytes before the nearest allocation at 0x7f8e0758ea00 of size 40960 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Invalid __global__ read of size 1 bytes
+=========     at void mul_mat_vec_q<(ggml_type)21, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int)+0x5d0
+=========     by thread (19,0,0) in block (101,0,0)
+=========     Address 0x7f8e0758e9a9 is out of bounds
+=========     and is 87 bytes before the nearest allocation at 0x7f8e0758ea00 of size 40960 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: void ggml_cuda_kernel_launch<void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&>(void (*)(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int), ggml_cuda_kernel_launch_params const&, void const*&, void const*&, int const*&, ggml_cuda_mm_fusion_args_device const&, float*&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, uint3 const&, unsigned int const&, unsigned int const&, unsigned int const&, unsigned int const&) [0x64330] in _C_gguf.abi3.so
+=========         Host Frame: void mul_mat_vec_q_switch_ncols_dst<(ggml_type)21>(void const*, void const*, int const*, ggml_cuda_mm_fusion_args_device, float*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, CUstream_st*) [0x9e758] in _C_gguf.abi3.so
+=========         Host Frame: ggml_cuda_op_mul_mat_vec_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, char const*, float const*, char const*, float*, long, long, long, long, CUstream_st*) [0xc06e5] in _C_gguf.abi3.so
+=========         Host Frame: run(torch::stable::Tensor, torch::stable::Tensor, long, long, Kernel) [0x2ddae1] in _C_gguf.abi3.so
+=========         Host Frame: lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long) [0x2e0d44] in _C_gguf.abi3.so
+=========         Host Frame: torch::stable::detail::boxer<torch::stable::Tensor (torch::stable::Tensor, torch::stable::Tensor, long, long), &(lcpp_mul_mat_vec_q(torch::stable::Tensor, torch::stable::Tensor, long, long))>::boxed_fn(unsigned long*, unsigned long, unsigned long) [0x2e2f18] in _C_gguf.abi3.so
+=========         Host Frame: c10::BoxedKernel::makeFromFunctor<StableIValueBoxedKernel>(std::unique_ptr<StableIValueBoxedKernel, std::default_delete<StableIValueBoxedKernel> >)::{lambda(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)#1}::_FUN(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) [0x646817b] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableHooks::basic_autograd_not_implemented_fallback(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [0x5b88da3] in libtorch_cpu.so
+=========         Host Frame: c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] [0x648c5fe] in libtorch_cpu.so
+=========         Host Frame: torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) [0xb49db3] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a3af] in libtorch_python.so
+=========         Host Frame: torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) [0xb4a5a7] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const, pybind11::kwargs const, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const, pybind11::kwargs const), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail) [0xa2296c] in libtorch_python.so
+=========         Host Frame: pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) [0x3f2bb1] in libtorch_python.so
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141ef6d] in python
+=========         Host Frame: _PyObject_Call_Prepend [0x14a2fb3] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+Fatal Python error: Aborted
+
+Current thread 0x00007f9500e919c0 (most recent call first):
+  File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/_ops.py", line 1279 in __call__
+  File "/workspace/gsq-vllm/tests/gpu/test_kernel_parity.py", line 299 in test_lcpp_iq3
+  File "/workspace/gsq-vllm/build/pytest/_pytest/python.py", line 157 in pytest_pyfunc_call
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_callers.py", line 121 in _multicall
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_manager.py", line 120 in _hookexec
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_hooks.py", line 512 in __call__
+  File "/workspace/gsq-vllm/build/pytest/_pytest/python.py", line 1671 in runtest
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 178 in pytest_runtest_call
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_callers.py", line 121 in _multicall
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_manager.py", line 120 in _hookexec
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_hooks.py", line 512 in __call__
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 246 in <lambda>
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 344 in from_call
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 245 in call_and_report
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 136 in runtestprotocol
+  File "/workspace/gsq-vllm/build/pytest/_pytest/runner.py", line 117 in pytest_runtest_protocol
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_callers.py", line 121 in _multicall
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_manager.py", line 120 in _hookexec
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_hooks.py", line 512 in __call__
+  File "/workspace/gsq-vllm/build/pytest/_pytest/main.py", line 367 in pytest_runtestloop
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_callers.py", line 121 in _multicall
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_manager.py", line 120 in _hookexec
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_hooks.py", line 512 in __call__
+  File "/workspace/gsq-vllm/build/pytest/_pytest/main.py", line 343 in _main
+  File "/workspace/gsq-vllm/build/pytest/_pytest/main.py", line 289 in wrap_session
+  File "/workspace/gsq-vllm/build/pytest/_pytest/main.py", line 336 in pytest_cmdline_main
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_callers.py", line 121 in _multicall
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_manager.py", line 120 in _hookexec
+  File "/workspace/gsq-vllm/build/pytest/pluggy/_hooks.py", line 512 in __call__
+  File "/workspace/gsq-vllm/build/pytest/_pytest/config/__init__.py", line 175 in main
+  File "/workspace/gsq-vllm/build/pytest/_pytest/config/__init__.py", line 201 in console_main
+  File "/workspace/gsq-vllm/build/pytest/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main
+
+Extension modules: numpy._core._multiarray_umath, numpy.linalg._umath_linalg, charset_normalizer.md, charset_normalizer.cd, requests.packages.charset_normalizer.md, requests.packages.chardet.md, requests.packages.charset_normalizer.cd, requests.packages.chardet.cd, PIL._imaging, yaml._yaml, torch._C, torch._C._dynamo.autograd_compiler, torch._C._dynamo.eval_frame, torch._C._dynamo.guards, torch._C._dynamo.utils, torch._C._fft, torch._C._linalg, torch._C._nested, torch._C._nn, torch._C._sparse, torch._C._special, cuda.bindings._bindings.cydriver, cuda.bindings.cydriver, cuda.bindings.driver, cuda.bindings._bindings.cyruntime_ptds, cuda.bindings._bindings.cyruntime, cuda.bindings.cyruntime, cuda.bindings.runtime, regex._regex, markupsafe._speedups, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._mt19937, numpy.random._generator, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand, psutil._psutil_linux, PIL._imagingft, zmq.backend.cython._zmq, xxhash._xxhash, multidict._multidict, yarl._quoting_c, propcache._helpers_c, aiohttp._http_writer, aiohttp._http_parser, aiohttp._websocket.mask, aiohttp._websocket.reader_c, frozenlist._frozenlist, pyarrow.lib, _cyutility, pandas._libs._cyutility, pandas._libs.tslibs.ccalendar, pandas._libs.tslibs.np_datetime, pandas._libs.tslibs.dtypes, pandas._libs.tslibs.base, pandas._libs.tslibs.nattype, pandas._libs.tslibs.timezones, pandas._libs.properties, pandas._libs.tslibs.fields, pandas._libs.tslibs.timedeltas, pandas._libs.tslibs.tzconversion, pandas._libs.tslibs.timestamps, pandas._libs.tslibs.offsets, pandas._libs.tslibs.strptime, pandas._libs.tslibs.parsing, pandas._libs.tslibs.conversion, pandas._libs.tslibs.period, pandas._libs.tslibs.vectorized, pandas._libs.ops_dispatch, pandas._libs.missing, pandas._libs.hashtable, pandas._libs.algos, pandas._libs.interval, pandas._libs.lib, pyarrow._compute, pandas._libs.ops, pandas._libs.hashing, pandas._libs.arrays, pandas._libs.tslib, pandas._libs.sparse, pandas._libs.internals, pandas._libs.indexing, pandas._libs.index, pandas._libs.writers, pandas._libs.join, pandas._libs.window.aggregations, pandas._libs.window.indexers, pandas._libs.reshape, pandas._libs.groupby, pandas._libs.json, pandas._libs.parsers, pandas._libs.testing, grpc._cython.cygrpc, google._upb._message, pybase64._pybase64, msgspec._core, uvloop.loop (total: 100)
+========= Error: process didn't terminate successfully
+========= Target application returned an error
+========= ERROR SUMMARY: 26 errors
+========= ERROR SUMMARY: 6 errors were not printed. Use --print-limit option to adjust the number of printed errors

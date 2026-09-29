@@ -1,0 +1,337 @@
+........................................................................ [  6%]
+........................................................................ [ 12%]
+.........................s.s.s.s.s.s.s.s................................ [ 18%]
+.s.s.s.s.s.s.s.s........................................................ [ 24%]
+........................................................................ [ 30%]
+........................................................................ [ 36%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 55%]
+........................................................................ [ 61%]
+........................................................................ [ 67%]
+........................................................................ [ 73%]
+........................................................................ [ 80%]
+........................................................................ [ 86%]
+........................................................................ [ 92%]
+........................................................................ [ 98%]
+......FFFFFF....                                                         [100%]
+=================================== FAILURES ===================================
+____________________ test_lcpp_same_type_run[1-qkv_widest] _____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 1
+a_narrower = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7c5c0>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[ 1.2109, -2.3281,  2.1719,  ..., -1.0234,  4.7812,  0.7539]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[ 1.2109, -2.3281,  2.1719,  ..., -1.0234,  4.7812,  0.7539]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.1 qkv IQ3_S + z IQ3_XXS, n=1: max |run - per shard| 9.54e-07
+___________________ test_lcpp_same_type_run[1-qkv_narrower] ____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 1
+a_narrower = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7d5b0>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[ 2.8750,  0.3066,  1.6016,  ...,  0.2031,  4.0312, -1.8516]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[ 2.8750,  0.3066,  1.6016,  ...,  0.2031,  4.0312, -1.8516]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.2 qkv IQ3_XXS + z IQ3_S, n=1: max |run - per shard| 6.1e-05
+____________________ test_lcpp_same_type_run[4-qkv_widest] _____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 4
+a_narrower = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7f980>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[-0.7422, -0.2520, -1.7031,  ..., -0.7109, -0.3770,  1.6641],\n        [-1.7734,  1.9453,  0.8828,  ...,  0.190...],\n        [-0.4043, -0.0403,  0.2168,  ..., -3.3125, -0.4902,  0.4141]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[-0.7422, -0.2520, -1.7031,  ..., -0.7109, -0.3770,  1.6641],\n        [-1.7734,  1.9453,  0.8828,  ...,  0.190...],\n        [-0.4043, -0.0403,  0.2168,  ..., -3.3125, -0.4902,  0.4141]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.1 qkv IQ3_S + z IQ3_XXS, n=4: max |run - per shard| 0.00781
+___________________ test_lcpp_same_type_run[4-qkv_narrower] ____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 4
+a_narrower = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7e4b0>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[ 3.4531, -4.0938,  2.4531,  ...,  0.6758,  1.3828, -1.3281],\n        [-1.1484, -2.0000,  1.6562,  ..., -0.142...],\n        [ 1.8125,  1.4375, -0.6602,  ..., -2.0625,  2.8594, -1.6094]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[ 3.4531, -4.0938,  2.4531,  ...,  0.6758,  1.3828, -1.3281],\n        [-1.1484, -2.0000,  1.6562,  ..., -0.142...],\n        [ 1.8125,  1.4375, -0.6602,  ..., -2.0625,  2.8594, -1.6094]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.2 qkv IQ3_XXS + z IQ3_S, n=4: max |run - per shard| 0.000488
+____________________ test_lcpp_same_type_run[8-qkv_widest] _____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 8
+a_narrower = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7f620>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[ 0.3164, -0.9805,  0.0952,  ...,  3.6875,  2.9219, -2.3906],\n        [-1.2891,  0.9570,  1.3594,  ...,  0.271...],\n        [-2.0938,  0.4375, -1.9609,  ...,  1.7969,  0.4902, -3.3438]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[ 0.3164, -0.9805,  0.0952,  ...,  3.6875,  2.9219, -2.3906],\n        [-1.2891,  0.9570,  1.3594,  ...,  0.271...],\n        [-2.0938,  0.4375, -1.9531,  ...,  1.7969,  0.4902, -3.3438]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.1 qkv IQ3_S + z IQ3_XXS, n=8: max |run - per shard| 0.0312
+___________________ test_lcpp_same_type_run[8-qkv_narrower] ____________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f305d51a420>, n = 8
+a_narrower = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2976f7fda0>
+
+    @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+    def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+        """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
+        attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
+        the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
+        through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
+        fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        import _refs
+    
+        blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+    
+        x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
+        fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
+        y = method.apply(layer, x)
+        per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+        whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+        torch.cuda.synchronize()
+        print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
+              f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
+>       assert torch.equal(y, whole)  # one product per run
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = <built-in method equal of type object at 0x7f2a0bdf4f20>(tensor([[-0.2324, -0.4922, -0.3789,  ..., -2.1250,  0.3867,  3.0781],\n        [-1.8828,  0.1641,  1.7734,  ...,  1.039...],\n        [ 2.1094, -2.7812, -2.1719,  ..., -0.3672, -2.2500, -0.8086]],\n       device='cuda:0', dtype=torch.bfloat16), tensor([[-0.2324, -0.4922, -0.3789,  ..., -2.1250,  0.3867,  3.0938],\n        [-1.8828,  0.1650,  1.7734,  ...,  1.039...],\n        [ 2.1094, -2.7812, -2.1719,  ..., -0.3691, -2.2500, -0.8086]],\n       device='cuda:0', dtype=torch.bfloat16))
+E        +    where <built-in method equal of type object at 0x7f2a0bdf4f20> = <module 'torch' from '/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/__init__.py'>.equal
+
+tests/gpu/test_kernel_parity.py:477: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+blk.2 qkv IQ3_XXS + z IQ3_S, n=8: max |run - per shard| 0.0312
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_dequantize[IQ1_M-float32]
+  /workspace/gsq-vllm/tests/gpu/test_kernel_parity.py:112: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[1-qkv_widest]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[1-qkv_narrower]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[4-qkv_widest]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[4-qkv_narrower]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[8-qkv_widest]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_same_type_run[8-qkv_narrower]
+6 failed, 1146 passed, 16 skipped, 15 warnings in 80.50s (0:01:20)
+rc=1

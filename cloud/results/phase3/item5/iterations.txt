@@ -1,0 +1,43 @@
+Item 5 kernel iterations (owned lcpp_mul_mat_vec_iq3). Microbench = bench/micro/gemm.py: op time per
+call incl. q8_1 quantize and output cast, 10 calls per CUDA graph, bf16 X, real GGUF blocks, 350 W
+3090 (SM ~1950 MHz). us for IQ3_S at 17408 x 5120 / 5120 x 17408, n = activation rows.
+Reference (same run as micro.tsv): vendored MMVQ n1 67.8/64.4, n4 103.0/98.0, n8 147.1/144.7;
+MMQ n8 124.5/129.6. Run-to-run noise ~ +-3 us.
+
+Finding that shaped the kernel: the vendored MMVQ already decodes each weight slice once per
+activation row set. nvcc merges the per-column vec_dot decodes: the SASS of
+mul_mat_vec_q<IQ3_S, n> (2 weight rows per CTA at n >= 2) has 70 / 106 global loads at n = 4 / 8
+(+9 per column = one q8_1 block; weight and grid loads not repeated) and 64 / 128 IDP. So "decode once" alone is not a
+lever; the per-column q8_1 loads, their reuse over only 2 weight rows per warp, and the decode's
+instruction count are.
+
+it  change                                                      n1          n4          n8
+0   CTA stages each 32-block q8_1 chunk in smem (16 B loads);   60.6/67.8   86.5/89.5   120.4/117.5
+    vendored vec_dot_iq3_*_q8_1 per slice (global grid);
+    8 warps x 2 rows; lane l = slices l, l+32, ...
+1   own decode (same arithmetic), grid in smem                  58.4/61.3   83.6/85.8   125.3/127.7
+1b  activation slice read once for all of a warp's rows;         58.1/65.4   75.7/79.7   102.8/101.6
+    warps x rows swept: 8x2 85.0/84.7, 8x4 78.2/78.9, 4x4 75.1/79.0 (n4), 4x2 84.4/86.5,
+    16x2 83.5/79.9, 4x8 78.2/76.4 (but n1 78.3 at 5120 rows), 2x8 79.0/77.4 -> 4 warps x 4 rows
+    ablations (not kept, 16x2 base 83.5/79.9 at n4, 119.8/112.9 at n8):
+      no grid gathers                    n4 81.8/80.6  n8 115.5/108.9  (gathers are cheap)
+      no activation reads from smem      n4 71.8/67.5  n8  93.6/87.5
+      + no staging                       n4 65.8/65.9  n8  87.9/82.0
+      weights read from L1, not DRAM     n1 20.6/19.8  n4 35.4/32.0  n8 52.6/52.5  (4x4)
+      -> DRAM floor ~47 us + ~35 us of issue at n4 add up almost fully: the kernel is
+         limited by instruction count as much as by bandwidth.
+    exact int->float via 1.5*2^23 magic add instead of I2F: no change, dropped.
+2   overlap attempts, both slower, dropped:
+      next chunk's weight bytes + staged int4s prefetched in registers: 8x4 n4 89.0/84.8
+      cp.async double-buffered weight + q8_1 tiles in smem:             8x4 n4 97.2/93.1, n1 75.5
+    no staging at all (q8_1 read from global as MMVQ does), 4x4: n4 72.9/77.2, n8 106.6/103.9
+    (= staged within noise; staging kept, it is ~2-6 us better at n8)
+3   sign step as ninfer-all's negate_bytes (4 ops per word)      55.8/56.6   69.9/72.7   98.0/94.0
+    instead of __vcmpne4 + __vsub4; same int8 values
+final (micro.tsv run)                                           55.0/57.6   70.7/73.7   100.5/95.2
+
+Goal (>= 600 GB/s op-level at 4 rows = <= 64 us for IQ3_S) not reached in the microbench: 541 /
+520 GB/s op-level. In situ (kernel time only, from the profile): see summary.txt.
+Not tried: int8 tensor-core (mma.m16n8k32) fragments. That removes the 8 IDP per row-slice-column
+(the n-dependent part) but is a much larger kernel; MMQ already does it and loses at n <= 8 to
+tile overheads.

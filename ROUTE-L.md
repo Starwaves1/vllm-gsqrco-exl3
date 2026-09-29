@@ -18,8 +18,10 @@ Every numeric property is untested.
     after upstream's J_max tail and zeroes only those two tails, per
     Maxwell-Lyu f1d38ffdd0.
   - A copy of the non-MoE q8_1 branch of upstream `ggml_cuda_mul_mat_q`.
-  - Ops `_C_gguf::lcpp_mul_mat_vec_q` (1..8 rows) and `lcpp_mul_mat_q` (any
-    rows), signature `(W uint8[rows,bytes], X [n,K] f32/f16/bf16, type, row) ->
+  - Ops `_C_gguf::lcpp_mul_mat_vec_q` (1..8 rows), `lcpp_mul_mat_q` (any
+    rows), and `lcpp_mul_mat_vec_iq3` (1..8 rows, IQ3_S/IQ3_XXS only, phase 3
+    item 5: an owned decode-once kernel, `iq3_mul_mat_vec` in `lcpp_shim.cu`),
+    signature `(W uint8[rows,bytes], X [n,K] f32/f16/bf16, type, row) ->
     [n,row]` in X's dtype.
   - An owned fp32/fp16/bf16 → q8_1 quantizer (`quantize_x`, phase 3): the
     vendored quantizers' arithmetic and layouts line for line, reading X in
@@ -33,8 +35,11 @@ Every numeric property is untested.
 - Build: `VLLM_GGUF_BUILD_LCPP=1` in `plugin/setup.py`. The default build is
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
-  - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ3_XXS/IQ3_S/IQ4_XS,
-    <8 rows go to lcpp MMVQ and ≥8 to lcpp MMQ (phase 3 item 1). IQ1_M keeps the old path.
+  - `linear.py`: for Q2_K/Q4_K/Q6_K/IQ2_XXS/IQ2_XS/IQ2_S/IQ4_XS, <8 rows go to
+    lcpp MMVQ and ≥8 to lcpp MMQ (phase 3 item 1). IQ3_S/IQ3_XXS at 1..8 rows go
+    to the owned `lcpp_mul_mat_vec_iq3` kernel instead (phase 3 item 5: faster
+    than both MMVQ and MMQ there, `cloud/results/phase3/item5`); ≥8 rows still
+    fall to lcpp MMQ. IQ1_M keeps the old path.
   - Mixed-type fused layers: each run of adjacent same-type shards is stored
     contiguously from the start of its first shard's region, so
     `_shard_weight` returns a view and the per-forward `.contiguous()` copy

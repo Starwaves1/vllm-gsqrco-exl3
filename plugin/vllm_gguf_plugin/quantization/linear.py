@@ -46,6 +46,12 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
+        # IQ3_S / IQ3_XXS up to 8 rows: the shim's own kernel beats MMVQ and MMQ
+        # at 1..8 rows (cloud/results/phase3/item5)
+        if x.shape[0] <= 8 and weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS):
+            return torch.ops._C_gguf.lcpp_mul_mat_vec_iq3(
+                weight, x, weight_type, weight.shape[0]
+            )
         # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)
         if x.shape[0] < 8:
             return torch.ops._C_gguf.lcpp_mul_mat_vec_q(

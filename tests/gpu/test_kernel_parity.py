@@ -279,9 +279,10 @@ def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
     """The owned IQ3 kernel (lcpp_mul_mat_vec_iq3) takes MMVQ's q8_1 input and computes each
     32-value slice exactly as the vendored vec_dot; only the fp32 order of a row's slice sums
     differs. 16-bit X: the CPU reference models, as for MMVQ. fp32 X (fp32 output, no final
-    rounding): within 1e-5 of vendored MMVQ itself. row_tail: 203 rows (the last CTA's 16
-    rows are part-filled); k_tail: K = 4608 (the last staged chunk is 16 q8_1 blocks, not 32;
-    this model's K are all multiples of 1024)."""
+    rounding): within 1e-5 of vendored MMVQ itself. row_tail: 202 rows (the last CTA's 16
+    rows are part-filled; even, because vendored MMVQ, the reference, reads one weight row past
+    the end at an odd row count: compute-sanitizer memcheck); k_tail: K = 4608 (the last staged
+    chunk is 16 q8_1 blocks, not 32; this model's K are all multiples of 1024)."""
     import _refs
     import gguf
     import numpy as np
@@ -289,7 +290,7 @@ def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
 
     C = _lcpp()
     qt = gguf.GGMLQuantizationType[name]
-    _, raw = _sample(tensors_by_type, name, rows=203 if shape == "row_tail" else ROWS)
+    _, raw = _sample(tensors_by_type, name, rows=202 if shape == "row_tail" else ROWS)
     bsz = gguf.GGML_QUANT_SIZES[qt][1]
     raw = np.ascontiguousarray(raw[:, : 18 * bsz] if shape == "k_tail" else raw)
     x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1000 + n)
@@ -369,6 +370,13 @@ def _graph_replay(tensors_by_type, name, n, fn):
     assert not torch.equal(fn(w, x1.cuda(), qt, w.shape[0]), ref)
 
 
+def _routed(w, x, qt):
+    """One product through the production routing (the kernel apply() picks for this type and n)."""
+    from vllm_gguf_plugin.quantization.linear import _fused_mul_mat_gguf
+
+    return _fused_mul_mat_gguf(x, w, qt)
+
+
 def _padded_layer(shards, qts, k, monkeypatch):
     """A fused layer from GGUF shards through GGUFLinearMethod's padded-weight build."""
     import torch
@@ -415,7 +423,7 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
 
     from vllm_gguf_plugin import ops
 
-    C = _lcpp()
+    _lcpp()  # skips without the lcpp build
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     blk, *ts = _mixed_block(gguf_reader, "ffn_gate", "ffn_up")
@@ -434,8 +442,7 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
 
     x = _x(n, int(ts[0].shape[0]), "bfloat16", seed=800 + n).cuda()
     y = method.apply(layer, x)
-    fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
-    ref = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
+    ref = torch.cat([_routed(s, x, q) for s, q in zip(shards, qts)], dim=1)
     torch.cuda.synchronize()
     print(f"\nblk.{blk} gate {ts[0].tensor_type.name} + up {ts[1].tensor_type.name}, n={n}")
     assert torch.equal(y, ref)
@@ -446,15 +453,16 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
 def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
     """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
     attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
-    the op on each of the four shards alone it is bit-exact through MMVQ (rows are independent);
-    through MMQ, stream-k splits K differently for a 10240-row than a 2048-row product, so the
-    fp32 partial sums add in another order and ~1 bf16 ulp can flip (measured max 0.03)."""
+    the routed op on each of the four shards alone it is bit-exact through MMVQ and the IQ3
+    kernel (rows are independent); through MMQ, stream-k splits K differently for a 10240-row
+    than a 2048-row product, so the fp32 partial sums add in another order and ~1 bf16 ulp can
+    flip (measured max 0.03)."""
     import numpy as np
     import torch
 
     from vllm_gguf_plugin import ops
 
-    C = _lcpp()
+    _lcpp()  # skips without the lcpp build
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     import _refs
@@ -467,10 +475,9 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
     layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
 
     x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=850 + n).cuda()
-    fn = C.lcpp_mul_mat_vec_q if n < 8 else C.lcpp_mul_mat_q
     y = method.apply(layer, x)
-    per_shard = torch.cat([fn(s, x, q, s.shape[0]) for s, q in zip(shards, qts)], dim=1)
-    whole = torch.cat([fn(qkv, x, qts[0], qkv.shape[0]), fn(z, x, qts[3], z.shape[0])], dim=1)
+    per_shard = torch.cat([_routed(s, x, q) for s, q in zip(shards, qts)], dim=1)
+    whole = torch.cat([_routed(qkv, x, qts[0]), _routed(z, x, qts[3])], dim=1)
     torch.cuda.synchronize()
     print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
           f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")

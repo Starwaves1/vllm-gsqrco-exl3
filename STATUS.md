@@ -1,6 +1,6 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: Phase 3 (Route L decode on the rented 3090): 83.5 / 146.7 tok/s c=1 / c=2 greedy, from 77.8 / 117.0; baseline 94.1 / 194.4. See "Phase 3" below.
+Latest: Phase 3 item 5 (owned IQ3_S/IQ3_XXS decode kernel): 90.9 / 154.2 tok/s c=1 / c=2 greedy, from 77.8 / 117.0 (phase 2); baseline 94.1 / 194.4. See "Phase 3" below.
 
 ## Current state (2026-09-27 late)
 
@@ -57,6 +57,7 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | 3 | draft lm_head row-pruned to 40,960 (production's list and mechanism); no bf16 lm_head placeholder | 79.4 | 139.5 | 37.8 / 43.2 | yes |
 | 4 | owned X -> q8_1 quantizer (no input cast) | 81.2 | 142.9 | 36.9 / 42.1 | yes |
 | 4b | one GEMM per same-type shard run (433 -> 356 per pass); dequant output not zeroed | 83.5 (b) | 146.7 (b) | 36.6 / 41.6 | yes |
+| 5 | owned IQ3_S/IQ3_XXS decode-once kernel (`lcpp_mul_mat_vec_iq3`), routed at 1..8 rows | 90.9 | 154.2 | 33.1 / 37.9 | yes |
 
 (a) item 1 at c=1 is phase 2's path (c=1 never reaches 8 rows). (b) mostly tok/step: acceptance
 moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
@@ -75,10 +76,54 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   switch: MTP_DRAFT_VOCAB=0 (the head follows the ids file, not VLLM_GGUF_LCPP).
 - Item 4 keeps the output cast: MMVQ/MMQ write fp32 only. W rows must now be contiguous (MMVQ
   goes through upstream's q8_1 entry `ggml_cuda_op_mul_mat_vec_q`).
-- Item 5 (decode-once kernel for 2-8 rows) not started, by instruction. At 4 rows IQ3_S/IQ3_XXS
-  run at 421/403 GB/s in situ against IQ4_XS's 723; they are 13.8 of the 23.6 ms target GEMM
-  time. Reaching 94 tok/s at c=1 needs -4.1..-4.7 ms/step, i.e. IQ3 near IQ4_XS's rate.
-- Reviews: /check (Fable) after item 2 and after 4b; both outcomes in summary.txt.
+- Item 5: owned IQ3_S/IQ3_XXS decode-once kernel, `iq3_mul_mat_vec` (`lcpp_shim.cu`), routed at
+  1..8 activation rows (`linear.py`), MMVQ/MMQ unchanged elsewhere. Design (`cloud/results/phase3/item5/iterations.txt`
+  has the full iteration log):
+  - Reimplements the vendored `vec_dot_iq3_*_q8_1` decode arithmetic bit for bit (grid lookup,
+    sign unpack, scale) but restructures the CTA: 4 warps x 4 weight rows/warp (16 rows/CTA),
+    q8_1 chunks staged in shared memory, decode grid read from smem, each warp reads its
+    activation slice once for all 4 of its rows instead of once per row.
+  - Sign step ported from ninfer-all's byte-negation (4 ops/word) in place of the vendored
+    `__vcmpne4`+`__vsub4` pair; identical int8 outputs, fewer instructions.
+  - The vendored MMVQ already CSEs the per-column decode across activation rows (SASS
+    check, ROUTE-L.md); the actual levers are per-column q8_1 loads, their reuse over only
+    2 weight rows/warp in MMVQ, and instruction count, not "decode once" by itself.
+  - Iteration swept CTA shape (8x2 warps x rows down to 4x4), staged vs unstaged q8_1, and two
+    overlap schemes (register-prefetch, cp.async double buffering); both overlap attempts were
+    slower and dropped. Not tried: int8 tensor-core (mma) fragments — a much larger kernel;
+    MMQ already uses them and loses to tile overhead at n <= 8.
+  - Goal (>=600 GB/s op-level at 4 rows) not reached: 541/520 GB/s (IQ3_S/IQ3_XXS).
+  - Tests: kernel parity 1002 -> 1152 pass / 16 skip / 0 fail (`VLLM_GGUF_LCPP=1`; new:
+    `test_lcpp_iq3` correctness across n=1..8, 3 dtypes, real/row_tail/k_tail shapes, and
+    `test_lcpp_iq3_graph_replay`). The full run first showed 6 failures, all
+    `test_lcpp_same_type_run`: a test bug, not a kernel bug — the test built its "whole run"
+    and "per shard" references by calling the vendored `lcpp_mul_mat_vec_q`/`lcpp_mul_mat_q`
+    ops directly instead of routing through `_fused_mul_mat_gguf` (production's type-based
+    dispatch), so at n < 8 it compared the new IQ3 kernel's output against the (slightly
+    different, ~1e-7 rel, ~35% bit-equal per `iq3-vs-mmvq.txt`) vendored MMVQ path, and at
+    n = 8 it lacked the already-established MMQ stream-k tolerance (measured max 0.03, same as
+    `test_lcpp_mixed_shard_layer`). Fixed by routing both references through
+    `_fused_mul_mat_gguf` and keeping bit-exact only where rows are independent (MMVQ, the
+    IQ3 kernel) with the 1e-3 relative-error bound where MMQ's stream-k reorders the sum
+    (n >= 8). GPU guards (`-k lcpp`) and CPU guards pass; memcheck/initcheck 0 errors on the
+    IQ3 sanitizer cases. Vendored files unchanged (VENDORED.md sha256 pass).
+  - Microbench (`cloud/results/phase3/item5/micro-final.tsv`; op time incl. q8_1 quantize +
+    output cast, CUDA graph, us at 17408 x 5120):
+
+    | n | IQ3_S MMVQ | IQ3_S MMQ | IQ3_S iq3 | IQ3_XXS MMVQ | IQ3_XXS MMQ | IQ3_XXS iq3 |
+    |---|---|---|---|---|---|---|
+    | 1 | 67.8 | 122.4 | 55.0 | 62.9 | 108.6 | 53.2 |
+    | 4 | 103.0 | 123.6 | 70.7 | 94.3 | 109.9 | 71.0 |
+    | 8 | 147.1 | 124.5 | 100.5 | 133.9 | 110.2 | 100.6 |
+
+  - Decode (350 W, real prompts, T=0): 83.5 / 146.7 -> 90.9 / 154.2 tok/s c=1 / c=2 (baseline
+    94.1 / 194.4); ms/step 36.6 / 41.6 -> 33.1 / 37.9. c=1 MTP acceptance 0.633 (unchanged: the
+    IQ3 kernel doesn't touch numerics enough to move it outside noise at c=1).
+  - Tried and dropped (see iterations.txt for the numbers): exact int->float via a magic-number
+    add instead of I2F (no change); cp.async double-buffered weight + q8_1 tiles in smem and a
+    next-chunk register-prefetch scheme (both slower than staged-in-smem-no-overlap); q8_1 read
+    straight from global with no staging (within noise, staging kept for a small n=8 win).
+- Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
 
 ## Phase 2: Route L on the rented RTX 3090 (2026-09-28, 350 W)
 
