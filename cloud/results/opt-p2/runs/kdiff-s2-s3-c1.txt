@@ -1,0 +1,17 @@
+total ms/step 25.718 -> 25.603; launches 2004 -> 1843
+   127 ->      0    6.407 ->   0.000 (-6.407)  void iq3_mul_mat_vec<(ggml_type)21, 4, __nv_bfloat16>(char const*, block_q8_1 const*, __nv_bfloat16*, int, int
+     0 ->    127    0.000 ->   6.400 (+6.400)  void iq3_mul_mat_vec<(ggml_type)21, 4, float>(char const*, block_q8_1 const*, float*, int, int, long)
+    65 ->      0    3.956 ->   0.000 (-3.956)  void iq3_mul_mat_vec<(ggml_type)18, 4, __nv_bfloat16>(char const*, block_q8_1 const*, __nv_bfloat16*, int, int
+     0 ->     65    0.000 ->   3.951 (+3.951)  void iq3_mul_mat_vec<(ggml_type)18, 4, float>(char const*, block_q8_1 const*, float*, int, int, long)
+   183 ->      4    0.285 ->   0.013 (-0.272)  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+    12 ->     48    0.040 ->   0.182 (+0.142)  triton_red_fused__to_copy_add_fused_add_rms_norm_4
+    51 ->     19    0.155 ->   0.063 (-0.092)  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    32 ->      0    0.077 ->   0.000 (-0.077)  triton_per_fused__to_copy__unsafe_view_add_clone_mean_mul_pow_rsqrt_silu_transpose_view_0
+    16 ->     48    0.034 ->   0.103 (+0.069)  triton_per_fused_1
+     0 ->     33    0.000 ->   0.067 (+0.067)  triton_poi_fused__to_copy_cat_3
+    19 ->     66    0.063 ->   0.130 (+0.067)  triton_poi_fused_0
+    28 ->      0    0.047 ->   0.000 (-0.047)  triton_poi_fused_cat_2
+     0 ->     24    0.000 ->   0.038 (+0.038)  triton_poi_fused__to_copy_cat_5
+    39 ->     48    0.125 ->   0.159 (+0.034)  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    32 ->     19    0.105 ->   0.073 (-0.033)  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    22 ->      0    0.032 ->   0.000 (-0.032)  triton_poi_fused_cat_4

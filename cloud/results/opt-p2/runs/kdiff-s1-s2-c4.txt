@@ -1,0 +1,9 @@
+total ms/step 41.786 -> 41.554; launches 2669 -> 2672
+     1 ->      0    0.280 ->   0.000 (-0.280)  void dequantize_block_iq1_m<c10::BFloat16>(void const*, c10::BFloat16*)
+     0 ->      2    0.000 ->   0.240 (+0.240)  void mul_mat_vec_q<(ggml_type)29, 8, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_f
+     1 ->      0    0.226 ->   0.000 (-0.226)  ampere_bf16_s16816gemm_bf16_64x64_ldg8_f2f_stages_64x5_tn
+    32 ->     32    0.115 ->   0.104 (-0.011)  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    10 ->     10    1.001 ->   1.009 (+0.009)  void mul_mat_vec_q<(ggml_type)14, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_f
+    65 ->     65    7.036 ->   7.042 (+0.007)  void mul_mat_q<(ggml_type)18, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    86 ->     86    5.403 ->   5.409 (+0.006)  void mul_mat_q<(ggml_type)23, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+   374 ->    376    0.615 ->   0.620 (+0.005)  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase

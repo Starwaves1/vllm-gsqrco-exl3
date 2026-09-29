@@ -43,6 +43,35 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
   behind; with a 15 GB /dev/shm the next start fails with EFAULT in
   `shared_offload_region.py`. Clear it between runs when no vLLM is running.
 
+## Round 2, P2: plumbing (branch opt-p2, 2026-09-29, same 350 W 3090)
+
+Base main 6c2759f. Full write-up: `cloud/results/opt-p2/summary.txt`. One gpuq job per stage
+(frozen worktree copy: parity on/off, production-argv server, `bench/speed/run.sh gsq` decode
+only, profiles at c=1/c=4). Decode pass 2 T=0 tok/s and ms/step (C x 1000 / tok/s x tok/step):
+
+| stage | c=1 | c=2 | c=4 | c=8 | ms/step c=1/2/4/8 | kept |
+|---|---|---|---|---|---|---|
+| base 6c2759f | 100.5 | 175.9 | 256.4 | 436.4 | 30.3 / 34.8 / 47.0 / 56.1 | - |
+| 1: MMQ tail zeroed by the quantize kernel | 100.5 | 171.7 | 262.1 | 437.2 | 30.6 / 34.8 / 46.1 / 55.8 | yes |
+| 2: IQ1_M on vendored MMVQ | 100.9 | 179.2 | 267.6 | 433.8 | 30.5 / 34.6 / 46.3 / 55.7 | yes |
+| 6: fp32 product, cast in the traced graph | 100.5 | 175.1 | 265.6 | 439.3 | 30.4 / 34.5 / 46.2 / 55.4 | no |
+| prod W4A16 | 94.1 | 194.4 | 344.5 | 513.5 | 27.6 / 27.3 / 30.0 / 41.3 | |
+
+- e2e noise (~1-3%) exceeds every item, so items are judged on profiled kernel time and launch
+  counts. Item 1: -360 launches, -0.37 ms/step at c=4 (memset 0.41 ms gone, quantize +0.04).
+  Item 2: IQ1_M -0.12 ms (c=1), -0.27 ms (c=4); vLLM's CUDA-graph memory 0.35 -> 0.20 GiB (the
+  stock path dequantized the whole blk.13 ffn_gate inside the 9..32-row captures), KV cache
+  +4.7k tokens. IQ1_M: MMVQ up to 32 rows in 8-row calls, stock dequantize + GEMM above.
+- Item 6 reverted: -0.12 / -0.19 ms (c=1 / c=4) but KV -3.1k tokens and not bit-exact (inductor
+  keeps a fused bf16 intermediate in fp32).
+- Not done, with estimates: q8_1 quantize fused into vLLM's norms (<= 0.3 ms, needs vLLM-side
+  changes); removing the runs' cat for mixed gate/up (0.12 / 0.17 ms, needs the owned kernels
+  to write strided dst); embedding host path (<= 0.06 ms/step removable); lm_head fp32 logits
+  (~0.01 ms, changes greedy ties); in_proj_ba above 8 rows (already at its cuBLAS floor).
+- After: plugin plumbing 1.13 ms/step at c=1, 1.75 at c=4 (was 2.61); Route L GEMM 21.3 / 35.0
+  ms. Gap to the c=1 floor (13 ms weights + 4.7 ms vLLM idle): 30.5 ms/step = floor + 8.3 GEMM
+  efficiency + 3.2 vLLM GPU work + 1.1 plugin plumbing.
+
 ## Integration 1: opt-p + K1 + K2 merged (2026-09-29, same 350 W 3090)
 
 Branch `integrate` = main + `opt-p` + `opt-k1` + `opt-k2` (merged in that order), fast-forwarded

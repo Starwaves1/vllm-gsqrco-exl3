@@ -1,0 +1,128 @@
+Optimization campaign round 2, agent P2 (plumbing: the shim's quantizer and glue, linear.py
+non-routing paths, embedding, lm_head, gate_up activation, IQ1_M). Rented RTX 3090, 350 W, same
+box. Base = main 6c2759f (Integration 1). Branch opt-p2 (box stages /workspace/wt-p2-<tag>,
+local /tmp/gsq-wt-p2). Route L on.
+
+Method (box-scripts/stage.sh + job.sh; one gpuq job per stage, from a frozen copy of the
+worktree, built on the CPU at submit): kernel parity (tests/gpu/test_kernel_parity.py, Route L
+on and off), one server with production's argv: bench/speed/run.sh gsq unmodified, decode only
+(GSQ_PREFILL=" "), 2 passes, clocks logged; then torch-profiler captures of 6 decode steps at
+c=1 and c=4 (4 / 16 rows per target pass), summarised over the 5 complete steps (pstep2.py,
+owned.py by owner, kdiff.py stage against stage).
+Decode = pass 2 T=0 decode(C/meanTPOT) tok/s [pass 1]; ms/step = C * 1000 / tok/s * tok/step
+(prod W4A16: 27.6 / 27.3 / 30.0 / 41.3 ms). Run-to-run e2e noise here is ~1-3% (the base re-run
+reads 256.4 at c=4 against Integration 1's 264.4 on the same code), larger than every item's
+effect, so items are judged on the profile's per-kernel time and exact launch counts, and the
+e2e numbers are checked for no regression. MTP acceptance moves with the sampled drafts
+(0.653-0.661 across these runs); none of these items changes the draft head.
+
+stage  change                               c=1          c=2          c=4          c=8          ms/step c=1/2/4/8        KV tokens  kept
+base   6c2759f                              100.5 (100.3) 175.9 (173.6) 256.4 (256.7) 436.4 (442.5) 30.3 / 34.8 / 47.0 / 56.1  247,656    -
+s1     1: MMQ tail memset -> quantize kernel 100.5 (100.7) 171.7 (171.5) 262.1 (259.6) 437.2 (437.2) 30.6 / 34.8 / 46.1 / 55.8  248,437    yes
+s2     2: IQ1_M on vendored MMVQ            100.9 (100.7) 179.2 (179.1) 267.6 (263.2) 433.8 (438.4) 30.5 / 34.6 / 46.3 / 55.7  253,125    yes
+s3     6: fp32 out, cast in traced graph    100.5 (100.6) 175.1 (175.3) 265.6 (265.8) 439.3 (438.4) 30.4 / 34.5 / 46.2 / 55.4  250,000    no (reverted)
+fin    = s2 code, repeat                    (pending)
+
+Kernel time per step from the profiles (runs/kdiff-*.txt, runs/owned-base-s2.txt):
+  item  c=1                                   c=4
+  1     no MMQ at 4 rows: 0                   memset32 360 launches 0.410 ms -> 0; MMQ quantize +0.043 ms
+                                              (the tail zeros): -0.37 ms, launches 3030 -> 2669
+  2     IQ1_M 0.200 -> 0.082 ms (-0.12)       IQ1_M 0.506 -> 0.240 ms (-0.27; dequant 0.280 + cuBLAS
+                                              0.226 -> two 8-row MMVQ calls)
+  6     casts 183 -> 4 (0.285 -> 0.013 ms),   casts 376 -> 4 (0.620 -> 0.036), triton +0.40:
+        triton kernels +0.16: -0.12 ms,       -0.19 ms, launches 2672 -> 2318
+        launches 2004 -> 1843
+
+Item 1 (fold the MMQ tail memset into the owned quantizer). quantize_mmq_q8_1_x zeroes MMQ's
+read tail (J_max + 128 blocks after the quantized data, <= 36 KiB) with a grid-stride loop over
+all its threads before quantizing; mul_mat_q no longer calls cudaMemsetAsync. One launch fewer
+per MMQ call (360 per step at c=4). Parity unchanged (1970 / 128 skip on, 1939 / 159 off); the
+MMQ tests at 1..9 rows run on a poisoned allocator, and the final sanitizer job runs initcheck
+without the caching allocator on MMQ at 1/5/8/9 rows, which flags any read of the tail that the
+kernel did not write.
+
+Item 2 (IQ1_M, one tensor: blk.13 ffn_gate 17408 x 5120). llama.cpp b11211 has no IQ1_M MMQ
+instance (template-instances: iq1_s, not iq1_m), but its MMVQ serves IQ1_M. Microbench
+(runs/micro-iq1m-host.txt, us per call in a CUDA graph):
+   rows     stock MMVQ  vendored MMVQ (8-row calls)  dequant + x @ W.T  cached bf16 x @ W.T
+   1 / 4 / 8   57 / 185 / 406   56 / 87 / 130        505 / 496 / 498    223 / 219 / 222
+   16 / 32 / 64      -          259 / 520 / 1034     501 / 562 / 580    224 / 303 / 293
+ So: Route L's MMVQ for IQ1_M at any row count up to 32 (8 rows per call above 8, sharing the
+ layer's x_q8 in row slices), the stock dequantize + GEMM above 32 (prefill). The cached bf16
+ copy would be faster from 16 rows (-0.03 ms at c=4, -0.22 ms at c=8) but costs 178 MB of VRAM
+ (~5.6k KV tokens); not taken. Side effect: vLLM's CUDA-graph memory estimate 0.35 -> 0.20 GiB
+ (the stock path dequantized the whole weight inside the 9..32-row graph captures), KV cache
+ +4.7k tokens (248,437 -> 253,125). Parity 2007 / 146 skip (new: IQ1_M MMVQ at 1..8 rows vs the
+ reference models, x_q8, graph replay, q8_1 bytes vs vendored, 8-row chunks with and without
+ x_q8 slices; IQ1_M MMQ cases skip), stock 1973 / 180; CPU guards: IQ1_M MMVQ passes the
+ guards, IQ1_M MMQ is rejected before any launch ("no MMQ for IQ1_M").
+
+Item 3 (q8_1 quantize fused into its producer): not done. The producers of the quantized X
+are vLLM's: RMSNorm (inductor-generated add + norm kernels) for qkv / in_proj_qkvz / gate_up,
+act_and_mul (vLLM CUDA op) for down, attention / GDN gated norm for o_proj / out_proj. A fused
+norm + q8_1 needs either the model's norm module replaced or an inductor pattern pass registered
+in vLLM's pass manager, i.e. vLLM-side changes. Estimate: of 275 quantize launches per c=1 step
+(0.41 ms, ~1.5 us each) the ~150-190 whose X comes from an inductor kernel (norms, the attention
+gate) could fold into it: ~-0.2 to -0.3 ms at c=1, ~-0.3 ms at c=4 (<= 1%). Expressing q8_1 in torch ops for inductor to fuse is not
+bit-exact (roundf vs round-half-even, fast-math division, sum order).
+
+Item 4 (gate_up + silu*mul). The 48 CatArrayBatchedCopy per step are vLLM's GDN core (eager
+aten::cat inside qwen_gdn_attention_core; attributed from the trace), not the gate_up path. A
+same-type gate/up run is one product and feeds act_and_mul with no cat. Mixed-type fused layers
+(gate/up in 40 of 64 blocks, and qkv / in_proj_qkvz) join their runs with inductor's triton cat: 75 launches,
+0.12 ms at c=1, 0.17 ms at c=4. Removing it needs the runs' kernels to write into column slices
+of one buffer: the vendored MMVQ/MMQ take a dst row stride, but the owned IQ3 / Q4_K / IQ2_S
+kernels (K-agent files) write contiguous rows, and hiding the cat in one op undoes the free
+split-fold opt-p found for in_proj_qkvz. Skipped.
+
+Item 5 (embedding, lm_head). Host cost per eager call (runs/micro-iq1m-host.txt, 2000 calls):
+embedding 35.1 us through the custom op (27.9 calling the Python directly, 20.5 for
+index_select + the C++ dequantize alone); GPU 0.02 ms per step. At c=1 the 4 embedding calls
+leave the GPU idle for their host time (gaps.py attributes 0.31-0.34 ms/step of profiled idle
+to them; the profiler roughly doubles host time), the eager lm_head calls do not (their host
+time overlaps GPU work). The removable part is <= 15 us per call (<= 0.06 ms/step, 0.2%): not
+worth a change. lm_head: the 248,320-wide fp32 -> bf16 cast in the shim and the sampler's
+bf16 -> fp32 cast are ~5 us GPU each per step and off the critical path; returning fp32 logits
+(vLLM's head_dtype=float32 path) would drop both but changes greedy tie-breaks: not done.
+
+Item 6 (output casts via inductor fusion), measured and reverted (commits 0255980, 1aaf081).
+The shim ops took an optional output dtype, _fused_mul_mat_gguf returned fp32 on Route L
+types and apply() cast in the traced graph. Inductor fused the cast into the add + RMSNorm
+kernels and the runs' cat (triton_poi_fused__to_copy_cat_*), but where the consumer is a
+custom op (act_and_mul, GDN conv) it emitted standalone triton casts, and the add + norm
+kernels read fp32. Net -0.12 / -0.19 ms per step at c=1 / c=4, e2e within noise. Against it:
+KV cache -3.1k tokens (the runs' fp32 outputs now live until the fused cat), and it is not
+bit-exact with the separate cast: inductor keeps a fused bf16 intermediate in fp32
+(emulate_precision_casts is off), which its own guard test caught (test_cast_fused_by_inductor
+failed on the box). Not a clear win: reverted.
+
+Other plumbing checked (not in the item list):
+ - GDN in_proj_ba (BF16 96 x 5120) above 8 rows (runs/micro-ba.txt): F.linear is already the
+   fastest of F.linear / batched gemv / K-major mm / fp32-out mm / w @ x.T at 9..32 rows
+   (6.0-7.1 us); nothing to take (0.32 ms/step at c=4 is 48 x 6.7 us).
+ - Stream-k fixups (325 launches, 1.19 ms at c=4): stream_k is a compile-time field of the
+   vendored MMQ config tables (mmq.cuh), not an mmq_args field; no shim knob.
+ - Sharing one MMQ-layout quantize among a fused layer's MMQ runs with the same ds layout
+   (as opt-p did for MMVQ): ~75 launches, ~0.11 ms at c=4; needs an x_q8 on lcpp_mul_mat_q
+   with the zeroed tail. Left: K3's 16-64-row kernels may change which layout those runs read.
+
+Profile after (s2 = the final code; runs/owned-base-s2.txt), per step:
+  c=1: bench 30.5 ms/step. GPU busy 25.7 ms: Route L GEMM 21.34 (IQ3 dp4a 10.36, MMVQ 8.13,
+       owned Q4_K/IQ2_S 2.76, IQ1_M 0.08), plugin plumbing 1.13 (q8_1 quantize 0.41 / 275,
+       in_proj_ba gemv 0.30 / 48, output casts 0.29 / 183, runs' cat 0.12 / 75, embedding
+       0.02), vLLM 3.24 (GDN core, attention, norms, act_and_mul, sampling). Idle ~4.8 ms at
+       bench speed (30.5 - 25.7).
+  c=4: bench 46.3 ms/step. GPU busy 41.5 ms: Route L GEMM 34.95 (MMQ 31.87, stream-k fixups
+       1.19, MMVQ draft 1.01, owned Q4_K 0.66, IQ1_M 0.24), plugin plumbing 1.75 (output casts
+       0.62 / 376, MMQ quantize 0.58 / 361, in_proj_ba 0.32, runs' cat 0.17), vLLM 4.85.
+       Plumbing was 2.61 ms at base (memset 0.41, IQ1_M dequant + cuBLAS 0.51 gone).
+Top remaining plugin-owned non-GEMM costs: output casts 0.29 / 0.62 ms (c=1 / c=4; 16-bit dst
+from the owned mma and Q4_K/IQ2_S kernels would take ~41 / ~0 of them, the vendored kernels'
+need item 6's trade), q8_1 quantize 0.41 / 0.60 (item 3), in_proj_ba 0.30 / 0.32 (at its
+cuBLAS floor), cats 0.12 / 0.17 (item 4), stream-k fixups 1.19 at c=4 (vendored).
+
+Gap to the floor at c=1: floor = ~13 ms weight traffic + ~4.7 ms vLLM idle = 17.7 ms/step;
+final 30.5 ms/step (prod W4A16 27.6). Over the floor: Route L GEMM 21.3 - 13 = 8.3 ms (kernel
+efficiency, K agents), vLLM GPU work 3.2 ms (GDN core, attention, norms, act; not in the floor),
+plugin plumbing 1.1 ms, idle ~0.1 ms over vLLM's. ninfer-all: 108.7 tok/s at c=1 against 100.9
+here (-7%).

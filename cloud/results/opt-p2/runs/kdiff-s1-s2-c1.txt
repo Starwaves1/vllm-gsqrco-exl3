@@ -1,0 +1,9 @@
+total ms/step 25.914 -> 25.718; launches 2005 -> 2004
+     1 ->      0    0.200 ->   0.000 (-0.200)  void mul_mat_vec_q<c10::BFloat16, 256, 8, block_iq1_m, 1, &_INTERNAL_696f6582_14_gguf_kernel_cu_a360aac4::vec_
+     0 ->      1    0.000 ->   0.082 (+0.082)  void mul_mat_vec_q<(ggml_type)29, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_f
+   127 ->    127    6.425 ->   6.407 (-0.017)  void iq3_mul_mat_vec<(ggml_type)21, 4, __nv_bfloat16>(char const*, block_q8_1 const*, __nv_bfloat16*, int, int
+    86 ->     86    4.199 ->   4.183 (-0.016)  void mul_mat_vec_q<(ggml_type)23, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_f
+    32 ->     32    0.118 ->   0.105 (-0.013)  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    65 ->     65    3.967 ->   3.956 (-0.011)  void iq3_mul_mat_vec<(ggml_type)18, 4, __nv_bfloat16>(char const*, block_q8_1 const*, __nv_bfloat16*, int, int
+    13 ->     13    0.827 ->   0.821 (-0.006)  void mul_mat_vec_q<(ggml_type)10, 4, false, false, false>(void const*, void const*, int const*, ggml_cuda_mm_f
+    26 ->     26    1.979 ->   1.975 (-0.004)  void own_mul_mat_vec<(ggml_type)12, 4>(char const*, block_q8_1 const*, float*, int, int, long)

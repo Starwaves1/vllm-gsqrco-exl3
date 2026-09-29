@@ -1,0 +1,92 @@
+== c=1
+/workspace/runs/opt-p2-s1/c1.trace.json
+5 complete steps; per step: 2005 GPU activities, busy 25.91 ms, span 34.86 ms (idle 8.95)
+  gemm iq3         192.0 launches  10.392 ms
+  gemm mmvq        142.0 launches   8.358 ms
+  other            814.0 launches   3.050 ms
+  gemm own          41.0 launches   2.770 ms
+  copy/cast        356.0 launches   0.689 ms
+  q8_1 quantize    276.0 launches   0.408 ms
+  gpu_memcpy       130.0 launches   0.149 ms
+  cat               49.0 launches   0.095 ms
+  gpu_memset         5.0 launches   0.003 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   0.545  fused_sigmoid_gating_delta_rule_update_kernel
+   275.0   0.407  void quantize_q8_1_x<__nv_bfloat16>(__nv_bfloat16 const*, block_q8_1*, long, long, long)
+   144.0   0.340  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    17.0   0.334  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64u, 1u,
+    67.0   0.319  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+    48.0   0.304  std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __nv_bfloat16, __nv_bfloat16, __nv_bflo
+   182.0   0.284  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+    48.0   0.186  _causal_conv1d_update_kernel
+    51.0   0.155  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    39.0   0.126  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    32.0   0.118  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    63.0   0.114  Memcpy DtoD (Device -> Device)
+    19.0   0.113  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    48.0   0.093  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq
+    32.0   0.077  triton_per_fused__to_copy__unsafe_view_add_clone_mean_mul_pow_rsqrt_silu_transpose_view_0
+GEMM family / type per step (launches, ms):
+  iq3          IQ3_S     127.0   6.425
+  mmvq         IQ4_XS     86.0   4.199
+  iq3          IQ3_XXS    65.0   3.967
+  own          Q4_K       26.0   1.979
+  mmvq         Q6_K       15.0   1.332
+  mmvq         Q2_K       13.0   0.827
+  own          IQ2_S      15.0   0.791
+  mmvq         IQ2_XS      9.0   0.718
+  mmvq         Q4_K       12.0   0.701
+  mmvq         IQ2_XXS     5.0   0.371
+  mmvq         -           1.0   0.200
+  mmvq         IQ2_S       1.0   0.010
+== c=4
+/workspace/runs/opt-p2-s1/c4.trace.json
+5 complete steps; per step: 2669 GPU activities, busy 41.79 ms, span 49.39 ms (idle 7.61)
+  gemm mmq         686.0 launches  33.033 ms
+  other            814.0 launches   4.709 ms
+  copy/cast        548.0 launches   1.045 ms
+  gemm mmvq         10.0 launches   1.001 ms
+  gemm own           3.0 launches   0.654 ms
+  q8_1 quantize    374.0 launches   0.603 ms
+  gemm other        49.0 launches   0.437 ms
+  gpu_memcpy       130.0 launches   0.198 ms
+  cat               49.0 launches   0.102 ms
+  gpu_memset         6.0 launches   0.004 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   1.980  fused_sigmoid_gating_delta_rule_update_kernel
+   374.0   0.615  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+   313.0   0.503  void quantize_mmq_q8_1_x<__nv_bfloat16, (mmq_q8_1_ds_layout)0>(__nv_bfloat16 const*, block_q8_1_mmq*, long, lo
+    17.0   0.341  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64u, 1u,
+   144.0   0.338  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    67.0   0.310  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+     1.0   0.280  void dequantize_block_iq1_m<c10::BFloat16>(void const*, c10::BFloat16*)
+    48.0   0.199  _causal_conv1d_update_kernel
+    63.0   0.159  Memcpy DtoD (Device -> Device)
+    51.0   0.151  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    39.0   0.121  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    32.0   0.115  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    19.0   0.111  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    48.0   0.110  void cublasLt::splitKreduce_kernel<32, 16, int, __nv_bfloat16, __nv_bfloat16, float, __nv_bfloat16, false, __n
+    48.0   0.100  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq
+GEMM family / type per step (launches, ms):
+  mmq          IQ3_S     127.0  12.223
+  mmq          IQ3_XXS    65.0   7.036
+  mmq          IQ4_XS     86.0   5.403
+  mmq          Q4_K       35.0   2.949
+  mmq          IQ2_S      16.0   1.511
+  mmvq         Q6_K       10.0   1.001
+  mmq          IQ2_XS      9.0   0.954
+  mmq          Q2_K       13.0   0.769
+  own          Q4_K        3.0   0.654
+  mmq          Q6_K        5.0   0.598
+  quantize mmq -         361.0   0.583
+  mmq fixup    IQ3_S     113.0   0.407
+  mmq          IQ2_XXS     5.0   0.404
+  mmq fixup    IQ4_XS     81.0   0.297
+  mmq fixup    IQ3_XXS    53.0   0.191
+  mmq fixup    Q4_K       33.0   0.126
+  mmq fixup    IQ2_S      16.0   0.060
+  mmq fixup    Q2_K       12.0   0.042
+  mmq fixup    IQ2_XS      8.0   0.029
+  mmq fixup    Q6_K        5.0   0.018
+  mmq fixup    IQ2_XXS     4.0   0.015
