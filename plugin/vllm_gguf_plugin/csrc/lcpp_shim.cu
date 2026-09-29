@@ -646,9 +646,10 @@ static bool lcpp_type_supported(int64_t type) {
   }
 }
 
-// Shape / stride / alignment guards. Returns K (logical columns).
+// Shape / stride / alignment guards; max_rows: activation row limit (0: none). Returns K
+// (logical columns).
 static int64_t check_inputs(const Tensor& W, const Tensor& X, int64_t type,
-                            int64_t row, bool mmvq, const char* op) {
+                            int64_t row, int64_t max_rows, const char* op) {
   STD_TORCH_CHECK(lcpp_type_supported(type), op, ": unsupported ggml type ", type);
   STD_TORCH_CHECK(W.dim() == 2 && X.dim() == 2, op, ": W and X must be 2-D");
   STD_TORCH_CHECK(W.scalar_type() == ScalarType::Byte, op, ": W must be uint8");
@@ -679,9 +680,8 @@ static int64_t check_inputs(const Tensor& W, const Tensor& X, int64_t type,
                   " columns, W rows hold K=", k);
   STD_TORCH_CHECK(X.stride(1) == 1 && (X.size(0) <= 1 || X.stride(0) >= k), op,
                   ": X inner stride must be 1");
-  if (mmvq) {
-    STD_TORCH_CHECK(X.size(0) <= MMVQ_MAX_BATCH_SIZE, op, ": at most ",
-                    MMVQ_MAX_BATCH_SIZE, " rows, got ", X.size(0));
+  if (max_rows > 0) {
+    STD_TORCH_CHECK(X.size(0) <= max_rows, op, ": at most ", max_rows, " rows, got ", X.size(0));
   }
   STD_TORCH_CHECK(X.size(0) <= INT_MAX, op, ": X too large");
   // Device checks last, so the CPU registration below exercises every guard
@@ -714,9 +714,8 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
                   op, ": Q4_K or IQ2_S only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::mma_k || mma_k_supported((int)type),
                   op, ": Q4_K, IQ4_XS or IQ2_S only, got type ", type);
-  const int64_t k = check_inputs(W, X, type, row, mmvq, op);
-  STD_TORCH_CHECK(kernel != Kernel::mma_k || X.size(0) <= mma_k_max_cols(), op, ": at most ",
-                  mma_k_max_cols(), " rows, got ", X.size(0));
+  const int64_t k = check_inputs(W, X, type, row,
+                                 mmvq ? MMVQ_MAX_BATCH_SIZE : kernel == Kernel::mma_k ? mma_k_max_cols() : 0, op);
   const int64_t n = X.size(0);
   const ScalarType out_dtype = X.scalar_type();
   if (n == 0) {

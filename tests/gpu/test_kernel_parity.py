@@ -48,8 +48,9 @@ LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
 IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
 OWN_TYPES = ["Q4_K", "IQ2_S"]  # the owned lcpp_mul_mat_vec_own kernel
 MMA_K_TYPES = ["Q4_K", "IQ4_XS", "IQ2_S"]  # the owned lcpp_mul_mat_mma_k kernel
-# 9..64: 2 / 4 / 8 column tiles, full and part-filled (17, 33); 64 = c=16 with MTP k=3
-MMA_K_TOKENS = [9, 16, 17, 32, 33, 64]
+# 9..64: 2 / 4 / 8 column tiles, full and part-filled (17, 33); 64 = c=16 with MTP k=3; 1: the
+# op's lower bound (not routed)
+MMA_K_TOKENS = [1, 9, 16, 17, 32, 33, 64]
 
 
 def _owned_op(C, name):
@@ -359,7 +360,7 @@ def test_lcpp_iq3_graph_replay(tensors_by_type, name, n):
     _graph_replay(tensors_by_type, name, n, _owned_op(_lcpp(), name))
 
 
-@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail", "down", "no_pieces"])
+@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail", "down", "no_pieces", "big_tail"])
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
 @pytest.mark.parametrize("n", MMA_K_TOKENS)
 @pytest.mark.parametrize("name", MMA_K_TYPES)
@@ -371,7 +372,8 @@ def test_lcpp_mma_k(tensors_by_type, name, n, dtype, shape):
     per CTA at these sizes every 64-row tile is shared by CTAs (fixup kernel): real = the type's
     first tensor; row_tail = 202 rows (the last tile part-filled); k_tail = K 4608 (18 blocks);
     down = a K = 17408 tensor (68 blocks); no_pieces = 10496 rows at 9..16 columns, where every
-    CTA covers whole tiles on an 82-SM GPU (164 CTAs x 20 blocks: no fixup)."""
+    CTA covers whole tiles on an 82-SM GPU (164 CTAs x 20 blocks: no fixup); big_tail = 17398
+    rows, whose part-filled last tile the last CTA covers whole there (written directly)."""
     import _refs
     import gguf
     import numpy as np
@@ -384,13 +386,14 @@ def test_lcpp_mma_k(tensors_by_type, name, n, dtype, shape):
         if not ts:
             pytest.skip(f"no K=17408 {name} tensor")
         raw = ts[0].data[:ROWS]
-    elif shape == "no_pieces":
-        if n > 16:
+    elif shape in ("no_pieces", "big_tail"):
+        if shape == "no_pieces" and not 9 <= n <= 16:
             pytest.skip("the no-fixup layout is for 2 column tiles")
-        ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[1]) >= 10496 and int(t.shape[0]) == 5120]
+        rows = 10496 if shape == "no_pieces" else 17398
+        ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[1]) >= rows and int(t.shape[0]) == 5120]
         if not ts:
-            pytest.skip(f"no {name} tensor with >= 10496 rows")
-        raw = ts[0].data[:10496]
+            pytest.skip(f"no {name} tensor with >= {rows} rows")
+        raw = ts[0].data[:rows]
     else:
         _, raw = _sample(tensors_by_type, name, rows=202 if shape == "row_tail" else ROWS)
     bsz = gguf.GGML_QUANT_SIZES[qt][1]
