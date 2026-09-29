@@ -631,8 +631,9 @@ void launch_packed(const char* vx, const block_q8_1* y, float* dst, int nrows, i
 //  - scaling: per slice the vendored ggml_cuda_mmq_vec_dot_q8_0_q8_1_mma term,
 //    sum += float(C) * dA * dB (dA: x_df of ggml_cuda_mmq_load_tiles_iq3_s / _iq3_xxs, exact),
 //    computed as fma(fma(M + C, dA, -M * dA), dB, sum) with M = 1.5 * 2^23: the mma adds its
-//    int32 C to M's bits, so M + C is exact in fp32 (|C| < 2^22), -M * dA is exact, and the inner
-//    fma rounds float(C) * dA once, the value of the vendored I2F + FMUL. The slices are added
+//    int32 C to M's bits, so M + C is exact in fp32 (|C| < 2^22), -M * dA is exact (dA is a half
+//    times the 5-bit integer 2 ls + 1: <= 16 significant bits), and the inner fma rounds
+//    float(C) * dA once, the value of the vendored I2F + FMUL. The slices are added
 //    in K order, as in MMQ; a tile one CTA computes whole is then bit-identical to MMQ's
 //    fp32 sum if MMQ also computes it whole (MMQ's stream-k splits its own 128 x J tiles).
 //  - schedule: persistent CTAs, one per SM (G). Whole tiles go out in waves, CTA c taking
@@ -855,7 +856,7 @@ iq3_packed_mmq(const char* __restrict__ vx, const char* __restrict__ vy, OutT* _
         for (int l = 0; l < 4; ++l) acc[mt][nt][l] = 0.0f;
   };
   zero();  // and after each store (not a select per unit)
-  int kb0 = cu.kb;
+  int kb0 = 0;  // the current tile's first block here
   for (; cu.j < nlocal; wk.next(cu)) {
     const int j = cu.j, tile = cu.tile, kb = cu.kb;
     if (j == nw) kb0 = kb;  // the split run's first unit
@@ -945,8 +946,7 @@ iq3_packed_fixup(const float* __restrict__ part, OutT* __restrict__ dst, const i
     // the CTAs whose tail units [tail_begin(c), tail_begin(c + 1)) meet the tile's [u0, u0 + nkb)
     const int u0 = blockIdx.x * s.nkb, u1 = u0 + s.nkb;
     int n = 0;
-    int c = (int)((int64_t)u0 * nctas / s.tail_units);  // tail_begin(c) <= u0
-    while (c > 0 && tail_begin(s, c, nctas) > u0) --c;
+    int c = (int)((int64_t)u0 * nctas / s.tail_units);  // tail_begin(c) <= u0: floor(floor(u0 G / U) U / G)
     for (int b = tail_begin(s, c, nctas); c < nctas && b < u1; ++c) {
       const int e = tail_begin(s, c + 1, nctas);
       if (e > b && e > u0) {  // a non-empty run that meets the tile
@@ -994,7 +994,8 @@ static int sm_slots() {  // resident CTAs per device: 1 per SM (fewest over the 
     one(iq3_packed_mmq<type, C, half>);
     one(iq3_packed_mmq<type, C, nv_bfloat16>);
     CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, dev));
-    slots[dev] = std::max(1, occ) * sms;
+    GGML_ASSERT(occ > 0);  // the tile's shared memory fits (C64: 100,368 of 101,376 B on sm_86)
+    slots[dev] = occ * sms;
   }
   return slots[dev];
 }
@@ -1012,7 +1013,8 @@ struct plan {
 // costs ~1.7 + 0.55 NT us on the 3090 (it2: 2.8 / 4.1 / 6.2 us at NT = 2 / 4 / 8), and splitting
 // tiles costs ~7 units more (scratch, fixup; whole-tile waves on 68 CTAs beat the split on 82
 // at 17408 rows, 32 and 128 columns). it3: the plan's width is the fastest forced one at every
-// n and shape measured.
+// n and shape measured. Calibrated on the 3090; other GPUs may prefer other constants (only
+// speed depends on them, never results).
 static double unit_cost(int nt) { return 2.9 + nt; }
 constexpr double SPLIT_UNITS = 7.0;
 
@@ -1031,8 +1033,7 @@ static plan make_plan(int nrows, int ncols, int nkb) {
   p.s.nct = nct;
   p.s.tail0 = whole <= split ? tiles : tiles / p.nctas * p.nctas;
   p.s.tail_units = (tiles - p.s.tail0) * nkb;
-  // shared tiles exist unless the tail splits into whole tiles per CTA
-  p.split = p.s.tail_units % p.nctas != 0 || (p.s.tail_units / p.nctas) % nkb != 0;
+  p.split = p.s.tail_units > 0;  // fewer tail tiles than CTAs: some tile is shared
   p.work_bytes = p.split ? (size_t)2 * p.nctas * TM * C::TN * sizeof(float) : 0;
   return p;
 }

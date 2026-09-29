@@ -599,7 +599,7 @@ def test_lcpp_iq3_packed_graph_replay(tensors_by_type, name, n):
 
 # ---------------------------------------------------------------------------- packed IQ3, tiled (R2)
 
-# every tile width (16 / 32 / 64 / 128 columns) full and part-filled, production's 128-row
+# every tile width (16 / 32 / 48 / 64 columns) full and part-filled, production's 128-row
 # prefill chunk, a mixed step (129), and the 2048-row chunk
 TILED_TOKENS = [1, 8, 16, 17, 32, 33, 48, 64, 65, 96, 128, 129, 200, 512, 2048]
 
