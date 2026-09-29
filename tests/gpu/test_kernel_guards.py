@@ -14,7 +14,8 @@ cudaMalloc boundaries, so the case then runs with PYTORCH_NO_CUDA_MEMORY_CACHING
 allocation per tensor; graph_replay excepted, as capture cannot cudaMalloc); under torch's
 caching allocator a read past a tensor stays inside its segment and goes unreported.
 Cases failing at e2b8ad5 are recorded in STATUS.md (Phase 1). The Route L ops
-(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3 / lcpp_mul_mat_vec_own, csrc/lcpp_shim.cu) check every one of these before
+(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3 / lcpp_mul_mat_vec_own /
+lcpp_mul_mat_mma_k, csrc/lcpp_shim.cu) check every one of these before
 launching, so their rows must all pass; they skip without the VLLM_GGUF_BUILD_LCPP=1 build.
 """
 
@@ -34,7 +35,8 @@ TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "
              ("IQ3_S", "lcpp_mmvq"), ("IQ4_XS", "lcpp_mmvq"), ("Q4_K", "lcpp_mmvq"),
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
              ("Q6_K", "lcpp_mmq"), ("IQ3_S", "lcpp_iq3"), ("IQ3_XXS", "lcpp_iq3"),
-             ("Q4_K", "lcpp_own"), ("IQ2_S", "lcpp_own")]
+             ("Q4_K", "lcpp_own"), ("IQ2_S", "lcpp_own"),
+             ("Q4_K", "lcpp_mma_k"), ("IQ4_XS", "lcpp_mma_k"), ("IQ2_S", "lcpp_mma_k")]
 FAULT = ("illegal memory access", "misaligned address", "unspecified launch failure", "CUDA error", "an illegal instruction")
 
 

@@ -17,7 +17,8 @@ against the same references (plus the D2S6 model for Q2_K MMQ, see _refs.py), wi
 allocator's free blocks poisoned (0xFF) first so an unzeroed scratch read shows up; CUDA-graph
 capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 (the shim's own
 IQ3_S/IQ3_XXS kernel for 1..8 rows) and lcpp_mul_mat_vec_own (Q4_K/IQ2_S, lcpp_owned_k4.cu)
-are checked the same way and against vendored MMVQ on fp32 X.
+are checked the same way and against vendored MMVQ on fp32 X; lcpp_mul_mat_mma_k (Q4_K/IQ4_XS/
+IQ2_S int8 tensor-core kernel for up to 64 rows, lcpp_owned_mma_k.cu) against vendored MMQ.
 Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
 """
@@ -46,6 +47,9 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
 IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
 OWN_TYPES = ["Q4_K", "IQ2_S"]  # the owned lcpp_mul_mat_vec_own kernel
+MMA_K_TYPES = ["Q4_K", "IQ4_XS", "IQ2_S"]  # the owned lcpp_mul_mat_mma_k kernel
+# 9..64: 2 / 4 / 8 column tiles, full and part-filled (17, 33); 64 = c=16 with MTP k=3
+MMA_K_TOKENS = [9, 16, 17, 32, 33, 64]
 
 
 def _owned_op(C, name):
@@ -355,10 +359,144 @@ def test_lcpp_iq3_graph_replay(tensors_by_type, name, n):
     _graph_replay(tensors_by_type, name, n, _owned_op(_lcpp(), name))
 
 
-def _graph_replay(tensors_by_type, name, n, fn):
+@pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail", "down", "no_pieces"])
+@pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
+@pytest.mark.parametrize("n", MMA_K_TOKENS)
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k(tensors_by_type, name, n, dtype, shape):
+    """lcpp_mul_mat_mma_k takes MMQ's q8_1 layout and computes each 32-value slice's term with the
+    vendored MMQ vec_dot's expression; only the fp32 order of the K sum differs (MMQ's stream-k
+    split vs this kernel's). 16-bit X: the CPU reference models, as for MMQ. fp32 X (fp32
+    output): within 1e-5 of vendored MMQ itself. Shapes, 512 rows unless noted; with 4 K steps
+    per CTA at these sizes every 64-row tile is shared by CTAs (fixup kernel): real = the type's
+    first tensor; row_tail = 202 rows (the last tile part-filled); k_tail = K 4608 (18 blocks);
+    down = a K = 17408 tensor (68 blocks); no_pieces = 10496 rows at 9..16 columns, where every
+    CTA covers whole tiles on an 82-SM GPU (164 CTAs x 20 blocks: no fixup)."""
+    import _refs
+    import gguf
+    import numpy as np
     import torch
 
-    _, x1, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=600 + n)
+    C = _lcpp()
+    qt = gguf.GGMLQuantizationType[name]
+    if shape == "down":
+        ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[0]) == 17408]
+        if not ts:
+            pytest.skip(f"no K=17408 {name} tensor")
+        raw = ts[0].data[:ROWS]
+    elif shape == "no_pieces":
+        if n > 16:
+            pytest.skip("the no-fixup layout is for 2 column tiles")
+        ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[1]) >= 10496 and int(t.shape[0]) == 5120]
+        if not ts:
+            pytest.skip(f"no {name} tensor with >= 10496 rows")
+        raw = ts[0].data[:10496]
+    else:
+        _, raw = _sample(tensors_by_type, name, rows=202 if shape == "row_tail" else ROWS)
+    bsz = gguf.GGML_QUANT_SIZES[qt][1]
+    raw = np.ascontiguousarray(raw[:, : 18 * bsz] if shape == "k_tail" else raw)
+    x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1100 + n)
+    w = torch.from_numpy(raw).cuda()
+    _poison_allocator()
+    y = C.lcpp_mul_mat_mma_k(w, x.cuda(), int(qt), w.shape[0])
+    ref = C.lcpp_mul_mat_q(w, x.cuda(), int(qt), w.shape[0])
+    torch.cuda.synchronize()
+    assert y.shape == (n, raw.shape[0]) and y.dtype == x.dtype
+    if dtype == "float32":
+        err = _refs.rel_err(y, ref.double().cpu())
+        print(f"\n{name} n={n} {shape}: vs MMQ rel {err:.1e}, bit-equal {(y == ref).float().mean().item():.3f}")
+        assert err <= 1e-5
+    else:
+        _check(y, raw, name, x, mmq=True, lcpp=True)
+
+
+@pytest.mark.parametrize("n", [16, 32, 64])
+@pytest.mark.parametrize("rows", [17408, 5120])
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k_whole_tensor(tensors_by_type, name, rows, n):
+    """A whole 17408 x 5120 tensor (no K split: one pass per 64-row CTA) and a whole 5120 x 17408
+    one (split in 3), fp32 X, against vendored MMQ on the same q8_1: they differ only in the
+    fp32 order of the K sum."""
+    import _refs
+    import gguf
+    import numpy as np
+    import torch
+
+    C = _lcpp()
+    ts = [t for t in tensors_by_type.get(name, []) if int(t.shape[1]) == rows and int(t.shape[0]) in (5120, 17408)]
+    if not ts:
+        pytest.skip(f"no {name} tensor with {rows} rows")
+    t = ts[0]
+    qt = int(gguf.GGMLQuantizationType[name])
+    w = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+    x = _x(n, int(t.shape[0]), "float32", seed=1200 + n).cuda()
+    _poison_allocator()
+    y = C.lcpp_mul_mat_mma_k(w, x, qt, rows)
+    ref = C.lcpp_mul_mat_q(w, x, qt, rows)
+    torch.cuda.synchronize()
+    err = _refs.rel_err(y, ref.double().cpu())
+    print(f"\n{name} {rows}x{t.shape[0]} n={n}: vs MMQ rel {err:.1e}, bit-equal {(y == ref).float().mean().item():.3f}")
+    assert err <= 2e-6
+
+
+@pytest.mark.parametrize("rows", [ROWS, 17408])
+@pytest.mark.parametrize("n", [16, 33, 64])
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k_graph_replay(tensors_by_type, name, n, rows):
+    """512 rows: the K split and its sum kernel; 17408 rows: one pass, X's dtype written directly."""
+    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_mma_k, rows=rows)
+
+
+_FIRST_CALL_IN_CAPTURE = r"""
+import sys
+import numpy as np, torch, gguf
+from vllm_gguf_plugin import ops  # noqa: F401  (loads _C_gguf, no CUDA call)
+C = torch.ops._C_gguf
+r = gguf.GGUFReader(sys.argv[1])
+torch.zeros(1, device="cuda")  # CUDA context, but no _C_gguf op before the capture
+fails = []
+for name in ("Q4_K", "IQ4_XS", "IQ2_S"):
+    t = next(t for t in r.tensors if t.tensor_type.name == name and int(t.shape[1]) == 17408)
+    qt = int(gguf.GGMLQuantizationType[name])
+    for rows, n in ((17408, 16), (512, 17), (17408, 64)):  # direct write / K split; 2, 4, 8 column tiles
+        w = torch.from_numpy(np.ascontiguousarray(t.data[:rows])).cuda()
+        g = torch.Generator().manual_seed(n)
+        x1 = torch.randn(n, int(t.shape[0]), generator=g).bfloat16().cuda()
+        x2 = torch.randn(n, int(t.shape[0]), generator=g).bfloat16().cuda()
+        static_x = x1.clone()
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            static_y = C.lcpp_mul_mat_mma_k(w, static_x, qt, rows)  # this instance's first call
+        static_x.copy_(x2)
+        graph.replay()
+        torch.cuda.synchronize()
+        if not torch.equal(static_y, C.lcpp_mul_mat_mma_k(w, x2, qt, rows)):
+            fails.append(f"{name} rows={rows} n={n}")
+print("FAILS", fails)
+"""
+
+
+def test_lcpp_mma_k_first_call_in_capture(gguf_reader):
+    """Each kernel instance's first call (its one-time cudaFuncSetAttribute, the shim's first
+    device query) made inside a CUDA-graph capture, in a fresh process: the capture must
+    succeed and its replay equal an eager call."""
+    import os
+    import subprocess
+    import sys
+
+    from gsq_gpu import GGUF
+
+    _lcpp()
+    out = subprocess.run([sys.executable, "-c", _FIRST_CALL_IN_CAPTURE, str(GGUF)], capture_output=True,
+                         text=True, env=dict(os.environ), timeout=600)
+    assert out.returncode == 0, out.stderr[-3000:]
+    assert "FAILS []" in out.stdout, out.stdout[-2000:]
+
+
+def _graph_replay(tensors_by_type, name, n, fn, rows=ROWS):
+    import torch
+
+    _, x1, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=600 + n, rows=rows)
     x2 = _x(n, x1.shape[1], "bfloat16", seed=700 + n).cuda()
     static_x = x1.cuda()
     fn(w, static_x, qt, w.shape[0])  # warm-up: cudaFuncSetAttribute runs on first use
@@ -418,7 +556,7 @@ def _mixed_block(gguf_reader, a, b, a_narrower=False):
     pytest.skip(f"no block with a mixed-type {a}/{b} pair on Route L types")
 
 
-@pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+@pytest.mark.parametrize("n", [1, 4, 8, 9, 32, 128])
 def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     """A fused gate/up layer whose shards have different quant types, through
     GGUFLinearMethod's padded-weight build and apply(): with VLLM_GGUF_LCPP=1 each shard is
@@ -455,7 +593,7 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
 
 
 @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
-@pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
+@pytest.mark.parametrize("n", [1, 4, 8, 9, 32, 128])
 def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
     """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
     attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against

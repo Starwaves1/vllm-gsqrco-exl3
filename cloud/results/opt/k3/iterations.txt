@@ -1,0 +1,88 @@
+K3: owned int8 tensor-core kernel for Q4_K / IQ4_XS / IQ2_S at 9..64 activation rows
+(lcpp_mul_mat_mma_k, plugin/vllm_gguf_plugin/csrc/lcpp_owned_mma_k.cu). MTP k=3 decode: 4 rows per
+sequence, so c = 4 / 8 / 16 -> 16 / 32 / 64 rows. RTX 3090 350 W, bf16 X, real GGUF blocks, op
+time incl. q8_1 quantize (no output cast: the kernel writes X's dtype), 10 calls per CUDA graph.
+Timings from k3_bench.py (interleaved rounds, median, vendored MMQ in the same rounds) unless noted.
+
+DRAM floor (floor.py: torch.sum over a buffer of the same bytes, same CUDA-graph timing):
+  17408x5120  Q4_K 65.4 us (50.1 MB)  IQ4_XS 58.9 (47.3 MB)  IQ2_S 37.8 (28.5 MB)
+  5120x17408  Q4_K 62.0               IQ4_XS 58.8            IQ2_S 37.8
+  10240x5120  Q4_K 38.8               IQ4_XS 37.1            IQ2_S 24.6
+  sustained read rate at 1 GiB: 888 GB/s (the "physical" floor: 56 / 53 / 32 us at 17408x5120)
+
+Design (all iterations): CTA = 4 warps x 16 weight rows (one m16 mma tile per warp) x all columns;
+per K step the raw GGUF blocks of the CTA's rows (exact 16 / 8 / 4-byte granules) and the
+block_q8_1_mmq blocks of every column are cp.async'd into shared memory, 1-3 steps ahead; each
+warp decodes its rows straight into A fragments and runs one m16n8k32 (IQ2_S: two m16n8k16, its
+sub-scales are per 16 values) per 32-value slice and 8-column tile; per-slice scaling is the
+vendored MMQ vec_dot expression; rows < 2 CTAs per SM get a K split summed in order by a second
+kernel, otherwise the kernel writes X's dtype directly (no cast launch).
+
+it  change                                                 us at 17408x5120, n = 16 / 32 / 64 (MMQ same run)
+0   v1: as above, I2F conversions, generic copy loops         Q4_K   74.4 / 99.5 / 171.0 (107 / 120 / 175)
+                                                               IQ4_XS 92.0 / 105.1 / 205.1 (95 / 121 / 152)
+                                                               IQ2_S 103.9 / 130.8 / 262.0 (120 / 152 / 202)
+    fp32 X vs MMQ: rel 1.4e-7 .. 2.6e-7 on every type / n / shape (quick.py)
+1   v2/v3: magic-number int->float (I2F is quarter rate on sm_86),    Q4_K   72.1 / 97.9 / 177.9 (105 / 118 / 172)
+    per-thread copy offsets computed once (the generic strided copy  IQ4_XS 82.1 / 106.6 / 187.4 (94 / 122 / 160)
+    loops were ~300 of 973 loop instructions at 16 columns)          IQ2_S 101.0 / 132.8 / 227.9 (120 / 153 / 215)
+    (it5-ab.tsv, config "0"; v1 -> v3 at 64 columns: IQ4_XS 205 -> 167-187, IQ2_S 262 -> 214-228)
+    tried and dropped in this iteration (it2/it3-ab.tsv, same-run A/B):
+      2 m-tiles per warp (B loads shared by 32 rows): Q4_K 78 / 112 / 176 vs 76 / 100 / 168 (255 regs at 64 cols)
+      Q4_K min term (dmin*m x sum) on one fp16 m16n8k8 per block instead of 4 FFMA per mma:
+        80 / 98 / 167 vs 76 / 100 / 168 (and 4.2e-7 vs 2.5e-7 from MMQ)
+    ablations (it4-ab.tsv, us at 16 / 32 / 64 cols; full / weights L2-resident / copies only / compute only):
+      Q4_K    72 / 75 / 68 / 48    95 / 106 / 91 / 79    170 / 172 / 126 / 138
+      IQ4_XS  83 / 79 / 66 / 63    97 / 100 / 68 / 80    198 / 192 / 89 / 165
+      IQ2_S   95 / 94 / 48 / 78    127 / 128 / 56 / 110  221 / 218 / 86 / 190
+      -> Q4_K at 16 columns is on the copy floor (68 vs torch.sum 65); IQ4_XS overlaps copy and compute
+         badly (each ~65, together 83); IQ2_S and everything at 64 columns are compute-bound; compute-only
+         runs at IPC ~0.55 (SASS count / time): 2 warps per SM sub-partition cannot hide the latency.
+2   v4: 128-value K steps (header + half the quants, 1 q8_1 block      all slower: Q4_K 106-132 / 114-151 / 192-264,
+    per column) to fit 3-4 CTAs per SM; runtime stage count 2..4       IQ4_XS 111-115 / 121-126 / 171-211 (it5-ab.tsv)
+    -> twice the barriers and header work per block, and 64-byte pieces per row per step; dropped.
+    also dropped: 16-byte weight / q8_1 copies through L1 (.ca): +8 / +13 us at 16 / 32 columns.
+    also dropped (it6-ab.tsv): 8 warps per CTA (128-row tiles sharing one q8_1 stage, half the q8_1
+    copy traffic per row): Q4_K 80 / 120 / 183 vs 72 / 99 / 177, IQ4_XS 94 / 110 / 180 vs 81 / 104 / 184.
+3   stream-K: persistent CTAs (resident slots, cudaOccupancy...) each take an equal run of (tile,
+    K step) units; a tile covered whole is written directly, pieces of shared tiles go to fp32
+    scratch and a fixup kernel sums them in CTA (= K) order (deterministic). Replaces the fixed
+    K split. First version (v6, it7-ab.tsv, us; v4 tiled "ref" from a second process in the same job):
+                   n=16 SK / ref     n=32 SK / ref     n=64 SK / ref
+      Q4_K 17408    80.5 /  73.3      94.8 / 100.4     176.0 / 177.8
+      Q4_K 5120     83.9 /  87.0      96.7 / 111.1     182.2 / 163.5
+      Q4_K 12288    59.9 /  68.8      71.1 /  82.0     130.2 / 132.6
+      IQ4_XS 17408  81.5 /  84.4     106.9 / 107.1     170.5 / 182.3
+      IQ4_XS 5120   86.0 /  84.5     111.6 / 102.3     172.3 / 166.2
+      IQ4_XS 12288  60.1 /  64.0      79.9 /  82.7     125.0 / 135.1
+      IQ2_S 17408   94.1 /  99.7     125.2 / 130.5     205.5 / 222.2
+      IQ2_S 5120    95.4 /  93.3     129.1 / 120.5     211.3 / 201.7
+      IQ2_S 12288   70.0 /  78.1      92.5 / 100.1     151.0 / 166.2
+    -> better on tile counts that leave a partial wave (12288 rows: -10..-15 %), worse where the
+       generalized loop costs (v6's own tiled mode is slower than v4's: IQ4_XS 17408 n=32 121 vs 107;
+       registers 72 -> 128 at 16 columns).
+    v7 (it8-ab.tsv, same job as v4 tiled "ref" in it8ref-ab.tsv): each CTA's units as per-tile segments,
+    the store between segments, so the K-step loop is v4's; SK / ref at n = 16 / 32 / 64:
+      Q4_K 17408    80.6 / 73.2     93.4 / 100.7    169.6 / 177.9
+      Q4_K 5120     84.1 / 86.9     94.6 / 111.1    175.8 / 164.2
+      Q4_K 12288    60.0 / 69.1     69.6 / 82.4     125.6 / 133.0
+      IQ4_XS 17408  81.1 / 84.2    110.7 / 107.5    163.1 / 184.4
+      IQ4_XS 5120   85.9 / 85.1    115.6 / 103.6    165.5 / 168.5
+      IQ4_XS 12288  60.3 / 64.4     82.8 / 83.5     121.0 / 136.6
+      IQ2_S 17408   92.3 / 100.3   124.6 / 131.4    199.9 / 224.0
+      IQ2_S 5120    94.2 / 93.6    129.1 / 121.5    205.1 / 202.7
+      IQ2_S 12288   68.6 / 77.5     92.1 / 100.8    147.1 / 166.1
+    v7 still carried three store paths (whole tile, stream-K piece, tiled split slab): nvcc hoists
+    their address math and holds it in registers (Q4_K 16 cols: 125 regs, 80 with one path;
+    compile-only check). Final (v8): stream-K only, one scratch layout, fixed 4 warps / stages,
+    no experiment switches: 72 / 128 / 179 regs (Q4_K 16 / 32 / 64 cols), 96 / 114 / 168 (IQ4_XS),
+    95 / 128 / 168 (IQ2_S). The fixup launch is skipped when every CTA covers whole tiles.
+    Kept: over the 36 cells of it8 (these 3 shapes plus 6144 x 5120) stream-K wins 24, all 9 of the
+    12288-row cells and the 64-column ones by up to 11 %. In the routed range (16 / 32 columns) it loses
+    9 of 24, most by < 5 %; the big ones are Q4_K 17408 n=16 (80.6 vs 73.2, 10 %) and 5120 x 17408 at
+    n=32 (IQ4_XS 115.6 vs 103.6, IQ2_S 129.1 vs 121.5), still 7-26 % ahead of MMQ; IQ4_XS 6144 x 5120
+    n=32 ties MMQ (51.0 vs 50.3).
+
+Not done (ideas measured or reasoned, left): hybrid data-parallel + stream-K (whole waves tiled, only
+the tail stream-K) for tile counts just above the resident slots (Q4_K 17408 n=16); 48-column
+(6-tile) instance for 33..48 rows; Q6_K / Q2_K (Q2_K's MMQ layout is D2S6, a different min term).

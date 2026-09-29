@@ -36,6 +36,11 @@ from .utils import (
 
 # Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+# lcpp_mul_mat_mma_k (int8 tensor cores, lcpp_owned_mma_k.cu): the types and activation rows
+# it is routed at, for W above 2048 rows (cloud/results/opt/k3). From 33 rows it runs 64-column
+# tiles and loses to MMQ.
+_MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
+_MMA_K_ROWS = (9, 32)
 
 
 def _fused_mul_mat_gguf(
@@ -61,6 +66,13 @@ def _fused_mul_mat_gguf(
         if (weight_type in _OWN_MIN_ROWS and _OWN_MIN_ROWS[weight_type] <= x.shape[0] <= 8
                 and weight.shape[0] > 2048):
             return torch.ops._C_gguf.lcpp_mul_mat_vec_own(
+                weight, x, weight_type, weight.shape[0]
+            )
+        # Q4_K / IQ4_XS / IQ2_S at 9..32 rows (MTP verify at c = 3..8): the owned int8
+        # tensor-core kernel beats MMQ there (cloud/results/opt/k3)
+        if (weight_type in _MMA_K_TYPES and _MMA_K_ROWS[0] <= x.shape[0] <= _MMA_K_ROWS[1]
+                and weight.shape[0] > 2048):
+            return torch.ops._C_gguf.lcpp_mul_mat_mma_k(
                 weight, x, weight_type, weight.shape[0]
             )
         # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)

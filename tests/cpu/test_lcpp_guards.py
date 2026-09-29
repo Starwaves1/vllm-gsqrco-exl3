@@ -31,7 +31,8 @@ import torch
 torch.ops.load_library(sys.argv[1])
 ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
-out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_own") if hasattr(ops, n)]}
+out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_own",
+                                  "lcpp_mul_mat_mma_k") if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
     stride = stride or row_bytes
@@ -116,6 +117,18 @@ CASES[f"{OWN_OP}-9_rows"] = (_case(OWN_OP, Q4_K, n=9), "at most 8 rows")
 CASES[f"{OWN_OP}-k_not_512"] = (_case(OWN_OP, Q4_K, row_bytes=144, k=256), "must be a multiple of 512")
 CASES[f"{OWN_OP}-w_misaligned"] = (_case(OWN_OP, Q4_K, w_offset=1), "16-byte aligned")
 CASES[f"{OWN_OP}-k_mismatch"] = (_case(OWN_OP, Q4_K, k=K // 2), "columns, W rows hold")
+# the owned int8 tensor-core kernel: MMQ's checks, its own type check, at most 64 rows
+MMA_OP = "lcpp_mul_mat_mma_k"
+for t in (Q4_K, IQ4_XS, IQ2_S):
+    CASES[f"{MMA_OP}-valid-{t}"] = (_case(MMA_OP, t, n=16), "must be CUDA tensors")
+    CASES[f"{MMA_OP}-row_strided-{t}"] = (_case(MMA_OP, t, n=16, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
+CASES[f"{MMA_OP}-iq3_s"] = (_case(MMA_OP, IQ3_S, n=16), "Q4_K, IQ4_XS or IQ2_S only")
+CASES[f"{MMA_OP}-1_row"] = (_case(MMA_OP, Q4_K, n=1), "must be CUDA tensors")
+CASES[f"{MMA_OP}-64_rows"] = (_case(MMA_OP, Q4_K, n=64), "must be CUDA tensors")
+CASES[f"{MMA_OP}-65_rows"] = (_case(MMA_OP, Q4_K, n=65), "at most 64 rows")
+CASES[f"{MMA_OP}-k_not_512"] = (_case(MMA_OP, Q4_K, n=16, row_bytes=144, k=256), "must be a multiple of 512")
+CASES[f"{MMA_OP}-w_misaligned"] = (_case(MMA_OP, Q4_K, n=16, w_offset=1), "16-byte aligned")
+CASES[f"{MMA_OP}-k_mismatch"] = (_case(MMA_OP, Q4_K, n=16, k=K // 2), "columns, W rows hold")
 
 
 @pytest.fixture(scope="module")
@@ -136,7 +149,7 @@ def child():
 
 def test_ops_registered_without_cuda_init(child):
     assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_own"]
+                                   "lcpp_mul_mat_vec_own", "lcpp_mul_mat_mma_k"]
     assert child["cuda_initialized"] is False
 
 
