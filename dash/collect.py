@@ -7,17 +7,17 @@ SSH = ["ssh", "-p", "40262", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
        "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@24.196.244.156"]
 Q = "/workspace/gpuq"
 REMOTE = f"""
-echo @@gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
-echo @@mem; free -b | awk 'NR==2{{print $3,$7}}'
-echo @@disk; df -B1 / | awk 'NR==2{{print $3,$4}}'
-echo @@load; cat /proc/loadavg
-echo @@cgmax; cat /sys/fs/cgroup/memory.max
-echo @@running; cat {Q}/running 2>/dev/null
-echo @@queued; for f in {Q}/jobs/*.job; do [ -e "$f" ] && printf '%s\\t%s\\n' "$(basename "$f" .job)" "$(head -c 400 "$f" | tr '\\n\\t' '  ')"; done
-echo @@status; grep -H '' {Q}/out/*.status 2>/dev/null
-echo @@logs; stat -c '%n %W %Y' {Q}/out/*.log 2>/dev/null
-echo @@tail; r=$(cut -d' ' -f1 {Q}/running 2>/dev/null); [ -n "$r" ] && tail -n 20 {Q}/out/$r.log | cut -c1-300
-echo @@end
+echo @@dash:gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
+echo @@dash:mem; free -b | awk 'NR==2{{print $3,$7}}'
+echo @@dash:disk; df -B1 / | awk 'NR==2{{print $3,$4}}'
+echo @@dash:load; cat /proc/loadavg
+echo @@dash:cgmax; cat /sys/fs/cgroup/memory.max
+echo @@dash:running; cat {Q}/running 2>/dev/null
+echo @@dash:queued; for f in {Q}/jobs/*.job; do [ -e "$f" ] && printf '%s\\t%s\\n' "$(basename "$f" .job)" "$(head -c 400 "$f" | tr '\\n\\t' '  ')"; done
+echo @@dash:status; grep -H '' {Q}/out/*.status 2>/dev/null
+echo @@dash:logs; stat -c '%n %W %Y' {Q}/out/*.log 2>/dev/null
+echo @@dash:tail; r=$(cut -d' ' -f1 {Q}/running 2>/dev/null); [ -n "$r" ] && tail -n 20 {Q}/out/$r.log | cut -c1-300
+echo @@dash:end
 """
 BANNER = ("Welcome to vast.ai", "Have fun!", "AI agents: READ")
 
@@ -27,8 +27,8 @@ def sections(text):
     for line in text.splitlines():
         if line.startswith(BANNER):
             continue
-        if line.startswith("@@"):
-            cur = out.setdefault(line[2:], [])
+        if line.startswith("@@dash:"):
+            cur = out.setdefault(line[7:], [])
         elif cur is not None:
             cur.append(line)
     return out

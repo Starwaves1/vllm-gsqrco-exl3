@@ -90,7 +90,7 @@ const RANGES = [['1h', 3600], ['6h', 21600], ['24h', 86400], ['all', 0]];
 let range = +(localStorage.range ?? 3600), hist = [];
 const CHARTS = [
   {title: 'GPU utilization', unit: '%', v: d => d.util, max: () => 100},
-  {title: 'Power draw', unit: 'W', v: d => d.power, max: d => Math.max(...d.map(x => x.power_limit || 0)), ref: d => d.at(-1)?.power_limit, refLabel: 'limit'},
+  {title: 'Power draw', unit: 'W', v: d => d.power, max: d => Math.max(...d.map(x => Math.max(x.power || 0, x.power_limit || 0))), ref: d => d.at(-1)?.power_limit, refLabel: 'limit'},
   {title: 'SM clock', unit: 'MHz', v: d => d.sm_clock, max: d => Math.max(...d.map(x => x.sm_clock || 0))},
   {title: 'VRAM used', unit: 'GB', v: d => d.vram_used / 1024, max: d => Math.max(...d.map(x => (x.vram_total || 0) / 1024))},
 ];
@@ -120,7 +120,8 @@ function drawChart(box, c, data) {
   }
   // split into runs where samples are < 3 min apart, so offline periods show as gaps
   const runs = []; let run = [];
-  for (const d of data) { if (run.length && d.ts - run.at(-1).ts > 180) { runs.push(run); run = []; } if (c.v(d) != null) run.push(d); }
+  const gap = Math.max(180, 3 * (data.at(-1).ts - data[0].ts) / data.length);  // long ranges are thinned server-side
+  for (const d of data) { if (run.length && d.ts - run.at(-1).ts > gap) { runs.push(run); run = []; } if (c.v(d) != null) run.push(d); }
   runs.push(run);
   const col = css('--series');
   for (const r of runs) {
@@ -163,7 +164,7 @@ async function loadQueue() {
   if (r) {
     const st = Date.parse(r.started) / 1000;
     $('running').replaceChildren(
-      el('div', {}, status('Running', '--series'), ' ', el('b', {}, r.id.split('-').slice(1).join('-')), el('span', {className: 'muted'}, `  ${r.id}`)),
+      el('div', {}, status('Running', '--ink2'), ' ', el('b', {}, r.id.split('-').slice(1).join('-')), el('span', {className: 'muted'}, `  ${r.id}`)),
       el('div', {className: 'ink2'}, `started ${fmtT(st)} · elapsed ${dur(now - st)} · waited ${dur(st - submitted(r.id))}` + (q.online ? '' : ' · box offline, may be stale')),
       el('button', {className: 'link', textContent: showTail ? 'hide log tail' : 'show log tail', onclick: () => { showTail = !showTail; loadQueue(); }}),
       ...(showTail ? [el('pre', {}, (r.tail || []).join('\n') || '(empty log)')] : []));

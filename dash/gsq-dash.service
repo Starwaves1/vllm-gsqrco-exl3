@@ -1,6 +1,5 @@
 [Unit]
 Description=Vast box dashboard web server on port 18095
-After=network-online.target
 
 [Service]
 ExecStart=/usr/bin/python3 -u /home/garrett/gsq-vllm/dash/server.py

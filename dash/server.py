@@ -20,9 +20,16 @@ def load(name, default):
 def jsonl(name):
     try:
         with open(os.path.join(DATA, name)) as f:
-            return [json.loads(l) for l in f if l.strip()]
+            lines = f.read().splitlines()
     except OSError:
         return []
+    rows = []
+    for l in lines:
+        try:
+            rows.append(json.loads(l))
+        except ValueError:  # skip a torn line rather than failing the whole endpoint
+            pass
+    return rows
 
 
 def first_ts():
@@ -48,7 +55,7 @@ def api_history(q):
     rows = [s for s in jsonl("samples.jsonl") if s["ts"] >= since]
     step = max(1, -(-len(rows) // MAX_POINTS))  # thin long ranges to <= MAX_POINTS
     keys = ("ts", "util", "power", "power_limit", "sm_clock", "vram_used", "vram_total")
-    return [{k: s.get(k) for k in keys} for s in rows[::step]]
+    return [{k: s.get(k) for k in keys} for s in rows[::-step][::-1]]  # stride from the end so the newest sample is kept
 
 
 def api_queue(q):
