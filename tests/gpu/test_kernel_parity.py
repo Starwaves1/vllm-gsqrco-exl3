@@ -312,6 +312,40 @@ def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
         assert torch.equal(y, y32.to(y.dtype))
 
 
+@pytest.mark.parametrize("n", [1, 4, 8])
+@pytest.mark.parametrize("name", LCPP_TYPES)
+def test_lcpp_x_q8(tensors_by_type, name, n):
+    """The 1..8-row ops on X quantized beforehand (x_q8, as apply() shares one quantization
+    among a layer's shard runs) return exactly what they return quantizing X themselves."""
+    import torch
+
+    C = _lcpp()
+    _, x, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=950 + n)
+    x = x.cuda()
+    q8 = C.lcpp_quantize_q8_1(x, qt, False, False)
+    ops_ = [C.lcpp_mul_mat_vec_q] + ([C.lcpp_mul_mat_vec_iq3] if name in IQ3_TYPES else [])
+    for op in ops_:
+        assert torch.equal(op(w, x, qt, w.shape[0], q8), op(w, x, qt, w.shape[0]))
+
+
+def test_quantize_x_q8_1_mixed_route():
+    """A layer's runs share one q8_1 quantization of X even when the first run is not a Route L
+    type (blk.13 gate_up: IQ1_M, stock path, then IQ2_*): the bytes are those of the Route L run."""
+    import gguf
+    import torch
+
+    from vllm_gguf_plugin import ops
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    C = _lcpp()
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    T = gguf.GGMLQuantizationType
+    x = _x(4, 5120, "bfloat16", seed=77).cuda()
+    q8 = _quantize_x_q8_1(x, [int(T.IQ1_M), int(T.IQ2_XS)])
+    assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.IQ2_XS), False, False))
+
+
 @pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
 @pytest.mark.parametrize("n", [1, 4, 9])
 @pytest.mark.parametrize("mmq", [False, True], ids=["q8_1", "mmq"])
