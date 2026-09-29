@@ -81,6 +81,12 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _repo_path(path: Path) -> str:
+    """path relative to the repo when inside it (the default draft ids), else as given."""
+    path = path.resolve()
+    return str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
+
+
 def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     config = json.loads((src / "config.json").read_text())
@@ -101,7 +107,7 @@ def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
         "sources": {
             name: sha256(src / name) for name in ["config.json", *COPIED, "chat_template.jinja"]
         }
-        | {"production chat_template.jinja": sha256(template), str(draft_ids): sha256(draft_ids)},
+        | {"production chat_template.jinja": sha256(template), _repo_path(draft_ids): sha256(draft_ids)},
         "outputs": {p.name: sha256(p) for p in sorted(out.iterdir()) if p.name != "PROVENANCE.json"},
     }
     (out / "PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
