@@ -1,0 +1,34 @@
+/workspace/runs/opt-k3-k3-c8prof/trace/rank0.1790715898849652438.pt.trace.json
+5 steps; per step busy 42.79 ms, span 50.51 ms
+  mmq 21 24                 76.2 launches   7.661 ms
+  other                   1622.2 launches   6.881 ms
+  mmq 21 16                 50.8 launches   4.909 ms
+  mmq 18 24                 39.0 launches   4.303 ms
+  mmq 18 16                 26.0 launches   2.846 ms
+  mma_k 23 4                28.8 launches   2.614 ms
+  mma_k 23 2                31.6 launches   1.892 ms
+  mma_k 12 4                15.6 launches   1.357 ms
+  mmq fixup                233.6 launches   0.978 ms
+  quantize                 379.0 launches   0.897 ms
+  mma_k 12 2                10.4 launches   0.894 ms
+  mma_k 22 4                 9.0 launches   0.847 ms
+  mmq 23 24                 22.8 launches   0.805 ms
+  mma_k fixup              101.4 launches   0.780 ms
+  mmq 14 8                   6.0 launches   0.702 ms
+  mmq 17 24                  5.4 launches   0.637 ms
+  mmq 10 24                  7.8 launches   0.558 ms
+  mma_k 22 2                 6.0 launches   0.437 ms
+  mmvq 14 4                  4.0 launches   0.402 ms
+  mmq 17 16                  3.6 launches   0.388 ms
+  mmq 14 24                  3.0 launches   0.384 ms
+  mmq 10 16                  5.2 launches   0.313 ms
+  own 12 5                   1.8 launches   0.294 ms
+  mmq 16 24                  3.0 launches   0.275 ms
+  mmq 14 16                  2.0 launches   0.240 ms
+  own 12 4                   1.2 launches   0.180 ms
+  mmq 16 16                  2.0 launches   0.165 ms
+  mmq 12 24                  5.4 launches   0.066 ms
+  mmq 12 16                  3.6 launches   0.043 ms
+  mmq 23 16                  2.8 launches   0.025 ms
+  mmq 22 24                  0.6 launches   0.007 ms
+  mmq 22 16                  0.4 launches   0.004 ms

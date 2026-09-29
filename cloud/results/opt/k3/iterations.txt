@@ -111,3 +111,19 @@ shape outside 9..16 rows; 16 as before) / 0 failed; mma_k vs MMQ fp32 rel <= 5.4
 tensors incl.), 16-bit output within 1 ulp of MMQ (222 cases, 0 elements beyond); GPU guards -k lcpp
 120 passed; CPU guards 76 passed; compute-sanitizer memcheck + initcheck 0 errors on 36 mma_k cases
 (ragged n, part-filled tiles, no-fixup layout, whole tensors). Vendored files unchanged.
+
+End to end (production run_benchmarks.sh single, decode pass 1, T=0 real prompts, 350 W; one job, the
+final build then opt-k1 (e5478cd) back to back; e2e-k3final-summary.txt / e2e-k1base2-summary.txt;
+ms/step = C * 1000 / decode tok/s * tok/step; prod W4A16 27.6 / 27.3 / 30.0 / 41.3):
+  c   opt-k1: tok/s (tok/step) ms/step   final: tok/s (tok/step) ms/step
+  1   92.6 (2.96)  31.97                  94.1 (3.01)  31.99     (path unchanged: 4 rows)
+  2   158.5 (2.96) 37.35                  156.9 (2.94) 37.48     (path unchanged: 8 rows)
+  4   254.5 (2.98) 46.84                  266.7 (3.03) 45.44     -1.40 ms (-3.0 %)
+  8   428.7 (3.00) 55.98                  433.6 (3.02) 55.72     -0.26 ms (-0.5 %, within noise)
+  Pass 2 of both runs was perturbed the same way (c=1 ~82 tok/s at 80 % GPU util; an earlier opt-k1 run
+  too: e2e-k1base-summary.txt), so pass 1 is compared. c=8 in situ (c8prof-*.txt: torch profile of 5
+  steps of 8 concurrent 700-token requests): the requests end at 240-570 tokens, so the verify / draft
+  GEMMs run at 9..24 rows (MMQ J=16/24, mma_k 2/4 column tiles), not 32; GPU busy 42.8 ms of a 50.5 ms
+  step (7.7 ms host gaps); mma_k 8.0 ms + its fixup 0.78 ms (101 launches) per step (MMQ's stream-k fixup
+  in opt-k1: 1.47 ms, 335 launches). The two profile windows had different active-request mixes, so
+  they give no clean per-step A/B.
