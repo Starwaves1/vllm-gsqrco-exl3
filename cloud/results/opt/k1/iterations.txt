@@ -1,0 +1,65 @@
+K1: owned kernel for 1..8 activation rows (lcpp_mul_mat_vec_own, final: Q4_K and IQ2_S; IQ4_XS tried and dropped,
+plugin/vllm_gguf_plugin/csrc/lcpp_owned_k4.cu). Same CTA as item 5's IQ3 kernel: 4 warps x 4
+weight rows, one 32-value slice per lane, q8_1 staged in shared memory, activation slice read
+once for all 4 rows. RTX 3090 350 W, bf16 X, real GGUF blocks, op time incl. q8_1 quantize and
+output cast, 10 calls per CUDA graph.
+
+Timing: fin1-ab.tsv / ab3-ab.tsv come from k1_bench.py: every variant's graph is replayed in
+7 interleaved rounds and the median kept (the plain gemm.py runs drifted +-5 us between
+processes, as big as the effects measured). it0-micro.tsv is gemm.py.
+
+it  change                                                          us, n=4 (17408x5120 / 5120x17408)
+0   port of the IQ3 kernel structure, vendored arithmetic per slice   IQ4_XS 74.5/77.9  Q4_K 83.1/77.8
+                                                                     IQ2_S 80.7/73.6 (MMVQ 75/75, 94/99, 95/92)
+    config sweep (warps x rows 4x4 / 4x2 / 8x2 / 8x4 / 2x4, launch-bounds min blocks 5/6):
+    nothing better than 4x4 outside noise; min blocks 6 (80 regs) was slower, badly so at n=8.
+1   extra barrier-separated staging pass (IQ4_XS words reordered to the lookup's natural
+    order, Q4_K per-slice quant sums computed once per CTA)          IQ4_XS 84.4/81.7  Q4_K 95.3/110.7
+    -> the third __syncthreads per chunk costs more than the pass saves.
+    ablations on it1 (not kept): weight loads hoisted above the staging barrier (+30 regs,
+    slower: IQ4_XS n4 98.6 vs 84.5); a chunk-ahead register prefetch (slower); no final warp
+    reduction (-1..4 us); weights L2-resident (row & 15): n4 60-75 us = about the whole kernel
+    time -> at 4+ rows the kernel is issue/latency-bound, not DRAM-bound.
+2   same reordering / sums done in the staging copy itself (one q8_1 block per thread, no
+    extra barrier)                                                    IQ4_XS 69.3/66.3  Q4_K 72.3/66.3
+    variant sweep on it2 (ab3-ab.tsv, interleaved; columns own0..own7 = warps x rows, staging,
+    sub-scale fold, slices per lane: own0 4x4 int4-copy no-fold 1 (= it0 staging), own1 4x4
+    per-block no-fold 1 (= it2), own2 4x4 per-block fold 1 (final), own3 4x4 per-block fold 2,
+    own4 8x2 per-block fold 1, own5 8x2 per-block fold 2, own6 4x4 int4-copy fold 2, own7 4x2
+    per-block fold 2; IQ2_S ignores staging and fold): integer sub-scale folded into the fp32
+    block scale (kept), 2 slices per lane per chunk (kept for IQ2_S at <= 4 rows only: n4
+    64.3/59.4 vs 67.6/66.7; slower for IQ4_XS/Q4_K and for IQ2_S at 8), 8x2 / 4x2 (slower).
+final (fin1-ab.tsv)                                                   IQ4_XS 69.5/69.7  Q4_K 70.4/70.2
+                                                                     IQ2_S 63.8/61.6
+
+Other shapes of this model (small-ab.tsv; the review asked): the 16-row CTA underfills the GPU at
+1024 / 2048 rows (64 / 128 CTAs on 82 SMs): IQ4_XS n4 11.7 vs MMVQ 9.5 / 12.2 vs 11.2, Q4_K 10.4 vs
+9.7 / 12.6 vs 13.1 (n1-3 worse), IQ2_S mixed. From 5120 rows on, IQ2_S wins from 1 row and Q4_K
+from 4 (ties at 3 below 12288 rows: 27.1 vs 26.8, 27.4 vs 27.7, 43.3 vs 43.2; wins at 3 from 12288); IQ4_XS stays within +-2 us of MMVQ at n4 (10240 rows: 45.5 vs 43.9) and of MMQ at n8.
+
+In situ (torch profiler, 6 c=1 decode steps, opt-k1-final-speed vs opt-p-base-speed, first routing
+with IQ4_XS from 4 rows and no row gate), us per call at 4 rows:
+  (bucketed by grid size: "5120" mixes K=6144 and K=17408 products, identically on both sides)
+  Q4_K   1024 rows 8.4 -> 10.8, 2048 12.5 -> 13.3, 5120 50.2 -> 43.3, 6144 30.5 -> 25.9,
+         17408 78.0 -> 65.2, lm_head 1088 -> 836
+  IQ2_S  5120 78.7 -> 52.8, 6144 35.7 -> 26.5, 17408 89.8 -> 56.9
+  IQ4_XS 1024 7.1 -> 9.6, 5120 46.2 -> 46.5, 17408 65.7 -> 64.7, 34816 127.5 -> 118.0;
+         all IQ4_XS calls 25.46 -> 25.24 ms over the trace: no measurable gain.
+So IQ4_XS was dropped (kernel code included; commit 8f78f3b has it) and routing is gated to W with
+more than 2048 rows.
+
+Routing (linear.py _OWN_MIN_ROWS, up to 8 rows, W above 2048 rows): IQ2_S from 1 row, Q4_K from 3.
+MMVQ keeps Q4_K at 1..2 (0.8-5.1 us ahead of ours). At 8 rows ours beats MMQ for both.
+lm_head (248320 x 5120 Q4_K, eager at c=1 with 4 rows): 857 us vs MMVQ 1229 (its route until
+now) and MMQ 1190.
+k1_bench.py: the interleaved A/B timer (its K1_CFG variant switch existed only in the experiment builds).
+k1_tr.py: per-type, per-shape kernel times from a torch-profiler trace (the in-situ table above).
+
+End to end (final routing, 486e74b code; bench/speed decode pass 2, T=0, real prompts, 350 W;
+final2-summary.txt / final2-profile.txt / final2-insitu.txt), vs opt-p-base-speed (same box,
+f6b96bf, a few hours earlier):
+  c=1 decode 88.1 -> 93.0 tok/s (tok/step 2.97 / 2.96; ms/step 33.7 -> 31.8)
+  c=2 decode 154.3 -> 158.9 tok/s (ms/step 38.5 -> 37.3)
+  GPU busy per c=1 step 28.42 -> 27.29 ms (Q4_K incl. lm_head and IQ2_S calls: see final2-insitu.txt).
+The first routing (IQ4_XS too, no row gate) measured 94.8 / 160.1 with the same 27.30 ms busy per
+step: the 1.8 / 1.2 tok/s gap is acceptance noise (tok/step 3.01 vs 2.96), not kernel time.

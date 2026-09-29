@@ -1,0 +1,27 @@
+/workspace/runs/opt-k1-final2-speed/trace/rank0.1790662047508628374.pt.trace.json
+5 complete steps; per step: 2296 GPU activities, busy 27.29 ms, span 35.12 ms (idle 7.83)
+  gemm iq3         192.0 launches  10.293 ms
+  gemm mmvq        142.0 launches   8.093 ms
+  other            807.0 launches   5.434 ms
+  gemm other        48.0 launches   1.704 ms
+  copy/cast        548.0 launches   0.970 ms
+  q8_1 quantize    375.0 launches   0.552 ms
+  gpu_memcpy       130.0 launches   0.152 ms
+  cat               49.0 launches   0.094 ms
+  gpu_memset         5.0 launches   0.003 ms
+top non-GEMM kernels per step (launches, ms):
+    26.0   1.976  void own_mul_mat_vec<(ggml_type)12, 4>(char const*, block_q8_1 const*, float*, int, int, long)
+    15.0   0.775  void own_mul_mat_vec<(ggml_type)22, 4>(char const*, block_q8_1 const*, float*, int, int, long)
+   374.0   0.570  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+   374.0   0.550  void quantize_q8_1_x<__nv_bfloat16>(__nv_bfloat16 const*, block_q8_1*, long, long, long)
+    48.0   0.535  fused_sigmoid_gating_delta_rule_update_kernel
+   144.0   0.336  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    17.0   0.329  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64u, 1u,
+    67.0   0.306  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+    48.0   0.186  _causal_conv1d_update_kernel
+    51.0   0.151  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    39.0   0.122  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    32.0   0.116  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    63.0   0.115  Memcpy DtoD (Device -> Device)
+    19.0   0.113  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    48.0   0.092  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq

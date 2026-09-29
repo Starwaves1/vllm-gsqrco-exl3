@@ -37,12 +37,24 @@ from .utils import (
 )
 
 
-def _lcpp_reads_q8_1(n: int, weight_type: int) -> bool:
-    """Route L runs n rows of this type through a kernel that reads X as q8_1
-    blocks (MMVQ or the IQ3 kernel), not MMQ. MMQ is faster than MMVQ from 8
-    rows (cloud/results/phase2/micro/micro.tsv); IQ3_S / IQ3_XXS up to 8 rows
-    take the shim's own kernel, faster than both (cloud/results/phase3/item5)."""
-    return n < 8 or (n == 8 and weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS))
+_IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
+# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
+_OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+
+
+def _lcpp_op(n: int, weight_type: int, rows: int) -> str:
+    """The Route L op for n activation rows times a weight_type weight with
+    rows rows. All but lcpp_mul_mat_q read X as q8_1 blocks."""
+    if n <= 8 and weight_type in _IQ3_TYPES:
+        # the shim's own IQ3 kernel beats MMVQ and MMQ at 1..8 rows
+        # (cloud/results/phase3/item5)
+        return "lcpp_mul_mat_vec_iq3"
+    if _OWN_MIN_ROWS.get(weight_type, 9) <= n <= 8 and rows > 2048:
+        # Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and MMQ;
+        # its 16-row CTAs underfill the GPU at <= 2048 rows (cloud/results/opt/k1)
+        return "lcpp_mul_mat_vec_own"
+    # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)
+    return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
 
 def _fused_mul_mat_gguf(
@@ -62,11 +74,10 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        C = torch.ops._C_gguf
-        if not _lcpp_reads_q8_1(x.shape[0], weight_type):
-            return C.lcpp_mul_mat_q(weight, x, weight_type, weight.shape[0])
-        iq3 = weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS)
-        op = C.lcpp_mul_mat_vec_iq3 if iq3 else C.lcpp_mul_mat_vec_q
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0])
+        op = getattr(torch.ops._C_gguf, name)
+        if name == "lcpp_mul_mat_q":
+            return op(weight, x, weight_type, weight.shape[0])
         return op(weight, x, weight_type, weight.shape[0], x_q8)
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
         y = ops.ggml_mul_mat_vec_a8(weight, x, weight_type, weight.shape[0])
@@ -113,16 +124,22 @@ def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
         yield _shard_weight(weight, start, offsets[ids[-1]][1], size), weight_type
 
 
-def _quantize_x_q8_1(x: torch.Tensor, weight_types: list[int]) -> torch.Tensor:
-    """x as q8_1 blocks, quantized once for all products of weight_types on x
-    that read q8_1 (Route L; the same bytes each would make). When none of
-    them does (MMQ quantizes x itself, in its own layout), an unfilled buffer
-    of the same shape: no product reads it."""
+def _quantize_x_q8_1(
+    x: torch.Tensor, weight_types: list[int], weight_rows: list[int]
+) -> torch.Tensor:
+    """x as q8_1 blocks, quantized once for all products on x of weights with
+    these types and row counts that read q8_1 (Route L; the same bytes each
+    would make). When none of them does (MMQ quantizes x itself, in its own
+    layout), an unfilled buffer of the same shape: no product reads it."""
     n = x.shape[0]
-    q8_1 = [t for t in weight_types if t in ops.LCPP_QUANT_TYPES and _lcpp_reads_q8_1(n, t)]
+    q8_1 = [
+        t
+        for t, rows in zip(weight_types, weight_rows)
+        if t in ops.LCPP_QUANT_TYPES and _lcpp_op(n, t, rows) != "lcpp_mul_mat_q"
+    ]
     if n and q8_1:
         return torch.ops._C_gguf.lcpp_quantize_q8_1(x, q8_1[0], False, False)
-    return _quantize_x_q8_1_fake(x, weight_types)
+    return _quantize_x_q8_1_fake(x, weight_types, weight_rows)
 
 
 def _fused_mul_mat_gguf_fake(
@@ -153,7 +170,9 @@ def _unquantized_gemm_fake(
     return x.new_empty(x.shape[0], weight.shape[0])
 
 
-def _quantize_x_q8_1_fake(x: torch.Tensor, weight_types: list[int]) -> torch.Tensor:
+def _quantize_x_q8_1_fake(
+    x: torch.Tensor, weight_types: list[int], weight_rows: list[int]
+) -> torch.Tensor:
     # block_q8_1: 32 int8 values + a half2 (scale, sum) = 36 bytes
     return torch.empty(x.shape[0] * x.shape[1] // 32 * 36, dtype=torch.uint8, device=x.device)
 
@@ -378,7 +397,11 @@ class GGUFLinearMethod(LinearMethodBase):
             runs = list(_shard_runs(weight, shard_id, shard_weight_types))
             # Route L: the runs share one q8_1 quantization of x (the cat stays
             # outside the ops, where inductor folds it into a following split)
-            x_q8 = quantize_x_q8_1(x, [t for _, t in runs]) if ops.LCPP_ENABLED else None
+            x_q8 = (
+                quantize_x_q8_1(x, [t for _, t in runs], [w.shape[0] for w, _ in runs])
+                if ops.LCPP_ENABLED
+                else None
+            )
             out = torch.cat(
                 [fused_mul_mat_gguf_op(x, w, t, x_q8) for w, t in runs], axis=1
             )
