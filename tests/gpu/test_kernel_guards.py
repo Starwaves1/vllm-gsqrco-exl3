@@ -34,7 +34,8 @@ TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "
              ("IQ3_S", "lcpp_mmvq"), ("IQ4_XS", "lcpp_mmvq"), ("Q4_K", "lcpp_mmvq"),
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
              ("Q6_K", "lcpp_mmq"), ("IQ3_S", "lcpp_iq3"), ("IQ3_XXS", "lcpp_iq3"),
-             ("IQ3_S", "lcpp_iq3_mma"), ("IQ3_XXS", "lcpp_iq3_mma")]
+             ("IQ3_S", "lcpp_iq3_mma"), ("IQ3_XXS", "lcpp_iq3_mma"),
+             ("IQ3_S", "lcpp_iq3_mma_packed"), ("IQ3_XXS", "lcpp_iq3_mma_packed")]
 FAULT = ("illegal memory access", "misaligned address", "unspecified launch failure", "CUDA error", "an illegal instruction")
 
 
@@ -67,3 +68,9 @@ def test_iq3_mma_first_call_in_capture(name):
     """The mma op sets its launch attributes (dynamic shared memory, resident CTAs) on its first
     call in a process; that call may happen inside CUDA-graph capture."""
     test_guard_case("graph_first", (name, "lcpp_iq3_mma"))
+
+
+@pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
+def test_iq3_mma_packed_first_call_in_capture(name):
+    """The same for the packed op (its launch attributes are set per column-group variant)."""
+    test_guard_case("graph_first", (name, "lcpp_iq3_mma_packed"))

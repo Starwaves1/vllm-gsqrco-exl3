@@ -59,7 +59,10 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | 4b | one GEMM per same-type shard run (433 -> 356 per pass); dequant output not zeroed | 83.5 (b) | 146.7 (b) | 36.6 / 41.6 | yes |
 | 5 | owned IQ3_S/IQ3_XXS decode-once kernel (`lcpp_mul_mat_vec_iq3`), routed at 1..8 rows | 90.9 | 154.2 | 33.1 / 37.9 | yes |
 | K2 | owned IQ3 int8 tensor-core kernel (`lcpp_mul_mat_vec_iq3_mma`), routed at 6..8 rows (c) | 90.3 | 173.2 | 33.0 / 35.6 | yes |
+| R1 | IQ3 weights repacked at load into mma fragment order; packed mma kernel at 1..32 rows (d) | 99.9 | 184.0 | 30.0 / 32.2 | trade-off |
 
+(d) same-session A/B against opt-k2 (90.6 / 172.7): c=4 259.9 -> 310.1, c=8 439.6 -> 425.3 tok/s (flat in
+ms/step), 8k prefill 1164 -> 1009 tok/s (cloud/results/phase3/r1).
 (c) same-session A/B against this build with item-5 routing: 90.6 / 160.4 tok/s, 33.0 / 37.9 ms/step
 (cloud/results/phase3/k2). c=1 (4 rows) is unchanged by design.
 (a) item 1 at c=1 is phase 2's path (c=1 never reaches 8 rows). (b) mostly tok/step: acceptance
@@ -137,6 +140,20 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   exact int32 per slice and the vendored integer sub-scale; d_w applied once per weight block
   (fp32 order differs from MMVQ, within 1e-5 on fp32). Iteration log with 8 variants:
   cloud/results/phase3/k2/iterations.txt.
+- R1 (opt-r1): `quantization/iq3_pack.py` repacks every IQ3_S / IQ3_XXS product of a linear layer
+  at load (`GGUFLinearMethod._pack_iq3`, VLLM_GGUF_LCPP=1, in place, same bytes, bijective, rows
+  % 16 == 0; `weight.iq3_packed` marks it) into one 16-row x 1-block record per weight block with
+  each mma lane's bytes contiguous: grid-index bytes in the A fragment's k order, then the 5 bits
+  above each index (IQ3_S) or the pair's 7 sign bits re-coded so the table rebuilds both 4th
+  signs (IQ3_XXS), then sub-scales and d per row pair. `lcpp_mul_mat_vec_iq3_mma_packed` is K2's
+  kernel reading that layout: 6 coalesced loads per lane per block, one prmt per table index, no
+  shared-memory staging of weights. Bit-exact with K2's kernel (per output column, 8 rows at a
+  time, also at 9..32 rows). IQ3_S 17408x5120 n=1/4/8/16/32: 52.5/53.8/59.9/82.5/156.1 us (was
+  55.1 dp4a / 71.7 dp4a / 83.0 mma / 134.7 MMQ / 158.7 MMQ; DRAM floor ~47). Above 32 rows W is
+  unpacked into a scratch copy (`lcpp_iq3_unpack`, 95 us for 38 MB) for vendored MMQ: that is the
+  trade-off, 8k prefill -13 % (every 128-token chunk unpacks 5.7 GB of IQ3 weights). Load +7.9 s,
+  KV cache -0.9 %. Decode: c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 flat. Gone only when owned kernels
+  take prefill-sized row counts too. Log: cloud/results/phase3/r1/iterations.txt.
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
   Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment
   assumption (`__align__(16)` on the staged q8_1 tile), the unlogged test claims (logs now

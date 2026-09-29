@@ -1,0 +1,10 @@
+/workspace/logs/opt/r1/quickpar.py:14: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  w = torch.from_numpy(raw).cuda()
+packed vs mma: 96/96 bit-equal
+unpack IQ3_S (10240, 2200) 58.2 us 774 GB/s (read+write)
+unpack IQ3_S (5120, 7480) 95.2 us 805 GB/s (read+write)
+unpack IQ3_S (6144, 2200) 37.3 us 725 GB/s (read+write)
+unpack IQ3_XXS (6144, 1960) 32.4 us 743 GB/s (read+write)
+unpack IQ3_XXS (10240, 1960) 51.8 us 775 GB/s (read+write)
+unpack IQ3_XXS (17408, 1960) 85.1 us 801 GB/s (read+write)
+cuda unpack == original: 6/6

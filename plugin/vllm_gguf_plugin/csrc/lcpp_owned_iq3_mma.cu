@@ -8,6 +8,9 @@
 // columns (columns >= ncols are zero), so the per-column dp4a work of the dp4a
 // kernel (iq3_mul_mat_vec in lcpp_shim.cu) is gone and the cost is flat in ncols.
 //
+// (Below the kernel on the GGUF bytes, the same kernel on the packed layout of
+// quantization/iq3_pack.py, and the packed -> GGUF unpack for MMQ.)
+//
 // Layout: persistent CTAs of 4 warps; a CTA takes 16-row tiles, its warps split
 // K by weight block (warp w: blocks w, w+4, ...). Per block a warp
 //   - copies its 16 rows' block bytes into shared memory with coalesced 8-byte
@@ -338,6 +341,352 @@ void launch(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblo
       vx, y, dst, nrows, nblocks, row_bytes, ncols);
 }
 
+// ---------------------------------------------------------------------------
+// The same product on the packed layout (quantization/iq3_pack.py, applied at load by
+// GGUFLinearMethod._pack_iq3), 1..32 activation rows. Per 16-row tile and weight block W holds
+// one 16-byte aligned record with each lane's bytes in mma fragment order, so a lane fetches
+// them with 6 coalesced loads straight into registers (no staging copy, no 2-byte shared
+// loads), and a word's table index is one byte permute (IQ3_S: grid index byte + the 5 bits
+// above it) or permute + mask (IQ3_XXS: the pack re-codes each pair's 7 sign bits so that the
+// table rebuilds both 4th signs; no parity per word). Tiles, warps, mma, sub-scales and the
+// fp32 order are the kernel above's: at 1..8 rows the two are bit-identical, and above 8 each
+// output column is computed exactly as in an 8-row call. cloud/results/phase3/r1 has the data.
+
+template <ggml_type type>
+struct packed_traits;
+template <>
+struct packed_traits<GGML_TYPE_IQ3_S> {
+  static constexpr int frag = 1664;  // bytes of lane data before the sub-scales and d
+};
+template <>
+struct packed_traits<GGML_TYPE_IQ3_XXS> {
+  static constexpr int frag = 1472;
+};
+
+struct pfrag {
+  int4 q0, q1;   // grid-index bytes of rows g, g+8: byte 2s+e (of 16) = word 2t+e of slice s
+  uint4 h;       // IQ3_S: H0..H3; IQ3_XXS: B0, B1, B2 (bit 7 of each byte: B3's bytes 2, 3)
+  uint32_t h4;   // IQ3_S: H4; IQ3_XXS: B3's bytes 0, 1
+  uint2 sc;      // sub-scale nibbles of rows g, g+8
+  uint32_t d;    // half2: d of rows g, g+8
+};
+
+template <ggml_type type>
+static __device__ __forceinline__ void pload(pfrag& f, const char* __restrict__ tb, int lane) {
+  constexpr int fb = packed_traits<type>::frag;
+  f.q0 = *(const int4*)(tb + 16 * lane);
+  f.q1 = *(const int4*)(tb + 512 + 16 * lane);
+  if (type == GGML_TYPE_IQ3_S) {
+    f.h = *(const uint4*)(tb + 1024 + 16 * lane);
+    f.h4 = *(const uint32_t*)(tb + 1536 + 4 * lane);
+  } else {
+    const uint2 b01 = *(const uint2*)(tb + 1024 + 8 * lane);
+    f.h = make_uint4(b01.x, b01.y, *(const uint32_t*)(tb + 1280 + 4 * lane), 0u);
+    f.h4 = *(const uint16_t*)(tb + 1408 + 2 * lane);
+  }
+  f.sc = *(const uint2*)(tb + fb + 8 * (lane / 4));
+  f.d = *(const uint32_t*)(tb + fb + 64 + 4 * (lane / 4));
+}
+
+template <int c>
+static __device__ __forceinline__ uint32_t comp(const int4& v) {
+  return (uint32_t)(c == 0 ? v.x : c == 1 ? v.y : c == 2 ? v.z : v.w);
+}
+
+// Per-block words the table indices are cut from: IQ3_S X0..X7 (byte j of X[4R + c]: the 5
+// bits above the grid index of word 2t + (j & 1), slice 2c + (j >> 1), row g + 8R, bits 5-7
+// zero); IQ3_XXS B0..B3 (byte s % 4 of B[2R + s / 4]: slice s's re-coded sign byte, bit 7
+// don't-care) and B >> 3 (the second word's nibble in bits 0-3).
+template <ggml_type type>
+struct pwords {
+  uint32_t x[8];
+};
+static __device__ __forceinline__ void pdecode(pwords<GGML_TYPE_IQ3_S>& w, const pfrag& f) {
+  w.x[0] = f.h.x & 0x1F1F1F1Fu;
+  w.x[1] = f.h.y & 0x1F1F1F1Fu;
+  w.x[2] = f.h.z & 0x1F1F1F1Fu;
+  w.x[3] = f.h.w & 0x1F1F1F1Fu;
+  w.x[4] = f.h4 & 0x1F1F1F1Fu;
+  w.x[5] = ((f.h.x >> 5) & 0x07070707u) | ((f.h.y >> 2) & 0x18181818u);
+  w.x[6] = ((f.h.z >> 5) & 0x07070707u) | ((f.h.w >> 2) & 0x18181818u);
+  w.x[7] = ((f.h4 >> 5) & 0x07070707u) | ((f.h.y >> 4) & 0x08080808u) | ((f.h.w >> 3) & 0x10101010u);
+}
+static __device__ __forceinline__ uint32_t spare4(uint32_t v) {  // bit 7 of each byte, byte 0 first
+  return (((v >> 7) & 0x01010101u) * 0x01020408u) >> 24;
+}
+static __device__ __forceinline__ void pdecode(pwords<GGML_TYPE_IQ3_XXS>& w, const pfrag& f) {
+  const uint32_t sp = spare4(f.h.x) | spare4(f.h.y) << 4 | spare4(f.h.z) << 8 | ((f.h4 >> 7) & 1u) << 12 |
+                      ((f.h4 >> 15) & 1u) << 13;
+  w.x[0] = f.h.x;
+  w.x[1] = f.h.y;
+  w.x[2] = f.h.z;
+  w.x[3] = f.h4 | (sp & 0x7Fu) << 16 | (sp >> 7) << 24;
+#pragma unroll
+  for (int i = 0; i < 4; ++i) w.x[4 + i] = w.x[i] >> 3;
+}
+
+// Slice s's A fragment: a0/a2 = row g words 2t/2t+1, a1/a3 = row g+8.
+template <int s>
+static __device__ __forceinline__ void pslice(const pwords<GGML_TYPE_IQ3_S>& w, const pfrag& f,
+                                              const uint32_t* table, int& a0, int& a1, int& a2, int& a3) {
+  constexpr int c = s / 2;
+  constexpr uint32_t j0 = 2 * (s % 2), j1 = j0 + 1;
+  // bytes: grid index, X byte j, then 0 (X's bit 7, replicated)
+  constexpr uint32_t s0 = j0 | (4 + j0) << 4 | (0xC + j0) << 8 | (0xC + j0) << 12;
+  constexpr uint32_t s1 = j1 | (4 + j1) << 4 | (0xC + j1) << 8 | (0xC + j1) << 12;
+  const uint32_t qa = comp<c>(f.q0), qb = comp<c>(f.q1);
+  a0 = table[prmt(qa, w.x[c], s0)];
+  a2 = table[prmt(qa, w.x[c], s1)];
+  a1 = table[prmt(qb, w.x[4 + c], s0)];
+  a3 = table[prmt(qb, w.x[4 + c], s1)];
+}
+template <int s>
+static __device__ __forceinline__ void pslice(const pwords<GGML_TYPE_IQ3_XXS>& w, const pfrag& f,
+                                              const uint32_t* table, int& a0, int& a1, int& a2, int& a3) {
+  constexpr int c = s / 2, k = s % 4, r = s / 4;
+  constexpr uint32_t j0 = 2 * (s % 2), j1 = j0 + 1;
+  constexpr uint32_t s0 = j0 | (4 + k) << 4, s1 = j1 | (4 + k) << 4;  // bytes 2, 3 masked off
+  const uint32_t qa = comp<c>(f.q0), qb = comp<c>(f.q1);
+  a0 = table[prmt(qa, w.x[r], s0) & 0x0FFFu];
+  a2 = table[4096 + (prmt(qa, w.x[4 + r], s1) & 0x0FFFu)];
+  a1 = table[prmt(qb, w.x[2 + r], s0) & 0x0FFFu];
+  a3 = table[4096 + (prmt(qb, w.x[6 + r], s1) & 0x0FFFu)];
+}
+
+static __device__ __forceinline__ uint32_t negate(uint32_t g, uint32_t signs) {
+  // the IQ3 grids have no zero byte, so (g ^ 0xFF) + 1 per byte never carries
+  const uint32_t ones = (signs * 0x00204081u) & 0x01010101u;
+  return (g ^ (ones * 0xFFu)) + ones;
+}
+
+// NG groups of 8 activation columns (1..8 * NG columns): per slice the A fragment is cut once
+// and used by NG mmas. Each output column is computed as at NG = 1, in the same order.
+template <ggml_type type, int NG>
+static __global__ void __launch_bounds__(THREADS)
+iq3_mma_packed(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, float* __restrict__ dst,
+               const int nrows, const int nblocks, const int ncols) {
+  using tr = traits<type>;
+  constexpr int ycols = 8 * NG;
+  constexpr int nstage = (ycols * 18 + WARP_SIZE - 1) / WARP_SIZE;
+  constexpr int64_t tbytes = ROWS * sizeof(typename tr::block);
+  // IQ3_S: T[q | sign nibble << 8 | qh << 12]; IQ3_XXS: T[q | n << 8] for a pair's first word
+  // (n = its 3 signs + the nibble's parity) and T[4096 + (q | n << 8)] for the second (n = the
+  // first's parity + its 3 signs); the 4th sign is the parity of the other 3 and n's parity bit.
+  __shared__ uint32_t table[8192];
+  extern __shared__ __align__(16) int dyn_p[];  // [WARPS][ycols * Y_COL] staging, [WARPS][NG * 128] sums
+
+  const int lane = threadIdx.x, warp = threadIdx.y, tid = warp * WARP_SIZE + lane;
+  for (int i = tid; i < 8192; i += THREADS) {
+    const uint32_t q = i & 0xFF, n = (i >> 8) & 0xF;
+    uint32_t gv, signs;
+    if (type == GGML_TYPE_IQ3_S) {
+      gv = iq3s_grid[q | (i >> 12) << 8];
+      signs = n;
+    } else {
+      gv = iq3xxs_grid[q];
+      signs = i < 4096 ? (n & 7) | ((n >> 3) ^ (__popc(n & 7) & 1)) << 3
+                       : (n >> 1) | ((n & 1) ^ (__popc(n >> 1) & 1)) << 3;
+    }
+    table[i] = negate(gv, signs);
+  }
+  int* yt = dyn_p + warp * ycols * Y_COL;
+  float* red = (float*)(dyn_p + WARPS * ycols * Y_COL);
+  for (int i = ncols * Y_COL + lane; i < ycols * Y_COL; i += WARP_SIZE) yt[i] = 0;  // columns >= ncols
+  __syncthreads();
+
+  const int nby = nblocks * SLICES;
+  const int g = lane / 4, t = lane % 4;
+  const int ntiles = nrows / ROWS;
+  int ysrc[nstage], ydst[nstage];
+#pragma unroll
+  for (int c = 0; c < nstage; ++c) {
+    const int i = min(lane + WARP_SIZE * c, ncols * 18 - 1), j = i / 18, e = i - 18 * j;
+    ysrc[c] = j * (nby / 4) * 9 + e;
+    ydst[c] = j * (Y_COL / 4) + e;
+  }
+  const int* yb = yt + g * Y_COL + 1 + 2 * t;
+  const int* yd0 = yt + 2 * t * Y_COL;
+  const int* yd1 = yd0 + Y_COL;
+  const int4* y4 = reinterpret_cast<const int4*>(vy);
+
+  pfrag fn;
+  int4 yn[nstage];
+  auto fetch = [&](int tl, int bl) {
+    pload<type>(fn, vx + ((int64_t)tl * nblocks + bl) * tbytes, lane);
+#pragma unroll
+    for (int c = 0; c < nstage; ++c) {
+      if (lane + WARP_SIZE * c < ncols * 18) yn[c] = y4[18 * bl + ysrc[c]];
+    }
+  };
+
+  int tile = blockIdx.x, b = warp;
+  if (tile < ntiles && b < nblocks) fetch(tile, b);
+  for (; tile < ntiles; tile += gridDim.x) {
+    float acc[NG][4] = {};
+    for (; b < nblocks; b += WARPS) {
+#pragma unroll
+      for (int c = 0; c < nstage; ++c) {
+        if (lane + WARP_SIZE * c < ncols * 18) reinterpret_cast<int4*>(yt)[ydst[c]] = yn[c];
+      }
+      const pfrag f = fn;  // this block's weight words; fn takes the next block's
+      {
+        int nb = b + WARPS, nt = tile;
+        if (nb >= nblocks) {
+          nb = warp;
+          nt = tile + gridDim.x;
+        }
+        if (nt < ntiles && nb < nblocks) fetch(nt, nb);
+      }
+      __syncwarp();
+      pwords<type> w;
+      pdecode(w, f);
+      float bacc[NG][4] = {};
+#define IQ3_MMA_PSTEP(s)                                                                            \
+      {                                                                                             \
+        int a0, a1, a2, a3;                                                                         \
+        pslice<s>(w, f, table, a0, a1, a2, a3);                                                     \
+        const int l0 = 1 + 2 * ((f.sc.x >> (4 * (s))) & 0xF), l1 = 1 + 2 * ((f.sc.y >> (4 * (s))) & 0xF); \
+        _Pragma("unroll")                                                                           \
+        for (int j = 0; j < NG; ++j) {                                                              \
+          const int b0 = yb[8 * j * Y_COL + (s) * Y_BLOCK], b1 = yb[8 * j * Y_COL + (s) * Y_BLOCK + 1]; \
+          int c0 = 0, c1 = 0, c2 = 0, c3 = 0;                                                       \
+          asm("mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 {%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%0, %1, %2, %3};" \
+              : "+r"(c0), "+r"(c1), "+r"(c2), "+r"(c3)                                             \
+              : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(b0), "r"(b1));                             \
+          const float dq0 = __low2float(*(const half2*)(yd0 + 8 * j * Y_COL + (s) * Y_BLOCK));     \
+          const float dq1 = __low2float(*(const half2*)(yd1 + 8 * j * Y_COL + (s) * Y_BLOCK));     \
+          bacc[j][0] += dq0 * (float)scaled<type>(c0, l0);                                         \
+          bacc[j][1] += dq1 * (float)scaled<type>(c1, l0);                                         \
+          bacc[j][2] += dq0 * (float)scaled<type>(c2, l1);                                         \
+          bacc[j][3] += dq1 * (float)scaled<type>(c3, l1);                                         \
+        }                                                                                           \
+      }
+      IQ3_MMA_PSTEP(0) IQ3_MMA_PSTEP(1) IQ3_MMA_PSTEP(2) IQ3_MMA_PSTEP(3)
+      IQ3_MMA_PSTEP(4) IQ3_MMA_PSTEP(5) IQ3_MMA_PSTEP(6) IQ3_MMA_PSTEP(7)
+#undef IQ3_MMA_PSTEP
+      const float2 dw = __half22float2(*(const half2*)&f.d);
+#pragma unroll
+      for (int j = 0; j < NG; ++j) {
+        acc[j][0] += dw.x * bacc[j][0];
+        acc[j][1] += dw.x * bacc[j][1];
+        acc[j][2] += dw.y * bacc[j][2];
+        acc[j][3] += dw.y * bacc[j][3];
+      }
+      __syncwarp();
+    }
+    b = warp;
+
+    // the warps' sums, added in warp order
+#pragma unroll
+    for (int j = 0; j < NG; ++j) {
+#pragma unroll
+      for (int e = 0; e < 4; ++e) red[(warp * NG + j) * 128 + e * WARP_SIZE + lane] = acc[j][e];
+    }
+    __syncthreads();
+    for (int i = tid; i < NG * 128; i += THREADS) {
+      const int j = i / 128, e = (i / WARP_SIZE) % 4, l = i % WARP_SIZE;
+      const int row = tile * ROWS + l / 4 + 8 * (e / 2), col = 8 * j + 2 * (l % 4) + e % 2;
+      float sum = red[j * 128 + e * WARP_SIZE + l];
+#pragma unroll
+      for (int w = 1; w < WARPS; ++w) sum += red[(w * NG + j) * 128 + e * WARP_SIZE + l];
+      if (col < ncols) dst[(int64_t)col * nrows + row] = sum;
+    }
+    __syncthreads();
+  }
+}
+
+// 44 KB of shared memory at NG = 1 (2 CTAs per SM), 54 / 77 KB at NG = 2 / 4 (1 CTA per SM).
+template <ggml_type type, int NG>
+void launch_packed(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblocks, int ncols,
+                   cudaStream_t stream) {
+  constexpr size_t bytes = (size_t)WARPS * (8 * NG * Y_COL + NG * 128) * 4;
+  static int ctas[16] = {0};
+  int dev = 0;
+  CUDA_CHECK(cudaGetDevice(&dev));
+  GGML_ASSERT(dev < 16);
+  if (ctas[dev] == 0) {
+    CUDA_CHECK(cudaFuncSetAttribute(iq3_mma_packed<type, NG>, cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                    (int)bytes));
+    int occ = 0, sms = 0;
+    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, iq3_mma_packed<type, NG>, THREADS, bytes));
+    CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, dev));
+    ctas[dev] = std::max(1, occ) * sms;
+  }
+  const int ntiles = nrows / ROWS;
+  iq3_mma_packed<type, NG><<<std::min(ntiles, ctas[dev]), dim3(WARP_SIZE, WARPS), bytes, stream>>>(
+      vx, y, dst, nrows, nblocks, ncols);
+}
+
+// Packed -> GGUF bytes (the inverse of quantization/iq3_pack.py's pack), for the paths that
+// read the GGUF layout (vendored MMQ). One warp per tile-block: it decodes its lane words as
+// the product kernel does, assembles the 16 rows' blocks in shared memory and writes them out.
+template <ggml_type type>
+static __global__ void __launch_bounds__(THREADS)
+iq3_unpack(const char* __restrict__ src, char* __restrict__ dst, const int ntb, const int nblocks) {
+  using block = typename traits<type>::block;
+  constexpr int bs = sizeof(block);
+  constexpr int64_t tbytes = ROWS * bs;
+  __shared__ __align__(4) uint8_t out[WARPS][ROWS * bs];
+  const int lane = threadIdx.x, warp = threadIdx.y;
+  const int g = lane / 4, t = lane % 4;
+  uint8_t* o = out[warp];
+  for (int tb = blockIdx.x * WARPS + warp; tb < ntb; tb += gridDim.x * WARPS) {
+    pfrag f;
+    pload<type>(f, src + tb * tbytes, lane);
+    pwords<type> w;
+    pdecode(w, f);
+#pragma unroll
+    for (int R = 0; R < 2; ++R) {
+      uint8_t* ob = o + (g + 8 * R) * bs;
+      const int4 q = R ? f.q1 : f.q0;
+      const uint32_t qw[4] = {(uint32_t)q.x, (uint32_t)q.y, (uint32_t)q.z, (uint32_t)q.w};
+      if (t == 0) {
+        *(uint16_t*)ob = (uint16_t)((R ? f.d >> 16 : f.d) & 0xFFFF);
+      }
+#pragma unroll
+      for (int s = 0; s < SLICES; ++s) {
+        const int c = s / 2, j0 = 2 * (s % 2);
+        ob[2 + 8 * s + 2 * t] = (uint8_t)(qw[c] >> (8 * j0));
+        ob[2 + 8 * s + 2 * t + 1] = (uint8_t)(qw[c] >> (8 * (j0 + 1)));
+        uint32_t v;  // this lane's bits of the slice's qh byte (IQ3_S) / sign word (IQ3_XXS)
+        if (type == GGML_TYPE_IQ3_S) {
+          const uint32_t h0 = (w.x[4 * R + c] >> (8 * j0)) & 0x1F, h1 = (w.x[4 * R + c] >> (8 * (j0 + 1))) & 0x1F;
+          ob[offsetof(block_iq3_s, signs) + 4 * s + t] = (uint8_t)((h0 & 0xF) | (h1 & 0xF) << 4);
+          v = (h0 >> 4 | (h1 >> 4) << 1) << (2 * t);
+        } else {
+          const uint32_t b = (w.x[2 * R + s / 4] >> (8 * (s % 4))) & 0x7F;  // re-coded 7 bits
+          const uint32_t e3 = ((b >> 3) ^ __popc(b & 7)) & 1;
+          v = ((b & 7) | e3 << 3 | (b & 0x70)) << (7 * t);
+        }
+        v |= __shfl_xor_sync(0xFFFFFFFFu, v, 1);
+        v |= __shfl_xor_sync(0xFFFFFFFFu, v, 2);
+        const uint32_t sc = ((R ? f.sc.y : f.sc.x) >> (4 * s)) & 0xF;
+        if (t == 0) {
+          if (type == GGML_TYPE_IQ3_S) {
+            ob[offsetof(block_iq3_s, qh) + s] = (uint8_t)v;
+          } else {
+            const uint32_t aux = v | sc << 28;
+#pragma unroll
+            for (int i = 0; i < 4; ++i) ob[2 + QK_K / 4 + 4 * s + i] = (uint8_t)(aux >> (8 * i));
+          }
+        }
+        if (type == GGML_TYPE_IQ3_S && t == 1 && s % 2 == 0) {
+          const uint32_t sc2 = ((R ? f.sc.y : f.sc.x) >> (4 * s)) & 0xFF;
+          ob[offsetof(block_iq3_s, scales) + s / 2] = (uint8_t)sc2;
+        }
+      }
+    }
+    __syncwarp();
+    const int tile = tb / nblocks, b = tb - tile * nblocks;
+    char* d0 = dst + (int64_t)tile * tbytes * nblocks + (int64_t)b * bs;  // row r at + r * nblocks * bs
+    for (int i = lane; i < ROWS * bs / 2; i += WARP_SIZE) {
+      const int r = i / (bs / 2), e = i - r * (bs / 2);
+      *(uint16_t*)(d0 + (int64_t)r * nblocks * bs + 2 * e) = *(const uint16_t*)(o + r * bs + 2 * e);
+    }
+    __syncwarp();
+  }
+}
+
 }  // namespace
 
 // W [nrows, row_bytes] IQ3_S/IQ3_XXS blocks, contiguous rows, 16-byte aligned; vy: ncols
@@ -348,4 +697,29 @@ void iq3_mma_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, fl
   GGML_ASSERT(ncols >= 1 && ncols <= 8);
   (type == GGML_TYPE_IQ3_S ? launch<GGML_TYPE_IQ3_S> : launch<GGML_TYPE_IQ3_XXS>)(
       vx, y, dst, nrows, k / QK_K, row_bytes, ncols, stream);
+}
+
+// The same on W packed by quantization/iq3_pack.py (nrows % 16 == 0), 1..32 activation rows.
+template <ggml_type type>
+static void launch_packed_n(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblocks, int ncols,
+                            cudaStream_t stream) {
+  (ncols <= 8 ? launch_packed<type, 1> : ncols <= 16 ? launch_packed<type, 2> : launch_packed<type, 4>)(
+      vx, y, dst, nrows, nblocks, ncols, stream);
+}
+
+void iq3_mma_packed_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy, float* dst,
+                                     int nrows, int k, int ncols, cudaStream_t stream) {
+  const block_q8_1* y = (const block_q8_1*)vy;
+  GGML_ASSERT(ncols >= 1 && ncols <= 32 && nrows % ROWS == 0);
+  (type == GGML_TYPE_IQ3_S ? launch_packed_n<GGML_TYPE_IQ3_S> : launch_packed_n<GGML_TYPE_IQ3_XXS>)(
+      vx, y, dst, nrows, k / QK_K, ncols, stream);
+}
+
+// dst [nrows, nblocks * block bytes] GGUF blocks from src packed by quantization/iq3_pack.py.
+void iq3_unpack_cuda(ggml_type type, const char* src, char* dst, int nrows, int nblocks, cudaStream_t stream) {
+  GGML_ASSERT(nrows % ROWS == 0);
+  const int ntb = nrows / ROWS * nblocks;
+  const int grid = std::min((ntb + WARPS - 1) / WARPS, 65535);
+  (type == GGML_TYPE_IQ3_S ? iq3_unpack<GGML_TYPE_IQ3_S> : iq3_unpack<GGML_TYPE_IQ3_XXS>)
+      <<<grid, dim3(WARP_SIZE, WARPS), 0, stream>>>(src, dst, ntb, nblocks);
 }

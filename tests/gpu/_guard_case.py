@@ -4,6 +4,7 @@ process). Prints one JSON line: status = ok (ran, result correct) | rejected (cl
 exception before any bad access) | mismatch (ran, silently wrong).
 
   python tests/gpu/_guard_case.py CASE TYPE OP     OP = mmvq | mmq | lcpp_mmvq | lcpp_mmq | lcpp_iq3 | lcpp_iq3_mma
+                                                                    | lcpp_iq3_mma_packed (W packed first)
 
 Cases (the kernels use data_ptr() only; no contiguity, stride or alignment checks,
 gguf_kernel.cu:98,118-285 per STATUS):
@@ -49,15 +50,20 @@ def main() -> None:
           "lcpp_mmvq": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_q", None),
           "lcpp_mmq": getattr(torch.ops._C_gguf, "lcpp_mul_mat_q", None),
           "lcpp_iq3": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_iq3", None),
-          "lcpp_iq3_mma": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_iq3_mma", None)}[op]
+          "lcpp_iq3_mma": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_iq3_mma", None),
+          "lcpp_iq3_mma_packed": getattr(torch.ops._C_gguf, "lcpp_mul_mat_vec_iq3_mma_packed", None)}[op]
     if fn is None:
         raise SystemExit(f"{op}: _C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
     # lcpp MMQ at 5 rows: below upstream's J_max tail, where only the shim's zeroed tail
     # keeps the tile reads defined
-    n = {"mmvq": N, "lcpp_mmvq": N, "lcpp_iq3": N, "lcpp_iq3_mma": N, "mmq": 64, "lcpp_mmq": 5}[op]
+    n = {"mmvq": N, "lcpp_mmvq": N, "lcpp_iq3": N, "lcpp_iq3_mma": N, "lcpp_iq3_mma_packed": 16, "mmq": 64, "lcpp_mmq": 5}[op]
     g = torch.Generator().manual_seed(0)
     x = torch.randn(n, k, generator=g).to(torch.bfloat16)
     w = torch.from_numpy(raw).cuda()
+    if op == "lcpp_iq3_mma_packed":
+        from vllm_gguf_plugin.quantization import iq3_pack
+
+        w = iq3_pack.pack(w, qt)
     xc = x.cuda()
     row = w.shape[0]
     ref_raw, ref_x = raw, x

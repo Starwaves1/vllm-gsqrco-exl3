@@ -12,6 +12,7 @@ Variants (only where production could route them):
   lcpp_mmq       torch.ops._C_gguf.lcpp_mul_mat_q
   lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
   lcpp_iq3_mma   torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma (the same on int8 tensor cores), n <= 8
+  lcpp_iq3_mma_packed  the same on W packed by quantization/iq3_pack.py, n <= 8
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -50,7 +51,7 @@ def weight(reader, name, rows, k):
     return torch.from_numpy(np.ascontiguousarray(blocks[idx]).reshape(rows, -1)).cuda(), int(qt)
 
 
-def variants(name, qt, rows, k, n):
+def variants(name, qt, rows, k, n, packed=None):
     C = torch.ops._C_gguf
     v = {}
     if n <= 16:
@@ -65,7 +66,24 @@ def variants(name, qt, rows, k, n):
         v["lcpp_iq3"] = lambda w, x: C.lcpp_mul_mat_vec_iq3(w, x, qt, rows)
         if hasattr(C, "lcpp_mul_mat_vec_iq3_mma"):
             v["lcpp_iq3_mma"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma(w, x, qt, rows)
+    if n <= 32 and name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_vec_iq3_mma_packed"):
+        v["lcpp_iq3_mma_packed"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma_packed(packed(w), x, qt, rows)
     return v
+
+
+def _packer(qt):
+    """w -> its packed bytes, packed once per weight (outside the timed calls)."""
+    from vllm_gguf_plugin.quantization import iq3_pack
+
+    cache = {}
+
+    def packed(w):
+        if w.data_ptr() not in cache:
+            cache.clear()
+            cache[w.data_ptr()] = iq3_pack.pack(w, qt)
+        return cache[w.data_ptr()]
+
+    return packed
 
 
 def time_graph(fn, w, x):
@@ -119,12 +137,13 @@ def main():
     print(f"{torch.cuda.get_device_name()}  X bf16, {PER_GRAPH} calls per graph", flush=True)
     for name, (rows, k) in cases:
         w, qt = weight(reader, name, rows, k)
+        packed = _packer(qt)
         mb = w.numel() / 1e6
         print(f"\n{name} {rows}x{k} ({mb:.1f} MB)", flush=True)
         for n in tokens:
             x = torch.randn(n, k, device="cuda", dtype=torch.bfloat16)
             row = []
-            for vname, fn in variants(name, qt, rows, k, n).items():
+            for vname, fn in variants(name, qt, rows, k, n, packed).items():
                 if args.variants and vname not in args.variants.split(","):
                     continue
                 g = time_graph(fn, w, x)
