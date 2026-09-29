@@ -11,10 +11,11 @@ tokenizer as the GGUF):
   generation_config.json, tokenizer.json, tokenizer_config.json, vocab.json,
   merges.txt, preprocessor_config.json, processor_config.json,
   video_preprocessor_config.json      byte-identical copies
-  mtp_draft_vocab_ids.pt the 40,960 draft-head token ids production's pipeline
-                         made for Swift (build_draft_vocab.py --ids, in the
-                         W4A16 -prepared dir); with it, the vLLM overlay's MTP
-                         draft scores only these rows of the lm_head
+  mtp_draft_vocab_ids.pt the draft-head token ids: --draft-ids, by default the
+                         40,960 production's pipeline made for Swift
+                         (build_draft_vocab.py --ids, in the W4A16 -prepared
+                         dir); with it, the vLLM overlay's MTP draft scores only
+                         these rows of the lm_head
   chat_template.jinja    production's template (--chat-template of the live
                          server). transformers prefers this file over the
                          chat_template entry in tokenizer_config.json
@@ -25,7 +26,7 @@ Keep the dir path unique to this model: vLLM's fs KV tier namespaces its keys
 by model_config.model, which the plugin sets to this dir.
 
 usage:
-  make_hf_config.py build  [--src DIR] [--template FILE] [--out DIR]
+  make_hf_config.py build  [--src DIR] [--template FILE] [--draft-ids FILE] [--out DIR]
   make_hf_config.py verify [--out DIR] [--gguf FILE] [--template FILE]
 Run it under tools/capped with GSQ_LIGHT=1.
 """
@@ -79,7 +80,7 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def build(src: Path, template: Path, out: Path) -> None:
+def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     config = json.loads((src / "config.json").read_text())
     config.pop("quantization_config")
@@ -87,7 +88,7 @@ def build(src: Path, template: Path, out: Path) -> None:
     for name in COPIED:
         shutil.copyfile(src / name, out / name)
     shutil.copyfile(template, out / "chat_template.jinja")
-    shutil.copyfile(DRAFT_IDS, out / DRAFT_IDS.name)
+    shutil.copyfile(draft_ids, out / DRAFT_IDS.name)
     provenance = {
         "source_dir": str(src),
         "chat_template_source": str(template),
@@ -98,7 +99,7 @@ def build(src: Path, template: Path, out: Path) -> None:
         "sources": {
             name: sha256(src / name) for name in ["config.json", *COPIED, "chat_template.jinja"]
         }
-        | {"production chat_template.jinja": sha256(template), str(DRAFT_IDS): sha256(DRAFT_IDS)},
+        | {"production chat_template.jinja": sha256(template), str(draft_ids): sha256(draft_ids)},
         "outputs": {p.name: sha256(p) for p in sorted(out.iterdir()) if p.name != "PROVENANCE.json"},
     }
     (out / "PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
@@ -209,11 +210,12 @@ def main() -> None:
     p.add_argument("cmd", choices=["build", "verify"])
     p.add_argument("--src", type=Path, default=DEFAULT_SRC)
     p.add_argument("--template", type=Path, default=DEFAULT_TEMPLATE)
+    p.add_argument("--draft-ids", type=Path, default=DRAFT_IDS)
     p.add_argument("--gguf", type=Path, default=DEFAULT_GGUF)
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = p.parse_args()
     if args.cmd == "build":
-        build(args.src, args.template, args.out)
+        build(args.src, args.template, args.draft_ids, args.out)
     else:
         verify(args.out, args.gguf, args.template)
 
