@@ -1,0 +1,185 @@
+Optimization campaign, agent P (plumbing): everything but new matmul kernels. Rented RTX 3090, 350 W,
+same box as phase 3. Route L on (VLLM_GGUF_LCPP=1). Branch opt-p (box /workspace/wt-p, local
+/tmp/gsq-wt-p). Each measured stage ran from a frozen copy of the worktree (wt-p-<stage>).
+
+Method (box-scripts/speed.sh, one gpuq job per server): production run_benchmarks.sh single via
+bench/speed/run.sh gsq, decode only (no prefill ladder), 2 passes; then a torch-profiler capture of
+6 c=1 decode steps on the same server (phase 3's p3-profile.sh request; profiler configured at start,
+idle until /start_profile), summarised by box-scripts/pstep.py over the 5 complete steps.
+Decode = pass 2 T=0 cohorts (pass 1 in brackets); ms/step = C * 1000 / tok/s * tok/step.
+MTP drafts are sampled (draft_sample_method probabilistic), so tok/step moves run to run even at T=0:
+s3b re-ran s2's code (its only change was dead code for this model) and differs by
++0.9 / +1.7 tok/s: run-to-run noise is ~1%. Launch counts are exact.
+
+stage  change                                   c=1 tok/s    c=2 tok/s      ms/step c=1/c=2  accept  launches/step  kept
+base   f6b96bf (phase 3 end state)              88.1 (89.5)  154.3 (156.5)  33.7 / 38.5      0.630   2296           -
+s1     item 1: IQ3 kernel writes 16-bit dst     90.9 (92.0)  157.2 (158.2)  33.1 / 37.9      0.631   2104           yes
+s2     item 2: one q8_1 quantize per layer X    92.3 (92.7)  159.5 (160.4)  32.8 / 37.9      0.637   2005           yes
+s3b    = s2 (repeat; dead-code-only change)     93.2 (93.0)  161.2 (162.9)  32.6 / 37.6      0.635   2005           -
+s3c    item 5: BF16 linears <= 8 rows as gemv   96.4 (96.6)  162.1 (162.2)  31.4 / 37.5      0.632   2005           yes
+
+Item 1 (IQ3 kernel output in X's dtype). The owned iq3_mul_mat_vec stores fp16/bf16 (round to
+nearest even, as torch's cast) instead of fp32 + a separate cast; vendored MMVQ/MMQ keep theirs.
+Per c=1 step: bf16 casts 374 -> 182 launches (0.58 -> 0.27 ms), all GPU activities 2296 -> 2104.
+Parity: 1179 pass / 16 skip (new: 16-bit output == fp32 output cast by torch, all IQ3 cases).
+GPU guards (once, on this .so): 90 pass / 10 skip (x_q8 cases on MMQ ops), 0 fail.
+
+Item 2 (quantize X once per layer input). apply() quantizes X once (custom op _quantize_x_q8_1)
+for all runs of a fused layer that read q8_1 (MMVQ, IQ3 kernel) and passes it as the new optional
+x_q8 of lcpp_mul_mat_vec_q / lcpp_mul_mat_vec_iq3; MMQ runs (other layout) quantize for themselves.
+Per c=1 step: quantize launches 375 -> 276 (0.52 -> 0.42 ms), GPU activities 2104 -> 2005.
+ - First version put the whole run loop and its torch.cat inside one custom op. Not measured:
+   in Qwen3.5 GDN the in_proj_qkvz output is split([qkv, z]) right away and inductor folds
+   the plugin's cat into that split today (no cat kernel for these layers; the 48 cat launches
+   per step in every profile are vLLM's GDN core). Hiding the cat in an op would have added a
+   real cat per layer. The kept version leaves the cat in the traced graph: cat launches stay 49.
+ - First server with the kept design failed at load: the quantize took the first run's type,
+   and blk.13's gate_up starts with IQ1_M (stock path, not a Route L type). Fixed (first run
+   that reads q8_1); test_quantize_x_q8_1_mixed_route covers it.
+Parity: 1179 pass (x_q8 == the op's own quantization for all 9 types at 1/4/8 rows; runs through
+apply() stay bit-exact). CPU guards 52 pass. CPU suite on the box: same 370 pass / 84 fail / 10
+error as base (all failures need local libggml / llama.cpp fixtures that the box lacks).
+
+Item 5 (profile after items 1-2; per c=1 step, s3b trace):
+ - The biggest plugin-owned non-quantized cost was not in the list: 48 cutlass wmma GEMMs (grid 8 x 1
+   warp) at 36 us each = 1.73 ms/step, 5% of the step. They are GDN in_proj_ba (96 x 5120 BF16 in the
+   GGUF). GGUFConfig hands unquantized GGUF tensors to vLLM's UnquantizedLinearMethod (F.linear), and
+   for 2..7 rows x ~100 columns cuBLAS picks that GEMM. The W4A16 baseline pays the same in vLLM's own
+   path (phase 3 base trace: 48 cuBLAS launches, 1.59 ms/step).
+ - Microbench (micro-bf16.txt, micro-bf16b.txt; CUDA graph, us/call): x @ w.T is 4.4 us at 1 row and
+   5-6 us at 5..8 rows for 96 x 5120, but 26-30 us at 2..4 rows (48 x 5120: 25 us at 2..8 rows);
+   K-major weight, fp32, addmm and pad-to-8 are no fix across both shapes; torch.bmm over the rows
+   (cuBLAS gemvx) is 3.9-6.9 us at every n = 1..8, same max error vs fp64.
+ - Change: GGUFUnquantizedLinearMethod (subclass of vLLM's) runs the product in a custom op, so the
+   row-count choice is made per call (a branch in apply() would be fixed at trace time): torch.bmm up
+   to 8 rows, F.linear above; vLLM's path for non-2-D x, non-CUDA and VLLM_BATCH_INVARIANT.
+   Profile: 48 x gemvx 0.31 ms/step (was 1.73). c=2 (8 rows) was already on the fast kernel.
+ - A first attempt changed the unquantized branch of _fused_mul_mat_gguf, which this model never
+   reaches (no measurable change, s3b); replaced by the above.
+ - Parity 1185 pass / 16 skip (new: BF16 96 x 5120 at 1/2/4/8/9 rows within bf16 rounding of fp64,
+   contiguous bf16 output).
+
+Item 3 (draft vocab sweep), on the item-5 code. The draft head's rows are production's 40,960 ids plus
+(tools/draft_vocab_ids.py) the ids the served model emits outside them, counted over its own
+outputs, then ids in id order. Corpus: 15 min of generation on the base server (1,360 prompts at
+1/5 of production's drafter/collect_prompts.py counts: UltraChat, Magicoder, da-instruction,
+reasoning-v1, skolegpt, GSM8K train; none of the bench's 8; default sampling, 2048/1024 max tokens
+with/without thinking; 509 finished, 268,813 output tokens, draft-corpus.jsonl.gz). The 40,960 ids
+cover 97.76% of those tokens; 3,218 emitted ids fall outside (2.24% of tokens). So 61,440 = 40,960
++ 3,218 observed + 17,262 filler, 81,920 = + 37,742 filler (the filler has no evidence behind it).
+Pass 2, decode tok/s c=1 / c=2 / c=4 / c=8 (T=0), whole-run acceptance (mean accepted length),
+draft head us per call (3 per step):
+  rows      T=0                          default sampling             acceptance     head us
+  40,960    96.4 / 162.1 / 259.9 / 431.7  92.5 / 149.3 / 241.8 / 409.0  0.632 (2.896)  136
+  61,440    96.4 / 163.5 / 259.6 / 432.7  93.5 / 154.3 / 253.5 / 417.3  0.656 (2.968)  203
+  81,920    95.2 / 162.5 / 256.6 / 426.9  92.2 / 153.5 / 251.7 / 404.7  0.658 (2.972)  (~270)
+  unpruned  93.4 / 157.0 / 250.8 / 414.7  89.1 / 150.6 / 242.7 / 401.6  0.684 (3.053)  809
+ - At T=0, 61,440 vs 40,960 is within the ~1% noise (0 / +0.9 / -0.1 / +0.2%). It is kept on the
+   acceptance counter (0.632 -> 0.656, whole run; five runs of the 40,960 head spread 0.630-0.637)
+   and the default-sampling cohorts (+1.1 / +3.3 / +4.8 / +2.0%, single runs). 81,920 adds nothing
+   to acceptance over 61,440 (the extra filler is dead weight) and costs head time; the unpruned
+   head has the best acceptance and the worst speed.
+   A 45,056-row list (40,960 + the 3,218 observed + 878 filler; review follow-up, finding 3) gets
+   acceptance 0.640 and 149 us per head call: the id-order filler does carry bench tokens, so
+   61,440 stays. (That run's pass-2 c=1 T=0 cohort read 70.8 tok/s against 96.6 in pass 1: an
+   outlier; its other cohorts match.)
+ - Regenerate: tools/draft_vocab_ids.py <Swift W4A16 -prepared>/mtp_draft_vocab_ids.pt
+   cloud/results/opt-p/draft-corpus.jsonl.gz 61440 hf-config/<model>/mtp_draft_vocab_ids.pt, then
+   tools/make_hf_config.py build (keeps that list; --draft-ids copies another). verify passes.
+
+Item 4 (TEST ONLY, not kept: production config stays k=3). On the 61,440 stage, pass 2, T=0:
+  k   c=1 / c=2 / c=4 / c=8 tok/s     tok/step c=1   ms/step c=1   acceptance (mean length)
+  2   84.3 / 130.3 / 205.2 / 392.5    2.57           30.5          0.749 (2.50)
+  3   96.4 / 163.5 / 259.6 / 432.7    3.05           31.6          0.656 (2.97)
+  4   90.5 / 147.8 / 258.7 / 434.3    3.45           38.1          0.573 (3.29)
+ k=3 is best at c=1 and c=2 and ties k=4 at c=4/c=8. At c=2, k=2 (6 rows, all MMVQ / IQ3 kernel)
+ costs 38.8 ms/step against k=3's 37.6 at 8 rows (MMQ for non-IQ3 types).
+
+Final state (opt-p HEAD) vs base, pass 2, T=0 tok/s c=1 / c=2 / c=4 / c=8 (ms/step c=1 / c=2):
+  base (f6b96bf)  88.1 / 154.3 / 258.4 / 432.9  (33.7 / 38.5), acceptance 0.630
+  final           96.4 / 163.5 / 259.6 / 432.7  (31.6 / 37.6), acceptance 0.656
+  W4A16 baseline  94.1 / 194.4 / 344.5 / 513.5
+ The final numbers are the v61440 run (item-5 code + the 61,440 list). The review fixes after it
+ (weight_loader_v2 registration, gemv gate to <= 128-row weights without bias) do not change what
+ runs for this model (in_proj_ba: 96 rows, no bias); the v45056 and profile runs served that code.
+ c=4 / c=8 are flat: they run MMQ (16 / 32 rows), which none of these items touch.
+
+Profile of the final state, c=1 (5 steps; per step): 2005 GPU activities (base 2296), busy 26.8 ms,
+GEMM 22.4 ms (IQ3 kernel: IQ3_S 6.44 + IQ3_XXS 3.98; MMVQ: IQ4_XS 4.21, Q4_K 3.11 incl. the eager
+target lm_head 1.09 and 3 draft heads 0.61, Q6_K 1.33, IQ2_S 1.21, Q2_K 0.83, IQ2_XS 0.72, IQ2_XXS 0.37,
+IQ1_M stock 0.20). Top non-GEMM kernels (launches, ms):
+   48  0.543  fused_sigmoid_gating_delta_rule_update (vLLM GDN)
+  275  0.410  quantize_q8_1_x (plugin)
+  144  0.342  direct_copy (vLLM GDN: b/a .contiguous(), eager)
+   17  0.334  flashinfer BatchPrefillWithPagedKVCache (vLLM attention, eager)
+   67  0.322  act_and_mul (vLLM, silu(gate) * up)
+   48  0.307  cuBLAS gemvx (plugin item 5: in_proj_ba, was 1.73 ms)
+  182  0.290  bf16 cast of MMVQ fp32 output (plugin; vendored MMVQ writes fp32)
+   48  0.189  causal_conv1d_update (vLLM GDN)
+  122  0.390  triton rms_norm fusions (3 kernels, vLLM/inductor)
+   63  0.116  Memcpy DtoD (vLLM)
+
+Profile of the final state, c=4 (16 rows per target pass; per step): 3030 GPU activities, busy 42.2 ms.
+Vendored MMQ 33.0 ms incl. stream-k fixups: IQ3_S 12.20 + 0.40 fixup, IQ3_XXS 7.02 + 0.19,
+IQ4_XS 5.40 + 0.30, Q4_K 2.95 + 0.13 (incl. the target lm_head), IQ2_S 1.51 + 0.06, IQ2_XS 0.95,
+Q2_K 0.77, Q6_K 0.60, IQ2_XXS 0.40; MMVQ (draft layer, 4 rows) Q6_K 1.00, Q4_K 0.79.
+MMQ plumbing around it: 361 quantize_mmq (0.54 ms), 360 tail memsets (0.41 ms), 374 fp32->bf16
+casts (0.61 ms), 325 stream-k fixups (1.18 ms). The one IQ1_M tensor (blk.13 ffn_gate, stock path)
+dequantizes the whole matrix above 8 rows: 0.28 ms + a cuBLAS GEMM ~0.4 ms per step.
+
+Profile of the final state, c=8 (32 rows per target pass; per step): 3051 GPU activities, busy 51.8 ms.
+Vendored MMQ 41.1 ms incl. fixups: IQ3_S 14.26 + 0.60, IQ3_XXS 7.97 + 0.28, IQ4_XS 6.65 + 0.43,
+Q4_K 4.06 + 0.17, Q6_K 1.85, IQ2_S 1.83, IQ2_XS 1.18, Q2_K 1.09, IQ2_XXS 0.50. Plumbing: 374
+quantize_mmq (0.66 ms), 370 tail memsets (0.44), 374 casts (0.86), 335 fixups (1.75), IQ1_M
+dequant 0.28 + cuBLAS 0.57. vLLM's GDN gating kernel grows to 3.9 ms. (runs/final-profile-c4.txt,
+runs/final-profile-c8.txt; box-scripts/profile48.sh, whose first version hung: its bare `wait` also
+waited on the backgrounded server; the c=4 trace from that run was analysed as is.)
+
+Next levers (estimates per step; floor ~13 ms weight traffic + ~9 ms vLLM at c=1, final 31.6 ms)
+ Plugin plumbing, c=1:
+  1. q8_1 quantize fused into its producer (RMSNorm, GDN gated norm, silu_and_mul, attention out ->
+     q8_1 directly): 275 launches, 0.41 ms -> ~0.1 ms. Needs plugin-registered fused ops or an
+     inductor pattern on vLLM's graph; medium.
+  2. 16-bit dst from K1's owned IQ4_XS / Q4_K / IQ2_S kernels, as item 1 did for IQ3: -0.25 ms (of
+     the 182 casts, 0.29 ms; Q6_K / Q2_K / IQ2_XS / IQ2_XXS stay on vendored MMVQ).
+  3. gate_up + silu in the GEMM epilogue for same-type gate/up runs: act_and_mul 67 launches 0.32 ms
+     plus the 2 x 17408 intermediate: ~-0.3 ms; kernel work (owned kernels).
+  4. Embedding: 4 eager calls per step, GPU ~20 us but ~75 us host each in the profile (custom-op
+     dispatch + index_select + ggml_dequantize); one get-rows-dequant op: <= -0.15 ms if on the
+     critical path.
+  5. Eager lm_head calls through the shim: ~72 us host each in the profile (4 per step; allocations,
+     stable-ABI cast): ~-0.1 ms. The target head's GPU time (1.09 ms, Q4_K 248k rows at 4) is kernel.
+  6. Draft head: a list ranked on a larger corpus of the served model's outputs instead of id-order
+     filler could keep 0.656 acceptance with fewer rows: <= -0.15 ms (61,440 rows cost 0.2 ms over
+     40,960).
+ Plugin plumbing, c=4 / c=8 (MMQ):
+  7. MMQ tail memset folded into the owned quantize_mmq kernel (write the zero tail there): -0.41 /
+     -0.44 ms (360-370 launches). Small, owned code; not done here (after the campaign's MMQ owners
+     decide the c=4/8 path).
+  8. IQ1_M above 8 rows: whole-matrix dequant + cuBLAS, 0.7 / 0.85 ms at c=4 / c=8 for one tensor;
+     keep it on stock MMVQ to 32 rows or give it an owned path: ~-0.4 ms.
+  9. Stream-k fixups: 325-335 launches, 1.2 / 1.75 ms; the vendored MMQ decides stream-k itself
+     (no shim knob); measure a tile-only launch for n <= 32 (vendored edit or owned MMQ).
+ 10. MMQ fp32 -> bf16 casts 0.61 / 0.86 ms and quantize 0.54 / 0.66 ms: levers 1-2 apply again.
+ Not plugin: vLLM host idle ~4.7 ms/step (PIECEWISE graphs; FULL decode graphs need an attention
+ backend with spec-decode UNIFORM_BATCH support), GDN core ~1.2 ms at c=1 (3.9 ms gating at c=8),
+ norms / act ~0.7 ms. GEMM efficiency (22.4 ms at c=1 against ~13 ms of weight traffic; MMQ 33 / 41
+ ms at c=4 / c=8) is the kernel agents' part and the bulk of the gap.
+
+Review (/check, Fable, once at the end): 8 findings, all verified.
+ Fixed: (1) the gemv path was shape-blind for every GGUF F16/F32/BF16 linear (it reads the weight once
+ per activation row) -> only weights with <= 128 rows and no bias; (2) the subclass dropped vLLM's
+ weight_loader_v2 (keyed on the class name) -> registered; (5) PROVENANCE cited a /tmp path and a
+ default build would have reverted the list to 40,960 -> the hf-config's own list is the default,
+ repo-relative in PROVENANCE, the tool reads .jsonl.gz; (7) readability of the unread q8_1 buffer
+ (kept its shape equal to the fake's: inductor may assert extern output sizes); (8) comment on the
+ shim's fp32 dst; (4, 6) write-up: 61,440 is kept on acceptance and default sampling, within noise
+ at T=0; items 3 and 4 written up.
+ Checked and answered by measurement: (3) "61,440 is mostly filler, a ~45k head would keep the
+ acceptance": 45,056 got 0.640, not 0.656; 61,440 stays.
+ Parity after the fixes: 1185 pass / 16 skip; CPU guards 52; the GPU guard suite ran once, on the
+ final .so (unchanged since item 1): 90 pass / 10 skip.
+
+Box: 2026-09-29 01:03-10:30 UTC on the shared box; about 6.4 GPU-hours of opt-p jobs through gpuq
+(12 serve cycles incl. one failed load and one hung profile, 7 parity runs, 1 guard suite, 2
+microbenches).

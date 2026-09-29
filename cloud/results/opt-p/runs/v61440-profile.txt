@@ -1,0 +1,26 @@
+rank0.1790663491521941705.pt.trace.json
+5 complete steps; per step: 2005 GPU activities, busy 26.81 ms, span 34.66 ms (idle 7.85)
+  gemm mmvq        183.0 launches  11.981 ms
+  gemm iq3         192.0 launches  10.412 ms
+  other            814.0 launches   3.057 ms
+  copy/cast        356.0 launches   0.699 ms
+  q8_1 quantize    276.0 launches   0.412 ms
+  gpu_memcpy       130.0 launches   0.152 ms
+  cat               49.0 launches   0.095 ms
+  gpu_memset         5.0 launches   0.004 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   0.543  fused_sigmoid_gating_delta_rule_update_kernel
+   275.0   0.410  void quantize_q8_1_x<__nv_bfloat16>(__nv_bfloat16 const*, block_q8_1*, long, long, long)
+   144.0   0.342  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    17.0   0.334  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64u, 1u,
+    67.0   0.322  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+    48.0   0.307  std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __nv_bfloat16, __nv_bfloat16, __nv_bflo
+   182.0   0.290  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+    48.0   0.189  _causal_conv1d_update_kernel
+    51.0   0.157  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    39.0   0.127  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    63.0   0.116  Memcpy DtoD (Device -> Device)
+    19.0   0.114  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    32.0   0.106  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    48.0   0.093  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq
+    32.0   0.077  triton_per_fused__to_copy__unsafe_view_add_clone_mean_mul_pow_rsqrt_silu_transpose_view_0

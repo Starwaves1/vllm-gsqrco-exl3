@@ -16,6 +16,8 @@ gguf_kernel.cu:98,118-285 per STATUS):
   k_mismatch       X has fewer columns than W's rows hold (reads past X)
   x_rowstride      X is x[:, :k] of a wider buffer (row stride > k, unit inner stride)
   graph_replay     capture the op in a CUDA graph, replay with new X contents, compare
+  x_q8_short       pre-quantized X (x_q8, lcpp_mmvq / lcpp_iq3 only) one byte short
+  x_q8_misaligned  x_q8 starts 1 byte into its storage
 """
 
 import json
@@ -60,6 +62,7 @@ def main() -> None:
     xc = x.cuda()
     row = w.shape[0]
     ref_raw, ref_x = raw, x
+    extra = ()
 
     if case == "x_noncontig":
         xc = x.t().contiguous().cuda().t()
@@ -84,6 +87,13 @@ def main() -> None:
         wide = torch.zeros(n, k + 512, dtype=torch.bfloat16, device="cuda")
         wide[:, :k] = xc
         xc = wide[:, :k]
+    elif case in ("x_q8_short", "x_q8_misaligned"):
+        q8 = torch.ops._C_gguf.lcpp_quantize_q8_1(xc, qt, False, False)
+        if case == "x_q8_short":
+            q8 = q8[:-1]
+        else:
+            q8 = torch.cat([q8.new_zeros(1), q8])[1:]
+        extra = (q8,)
     elif case != "graph_replay":
         raise SystemExit(f"unknown case {case}")
 
@@ -100,7 +110,7 @@ def main() -> None:
             graph.replay()
             y = static_y
         else:
-            y = fn(w, xc, qt, row)
+            y = fn(w, xc, qt, row, *extra)
         torch.cuda.synchronize()
     except (RuntimeError, ValueError, TypeError) as e:
         if "CUDA" in str(e) or "illegal" in str(e).lower():

@@ -1,0 +1,49 @@
+c4.trace.json
+5 complete steps; per step: 3030 GPU activities, busy 42.19 ms, span 49.87 ms (idle 7.68)
+  gemm mmq         686.0 launches  32.961 ms
+  other           1174.0 launches   5.095 ms
+  gemm mmvq         13.0 launches   1.796 ms
+  copy/cast        548.0 launches   1.041 ms
+  q8_1 quantize    374.0 launches   0.559 ms
+  gemm other        49.0 launches   0.435 ms
+  gpu_memcpy       130.0 launches   0.199 ms
+  cat               49.0 launches   0.101 ms
+  gpu_memset         7.0 launches   0.006 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   1.976  fused_sigmoid_gating_delta_rule_update_kernel
+   374.0   0.614  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+   313.0   0.464  void quantize_mmq_q8_1_x<__nv_bfloat16, (mmq_q8_1_ds_layout)0>(__nv_bfloat16 const*, block_q8_1_mmq*, long, lo
+   360.0   0.410  memset32
+    17.0   0.341  void flashinfer::BatchPrefillWithPagedKVCacheKernel<flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64u, 1u,
+   144.0   0.335  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    67.0   0.309  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+     1.0   0.280  void dequantize_block_iq1_m<c10::BFloat16>(void const*, c10::BFloat16*)
+    48.0   0.197  _causal_conv1d_update_kernel
+    63.0   0.159  Memcpy DtoD (Device -> Device)
+    51.0   0.151  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    39.0   0.120  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    19.0   0.110  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    48.0   0.109  void cublasLt::splitKreduce_kernel<32, 16, int, __nv_bfloat16, __nv_bfloat16, float, __nv_bfloat16, false, __n
+    32.0   0.103  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+GEMM family / type per step (launches, ms):
+  mmq          IQ3_S     127.0  12.196
+  mmq          IQ3_XXS    65.0   7.016
+  mmq          IQ4_XS     86.0   5.397
+  mmq          Q4_K       35.0   2.945
+  mmq          IQ2_S      16.0   1.509
+  mmvq         Q6_K       10.0   1.004
+  mmq          IQ2_XS      9.0   0.952
+  mmvq         Q4_K        3.0   0.792
+  mmq          Q2_K       13.0   0.768
+  mmq          Q6_K        5.0   0.597
+  quantize mmq -         361.0   0.539
+  mmq fixup    IQ3_S     113.0   0.404
+  mmq          IQ2_XXS     5.0   0.402
+  mmq fixup    IQ4_XS     81.0   0.295
+  mmq fixup    IQ3_XXS    53.0   0.190
+  mmq fixup    Q4_K       33.0   0.126
+  mmq fixup    IQ2_S      16.0   0.059
+  mmq fixup    Q2_K       12.0   0.041
+  mmq fixup    IQ2_XS      8.0   0.029
+  mmq fixup    Q6_K        5.0   0.018
+  mmq fixup    IQ2_XXS     4.0   0.014

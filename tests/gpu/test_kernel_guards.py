@@ -29,7 +29,7 @@ import pytest
 from gsq_gpu import GGUF, ROOT
 
 CASES = ["x_noncontig", "x_misaligned", "x_rowstride", "w_narrow_view", "w_misaligned", "row_too_big",
-         "k_mismatch", "graph_replay"]
+         "k_mismatch", "graph_replay", "x_q8_short", "x_q8_misaligned"]
 TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "mmq"), ("Q6_K", "mmq"),
              ("IQ3_S", "lcpp_mmvq"), ("IQ4_XS", "lcpp_mmvq"), ("Q4_K", "lcpp_mmvq"),
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
@@ -43,6 +43,8 @@ def test_guard_case(case, type_op):
     if not GGUF.exists():
         pytest.skip(f"GGUF not found: {GGUF}")
     name, op = type_op
+    if case.startswith("x_q8") and op not in ("lcpp_mmvq", "lcpp_iq3"):
+        pytest.skip("x_q8 is an argument of the 1..8-row Route L ops only")
     cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
     san = os.environ.get("GSQ_COMPUTE_SANITIZER")
     if san:
