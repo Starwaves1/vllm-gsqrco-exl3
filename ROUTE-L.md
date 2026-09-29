@@ -1,7 +1,8 @@
-# Route L: llama.cpp b11211 MMVQ/MMQ behind a shim (compile-only)
+# Route L: llama.cpp b11211 MMVQ/MMQ behind a shim
 
-Branch `route-l`. Built and checked on the CPU only. **No kernel has run.**
-Every numeric property is untested.
+On main (built first on branch `route-l`), measured on a rented RTX 3090 in
+phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
+`cloud/results/`.
 
 ## What is here
 
@@ -64,26 +65,33 @@ Every numeric property is untested.
     multiple of the narrower shard's block size (2200/98, 1480/66, 2880/84),
     and the kernels index rows in blocks.
   - `diffusion_config.py` uses the same helper.
-- `tests/cpu/test_lcpp_guards.py`: 42 guard cases in a `no_gpu` subprocess.
+- `tests/cpu/test_lcpp_guards.py`: 73 guard cases in a `no_gpu` subprocess;
+  `tests/cpu/test_lcpp_routing.py`: the routing table above, 54 cases.
 
 ## Shim overhead
 
 Kernel launches per op call, counted from the code (VERIFIED by reading, not
 profiled). "16-bit X" means the fp16/bf16 activations vLLM passes.
 
-| | before | after | phase 3 |
-|---|---|---|---|
-| MMVQ, 16-bit X | 5: cast X, memset whole q8, quantize_q8_1, mul_mat_vec_q, cast Y | 4: cast X, quantize_q8_1, mul_mat_vec_q, cast Y | 3: quantize_x, mul_mat_vec_q, cast Y |
-| MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup | 4: memset tail, quantize_x, mul_mat_q, cast Y; 5 with fixup |
-| fp32 X | two fewer (no casts) | two fewer | one fewer (no cast Y) |
+| | before | after | phase 3 | Integration 1 |
+|---|---|---|---|---|
+| MMVQ, 16-bit X | 5: cast X, memset whole q8, quantize_q8_1, mul_mat_vec_q, cast Y | 4: cast X, quantize_q8_1, mul_mat_vec_q, cast Y | 3: quantize_x, mul_mat_vec_q, cast Y | 2 or 3: [quantize_x], mul_mat_vec_q, cast Y |
+| owned IQ3 dp4a, 16-bit X | | | 3: quantize_x, iq3_mul_mat_vec, cast Y | 1 or 2: [quantize_x], iq3_mul_mat_vec (writes 16-bit) |
+| owned IQ3 mma, Q4_K/IQ2_S, 16-bit X | | | | 2 or 3: [quantize_x], kernel, cast Y |
+| MMQ, 16-bit X | 5: cast X, memset whole q8, quantize_mmq_q8_1, mul_mat_q, cast Y; 7 with stream-k fixup (+ memset tmp_fixup, + fixup) | 5: cast X, memset tail only, quantize_mmq_q8_1, mul_mat_q, cast Y; 6 with stream-k fixup | 4: memset tail, quantize_x, mul_mat_q, cast Y; 5 with fixup | same as phase 3 |
+| fp32 X | two fewer (no casts) | two fewer | one fewer (no cast Y) | one fewer where there is a cast Y |
+
+[quantize_x] is skipped when a fused layer's earlier run already quantized X
+(`x_q8`, shared by every q8_1-reading run of the layer).
 
 - Nothing is zero-filled except the MMQ tail. The quantizers write every byte
   of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is
   written by `mul_mat_q` before the fixup reads it. Upstream's ggml pool
   doesn't zero either. The MMQ tail memset is J_max+128 blocks (≤ 36 KiB),
   not the whole buffer.
-- The output cast stays: MMVQ and MMQ write fp32 dst only (`float * dst` in
-  both kernels' write-back), so a 16-bit Y needs vendored edits. Phase 3 took
+- The output cast stays for MMVQ and MMQ: they write fp32 dst only (`float * dst` in
+  both kernels' write-back), so a 16-bit Y needs vendored edits. The owned mma and
+  Q4_K/IQ2_S kernels also write fp32 (16-bit output is a round-2 item). Phase 3 took
   the input cast out with the owned quantizer instead (1.8 → 0.7 ms of casts
   per c=1 decode step). Fused layers run one product per run of adjacent
   same-type shards, e.g. GDN q/k/v (one attn_qkv tensor) + z: 2, not 4
@@ -117,7 +125,7 @@ kernel:
   whether IQ3 MMVQ is gather-latency-bound (16 dependent L1 gathers per
   iteration).
 
-## Build (compile only)
+## Build
 
 ```
 source ~/gsq-vllm/tools/cuda-env.sh; export PATH=~/gsq-vllm/.venv/bin:$PATH
@@ -139,28 +147,12 @@ resolves every ggml symbol.
 `cublas_v2.h` (declarations only, never linked) comes from the venv's
 `nvidia/cu13/include` via `-idirafter`.
 
-## Checked on the CPU
+## Verification
 
-- The .so loads under `no_gpu` and both ops register.
-- `import vllm_gguf_plugin.ops` works with `VLLM_GGUF_LCPP=1` and with it off,
-  and `torch.cuda.is_initialized()` stays False.
-- `tests/cpu`: 458 passed, 54 xfailed.
-
-## Untested: needs a GPU (sm86)
-
-1. Correctness per type: `tests/gpu/test_kernel_parity.py` and
-   `_guard_case.py`. They call `ops.ggml_mul_mat_*`; point them at
-   `torch.ops._C_gguf.lcpp_*`, or run through `_fused_mul_mat_gguf` with
-   `VLLM_GGUF_LCPP=1`.
-   - Check MMQ at n = 1..7, where upstream's J_max tail is 0 and only the
-     shim's 18 KiB tail protects the reads.
-   - Check non-multiple-of-128 rows (the fallback tiles).
-   - Run under compute-sanitizer (`GSQ_COMPUTE_SANITIZER`).
-2. CUDA-graph capture and replay (`graph_replay` case). Pool tensors are
-   stream-ordered torch allocations. `cudaFuncSetAttribute` runs on first use,
-   so warm up before capture.
-3. Speed: `bench/speed/` and per-layer microbenchmarks at 1/4/8/16/32/2048
-   rows against e2b8ad5.
-4. Parity: `bench/parity/` (KLD vs llama.cpp).
-5. An end-to-end serve with `VLLM_GGUF_LCPP=1` (`scripts/serve-gsq.sh`),
-   including the flat mixed-shard layout.
+- CPU: the .so loads under `no_gpu` and all five ops register without
+  initialising CUDA (`tests/cpu/test_lcpp_guards.py`); `import
+  vllm_gguf_plugin.ops` works with `VLLM_GGUF_LCPP=1` and without.
+- GPU (rented sm86): kernel parity per type and row count against CPU models
+  and vendored MMVQ, CUDA-graph capture/replay, guard cases, compute-sanitizer
+  memcheck/initcheck, logit parity vs llama.cpp (phase 2), speed ladders.
+  Counts and logs per stage: STATUS.md, `cloud/results/{phase2,phase3,opt-p,integration-1}`.

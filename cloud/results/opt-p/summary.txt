@@ -98,7 +98,7 @@ Item 4 (TEST ONLY, not kept: production config stays k=3). On the 61,440 stage, 
 Final state (opt-p HEAD) vs base, pass 2, T=0 tok/s c=1 / c=2 / c=4 / c=8 (ms/step c=1 / c=2):
   base (f6b96bf)  88.1 / 154.3 / 258.4 / 432.9  (33.7 / 38.5), acceptance 0.630
   final           96.4 / 163.5 / 259.6 / 432.7  (31.6 / 37.6), acceptance 0.656
-  W4A16 baseline  94.1 / 194.4 / 344.5 / 513.5
+  W4A16 baseline  94.1 / 194.4 / 345.1 / 505.4  (phase 1b pass 2; this line had c=4/c=8 from pass 1)
  The final numbers are the v61440 run (item-5 code + the 61,440 list). The review fixes after it
  (weight_loader_v2 registration, gemv gate to <= 128-row weights without bias) do not change what
  runs for this model (in_proj_ba: 96 rows, no bias); the v45056 and profile runs served that code.

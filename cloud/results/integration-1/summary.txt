@@ -1,6 +1,13 @@
-Integration 1: main + opt-p + opt-k1 + opt-k2 (branch integrate), rented RTX 3090, 350 W.
-Box worktree /workspace/wt-int, built in place (VLLM_GGUF_BUILD_LCPP=1), Route L on. Write-up with
-the merge resolutions and round-2 notes: STATUS.md "Integration 1".
+Integration 1: main + opt-p + opt-k1 + opt-k2 (branch integrate), rented RTX 3090, 350 W power
+limit, driver 595.84. Box worktree /workspace/wt-int, built in place (VLLM_GGUF_BUILD_LCPP=1), Route
+L on (VLLM_GGUF_LCPP=1). Write-up with the merge resolutions and round-2 notes: STATUS.md
+"Integration 1".
+
+Code: the ladder and profile ran on 0f8497d (the opt-k2 merge). The tests ran on 46f5257 (same
+plugin and kernel sources plus test changes). Docs and results were committed at 6c2759f.
+Served: production's argv (env/prod-serve-argv.txt: fp8 KV, --max-model-len 200000, MTP k=3,
+probabilistic draft sampling), this worktree's hf-config; MTP draft head 61,440 rows; GPU KV
+cache 247,656 tokens.
 
 box-scripts/  lib.sh (env, serve, stopall), tests.sh, ladder.sh, profile.sh (one gpuq job each),
               pstep.py / pstep2.py (opt-p's profile summarisers + the iq3_mma and own kernels)
@@ -12,11 +19,19 @@ tests/        build, CPU guards + routing table, parity (Route L on, off, and ma
 Decode (pass 2, T=0, decode(C/meanTPOT) tok/s) and prefill (salted ladder, c=1, tok/s):
                          c=1    c=2    c=4    c=8    8k    64k   180k
 Integration 1          101.1  175.0  264.4  436.7  1152   900   622
-prod W4A16              94.1  194.4  344.5  513.5  1108   868   603
-ratio                   1.07   0.90   0.77   0.85  1.04  1.04  1.03
-Route L pre-campaign    90.9  154.2  238    370.7  1036     -   589
-ratio                   1.11   1.13   1.11   1.18  1.11     -  1.06
-tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP acceptance 0.657 (61,440-row draft head).
+prod W4A16 (1b, pass 2) 94.1  194.4  345.1  505.4  1108   868   603
+ratio                   1.07   0.90   0.77   0.86  1.04  1.04  1.03
+pre-campaign f6b96bf    88.1  154.3  258.4  432.9     -     -     -
+ratio                   1.15   1.13   1.02   1.01     -     -     -
+phase 2 (prefill)                                   1036     -   589
+ratio vs phase 2                                    1.11     -  1.06
+tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP acceptance 0.657 (61,440-row draft head; f6b96bf: 0.630).
+Pre-campaign decode is opt-p's base run (runs/base-speed-summary.txt there); it had no prefill
+ladder, so prefill compares with phase 2, and that gain is phase 3's (INFERRED: these branches
+do not change the >= 9-row MMQ path).
+
+Profile idle (8.4 ms/step at c=1, 7.4 at c=4) is inflated by the profiler; phase 3 item 2
+measured ~4.7 ms/step unprofiled.
 
 The first test job ran without a build (the worktree lacked the build/cu130 CUDA symlink):
 its results were discarded, the .so was built, and the job re-ran after the ladder (tests/).

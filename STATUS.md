@@ -1,14 +1,19 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: Integration 1 (opt-p + K1 + K2 on main): decode 101.1 / 175.0 / 264.4 / 436.7 tok/s c=1/2/4/8 greedy (W4A16 baseline 94.1 / 194.4 / 344.5 / 513.5), prefill 1152 / 900 / 622 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 1" below.
+Latest: Integration 1 (opt-p + K1 + K2 on main): decode 101.1 / 175.0 / 264.4 / 436.7 tok/s c=1/2/4/8 greedy (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4), prefill 1152 / 900 / 622 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 1" below.
 
-## Current state (2026-09-27 late)
+## Current state (2026-09-29)
 
-CPU suite: 416 pass / 54 xfail (the xfails are the K-quant CUDA dequant fp16 deviation, not on this model's hot path). Meta dry run passes (866/866 tensors mapped). Phase B harnesses are written but untested. Kernel survey: `reports/10-11-kernel-prior-art-survey.md` in the handoff dir. Route L is recommended over Route A; both are being prepared compile-only on branches `route-l` / `route-a`. GPU work is blocked until DeepSWE run 1 ends (~2026-10-01).
+Route L (llama.cpp b11211 MMVQ/MMQ behind `lcpp_shim.cu`, `VLLM_GGUF_LCPP=1`) is on main with
+phase 3 and Integration 1 (opt-p, K1, K2): three owned 1..8-row kernels, one q8_1 quantize per
+fused layer's q8_1-reading runs, a 61,440-row MTP draft head. Measured on a rented 350 W 3090:
+c=1 decode 1.07x the production W4A16 baseline, c=2..8 0.77-0.90x, prefill 1.03-1.04x (see
+"Integration 1"). In flight on the box: K3 (`opt-k3`, 16-64-row mma for Q4_K/IQ2_S/IQ4_XS) and
+R1 (`opt-r1`, IQ3 load-time repack); they merge later. Production is untouched.
 
-Handoff snapshot, 2026-09-27. Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
+The remaining sections are dated history ("Integration 1", then Phase 3, is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
 
-Scope change from Garrett during the run: **deliverable 5 (kernel porting: multi-column MMVQ, IQ MMQ, dispatch) is paused until a prior-art survey comes back.** No kernel code was written, so there is no WIP kernel branch.
+2026-09-27 handoff: deliverable 5 (kernel porting) was paused pending a prior-art survey; the survey chose Route L and kernel work resumed in phase 2/3.
 
 ## Phase 1 on a rented RTX 3090 (2026-09-28, Vast.ai, cut short)
 
@@ -53,16 +58,19 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
 | | c=1 | c=2 | c=4 | c=8 | 8k | 64k | 180k |
 |---|---|---|---|---|---|---|---|
 | Integration 1 | 101.1 | 175.0 | 264.4 | 436.7 | 1152 | 900 | 622 |
-| prod W4A16 | 94.1 | 194.4 | 344.5 | 513.5 | 1108 | 868 | 603 |
-| ratio | 1.07 | 0.90 | 0.77 | 0.85 | 1.04 | 1.04 | 1.03 |
-| Route L before the campaign | 90.9 | 154.2 | 238 | 370.7 | 1036 | - | 589 |
-| ratio | 1.11 | 1.13 | 1.11 | 1.18 | 1.11 | - | 1.06 |
+| prod W4A16 (phase 1b, pass 2) | 94.1 | 194.4 | 345.1 | 505.4 | 1108 | 868 | 603 |
+| ratio | 1.07 | 0.90 | 0.77 | 0.86 | 1.04 | 1.04 | 1.03 |
+| pre-campaign, f6b96bf (opt-p base run; no prefill ladder) | 88.1 | 154.3 | 258.4 | 432.9 | - | - | - |
+| ratio | 1.15 | 1.13 | 1.02 | 1.01 | - | - | - |
+| phase 2 (prefill only) | | | | | 1036 | - | 589 |
+| ratio vs phase 2 | | | | | 1.11 | - | 1.06 |
 
 - ms/step 30.5 / 34.9 / 46.7 / 55.7 (c=1/2/4/8); tok/step 3.08 / 3.05 / 3.09 / 3.04; MTP
-  acceptance 0.657 over the run (0.630 with the 40,960-row draft head; opt-p's 61,440 rows).
-  Decode clocks: median SM 1740-1755 MHz, 344 W, 89% util (both passes). The prefill gains over
-  the pre-campaign column are phase 3's (items 1, 4, 4b); none of these branches changes the
-  >= 9-row MMQ path.
+  acceptance 0.657 over the run (pre-campaign 0.630 with the 40,960-row draft head; opt-p's
+  61,440 rows). Decode clocks: median SM 1740-1755 MHz, 344 W, 89% util (both passes). The
+  campaign's gain is at c=1/c=2 (4 / 8 rows per target pass); c=4/c=8 run MMQ in target passes
+  and move 1-2%. No prefill ladder ran at f6b96bf: the prefill gain vs phase 2 is attributed to
+  phase 3 items 1, 4, 4b (INFERRED: none of these branches changes the >= 9-row MMQ path).
 - Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
   - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
     ROUTE-L.md. IQ3 1..5 rows dp4a, 6..8 mma; Q4_K from 3 rows and IQ2_S from 1, both only above
@@ -91,10 +99,13 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
     Q6_K 1.3, Q2_K 0.8, IQ2_XS 0.7, Q4_K 0.7, IQ2_XXS 0.4), owned Q4_K/IQ2_S 2.8 ms
     (41; Q4_K 2.0, IQ2_S 0.8). q8_1 quantize 276 launches 0.40 ms, bf16 casts 182 launches 0.28 ms,
     GDN in_proj_ba gemv 48 x 6 us.
-  - c=4 (16 rows per target pass): 3030 activities, busy 42.1 ms, span 49.5 ms (7.4 idle); the
-    same as opt-p's c=4 profile, since 16 rows is MMQ for every type: 686 MMQ launches 33.0 ms
-    (IQ3_S 12.2, IQ3_XXS 7.0, IQ4_XS 5.4, Q4_K 2.9, IQ2_S 1.5, IQ2_XS 1.0, Q2_K 0.8), plus 374
-    output casts 0.62 ms, 313 MMQ quantizes 0.47 ms, 360 memsets 0.41 ms.
+  - c=4 (16 rows per target pass): 3030 activities, busy 42.1 ms, span 49.5 ms (7.4 idle), as in
+    opt-p's c=4 profile. Target passes are MMQ for every type: 686 MMQ launches 33.0 ms (IQ3_S
+    12.2, IQ3_XXS 7.0, IQ4_XS 5.4, Q4_K 2.9, IQ2_S 1.5, IQ2_XS 1.0, Q2_K 0.8), MMQ quantize 361
+    launches 0.54 ms, 374 output casts 0.62 ms, 360 memsets 0.41 ms. The 4-row draft passes are
+    not MMQ: MMVQ Q6_K 1.0 ms (10 launches) and the Q4_K kernel 0.66 ms (3 launches, one per
+    draft step: the draft head, rows of output.weight, which is Q4_K).
+  - Idle is inflated by the profiler: phase 3 item 2 measured ~4.7 ms/step unprofiled.
   - Round 2: c >= 4 is K3's 16-64-row range (MMQ is 78% of busy time at c=4). At c=1 the
     largest non-owned GEMM is IQ4_XS on MMVQ (4.1 ms; K1 dropped IQ4_XS), then the 8.4 ms of
     idle per step.
@@ -244,6 +255,10 @@ code changed. Test and bench changes: be506ce.
 | Branch | What |
 |---|---|
 | `main` | everything: `plugin/` (git subtree of vllm-project/vllm-gguf-plugin at e2b8ad5 plus our commits), tools, HF config dir, env records, this file |
+| `route-l` | Route L as first built compile-only (merged into main in phase 2) |
+| `opt-p`, `opt-k1`, `opt-k2` | optimization campaign round 1: plumbing, Q4_K/IQ2_S kernel, IQ3 mma kernel; merged via `integrate` |
+| `integrate` | Integration 1 merge branch; main was fast-forwarded to it |
+| `opt-k3`, `opt-r1` | round-1 work still running on the box (K3: 16-64-row mma; R1: IQ3 load-time repack); not merged |
 | `swift-gsq-rco` | the plugin fork itself, `git subtree split --prefix=plugin`: upstream history through e2b8ad5, plus our adapter commit (7794689). Kept as a clean split because Garrett intends to send it upstream later; don't push it or open a PR right now. Regenerate after new plugin commits: `git subtree split --prefix=plugin -b swift-gsq-rco` |
 
 Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.
