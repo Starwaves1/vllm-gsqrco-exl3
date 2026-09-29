@@ -46,9 +46,10 @@ def _lcpp_op(n: int, weight_type: int, rows: int) -> str:
     """The Route L op for n activation rows times a weight_type weight with
     rows rows. All but lcpp_mul_mat_q read X as q8_1 blocks."""
     if n <= 8 and weight_type in _IQ3_TYPES:
-        # the shim's own IQ3 kernel beats MMVQ and MMQ at 1..8 rows
-        # (cloud/results/phase3/item5)
-        return "lcpp_mul_mat_vec_iq3"
+        # the shim's own IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one at
+        # 1..5 rows (cloud/results/phase3/item5), the int8 tensor-core one from 6
+        # (cloud/results/phase3/k2)
+        return "lcpp_mul_mat_vec_iq3_mma" if n >= 6 else "lcpp_mul_mat_vec_iq3"
     if _OWN_MIN_ROWS.get(weight_type, 9) <= n <= 8 and rows > 2048:
         # Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and MMQ;
         # its 16-row CTAs underfill the GPU at <= 2048 rows (cloud/results/opt/k1)

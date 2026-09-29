@@ -58,7 +58,10 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | 4 | owned X -> q8_1 quantizer (no input cast) | 81.2 | 142.9 | 36.9 / 42.1 | yes |
 | 4b | one GEMM per same-type shard run (433 -> 356 per pass); dequant output not zeroed | 83.5 (b) | 146.7 (b) | 36.6 / 41.6 | yes |
 | 5 | owned IQ3_S/IQ3_XXS decode-once kernel (`lcpp_mul_mat_vec_iq3`), routed at 1..8 rows | 90.9 | 154.2 | 33.1 / 37.9 | yes |
+| K2 | owned IQ3 int8 tensor-core kernel (`lcpp_mul_mat_vec_iq3_mma`), routed at 6..8 rows (c) | 90.3 | 173.2 | 33.0 / 35.6 | yes |
 
+(c) same-session A/B against this build with item-5 routing: 90.6 / 160.4 tok/s, 33.0 / 37.9 ms/step
+(cloud/results/phase3/k2). c=1 (4 rows) is unchanged by design.
 (a) item 1 at c=1 is phase 2's path (c=1 never reaches 8 rows). (b) mostly tok/step: acceptance
 moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
 
@@ -124,6 +127,16 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
     add instead of I2F (no change); cp.async double-buffered weight + q8_1 tiles in smem and a
     next-chunk register-prefetch scheme (both slower than staged-in-smem-no-overlap); q8_1 read
     straight from global with no staging (within noise, staging kept for a small n=8 win).
+- K2 (opt-k2): `lcpp_mul_mat_vec_iq3_mma` (`csrc/lcpp_owned_iq3_mma.cu`): one mma.sync m16n8k32
+  s8 per 16 rows x 32 values x 8 activation columns, decoded straight into fragments from a
+  per-CTA signed grid table (grid x 16 sign nibbles), weight bytes staged through shared memory
+  with coalesced loads, persistent CTAs of 4 warps splitting K. Flat in n: 78.1 / 83.6 us at
+  n=4 / 8 on IQ3_S 17408x5120 (dp4a kernel 71.9 / 99.1); wins from 6 rows at every tested
+  shape, so it is routed at 6..8 and the dp4a kernel keeps 1..5. Targets (n4 <= 58, n8 <= 75 us)
+  not met: the kernel is SM-bound (~65 us with weights cache-resident), not DRAM-bound. Numerics:
+  exact int32 per slice and the vendored integer sub-scale; d_w applied once per weight block
+  (fp32 order differs from MMVQ, within 1e-5 on fp32). Iteration log with 8 variants:
+  cloud/results/phase3/k2/iterations.txt.
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
   Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment
   assumption (`__align__(16)` on the staged q8_1 tile), the unlogged test claims (logs now

@@ -31,7 +31,8 @@ import torch
 torch.ops.load_library(sys.argv[1])
 ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
-out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_own") if hasattr(ops, n)]}
+out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
+                                    "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_own") if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
     stride = stride or row_bytes
@@ -93,17 +94,17 @@ for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):
 CASES["lcpp_mul_mat_vec_q-9_rows"] = (_case("lcpp_mul_mat_vec_q", n=9), "at most 8 rows")
 CASES["lcpp_mul_mat_q-9_rows"] = (_case("lcpp_mul_mat_q", n=9), "must be CUDA tensors")
 CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), "must be CUDA tensors")
-# the owned IQ3 kernel shares check_inputs (MMVQ limits) and adds a type check
-IQ3_OP = "lcpp_mul_mat_vec_iq3"
-for t in (IQ3_S, IQ3_XXS):
-    CASES[f"{IQ3_OP}-valid-{t}"] = (_case(IQ3_OP, t), "must be CUDA tensors")
-    CASES[f"{IQ3_OP}-row_strided-{t}"] = (_case(IQ3_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
-CASES[f"{IQ3_OP}-q4_k"] = (_case(IQ3_OP, Q4_K), "IQ3_S or IQ3_XXS only")
-CASES[f"{IQ3_OP}-1_row"] = (_case(IQ3_OP, n=1), "must be CUDA tensors")
-CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
-CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
-CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
-CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
+# the owned IQ3 kernels share check_inputs (MMVQ limits) and add a type check
+for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
+    for t in (IQ3_S, IQ3_XXS):
+        CASES[f"{IQ3_OP}-valid-{t}"] = (_case(IQ3_OP, t), "must be CUDA tensors")
+        CASES[f"{IQ3_OP}-row_strided-{t}"] = (_case(IQ3_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
+    CASES[f"{IQ3_OP}-q4_k"] = (_case(IQ3_OP, Q4_K), "IQ3_S or IQ3_XXS only")
+    CASES[f"{IQ3_OP}-1_row"] = (_case(IQ3_OP, n=1), "must be CUDA tensors")
+    CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
+    CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
+    CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
+    CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
 # the owned Q4_K / IQ2_S kernel: the same, with its own type check
 OWN_OP = "lcpp_mul_mat_vec_own"
 for t in (Q4_K, IQ2_S):
@@ -136,7 +137,7 @@ def child():
 
 def test_ops_registered_without_cuda_init(child):
     assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_own"]
+                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_own"]
     assert child["cuda_initialized"] is False
 
 
