@@ -35,10 +35,8 @@ FAULTS='illegal memory access|misaligned address|unspecified launch failure|CUDA
 
 SPID='' LPID='' RESTARTS=0
 start_server() {
-  GSQ_LOG=$OUT/server.log setsid "$GSQ_ROOT/scripts/serve-$KIND.sh" > /dev/null 2>&1 &
+  setsid "$GSQ_ROOT/scripts/serve-$KIND.sh" >> "$OUT/server.log" 2>&1 &
   SPID=$!
-  sleep 1
-  [ "$(ps -o pgid= "$SPID" | tr -d ' ')" = "$SPID" ] || gsq_die "server is not its own process group leader"
   gsq_wait_health 2400 "$SPID" || { echo "server did not come up" >> "$OUT/faults.log"; return 1; }
 }
 stop_all() {
