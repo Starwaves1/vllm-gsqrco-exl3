@@ -482,7 +482,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
     print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
           f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
     assert torch.equal(y, whole)  # one product per run
-    if n < 8:
+    if n <= 8:  # MMVQ / the IQ3 kernel (this layer is IQ3_S + IQ3_XXS)
         assert torch.equal(y, per_shard)
     else:
         assert _refs.rel_err(y, per_shard.double().cpu()) <= 1e-3

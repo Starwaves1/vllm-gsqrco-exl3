@@ -473,7 +473,7 @@ iq3_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
   using traits = iq3_traits<type>;
   constexpr int slices = QK_K / QK8_1;  // 32-value slices (q8_1 blocks) per weight block
   __shared__ uint32_t grid[traits::grid_size];
-  __shared__ block_q8_1 ys[ncols][IQ3_CHUNK];
+  __shared__ __align__(16) block_q8_1 ys[ncols][IQ3_CHUNK];  // int4 stores below
   static_assert(sizeof(ys[0]) % sizeof(int4) == 0, "16-byte staging");
 
   const int lane = threadIdx.x, tid = threadIdx.y * WARP_SIZE + threadIdx.x;

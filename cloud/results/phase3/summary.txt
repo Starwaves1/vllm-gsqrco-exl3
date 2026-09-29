@@ -80,6 +80,21 @@ out-of-range id already fails loudly at load; PROVENANCE detail left as generate
 Reviewer suggested, not done: IQ4_NL dequant launcher overruns when k % 256 != 0 (pre-existing,
 not in this GGUF); repeat profile runs to put error bars on sub-ms deltas.
 
+Review 3 (/check, Fable, item 5): 4 findings. Kernel decode, signs, scales, tails, sync, stream
+and the linear.py routing checked against vendored vec_dot_iq3_*_q8_1 with no issue; the
+same_type_run "test bug" diagnosis confirmed. Fixed: (1, high) the test claims in STATUS had no
+committed post-fix logs and the committed memcheck log showed 26 errors (all in the vendored MMVQ
+reference at the old 203-row row_tail) - post-fix guards log committed (80 pass), rerun after the
+fix below: parity 1152 pass / 16 skip, CPU guards 52, memcheck/initcheck 0 errors on 12 IQ3 cases
+(item5/review/); (2) the staged q8_1 tile took int4 stores but was declared with block_q8_1's
+4-byte alignment, correct only because the grid array happened to be placed first - now
+__align__(16); (3) STATUS said the n = 8 failures lacked the MMQ tolerance: false, all 6 failed
+at the whole-run equality at n = 1, 4, 8 - reworded; the test now also asserts bit-exact at
+n = 8 (IQ3 kernel); (4) this line said item 5 not started. Rejected: none.
+Reviewer suggested, not done: vendored MMVQ reads one weight row past the end at odd row counts
+(this model's rows are even; belongs in the Route L caveats); if item 5 is revisited, the lever
+is instruction count, not overlap.
+
 item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1 / c=2   parity      kept
 3b    draft lm_head placeholder not allocated  (c)        (c)        -                    n/a (d)     yes
 3a    + row-pruned draft lm_head (40,960 rows) 79.4       139.5      37.8 / 43.2          n/a (d)     yes
@@ -138,7 +153,7 @@ item  change                                   c=1 tok/s  c=2 tok/s  ms/step c=1
  This one change sits outside the VLLM_GGUF_LCPP flag: stock mode keeps one product per shard
  (review 2 fix; stock routing depends on each product's row count).
 
-item 5  decode-once kernel for 2-8 rows: NOT started (stop point). Data for the decision:
+item 5  decode-once kernel for 1-8 rows: done (STATUS.md item 5, item5/). Data for the decision:
  After items 1-4b: 83.5 / 146.7 tok/s c=1 / c=2 = 36.6 / 41.6 ms/step (baseline 94.1 / 194.4).
  At 3.00-3.06 tok/step (acceptance moves with numerics), 94.1 tok/s needs 31.9-32.5 ms/step:
  -4.1..-4.7 ms at c=1; c=2 needs ~-10 ms.

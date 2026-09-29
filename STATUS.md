@@ -95,18 +95,19 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   - Goal (>=600 GB/s op-level at 4 rows) not reached: 541/520 GB/s (IQ3_S/IQ3_XXS).
   - Tests: kernel parity 1002 -> 1152 pass / 16 skip / 0 fail (`VLLM_GGUF_LCPP=1`; new:
     `test_lcpp_iq3` correctness across n=1..8, 3 dtypes, real/row_tail/k_tail shapes, and
-    `test_lcpp_iq3_graph_replay`). The full run first showed 6 failures, all
-    `test_lcpp_same_type_run`: a test bug, not a kernel bug — the test built its "whole run"
-    and "per shard" references by calling the vendored `lcpp_mul_mat_vec_q`/`lcpp_mul_mat_q`
-    ops directly instead of routing through `_fused_mul_mat_gguf` (production's type-based
-    dispatch), so at n < 8 it compared the new IQ3 kernel's output against the (slightly
-    different, ~1e-7 rel, ~35% bit-equal per `iq3-vs-mmvq.txt`) vendored MMVQ path, and at
-    n = 8 it lacked the already-established MMQ stream-k tolerance (measured max 0.03, same as
-    `test_lcpp_mixed_shard_layer`). Fixed by routing both references through
-    `_fused_mul_mat_gguf` and keeping bit-exact only where rows are independent (MMVQ, the
-    IQ3 kernel) with the 1e-3 relative-error bound where MMQ's stream-k reorders the sum
-    (n >= 8). GPU guards (`-k lcpp`) and CPU guards pass; memcheck/initcheck 0 errors on the
-    IQ3 sanitizer cases. Vendored files unchanged (VENDORED.md sha256 pass).
+    `test_lcpp_iq3_graph_replay`; log `item5/review/parity.log`). The first full run
+    (`item5/parity.log`) had 6 failures, all `test_lcpp_same_type_run` at
+    `assert torch.equal(y, whole)`, n = 1, 4, 8: a test bug, not a kernel bug. The test built
+    its "whole run" and "per shard" references by calling `lcpp_mul_mat_vec_q` /
+    `lcpp_mul_mat_q` directly, while `apply()` now sends IQ3 shards at 1..8 rows to the new
+    kernel (~1e-7 rel from MMVQ, ~35% bit-equal, `iq3-vs-mmvq.txt`). Fixed by building both
+    references through `_fused_mul_mat_gguf` (production's dispatch); bit-exact at n <= 8
+    (MMVQ / IQ3 kernel, rows independent), 1e-3 relative where MMQ's stream-k reorders the sum.
+    GPU guards `-k lcpp` 80 pass (`item5/guards.log`), CPU guards 52 pass. memcheck/initcheck
+    0 errors on 12 `test_lcpp_iq3` cases (`item5/review/`; graph replay excluded, capture is
+    unsupported under compute-sanitizer). The first memcheck (`item5/sanitizer-memcheck.log`)
+    had 26 errors, all in vendored MMVQ (the test's reference) reading past a 203-row W; the
+    row_tail case now uses 202 rows. Vendored files unchanged (VENDORED.md sha256 pass).
   - Microbench (`cloud/results/phase3/item5/micro-final.tsv`; op time incl. q8_1 quantize +
     output cast, CUDA graph, us at 17408 x 5120):
 
@@ -124,6 +125,9 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
     next-chunk register-prefetch scheme (both slower than staged-in-smem-no-overlap); q8_1 read
     straight from global with no staging (within noise, staging kept for a small n=8 win).
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
+  Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment
+  assumption (`__align__(16)` on the staged q8_1 tile), the unlogged test claims (logs now
+  committed, sanitizer rerun) and the n = 8 failure cause in this write-up.
 
 ## Phase 2: Route L on the rented RTX 3090 (2026-09-28, 350 W)
 
