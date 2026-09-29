@@ -1,0 +1,9 @@
+start 2026-09-29T20:17:58Z
+build rc=0
+cpu guards: 139 passed, 14 warnings in 8.67s
+gpu guards rc=0: 132 passed, 10 skipped, 50 deselected in 2530.49s (0:42:10)
+sanitizer cases: 53
+memcheck rc=0: 53 passed, 15 warnings in 22.94s / ========= ERROR SUMMARY: 0 errors
+initcheck rc=0: 53 passed, 15 warnings in 22.54s / ========= ERROR SUMMARY: 0 errors
+vendored files unchanged
+end 2026-09-29T21:01:19Z

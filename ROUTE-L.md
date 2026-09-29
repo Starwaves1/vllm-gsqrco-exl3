@@ -40,7 +40,7 @@ phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
   - `linear.py` routing (`_lcpp_op`; n = activation rows, W rows = the
-    weight's or shard run's rows). IQ1_M keeps the old path.
+    weight's or shard run's rows).
 
     | type | n = 1..5 | n = 6, 7 | n = 8 | n ≥ 9 | source |
     |---|---|---|---|---|---|
@@ -48,6 +48,7 @@ phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
     | Q4_K, W rows > 2048 | MMVQ at 1, 2; `lcpp_mul_mat_vec_own` from 3 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
     | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
     | other Route L types; Q4_K/IQ2_S ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | phase3 item 1 |
+    | IQ1_M (no MMQ upstream) | MMVQ | MMVQ | MMVQ | MMVQ in 8-row calls to 32 rows, then the stock dequantize + x @ W.T | opt-p2 |
 
   - A fused layer with several shard runs (mixed types) quantizes X once up
     front in `apply()` (`_quantize_x_q8_1`, opt-p) when any run's op reads
@@ -89,8 +90,9 @@ uses it. Single-run layers quantize inside the op.
 - Nothing is zero-filled except the MMQ tail. The quantizers write every byte
   of their q8 region, with zeros past `ne00`. The stream-k `tmp_fixup` is
   written by `mul_mat_q` before the fixup reads it. Upstream's ggml pool
-  doesn't zero either. The MMQ tail memset is J_max+128 blocks (≤ 36 KiB),
-  not the whole buffer.
+  doesn't zero either. The MMQ tail is J_max+128 blocks (≤ 36 KiB), not the
+  whole buffer; since opt-p2 MMQ's quantize kernel zeroes it (one launch
+  fewer per MMQ call than the phase 3 column).
 - The output cast stays for MMVQ and MMQ: they write fp32 dst only (`float * dst` in
   both kernels' write-back), so a 16-bit Y needs vendored edits. The owned mma and
   Q4_K/IQ2_S kernels also write fp32 (16-bit output is a round-2 item). Phase 3 took

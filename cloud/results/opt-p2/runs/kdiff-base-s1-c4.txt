@@ -1,0 +1,15 @@
+total ms/step 42.023 -> 41.786; launches 3030 -> 2669
+   360 ->      0    0.410 ->   0.000 (-0.410)  memset32
+   313 ->    313    0.464 ->   0.503 (+0.039)  void quantize_mmq_q8_1_x<__nv_bfloat16, (mmq_q8_1_ds_layout)0>(__nv_bfloat16 const*, block_q8_1_mmq*, long, lo
+   127 ->    127   12.188 ->  12.223 (+0.035)  void mul_mat_q<(ggml_type)21, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    65 ->     65    7.014 ->   7.036 (+0.022)  void mul_mat_q<(ggml_type)18, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    86 ->     86    5.382 ->   5.403 (+0.020)  void mul_mat_q<(ggml_type)23, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    32 ->     32    0.103 ->   0.115 (+0.012)  triton_red_fused__to_copy_add_fused_add_rms_norm_3
+    35 ->     35    2.939 ->   2.949 (+0.010)  void mul_mat_q<(ggml_type)12, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    13 ->     13    0.765 ->   0.769 (+0.005)  void mul_mat_q<(ggml_type)10, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    16 ->     16    1.506 ->   1.511 (+0.005)  void mul_mat_q<(ggml_type)22, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    35 ->     35    0.054 ->   0.058 (+0.004)  void quantize_mmq_q8_1_x<__nv_bfloat16, (mmq_q8_1_ds_layout)1>(__nv_bfloat16 const*, block_q8_1_mmq*, long, lo
+    12 ->     12    0.043 ->   0.039 (-0.004)  triton_red_fused__to_copy_add_fused_add_rms_norm_4
+     9 ->      9    0.951 ->   0.954 (+0.004)  void mul_mat_q<(ggml_type)17, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+     5 ->      5    0.595 ->   0.598 (+0.003)  void mul_mat_q<(ggml_type)14, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+     5 ->      5    0.401 ->   0.404 (+0.003)  void mul_mat_q<(ggml_type)16, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float

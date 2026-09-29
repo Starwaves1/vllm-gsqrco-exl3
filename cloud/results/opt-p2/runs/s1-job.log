@@ -1,0 +1,31 @@
+start 2026-09-29T16:40:11Z
+build rc=0
+parity lcpp rc=0: 1970 passed, 128 skipped, 15 warnings in 94.23s (0:01:34)
+parity stock rc=0: 1939 passed, 159 skipped, 15 warnings in 96.07s (0:01:36)
+(EngineCore pid=625284) INFO 09-29 16:45:58 [qwen3_5_mtp.py:107] MTP drafter uses a 61440-token draft head
+(EngineCore pid=625284) INFO 09-29 16:46:11 [gpu_model_runner.py:5455] Model loading took 12.45 GiB memory and 124.108222 seconds
+(EngineCore pid=625284) INFO 09-29 16:49:34 [kv_cache_utils.py:2389] GPU KV cache size: 248,437 tokens
+speed rc=0
+ROW cohort C1 real prompts T=0 | e2e=98.26 tok/s | decode(C/meanTPOT)=100.7 | tok/step=3.08 | meanTTFT=223.42 ms
+ROW cohort C2 real prompts T=0 | e2e=151.46 tok/s | decode(C/meanTPOT)=171.5 | tok/step=2.99 | meanTTFT=322.71 ms
+ROW cohort C4 real prompts T=0 | e2e=212.34 tok/s | decode(C/meanTPOT)=259.6 | tok/step=3.00 | meanTTFT=531.58 ms
+ROW cohort C8 real prompts T=0 | e2e=347.12 tok/s | decode(C/meanTPOT)=437.2 | tok/step=3.05 | meanTTFT=1261.82 ms
+ROW cohort C1 real prompts T=0 | e2e=98.08 tok/s | decode(C/meanTPOT)=100.5 | tok/step=3.08 | meanTTFT=223.14 ms
+ROW cohort C2 real prompts T=0 | e2e=151.59 tok/s | decode(C/meanTPOT)=171.7 | tok/step=2.99 | meanTTFT=320.56 ms
+ROW cohort C4 real prompts T=0 | e2e=215.71 tok/s | decode(C/meanTPOT)=262.1 | tok/step=3.02 | meanTTFT=507.01 ms
+ROW cohort C8 real prompts T=0 | e2e=347.19 tok/s | decode(C/meanTPOT)=437.2 | tok/step=3.05 | meanTTFT=1260.46 ms
+ROW MTP whole run | acceptance rate 0.6589 | mean accepted length 2.977 | per position 0.819 0.648 0.509
+ROW clocks /workspace/runs/opt-p2-s1/clocks-decode-pass1.csv: 407 s busy, median SM 1740 MHz, mem 9501 MHz, 343.6 W, util 89%
+ROW clocks /workspace/runs/opt-p2-s1/clocks-decode-pass2.csv: 407 s busy, median SM 1725 MHz, mem 9501 MHz, 343.9 W, util 89%
+== c=1
+5 complete steps; per step: 2005 GPU activities, busy 25.91 ms, span 34.86 ms (idle 8.95)
+  copy/cast        356.0 launches   0.689 ms
+  q8_1 quantize    276.0 launches   0.408 ms
+  gpu_memset         5.0 launches   0.003 ms
+== c=4
+5 complete steps; per step: 2669 GPU activities, busy 41.79 ms, span 49.39 ms (idle 7.61)
+  copy/cast        548.0 launches   1.045 ms
+  q8_1 quantize    374.0 launches   0.603 ms
+  gpu_memset         6.0 launches   0.004 ms
+     1.0   0.280  void dequantize_block_iq1_m<c10::BFloat16>(void const*, c10::BFloat16*)
+end 2026-09-29T17:07:41Z

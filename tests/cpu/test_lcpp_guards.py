@@ -19,8 +19,8 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SO = os.path.join(ROOT, "plugin/vllm_gguf_plugin/_C_gguf.abi3.so")
 
-IQ3_S, IQ3_XXS, Q4_K, IQ1_M, IQ4_XS, IQ2_S = 21, 18, 12, 29, 23, 22
-TS = {IQ3_S: 110, IQ3_XXS: 98, Q4_K: 144, IQ4_XS: 136, IQ2_S: 82}  # bytes per 256-value block
+IQ3_S, IQ3_XXS, Q4_K, IQ1_M, IQ4_XS, IQ2_S, IQ1_S = 21, 18, 12, 29, 23, 22, 19
+TS = {IQ3_S: 110, IQ3_XXS: 98, Q4_K: 144, IQ4_XS: 136, IQ2_S: 82, IQ1_M: 56}  # bytes per 256-value block
 K = 5120
 
 _CHILD = r"""
@@ -79,7 +79,7 @@ for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):
         CASES[f"{op}-w_narrow_view-{t}"] = (
             _case(op, t, n=n, stride=K // 256 * TS[t] + 256), "row stride")
     CASES[f"{op}-fp32_x"] = (_case(op, n=n, x_dtype="float32"), "must be CUDA tensors")
-    CASES[f"{op}-iq1_m"] = (_case(op, IQ1_M, n=n), "unsupported ggml type")
+    CASES[f"{op}-iq1_s"] = (_case(op, IQ1_S, n=n), "unsupported ggml type")
     CASES[f"{op}-w_float"] = (_case(op, n=n, w_dtype="float32"), "W must be uint8")
     CASES[f"{op}-w_1d"] = (_case(op, n=n, w_1d=True), "must be 2-D")
     CASES[f"{op}-x_int"] = (_case(op, n=n, x_dtype="int32"), "X must be fp32, fp16 or bf16")
@@ -94,6 +94,9 @@ for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):
 CASES["lcpp_mul_mat_vec_q-9_rows"] = (_case("lcpp_mul_mat_vec_q", n=9), "at most 8 rows")
 CASES["lcpp_mul_mat_q-9_rows"] = (_case("lcpp_mul_mat_q", n=9), "must be CUDA tensors")
 CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), "must be CUDA tensors")
+# IQ1_M: MMVQ only (llama.cpp has no IQ1_M MMQ)
+CASES["lcpp_mul_mat_vec_q-iq1_m"] = (_case("lcpp_mul_mat_vec_q", IQ1_M), "must be CUDA tensors")
+CASES["lcpp_mul_mat_q-iq1_m"] = (_case("lcpp_mul_mat_q", IQ1_M, n=64), "no MMQ for IQ1_M")
 # the owned IQ3 kernels share check_inputs (MMVQ limits) and add a type check
 for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
     for t in (IQ3_S, IQ3_XXS):

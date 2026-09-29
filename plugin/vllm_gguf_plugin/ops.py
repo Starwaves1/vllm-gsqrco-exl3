@@ -91,7 +91,7 @@ _CUDA_GEMM_QUANT_TYPES = frozenset(
 
 
 # Route L (opt-in): llama.cpp b11211 MMVQ/MMQ via csrc/lcpp_shim.cu for these
-# types; needs the extension built with VLLM_GGUF_BUILD_LCPP=1.
+# types (IQ1_M: MMVQ only); needs the extension built with VLLM_GGUF_BUILD_LCPP=1.
 LCPP_ENABLED = os.environ.get("VLLM_GGUF_LCPP") == "1"
 LCPP_QUANT_TYPES = frozenset(
     {
@@ -104,6 +104,7 @@ LCPP_QUANT_TYPES = frozenset(
         GGML_TYPE_IQ3_XXS,
         GGML_TYPE_IQ3_S,
         GGML_TYPE_IQ4_XS,
+        GGML_TYPE_IQ1_M,
     }
 )
 if LCPP_ENABLED and not (

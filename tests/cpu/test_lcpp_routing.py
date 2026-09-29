@@ -23,6 +23,9 @@ CASES = [
     # every other Route L type: MMVQ below 8, MMQ from 8
     *[(t, n, BIG, want) for t in (T.Q2_K, T.Q6_K, T.IQ2_XXS, T.IQ2_XS, T.IQ4_XS)
       for n, want in ((1, MMVQ), (7, MMVQ), (8, MMQ), (9, MMQ))],
+    # IQ1_M (no MMQ upstream): MMVQ up to 32 rows (8 per call), then no Route L op
+    *[(T.IQ1_M, n, rows, want) for rows in (1024, BIG)
+      for n, want in ((1, MMVQ), (8, MMVQ), (9, MMVQ), (32, MMVQ), (33, None))],
 ]
 
 

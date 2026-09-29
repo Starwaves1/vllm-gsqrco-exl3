@@ -1,0 +1,3 @@
+opt-p2-base            c=1  100.5 ( 100.3) 3.05 tok/step  30.3 ms | c=2  175.9 ( 173.6) 3.06 tok/step  34.8 ms | c=4  256.4 ( 256.7) 3.01 tok/step  47.0 ms | c=8  436.4 ( 442.5) 3.06 tok/step  56.1 ms | acc 0.6611
+opt-p2-s2              c=1  100.9 ( 100.7) 3.08 tok/step  30.5 ms | c=2  179.2 ( 179.1) 3.10 tok/step  34.6 ms | c=4  267.6 ( 263.2) 3.10 tok/step  46.3 ms | c=8  433.8 ( 438.4) 3.02 tok/step  55.7 ms | acc 0.6595
+opt-p2-fin             c=1   96.9 (  97.3) 2.98 tok/step  30.8 ms | c=2  175.3 ( 175.4) 3.06 tok/step  34.9 ms | c=4  258.7 ( 258.2) 3.02 tok/step  46.7 ms | c=8  436.0 ( 432.2) 3.06 tok/step  56.1 ms | acc 0.6453

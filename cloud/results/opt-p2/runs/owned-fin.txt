@@ -1,0 +1,45 @@
+== fin c=1
+per step: span 35.90 ms, GPU busy 25.66 ms, idle 10.24 ms
+plugin GEMM       21.311 ms     375 launches
+    10.351 ms    192  owned IQ3 dp4a
+     8.119 ms    141  MMVQ
+     2.759 ms     41  owned Q4_K/IQ2_S
+     0.082 ms      1  IQ1_M MMVQ
+plugin plumbing    1.131 ms     589 launches
+     0.405 ms    275  q8_1 quantize (MMVQ/owned)
+     0.304 ms     48  in_proj_ba BF16 product
+     0.286 ms    183  fp32->16-bit output cast
+     0.116 ms     75  cat of a fused layer's runs
+     0.021 ms      8  embedding (gather + dequant)
+vLLM / other       3.252 ms    1040 launches
+== fin c=4
+per step: span 49.52 ms, GPU busy 41.67 ms, idle 7.84 ms
+plugin GEMM       35.078 ms     701 launches
+    31.984 ms    361  MMQ
+     1.192 ms    325  stream-k fixup (vendored MMQ)
+     1.007 ms     10  MMVQ
+     0.655 ms      3  owned Q4_K/IQ2_S
+     0.240 ms      2  IQ1_M MMVQ
+plugin plumbing    1.765 ms     930 launches
+     0.623 ms    376  fp32->16-bit output cast
+     0.589 ms    361  q8_1 quantize (MMQ)
+     0.323 ms     96  in_proj_ba BF16 product
+     0.172 ms     75  cat of a fused layer's runs
+     0.036 ms      8  embedding (gather + dequant)
+     0.022 ms     14  q8_1 quantize (MMVQ/owned)
+vLLM / other       4.873 ms    1041 launches
+== fin c=8
+per step: span 60.04 ms, GPU busy 51.73 ms, idle 8.31 ms
+plugin GEMM       41.998 ms     713 launches
+    38.979 ms    371  MMQ
+     1.774 ms    335  stream-k fixup (vendored MMQ)
+     0.767 ms      3  owned Q4_K/IQ2_S
+     0.478 ms      4  IQ1_M MMVQ
+plugin plumbing    1.995 ms     882 launches
+     0.878 ms    378  fp32->16-bit output cast
+     0.705 ms    371  q8_1 quantize (MMQ)
+     0.269 ms     75  cat of a fused layer's runs
+     0.113 ms     48  in_proj_ba BF16 product
+     0.022 ms      6  embedding (gather + dequant)
+     0.008 ms      4  q8_1 quantize (MMVQ/owned)
+vLLM / other       7.782 ms    1090 launches

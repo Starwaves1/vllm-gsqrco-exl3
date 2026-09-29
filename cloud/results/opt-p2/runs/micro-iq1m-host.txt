@@ -1,0 +1,28 @@
+start 2026-09-29T14:51:28Z
+   n stock_mmvq  lcpp_mmvq dequant+mm    bf16_mm  lcpp_err
+   1       57.1       55.6      505.2      222.6  5.85e-03
+   2       95.9       63.1      494.4      217.5  5.78e-03
+   4      185.4       86.5      496.4      219.1  5.87e-03
+   8      406.2      129.6      498.3      221.6  5.88e-03
+   9      454.6      182.0      499.5      221.7  5.86e-03
+  12      605.0      214.0      501.0      223.1  5.83e-03
+  16      808.9      258.5      501.3      224.3  5.87e-03
+  24        nan      389.6      513.4      231.4  5.84e-03
+  32        nan      520.2      561.5      302.9  5.86e-03
+  40        nan      648.0      565.9      291.8  5.84e-03
+  48        nan      776.4      572.6      310.8  5.88e-03
+  64        nan     1034.4      579.9      292.9  5.83e-03
+ 128        nan     2064.5      653.2      379.2  5.84e-03
+    35.1 us  embed: torch.ops.vllm._apply_gguf_embedding
+    27.9 us  embed: _apply_gguf_embedding (python, no custom op)
+    20.5 us  embed: index_select + _C_gguf.ggml_dequantize
+     7.6 us  embed:   index_select
+    10.9 us  embed:   _C_gguf.ggml_dequantize
+    11.4 us  embed:   ops.ggml_dequantize (python wrapper)
+    33.6 us  lm_head: torch.ops.vllm._fused_mul_mat_gguf
+    29.1 us  lm_head: _fused_mul_mat_gguf (python)
+    27.5 us  lm_head:   _C_gguf.lcpp_mul_mat_vec_own
+    27.7 us  lm_head:   _C_gguf.lcpp_mul_mat_vec_own fp32 X
+     2.6 us  ref: torch.empty
+     8.1 us  ref: x.to(float32)
+end 2026-09-29T14:52:16Z

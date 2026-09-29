@@ -1,0 +1,17 @@
+total ms/step 41.554 -> 41.365; launches 2672 -> 2318
+   376 ->      4    0.620 ->   0.036 (-0.585)  void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase
+    12 ->     48    0.039 ->   0.175 (+0.135)  triton_red_fused__to_copy_add_fused_add_rms_norm_4
+     0 ->     33    0.000 ->   0.121 (+0.121)  triton_poi_fused__to_copy_cat_3
+    51 ->     19    0.152 ->   0.061 (-0.091)  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    32 ->      0    0.083 ->   0.000 (-0.083)  triton_per_fused__to_copy__unsafe_view_add_clone_mean_mul_pow_rsqrt_silu_transpose_view_0
+    16 ->     48    0.038 ->   0.115 (+0.077)  triton_per_fused_1
+    28 ->      0    0.075 ->   0.000 (-0.075)  triton_poi_fused_cat_2
+    19 ->     66    0.066 ->   0.138 (+0.072)  triton_poi_fused_0
+    65 ->     65    7.042 ->   7.097 (+0.054)  void mul_mat_q<(ggml_type)18, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+     0 ->     15    0.000 ->   0.049 (+0.049)  triton_poi_fused__to_copy_3
+     0 ->     24    0.000 ->   0.049 (+0.049)  triton_poi_fused__to_copy_cat_5
+    86 ->     86    5.409 ->   5.452 (+0.043)  void mul_mat_q<(ggml_type)23, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+    22 ->      0    0.040 ->   0.000 (-0.040)  triton_poi_fused_cat_4
+   127 ->    127   12.220 ->  12.257 (+0.037)  void mul_mat_q<(ggml_type)21, 16, false, (ggml_prec)30>(char const*, int const*, int const*, int const*, float
+     0 ->     12    0.000 ->   0.037 (+0.037)  triton_poi_fused__to_copy_2
+    32 ->     19    0.104 ->   0.069 (-0.035)  triton_red_fused__to_copy_add_fused_add_rms_norm_3
