@@ -1,0 +1,12 @@
+seq_009: mean 0.00193 max 0.0390 top1 0.9931
+  pos 102294 (probe 182): KLD 0.0390  llama top '_e' p=0.149 (vLLM 0.142)  vLLM top '_e' p=0.142 (llama 0.149)
+  pos 102295 (probe 183): KLD 0.0338  llama top '_e' p=0.238 (vLLM 0.184)  vLLM top '_e' p=0.184 (llama 0.238)
+  pos 102296 (probe 184): KLD 0.0330  llama top '_name' p=0.204 (vLLM 0.215)  vLLM top '_name' p=0.215 (llama 0.204)
+  pos 102217 (probe 105): KLD 0.0190  llama top '.full' p=0.583 (vLLM 0.662)  vLLM top '.full' p=0.662 (llama 0.583)
+  pos 102297 (probe 185): KLD 0.0179  llama top '(name' p=0.571 (vLLM 0.502)  vLLM top '(name' p=0.502 (llama 0.571)
+seq_010: mean 0.01089 max 0.5826 top1 0.9861
+  pos 119784 (probe 72): KLD 0.5826  llama top '()' p=0.742 (vLLM 0.238)  vLLM top '().' p=0.647 (llama 0.183)
+  pos 119978 (probe 266): KLD 0.2880  llama top ' parent' p=0.454 (vLLM 0.145)  vLLM top ' #' p=0.737 (llama 0.448)
+  pos 119772 (probe 60): KLD 0.2230  llama top 'the' p=0.635 (vLLM 0.877)  vLLM top 'the' p=0.877 (llama 0.635)
+  pos 119797 (probe 85): KLD 0.2188  llama top '_id' p=0.410 (vLLM 0.692)  vLLM top '_id' p=0.692 (llama 0.410)
+  pos 119867 (probe 155): KLD 0.1702  llama top ' request' p=0.457 (vLLM 0.221)  vLLM top ' if' p=0.681 (llama 0.409)

@@ -89,7 +89,17 @@ prefill = the salted ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks
   exists to bound single-prompt noise. Repeat (`parity/repeat/`, 2 more process starts): seq_009 /
   seq_010 reproduce bit-identically per position (0.00191 / 0.00902, max 0.487 at pos 119966, llama
   '(request' 0.52 vs vLLM '_token' 0.41), so run-to-run noise is zero and the change vs phase 2 is
-  deterministic numerics of the merged kernels, not noise. MTP acceptance vs llama.cpp (8 real prompts, k=3): greedy
+  deterministic numerics of the merged kernels, not noise.
+- Parity numerics (attribution, `parity/variant/`): the same build with item 4b off (each shard of
+  a mixed-type layer its own product; only the fp32 summation order changes, via MMQ stream-k)
+  moves the seq_010 spike rather than removing it: pos 119966 0.487 -> 0.065, but pos 119784
+  0.072 -> 0.583 and 119978 0.100 -> 0.288; seq_010 mean 0.00902 -> 0.01089, top-1 0.9826 ->
+  0.9861; seq_009 0.00191 -> 0.00193. So a pure reordering shifts seq_010's mean by ~20% and
+  moves its spikes between near-tied positions deep in the 120k context: the phase-2 -> Int1
+  delta (0.00740 -> 0.00902) is within that ordering sensitivity and is not attributable to one
+  change. The K1-off variant was not needed (it ran only if the 119966 spike survived).
+  `compare.py --json` now keeps per-position KLD, so later runs compare position by position.
+- MTP acceptance vs llama.cpp (8 real prompts, k=3): greedy
   0.664 vs 0.673 (-0.95 pt, within the 2-pt gate); T=1.0 0.656 vs 0.628 (+2.9, FAIL as in phase 1b).
 - Merge resolutions (all in `lcpp_shim.cu`, `linear.py`, `setup.py`, the tests):
   - Routing is one function, `linear._lcpp_op(n, type, weight rows)`; the table is in
