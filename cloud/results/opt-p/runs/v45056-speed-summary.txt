@@ -1,0 +1,27 @@
+# kind=gsq url=http://127.0.0.1:18090 tokenizer=/workspace/wt-p-v45056/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp 2026-09-29T09:02:32Z
+# production run_benchmarks.sh single, pass 1 (warm-up, discard)
+# Tue Sep 29 09:02:32 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=90.58 tok/s | decode(C/meanTPOT)=92.7 | tok/step=3.01 | meanTTFT=225.24 ms
+ROW cohort C2 real prompts T=default | e2e=134.59 tok/s | decode(C/meanTPOT)=155.2 | tok/step=2.96 | meanTTFT=322.54 ms
+ROW cohort C4 real prompts T=default | e2e=209.83 tok/s | decode(C/meanTPOT)=253.6 | tok/step=3.04 | meanTTFT=471.69 ms
+ROW cohort C8 real prompts T=default | e2e=323.49 tok/s | decode(C/meanTPOT)=405.3 | tok/step=2.92 | meanTTFT=1223.36 ms
+ROW cohort C1 real prompts T=0 | e2e=94.62 tok/s | decode(C/meanTPOT)=96.6 | tok/step=3.04 | meanTTFT=223.94 ms
+ROW cohort C2 real prompts T=0 | e2e=146.53 tok/s | decode(C/meanTPOT)=162.6 | tok/step=3.05 | meanTTFT=319.50 ms
+ROW cohort C4 real prompts T=0 | e2e=216.80 tok/s | decode(C/meanTPOT)=262.1 | tok/step=3.06 | meanTTFT=491.82 ms
+ROW cohort C8 real prompts T=0 | e2e=337.44 tok/s | decode(C/meanTPOT)=428.0 | tok/step=3.01 | meanTTFT=1252.78 ms
+# raw logs in /workspace/runs/opt-p-v45056-speed/prod-pass1
+# production run_benchmarks.sh single, pass 2
+# Tue Sep 29 09:10:58 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=90.14 tok/s | decode(C/meanTPOT)=92.2 | tok/step=2.99 | meanTTFT=225.25 ms
+ROW cohort C2 real prompts T=default | e2e=139.92 tok/s | decode(C/meanTPOT)=154.4 | tok/step=2.99 | meanTTFT=325.51 ms
+ROW cohort C4 real prompts T=default | e2e=192.39 tok/s | decode(C/meanTPOT)=243.3 | tok/step=3.00 | meanTTFT=522.55 ms
+ROW cohort C8 real prompts T=default | e2e=308.30 tok/s | decode(C/meanTPOT)=378.6 | tok/step=3.01 | meanTTFT=1382.55 ms
+ROW cohort C1 real prompts T=0 | e2e=69.03 tok/s | decode(C/meanTPOT)=70.8 | tok/step=3.04 | meanTTFT=364.99 ms
+ROW cohort C2 real prompts T=0 | e2e=144.71 tok/s | decode(C/meanTPOT)=160.3 | tok/step=3.04 | meanTTFT=352.29 ms
+ROW cohort C4 real prompts T=0 | e2e=216.79 tok/s | decode(C/meanTPOT)=261.3 | tok/step=3.04 | meanTTFT=486.19 ms
+ROW cohort C8 real prompts T=0 | e2e=339.19 tok/s | decode(C/meanTPOT)=427.6 | tok/step=2.99 | meanTTFT=1251.06 ms
+# raw logs in /workspace/runs/opt-p-v45056-speed/prod-pass2
+# salted prefill ladder
+ROW MTP whole run | acceptance rate 0.6403 | mean accepted length 2.921 | per position 0.803 0.630 0.488
+ROW clocks /workspace/runs/opt-p-v45056-speed/clocks-decode-pass1.csv: 421 s busy, median SM 1725 MHz, mem 9501 MHz, 343.4 W, util 89%
+ROW clocks /workspace/runs/opt-p-v45056-speed/clocks-decode-pass2.csv: 454 s busy, median SM 1755 MHz, mem 9501 MHz, 340.7 W, util 88%
