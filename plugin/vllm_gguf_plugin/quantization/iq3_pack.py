@@ -30,10 +30,10 @@ mask (IQ3_XXS): no qh / sign / parity unpacking per word.
 """
 
 import torch
+from gguf import GGML_QUANT_SIZES
 from gguf import GGMLQuantizationType as WeightType
 
 ROWS = 16  # rows per tile (the mma's M)
-BLOCK_BYTES = {WeightType.IQ3_S: 110, WeightType.IQ3_XXS: 98}
 
 # IQ3_S: where X5..X7 (row g+8, slice pairs 1..3) live in H0..H4's top 3 bits, as
 # (x, bit offset in x, h, bit offset in h's byte, width)
@@ -80,7 +80,8 @@ def _lanes(v: torch.Tensor) -> torch.Tensor:
 def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
     """[rows, row_bytes] uint8 GGUF blocks (rows % 16 == 0) -> the packed bytes, same shape."""
     weight_type = WeightType(weight_type)
-    bsize = BLOCK_BYTES[weight_type]
+    assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
+    bsize = GGML_QUANT_SIZES[weight_type][1]
     rows, rb = w.shape
     b = _tiles(w, bsize).int()                      # N, R, G, bytes
     n = b.shape[0]
@@ -120,7 +121,8 @@ def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
 def unpack(p: torch.Tensor, weight_type: int) -> torch.Tensor:
     """Inverse of pack: the GGUF block bytes."""
     weight_type = WeightType(weight_type)
-    bsize = BLOCK_BYTES[weight_type]
+    assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
+    bsize = GGML_QUANT_SIZES[weight_type][1]
     rows, rb = p.shape
     nb = rb // bsize
     t = p.reshape(-1, ROWS * bsize).int()
@@ -159,7 +161,7 @@ def unpack(p: torch.Tensor, weight_type: int) -> torch.Tensor:
             .reshape(rows, rb).to(torch.uint8))
 
 
-def pack_(w: torch.Tensor, weight_type: int, rows_per_step: int = 256) -> None:
-    """pack() in place, a few tiles at a time (bounded scratch while loading)."""
-    for r0 in range(0, w.shape[0], rows_per_step):
-        w[r0:r0 + rows_per_step] = pack(w[r0:r0 + rows_per_step], weight_type)
+def pack_(w: torch.Tensor, weight_type: int) -> None:
+    """pack() in place, 16 tiles at a time (bounded scratch while loading)."""
+    for r0 in range(0, w.shape[0], 256):
+        w[r0:r0 + 256] = pack(w[r0:r0 + 256], weight_type)

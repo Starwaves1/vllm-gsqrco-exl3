@@ -32,8 +32,8 @@ torch.ops.load_library(sys.argv[1])
 ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
 out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                    "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed")
-                   if hasattr(ops, n)]}
+                                    "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+                                    "lcpp_iq3_unpack") if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
     stride = stride or row_bytes
@@ -52,7 +52,10 @@ for name, c in cases.items():
     if c.get("x_t"):
         X = torch.zeros(c["k"], c["n"], dtype=X.dtype).t()
     try:
-        getattr(ops, c["op"])(W, X, c["type"], c["row"])
+        if c["op"] == "lcpp_iq3_unpack":
+            ops.lcpp_iq3_unpack(W, c["type"])
+        else:
+            getattr(ops, c["op"])(W, X, c["type"], c["row"])
         res[name] = "no error"
     except RuntimeError as e:
         res[name] = str(e).splitlines()[0][:300]
@@ -113,6 +116,17 @@ for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat
     CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
     CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
 
+# packed -> GGUF bytes: W only
+U = "lcpp_iq3_unpack"
+for t in (IQ3_S, IQ3_XXS):
+    CASES[f"{U}-valid-{t}"] = (_case(U, t), "must be a CUDA tensor")
+CASES[f"{U}-q4_k"] = (_case(U, Q4_K), "IQ3_S or IQ3_XXS only")
+CASES[f"{U}-w_float"] = (_case(U, w_dtype="float32"), "must be 2-D uint8")
+CASES[f"{U}-rows_not_16"] = (_case(U, rows=200), "must be [16 i")
+CASES[f"{U}-row_bytes_not_blocks"] = (_case(U, row_bytes=2201), "must be [16 i")
+CASES[f"{U}-w_narrow_view"] = (_case(U, stride=K // 256 * 110 + 256), "must be contiguous")
+CASES[f"{U}-w_misaligned"] = (_case(U, w_offset=1), "16-byte aligned")
+
 
 @pytest.fixture(scope="module")
 def child():
@@ -132,7 +146,7 @@ def child():
 
 def test_ops_registered_without_cuda_init(child):
     assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed"]
+                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed", "lcpp_iq3_unpack"]
     assert child["cuda_initialized"] is False
 
 

@@ -33,7 +33,8 @@ it  variant                                                      IQ3_S n1/n4/n8 
 1   packed mma (NG = 1)                                            52.4/53.9/60.4           49.4/51.7/60.1
       5120 x 17408                                                 52.1/52.6/60.1           47.9/50.2/58.4
     -> bit-exact with the K2 kernel (96/96 cases, 3 tensors x n 1..8 x bf16/fp32); gate (n4 >= 10 %
-       below the routed kernel) passed: -23 % IQ3_S, -28 % XXS. DRAM floor ~47 us: n4 at 1.15x.
+       below the routed kernel) passed: -23 % IQ3_S, -28 % XXS. "DRAM floor ~47 us" is item 5 /
+       K2's convention: 38.3 MB at ~815 GB/s achievable (936 GB/s spec = 40.9 us); n4 at 1.15x.
     CUDA unpack (packed -> GGUF bytes, for MMQ): 95 us at 17408 x 5120 (805 GB/s read+write),
     bit-exact on 6/6 tensors. Unpack + MMQ at 16 / 32 rows would cost +70 % / +60 % over MMQ, so
     the packed kernel was extended past 8 rows before wiring.
@@ -43,11 +44,13 @@ it  variant                                                      IQ3_S n1/n4/n8 
       v2 NG x 4 warps (54 / 77 KB smem, 1 CTA/SM)                  83.4/155.8               86.8/159.1
       MMQ (unpacked W)                                             134.6/157.9              126.1/147.6
       MMQ 64 / 128 rows                                            185.7/287.4              179.0/277.0
+      (v1 at 128 rows would be 4 x 156 = 624 us vs unpack + MMQ 95 + 287 = 382 us)
     -> v2 kept: fastest at 16, and with 4 warps each output column is computed exactly as in an
        8-row call (bit-exact 8 columns at a time: batch size does not change any result).
-       At 32 rows it only matches MMQ (IQ3_S -1 %, XXS +8..14 %) but MMQ on a packed W needs the
-       unpack (+95 us), so packed W goes to the packed kernel for 1..32 rows, and to unpack + MMQ
-       above 32 rows (prefill chunks; production's decode graphs stop at 32 tokens).
+       At 32 rows it only matches MMQ on IQ3_S (-1..-3 %) and is slower on IQ3_XXS (+8 % at
+       17408 x 5120, +14 % at 5120 x 17408), but MMQ on a packed W needs the unpack (+95 us),
+       so packed W goes to the packed kernel for 1..32 rows, and to unpack + MMQ above 32 rows
+       (prefill chunks; production's decode graphs stop at 32 tokens).
     Not tried: 32-row tiles or activations shared across warps (would cut the n = 32 activation
     re-reads, ~200 MB per call at 17408 x 5120); a grid-only table (2 KB) with ALU signs for more
     CTAs per SM at NG = 4.
@@ -57,7 +60,8 @@ it  variant                                                      IQ3_S n1/n4/n8 
       S   5120  52.0 (57.3)  51.8 (63.3)  52.5 (73.6)  59.1 (80.9)  91.6 (142.0)  164.3 (168.9)
       XXS 17408 49.2 (53.4)  49.8 (56.6)  51.2 (71.1)  59.6 (82.4)  88.5 (128.2)  161.0 (148.9)
       XXS  5120 48.2 (54.8)  48.4 (61.0)  50.4 (73.0)  58.5 (79.1)  96.1 (132.2)  169.0 (148.4)
-    GB/s (S 17408): 730 / 725 / 712 / 639 / 464 / 245; % of the ~47 us floor: 90 / 89 / 87 / 78 / 57 / 30.
+    GB/s (S 17408): 730 / 725 / 712 / 639 / 464 / 245; ~47 us floor / time: 90 / 89 / 87 / 78 / 57 / 30 %.
+    (The box script r1-micro-tests.sh writes it3-micro.tsv; committed here as micro-final.tsv.)
 
 Routing (linear.py, VLLM_GGUF_LCPP=1): GGUFLinearMethod._pack_iq3 packs, at load and in place,
 every IQ3_S / IQ3_XXS product of a linear layer (each same-type run of a multi-shard weight) if all
@@ -66,37 +70,52 @@ _fused_mul_mat_gguf(..., packed=True): lcpp_mul_mat_vec_iq3_mma_packed for 1..32
 lcpp_iq3_unpack into a scratch copy + lcpp_mul_mat_q. Unpacked IQ3 (none here) keeps K2's routing.
 The GGUF on disk and the vendored files are untouched; MMQ/MMVQ see only GGUF bytes.
 
-Tests (it3, before the final run): packed parity 454 passed (-k "packed or pack_roundtrip":
+Tests (it3, before review): packed parity 454 passed (-k "packed or pack_roundtrip", it3-parity.log):
 round-trip on every block of every IQ3_S / IQ3_XXS tensor in the GGUF (torch GPU, CUDA unpack,
 torch CPU) and on random bytes; the packed op bit-exact with the K2 op 8 rows at a time for n in
-1..9, 15..17, 24, 32 x bf16/fp16/fp32 x real/k_tail/k_min/few_rows/many_tiles with poisoned
-scratch; 16-bit X also against the CPU reference models; graph replay n = 1/4/8/16/32; whole-tensor
-routing n = 1..128 bit-exact (unpack + MMQ above 32); a packed GDN qkvz layer and a single-tensor
-layer through _pack_iq3 + apply(), storage not reallocated); GPU guards -k packed 18/18 (incl.
-first call inside graph capture); CPU guards 74. Final full-suite / sanitizer run: final-*.log.
+{1..9, 15, 16, 17, 24, 32} x bf16/fp16/fp32 x real/k_tail/k_min/few_rows/many_tiles with poisoned
+scratch; 16-bit X also against the CPU reference models; graph replay n = 1/4/8/16/32;
+whole-tensor routing at n = {1, 4, 8, 9, 16, 32, 33, 128} bit-exact (unpack + MMQ above 32); a
+packed GDN qkvz layer and a single-tensor layer through _pack_iq3 + apply(), storage not
+reallocated); GPU guards -k packed 18/18 (it3-guards.log, incl. first call inside graph capture).
+After review (see below): n = 1..32 every value, a packed layer with a non-IQ3 run, the
+all-or-nothing skip, CPU tests of the pack (tests/cpu/test_iq3_pack.py) and of the load-time hook
+(plugin/tests/test_plugin.py), CPU guards for lcpp_iq3_unpack. Final full-suite / sanitizer run:
+final-*.log.
 
 End to end (production run_benchmarks.sh single, T=0 real prompts, 350 W; one server per job, same
 session; base = wt-k2, i.e. opt-k2 197513b built in place; + 8k prefill at c=1, 4 prompts):
-                    c=1           c=2           c=4           c=8          8k prefill c=1
+                    c=1           c=2           c=4           c=8           8k prefill c=1
   base pass 1       90.6 (2.98)   172.7 (3.06)  259.9 (3.04)  439.6 (3.07)
   base pass 2       81.5 (2.98)   154.3 (3.06)  260.2 (3.04)  438.6 (3.06)  1164 tok/s, TTFT 7.03 s
   R1   pass 1       99.8 (3.00)   183.5 (2.95)  305.8 (3.07)  428.5 (3.01)
   R1   pass 2       99.9 (3.00)   184.0 (2.96)  310.1 (3.09)  425.3 (2.96)  1009 tok/s, TTFT 8.12 s
-  (decode tok/s = C / mean TPOT, tok/step in brackets.) Base pass 2 c=1 / c=2 ran slow with
-  TTFT +20..35 % (host contention from other agents' jobs, most likely; pass 1 matches K2's
-  published 90.3 / 173.2), so pass 1 is the base. ms/step c=1 32.9 -> 30.0, c=2 35.4 -> 32.2,
-  c=4 46.8 -> 39.9, c=8 55.9 -> 55.7. MTP acceptance 0.637 -> 0.641.
-  -> c=1 +10 %, c=2 +7 %, c=4 +19 %; c=8 -3 % tok/s but flat in ms/step (55.9 -> 55.7: 32-row
-     steps at MMQ parity; the tok/s gap is tok/step 3.07 vs 2.96); 8k prefill -13 % throughput
-     (+1.08 s TTFT): every 128-token chunk unpacks all 5.7 GB of IQ3 weights (~14 ms per step)
-     before MMQ.
+  (decode tok/s = C / mean TPOT, tok/step in brackets.) Base = pass 1: base pass 2 c=1 / c=2 ran
+  slow with TTFT +20..35 % (cause unconfirmed; other agents' host load is the likely one; pass 1
+  matches K2's published pass-2 90.3 / 173.2); R1 = pass 2 (pass 1 within 1.5 %).
+  ms/step (C x 1000 / tok/s x tok/step): c=1 32.9 -> 30.0 (-9 %), c=2 35.4 -> 32.2 (-9 %),
+  c=4 46.8 -> 39.9 (-15 %), c=8 55.9 -> 55.7 (-0.3 %). tok/step moves with the new numerics (the
+  packed kernel replaces dp4a at 1..5 rows and MMQ at 9..32, different fp32 orders): c=2 3.06 ->
+  2.96, c=4 3.04 -> 3.09, c=8 3.07 -> 2.96; whole-run MTP acceptance 0.637 -> 0.641.
+  TTFT (mean, ms, same cohorts): c=1 223 -> 256, c=2 321 -> 352, c=4 476 -> 555, c=8 1226 -> 1264.
+  -> decode tok/s c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 -3 % (flat in ms/step); 8k prefill -13 %
+     throughput (+1.08 s TTFT). Every step above 32 rows unpacks each IQ3 weight it touches:
+     5.72 GB of IQ3_S + IQ3_XXS in this GGUF, 2 x 5.72 GB / ~805 GB/s = ~14 ms per step. With
+     production's --long-prefill-token-threshold 128 a long prompt prefills 128 tokens per step
+     (8k = 64 steps x ~14-17 ms = the +1.08 s); mixed prefill + decode steps pay it too, which is
+     where the TTFT and c=8 losses come from.
 Load: "Model loading took" 123.0 -> 130.9 s (+7.9 s: the pack, torch ops on the GPU, 256 rows per
-step). The first start after this change also re-ran torch.compile (129 s, cache miss from the
-changed custom-op signature; one time). VRAM: weights 12.41 GiB both; KV cache 8.61 -> 8.54 GiB,
-249,218 -> 246,875 tokens (-0.9 %), from the profile run's peak (the MMQ path's 38 MB unpack scratch
-and pack temporaries).
+step). Time to server up 205 -> 401 s on the first start after the change: init engine 24.8 ->
+214.8 s, of which torch.compile 8.75 -> 128.9 s (cache miss: the custom op's signature changed)
+and ~70 s more of other init (not broken down; warm restarts: restart-*.log). VRAM: weights
+12.41 GiB both; KV cache 8.61 -> 8.54 GiB, 249,218 -> 246,875 tokens (-0.9 %, 72 MiB). Likely
+the MMQ path's unpack scratch (38 MB for the largest IQ3 tensor) in the profile run's peak plus
+pack temporaries; not measured separately.
 
-Trade-off / open: the unpack is what MMQ (vendored, GGUF layout only) costs on packed W. It goes
-away only if owned kernels take every row count of these tensors: a prefill-sized packed kernel
+Trade-off / open: the unpack is what MMQ (vendored, GGUF layout only) costs on packed W. The
+task's other option, repacking only tensors whose every row count the owned kernels take, would
+pack nothing today (prefill always reaches MMQ) and forfeit the decode gains. The unpack goes away
+only if owned kernels take every row count of these tensors: a prefill-sized packed kernel
 (activations staged once per CTA for a 64..128-row tile, as K3 is building for other types) with
-this layout's decode. Until then: decode c=1/2/4 up, c=8 flat, prefill -13 %.
+this layout's decode. Until then: decode c=1/2/4 up, c=8 flat in ms/step, prefill -13 %, TTFT up.
+Base server: /workspace/wt-k2, plugin and scripts checksum-identical to 197513b, built in place.

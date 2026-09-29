@@ -75,6 +75,13 @@ static __device__ __forceinline__ uint32_t prmt(uint32_t a, uint32_t b, uint32_t
 
 static __device__ __forceinline__ uint32_t lds16(const char* p) { return *(const uint16_t*)p; }
 
+// g with the bytes flagged in the low nibble of signs negated. The IQ3 grids have no zero byte,
+// so (g ^ 0xFF) + 1 per byte never carries.
+static __device__ __forceinline__ uint32_t negate(uint32_t g, uint32_t signs) {
+  const uint32_t ones = (signs * 0x00204081u) & 0x01010101u;
+  return (g ^ (ones * 0xFFu)) + ones;
+}
+
 // The slice's int32 sum with its sub-scale applied, as the vendored vec_dot.
 template <ggml_type type>
 static __device__ __forceinline__ int scaled(int sumi, int ls2p1) {
@@ -186,11 +193,7 @@ iq3_mma(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, float* _
     const uint32_t gv = tr::grid()[gi];
     const int base = type == GGML_TYPE_IQ3_S ? (gi & 0xFF) | (gi >> 8) << 12 : gi;
 #pragma unroll
-    for (int nib = 0; nib < 16; ++nib) {
-      // the IQ3 grids have no zero byte, so (g ^ 0xFF) + 1 per byte never carries
-      const uint32_t ones = ((uint32_t)nib * 0x00204081u) & 0x01010101u;
-      table[base | nib << 8] = (gv ^ (ones * 0xFFu)) + ones;
-    }
+    for (int nib = 0; nib < 16; ++nib) table[base | nib << 8] = negate(gv, nib);
   }
   int* yt = sm.y[warp];
   for (int i = ncols * Y_COL + lane; i < 8 * Y_COL; i += WARP_SIZE) yt[i] = 0;  // columns >= ncols
@@ -321,23 +324,31 @@ iq3_mma(const char* __restrict__ vx, const block_q8_1* __restrict__ vy, float* _
   }
 }
 
-template <ggml_type type>
-void launch(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblocks,
-            int64_t row_bytes, int ncols, cudaStream_t stream) {
-  constexpr size_t bytes = sizeof(smem);
-  static int ctas[16] = {0};  // per device: resident CTAs x SMs, set on the first (eager) call
+// Resident CTAs x SMs of kernel with `bytes` of dynamic shared memory, per device; set on the
+// kernel's first (eager) call, with its dynamic shared memory limit. ctas: the kernel's own cache.
+template <typename Kernel>
+static int resident_ctas(int (&ctas)[16], Kernel kernel, size_t bytes) {
   int dev = 0;
   CUDA_CHECK(cudaGetDevice(&dev));
   GGML_ASSERT(dev < 16);
   if (ctas[dev] == 0) {
-    CUDA_CHECK(cudaFuncSetAttribute(iq3_mma<type>, cudaFuncAttributeMaxDynamicSharedMemorySize, (int)bytes));
+    CUDA_CHECK(cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, (int)bytes));
     int occ = 0, sms = 0;
-    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, iq3_mma<type>, THREADS, bytes));
+    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, kernel, THREADS, bytes));
     CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, dev));
     ctas[dev] = std::max(1, occ) * sms;
   }
+  return ctas[dev];
+}
+
+template <ggml_type type>
+void launch(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblocks,
+            int64_t row_bytes, int ncols, cudaStream_t stream) {
+  constexpr size_t bytes = sizeof(smem);
+  static int ctas[16] = {0};
   const int ntiles = (nrows + ROWS - 1) / ROWS;
-  iq3_mma<type><<<std::min(ntiles, ctas[dev]), dim3(WARP_SIZE, WARPS), bytes, stream>>>(
+  iq3_mma<type><<<std::min(ntiles, resident_ctas(ctas, iq3_mma<type>, bytes)), dim3(WARP_SIZE, WARPS), bytes,
+                  stream>>>(
       vx, y, dst, nrows, nblocks, row_bytes, ncols);
 }
 
@@ -345,23 +356,12 @@ void launch(const char* vx, const block_q8_1* y, float* dst, int nrows, int nblo
 // The same product on the packed layout (quantization/iq3_pack.py, applied at load by
 // GGUFLinearMethod._pack_iq3), 1..32 activation rows. Per 16-row tile and weight block W holds
 // one 16-byte aligned record with each lane's bytes in mma fragment order, so a lane fetches
-// them with 6 coalesced loads straight into registers (no staging copy, no 2-byte shared
+// them with 6 (IQ3_S) / 7 (IQ3_XXS) coalesced loads straight into registers (no staging copy, no 2-byte shared
 // loads), and a word's table index is one byte permute (IQ3_S: grid index byte + the 5 bits
 // above it) or permute + mask (IQ3_XXS: the pack re-codes each pair's 7 sign bits so that the
 // table rebuilds both 4th signs; no parity per word). Tiles, warps, mma, sub-scales and the
 // fp32 order are the kernel above's: at 1..8 rows the two are bit-identical, and above 8 each
 // output column is computed exactly as in an 8-row call. cloud/results/phase3/r1 has the data.
-
-template <ggml_type type>
-struct packed_traits;
-template <>
-struct packed_traits<GGML_TYPE_IQ3_S> {
-  static constexpr int frag = 1664;  // bytes of lane data before the sub-scales and d
-};
-template <>
-struct packed_traits<GGML_TYPE_IQ3_XXS> {
-  static constexpr int frag = 1472;
-};
 
 struct pfrag {
   int4 q0, q1;   // grid-index bytes of rows g, g+8: byte 2s+e (of 16) = word 2t+e of slice s
@@ -373,7 +373,7 @@ struct pfrag {
 
 template <ggml_type type>
 static __device__ __forceinline__ void pload(pfrag& f, const char* __restrict__ tb, int lane) {
-  constexpr int fb = packed_traits<type>::frag;
+  constexpr int fb = type == GGML_TYPE_IQ3_S ? 1664 : 1472;  // lane bytes before the sub-scales and d
   f.q0 = *(const int4*)(tb + 16 * lane);
   f.q1 = *(const int4*)(tb + 512 + 16 * lane);
   if (type == GGML_TYPE_IQ3_S) {
@@ -451,12 +451,6 @@ static __device__ __forceinline__ void pslice(const pwords<GGML_TYPE_IQ3_XXS>& w
   a2 = table[4096 + (prmt(qa, w.x[4 + r], s1) & 0x0FFFu)];
   a1 = table[prmt(qb, w.x[2 + r], s0) & 0x0FFFu];
   a3 = table[4096 + (prmt(qb, w.x[6 + r], s1) & 0x0FFFu)];
-}
-
-static __device__ __forceinline__ uint32_t negate(uint32_t g, uint32_t signs) {
-  // the IQ3 grids have no zero byte, so (g ^ 0xFF) + 1 per byte never carries
-  const uint32_t ones = (signs * 0x00204081u) & 0x01010101u;
-  return (g ^ (ones * 0xFFu)) + ones;
 }
 
 // NG groups of 8 activation columns (1..8 * NG columns): per slice the A fragment is cut once
@@ -601,19 +595,9 @@ void launch_packed(const char* vx, const block_q8_1* y, float* dst, int nrows, i
                    cudaStream_t stream) {
   constexpr size_t bytes = (size_t)WARPS * (8 * NG * Y_COL + NG * 128) * 4;
   static int ctas[16] = {0};
-  int dev = 0;
-  CUDA_CHECK(cudaGetDevice(&dev));
-  GGML_ASSERT(dev < 16);
-  if (ctas[dev] == 0) {
-    CUDA_CHECK(cudaFuncSetAttribute(iq3_mma_packed<type, NG>, cudaFuncAttributeMaxDynamicSharedMemorySize,
-                                    (int)bytes));
-    int occ = 0, sms = 0;
-    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&occ, iq3_mma_packed<type, NG>, THREADS, bytes));
-    CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, dev));
-    ctas[dev] = std::max(1, occ) * sms;
-  }
   const int ntiles = nrows / ROWS;
-  iq3_mma_packed<type, NG><<<std::min(ntiles, ctas[dev]), dim3(WARP_SIZE, WARPS), bytes, stream>>>(
+  iq3_mma_packed<type, NG><<<std::min(ntiles, resident_ctas(ctas, iq3_mma_packed<type, NG>, bytes)),
+                             dim3(WARP_SIZE, WARPS), bytes, stream>>>(
       vx, y, dst, nrows, nblocks, ncols);
 }
 

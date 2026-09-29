@@ -803,12 +803,15 @@ Tensor lcpp_mul_mat_vec_iq3_mma_packed(Tensor W, Tensor X, int64_t type, int64_t
 
 // The GGUF bytes of W packed by quantization/iq3_pack.py (a new tensor, W's shape).
 Tensor lcpp_iq3_unpack(Tensor W, int64_t type) {
-  STD_TORCH_CHECK(type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS, "lcpp_iq3_unpack: IQ3_S or IQ3_XXS only");
+  const char* op = "lcpp_iq3_unpack";
+  STD_TORCH_CHECK(type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS, op, ": IQ3_S or IQ3_XXS only, got type ", type);
+  STD_TORCH_CHECK(W.dim() == 2 && W.scalar_type() == ScalarType::Byte, op, ": W must be 2-D uint8");
   const int64_t bs = (int64_t)ggml_type_size((ggml_type)type);
-  STD_TORCH_CHECK(W.dim() == 2 && W.scalar_type() == ScalarType::Byte && W.stride(1) == 1 && W.stride(0) == W.size(1) && W.size(0) % 16 == 0 &&
-                      W.size(1) % bs == 0 && W.size(0) <= INT_MAX && W.size(1) / bs <= INT_MAX &&
-                      reinterpret_cast<uintptr_t>(W.data_ptr()) % 16 == 0 && W.is_cuda(),
-                  "lcpp_iq3_unpack: W must be a contiguous, 16-byte aligned CUDA uint8 [16k, n * block bytes]");
+  STD_TORCH_CHECK(W.size(0) % 16 == 0 && W.size(1) % bs == 0 && W.size(0) <= INT_MAX && W.size(1) / bs <= INT_MAX,
+                  op, ": W must be [16 i, n * ", bs, "] bytes, got [", W.size(0), ", ", W.size(1), "]");
+  STD_TORCH_CHECK(W.stride(1) == 1 && W.stride(0) == W.size(1), op, ": W must be contiguous");
+  STD_TORCH_CHECK(reinterpret_cast<uintptr_t>(W.data_ptr()) % 16 == 0, op, ": W data must be 16-byte aligned");
+  STD_TORCH_CHECK(W.is_cuda(), op, ": W must be a CUDA tensor");
   const int32_t device = W.get_device_index();
   const DeviceGuard guard(device);
   Tensor out = torch::stable::new_empty(W, {W.size(0), W.size(1)}, ScalarType::Byte);
@@ -875,4 +878,5 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
   ops.impl("lcpp_mul_mat_vec_iq3_mma_packed", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma_packed));
+  ops.impl("lcpp_iq3_unpack", TORCH_BOX(&lcpp_iq3_unpack));
 }

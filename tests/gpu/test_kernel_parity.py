@@ -370,10 +370,12 @@ def test_lcpp_iq3_graph_replay(tensors_by_type, op, name, n):
     _graph_replay(tensors_by_type, name, n, getattr(_lcpp(), op))
 
 
-def _graph_replay(tensors_by_type, name, n, fn):
+def _graph_replay(tensors_by_type, name, n, fn, prep=None):
     import torch
 
     _, x1, w, qt = _lcpp_case(tensors_by_type, name, n, "bfloat16", seed=600 + n)
+    if prep is not None:  # e.g. pack W
+        w = prep(w, qt)
     x2 = _x(n, x1.shape[1], "bfloat16", seed=700 + n).cuda()
     static_x = x1.cuda()
     fn(w, static_x, qt, w.shape[0])  # warm-up: cudaFuncSetAttribute runs on first use
@@ -511,7 +513,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
 
 # ---------------------------------------------------------------------------- packed IQ3 (R1)
 
-PACKED_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 24, 32]
+PACKED_TOKENS = list(range(1, 33))  # every fill of the 1, 2 and 4 column groups
 
 
 def _packed(w, qt):
@@ -592,23 +594,7 @@ def test_lcpp_iq3_packed(tensors_by_type, name, n, dtype, shape):
 @pytest.mark.parametrize("n", [1, 4, 8, 16, 32])
 @pytest.mark.parametrize("name", IQ3_TYPES)
 def test_lcpp_iq3_packed_graph_replay(tensors_by_type, name, n):
-    import torch
-
-    C = _lcpp()
-    _graph_replay(tensors_by_type, name, n,
-                  lambda w, x, qt, row: C.lcpp_mul_mat_vec_iq3_mma_packed(_packed_cached(w, qt), x, qt, row))
-
-
-_PACKED_CACHE = {}
-
-
-def _packed_cached(w, qt):
-    """Packed once per W (so a captured call does no packing)."""
-    key = (w.data_ptr(), qt)
-    if key not in _PACKED_CACHE:
-        _PACKED_CACHE.clear()
-        _PACKED_CACHE[key] = _packed(w, qt)
-    return _PACKED_CACHE[key]
+    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_vec_iq3_mma_packed, prep=_packed)
 
 
 @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128])
@@ -656,12 +642,27 @@ def _routed_packed_ref(w, x, qt, iq3):
     return C.lcpp_mul_mat_q(w, x, qt, w.shape[0])
 
 
+def _qkvz_block(gguf_reader, z_iq3):
+    """First block whose attn_qkv is IQ3 and whose attn_gate is another Route L type, IQ3
+    (z_iq3) or not."""
+    by_name = {t.name: t for t in gguf_reader.tensors}
+    for i in range(64):
+        a, b = by_name.get(f"blk.{i}.attn_qkv.weight"), by_name.get(f"blk.{i}.attn_gate.weight")
+        if a is not None and b is not None and a.tensor_type != b.tensor_type \
+                and a.tensor_type.name in IQ3_TYPES and b.tensor_type.name in LCPP_TYPES \
+                and (b.tensor_type.name in IQ3_TYPES) == z_iq3:
+            return i, a, b
+    pytest.skip(f"no block with an IQ3 attn_qkv and a {'' if z_iq3 else 'non-'}IQ3 attn_gate")
+
+
+@pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
 @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
-def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, monkeypatch):
-    """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type) and a single-tensor
-    layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place (the padded
-    storage is not reallocated), iq3_packed is set, and apply() is bit-exact with the packed
-    kernel / unpacked MMQ on each run's own bytes."""
+def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+    """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+    single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+    (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+    apply() is bit-exact with the packed kernel / unpacked MMQ on each IQ3 run's own bytes and
+    with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
     import numpy as np
     import torch
 
@@ -670,9 +671,9 @@ def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     _lcpp()
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
-    from vllm_gguf_plugin.quantization.linear import IQ3_TYPES as T, GGUFLinearMethod
+    from vllm_gguf_plugin.quantization.linear import IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
 
-    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate")
+    blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
     qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
     z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
     shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
@@ -681,6 +682,8 @@ def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     ptr = layer.weight.data_ptr()
     method._pack_iq3(layer)
     assert layer.weight.data_ptr() == ptr and layer.weight.iq3_packed
+    if not z_iq3:
+        assert torch.equal(_shard_weight(layer.weight, *layer.weight.shard_offset_map[3]), z)
     x = _x(n, int(tqkv.shape[0]), "bfloat16", seed=1300 + n).cuda()
     y = method.apply(layer, x)
     ref = torch.cat([_routed_packed_ref(qkv, x, qts[0], qts[0] in T), _routed_packed_ref(z, x, qts[3], qts[3] in T)], 1)
@@ -696,3 +699,8 @@ def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     assert getattr(single.weight, "iq3_packed", False) == (qts[3] in T)
     y = method.apply(single, x)
     assert torch.equal(y, _routed_packed_ref(z, x, qts[3], qts[3] in T))
+
+    odd, method = _padded_layer([qkv[:200], z], qts[2:], int(tqkv.shape[0]), monkeypatch)
+    method._pack_iq3(odd)  # all or nothing: the 200-row IQ3 run keeps the GGUF layout
+    assert not getattr(odd.weight, "iq3_packed", False)
+    assert torch.equal(method.apply(odd, x), torch.cat([_routed(qkv[:200], x, qts[0]), _routed(z, x, qts[3])], 1))

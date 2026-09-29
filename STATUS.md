@@ -61,8 +61,10 @@ Full numbers and method: `cloud/results/phase3/summary.txt`. Decode = pass 2 of 
 | K2 | owned IQ3 int8 tensor-core kernel (`lcpp_mul_mat_vec_iq3_mma`), routed at 6..8 rows (c) | 90.3 | 173.2 | 33.0 / 35.6 | yes |
 | R1 | IQ3 weights repacked at load into mma fragment order; packed mma kernel at 1..32 rows (d) | 99.9 | 184.0 | 30.0 / 32.2 | trade-off |
 
-(d) same-session A/B against opt-k2 (90.6 / 172.7): c=4 259.9 -> 310.1, c=8 439.6 -> 425.3 tok/s (flat in
-ms/step), 8k prefill 1164 -> 1009 tok/s (cloud/results/phase3/r1).
+(d) same-session A/B against opt-k2, base = its pass 1 (90.6 / 172.7; its pass 2 c=1 / c=2 ran slow,
+81.5 / 154.3, cause unconfirmed), R1 = pass 2: c=4 259.9 -> 310.1, c=8 439.6 -> 425.3 tok/s (ms/step
+55.9 -> 55.7; tok/step 3.07 -> 2.96), 8k prefill 1164 -> 1009 tok/s, TTFT up at every C
+(cloud/results/phase3/r1).
 (c) same-session A/B against this build with item-5 routing: 90.6 / 160.4 tok/s, 33.0 / 37.9 ms/step
 (cloud/results/phase3/k2). c=1 (4 rows) is unchanged by design.
 (a) item 1 at c=1 is phase 2's path (c=1 never reaches 8 rows). (b) mostly tok/step: acceptance
@@ -149,11 +151,19 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   kernel reading that layout: 6 coalesced loads per lane per block, one prmt per table index, no
   shared-memory staging of weights. Bit-exact with K2's kernel (per output column, 8 rows at a
   time, also at 9..32 rows). IQ3_S 17408x5120 n=1/4/8/16/32: 52.5/53.8/59.9/82.5/156.1 us (was
-  55.1 dp4a / 71.7 dp4a / 83.0 mma / 134.7 MMQ / 158.7 MMQ; DRAM floor ~47). Above 32 rows W is
-  unpacked into a scratch copy (`lcpp_iq3_unpack`, 95 us for 38 MB) for vendored MMQ: that is the
-  trade-off, 8k prefill -13 % (every 128-token chunk unpacks 5.7 GB of IQ3 weights). Load +7.9 s,
-  KV cache -0.9 %. Decode: c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 flat. Gone only when owned kernels
-  take prefill-sized row counts too. Log: cloud/results/phase3/r1/iterations.txt.
+  55.1 dp4a / 71.7 dp4a / 83.0 mma / 134.7 MMQ / 158.7 MMQ; DRAM floor ~47 at ~815 GB/s). At 32
+  rows IQ3_XXS is slower than MMQ (161.0 / 169.0 vs 148.9 / 148.4 us at 17408x5120 / 5120x17408)
+  but MMQ on packed W needs the unpack. Above 32 rows W is unpacked into a scratch copy
+  (`lcpp_iq3_unpack`, 95 us for 38 MB) for vendored MMQ: that is the trade-off. Every step above
+  32 rows unpacks the 5.72 GB of IQ3 weights (~14 ms), so with production's 128-token prefill
+  chunks 8k prefill is -13 % (+1.08 s TTFT) and mean TTFT rises at every C (c=1 223 -> 256 ms,
+  c=8 1226 -> 1264). Decode tok/s c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 -3 % (ms/step -9 / -9 /
+  -15 / -0.3 %; tok/step shifts with the new numerics). Load +7.9 s (first start after the change
+  also recompiles, 205 -> 401 s to serve), KV cache -0.9 %. Repacking only tensors whose every
+  row count the owned kernels take would pack nothing today. The unpack goes only when owned
+  kernels take prefill-sized row counts too. Tests: see iterations.txt (packed subset 454 +
+  review additions; full suite, guards and sanitizer in final-*.log). Kept or not is Garrett's
+  call (decode vs prefill). Log: cloud/results/phase3/r1/iterations.txt.
 - Reviews: /check (Fable) after item 2, after 4b, and after item 5; outcomes in summary.txt.
   Item 5 review: kernel, routing and the test-bug diagnosis held; fixed a latent smem alignment
   assumption (`__align__(16)` on the staged q8_1 tile), the unlogged test claims (logs now

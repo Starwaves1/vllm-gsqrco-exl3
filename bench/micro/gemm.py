@@ -12,7 +12,7 @@ Variants (only where production could route them):
   lcpp_mmq       torch.ops._C_gguf.lcpp_mul_mat_q
   lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
   lcpp_iq3_mma   torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma (the same on int8 tensor cores), n <= 8
-  lcpp_iq3_mma_packed  the same on W packed by quantization/iq3_pack.py, n <= 8
+  lcpp_iq3_mma_packed  the same on W packed by quantization/iq3_pack.py, n <= 32
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -33,6 +33,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from vllm_gguf_plugin import ops  # noqa: E402
+from vllm_gguf_plugin.quantization import iq3_pack  # noqa: E402
 
 TYPES = ["IQ3_S", "IQ3_XXS", "IQ4_XS", "Q4_K"]
 SHAPES = [(17408, 5120), (5120, 17408)]
@@ -67,23 +68,8 @@ def variants(name, qt, rows, k, n, packed=None):
         if hasattr(C, "lcpp_mul_mat_vec_iq3_mma"):
             v["lcpp_iq3_mma"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma(w, x, qt, rows)
     if n <= 32 and name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_vec_iq3_mma_packed"):
-        v["lcpp_iq3_mma_packed"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma_packed(packed(w), x, qt, rows)
+        v["lcpp_iq3_mma_packed"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma_packed(packed, x, qt, rows)
     return v
-
-
-def _packer(qt):
-    """w -> its packed bytes, packed once per weight (outside the timed calls)."""
-    from vllm_gguf_plugin.quantization import iq3_pack
-
-    cache = {}
-
-    def packed(w):
-        if w.data_ptr() not in cache:
-            cache.clear()
-            cache[w.data_ptr()] = iq3_pack.pack(w, qt)
-        return cache[w.data_ptr()]
-
-    return packed
 
 
 def time_graph(fn, w, x):
@@ -137,7 +123,7 @@ def main():
     print(f"{torch.cuda.get_device_name()}  X bf16, {PER_GRAPH} calls per graph", flush=True)
     for name, (rows, k) in cases:
         w, qt = weight(reader, name, rows, k)
-        packed = _packer(qt)
+        packed = iq3_pack.pack(w, qt) if name.startswith("IQ3") else None
         mb = w.numel() / 1e6
         print(f"\n{name} {rows}x{k} ({mb:.1f} MB)", flush=True)
         for n in tokens:
@@ -152,7 +138,7 @@ def main():
                 lines.append(f"{name}\t{rows}\t{k}\t{n}\t{vname}\t{g:.1f}\t{e:.1f}\t{gbps:.0f}")
                 row.append(f"{vname} {g:8.1f}us {gbps:4.0f}GB/s (eager {e:.0f})")
             print(f"  n={n:5d}  " + " | ".join(row), flush=True)
-        del w
+        del w, packed
         torch.cuda.empty_cache()
     if args.out:
         Path(args.out).write_text("\n".join(lines) + "\n")

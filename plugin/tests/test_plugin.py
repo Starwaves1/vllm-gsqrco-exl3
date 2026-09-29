@@ -175,8 +175,8 @@ def test_gguf_linear_same_type_shards_skip_concat(monkeypatch):
     assert isinstance(layer.weight, torch.nn.Parameter)
     calls: list[tuple[tuple[int, ...], int]] = []
 
-    def fake_fused_mul_mat_gguf(x, weight, weight_type):
-        calls.append((tuple(weight.shape), weight_type))
+    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False):
+        calls.append((tuple(weight.shape), weight_type, packed))
         return torch.zeros(
             (x.shape[0], weight.shape[0]), dtype=x.dtype, device=x.device
         )
@@ -186,8 +186,59 @@ def test_gguf_linear_same_type_shards_skip_concat(monkeypatch):
     )
     out = layer.quant_method.apply(layer, torch.ones((2, 4), dtype=torch.float32))
 
-    assert calls == [((8, 4), 3)]
+    assert calls == [((8, 4), 3, False)]
     assert out.shape == (2, 8)
+
+
+def test_gguf_linear_packs_iq3_under_lcpp(monkeypatch):
+    """VLLM_GGUF_LCPP=1: process_weights_after_loading repacks an IQ3_S layer in place
+    (quantization/iq3_pack.py) and apply() passes packed=True; without it, or for methods that
+    dequantize the GGUF bytes (embedding), nothing is packed."""
+    import vllm_gguf_plugin.ops as gguf_ops
+    from vllm_gguf_plugin.quantization import iq3_pack
+    from vllm_gguf_plugin.quantization.vocal_embeds import GGUFEmbeddingMethod
+
+    register()
+    monkeypatch.setattr(parameter_module, "get_tensor_model_parallel_rank", lambda: 0)
+    monkeypatch.setattr(
+        parameter_module, "get_tensor_model_parallel_world_size", lambda: 1
+    )
+    g = torch.Generator().manual_seed(0)
+    shards = [torch.randint(0, 256, (16, 220), generator=g, dtype=torch.uint8) for _ in range(2)]
+
+    def build():
+        layer = MergedColumnParallelLinear(
+            input_size=512,
+            output_sizes=[16, 16],
+            bias=False,
+            quant_config=OOTGGUFConfig.from_config({}),
+            disable_tp=True,
+        )
+        for i, shard in enumerate(shards):
+            layer.weight_loader_v2(layer.weight, shard.clone(), i)
+            layer.weight_loader_v2(layer.weight_type, torch.tensor(21, dtype=torch.uint8), i)
+        layer.quant_method.process_weights_after_loading(layer)
+        return layer
+
+    monkeypatch.setattr(gguf_ops, "LCPP_ENABLED", False)
+    plain = build()
+    assert not getattr(plain.weight, "iq3_packed", False)
+    assert torch.equal(plain.weight.data, torch.cat(shards))
+
+    monkeypatch.setattr(gguf_ops, "LCPP_ENABLED", True)
+    packed = build()
+    assert packed.weight.iq3_packed
+    assert torch.equal(packed.weight.data, iq3_pack.pack(torch.cat(shards), 21))
+    calls = []
+
+    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False):
+        calls.append((tuple(weight.shape), weight_type, packed))
+        return torch.zeros((x.shape[0], weight.shape[0]), dtype=x.dtype)
+
+    monkeypatch.setattr(gguf_quantization, "fused_mul_mat_gguf", fake_fused_mul_mat_gguf)
+    packed.quant_method.apply(packed, torch.ones((2, 512), dtype=torch.float32))
+    assert calls == [((32, 220), 21, True)]
+    assert GGUFEmbeddingMethod.pack_iq3 is False
 
 
 def test_gguf_config_parser_uses_parent_dir_for_local_file(tmp_path, monkeypatch):
