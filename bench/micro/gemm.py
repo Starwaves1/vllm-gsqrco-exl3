@@ -11,6 +11,7 @@ Variants (only where production could route them):
   lcpp_mmvq      torch.ops._C_gguf.lcpp_mul_mat_vec_q, n <= 8
   lcpp_mmq       torch.ops._C_gguf.lcpp_mul_mat_q
   lcpp_iq3       torch.ops._C_gguf.lcpp_mul_mat_vec_iq3 (owned IQ3_S/IQ3_XXS kernel), n <= 8
+  lcpp_own       torch.ops._C_gguf.lcpp_mul_mat_vec_own (owned IQ4_XS/Q4_K/IQ2_S kernel), n <= 8
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -32,7 +33,8 @@ import torch  # noqa: E402
 
 from vllm_gguf_plugin import ops  # noqa: E402
 
-TYPES = ["IQ3_S", "IQ3_XXS", "IQ4_XS", "Q4_K"]
+TYPES = ["IQ3_S", "IQ3_XXS", "IQ4_XS", "Q4_K", "IQ2_S"]
+OWN_TYPES = ["IQ4_XS", "Q4_K", "IQ2_S"]
 SHAPES = [(17408, 5120), (5120, 17408)]
 LM_HEAD = (248320, 5120)             # output.weight (Q4_K in this GGUF)
 TOKENS = [1, 2, 4, 8, 16, 32, 128, 2048]
@@ -62,6 +64,8 @@ def variants(name, qt, rows, k, n):
     v["lcpp_mmq"] = lambda w, x: C.lcpp_mul_mat_q(w, x, qt, rows)
     if n <= 8 and name.startswith("IQ3"):
         v["lcpp_iq3"] = lambda w, x: C.lcpp_mul_mat_vec_iq3(w, x, qt, rows)
+    if n <= 8 and name in OWN_TYPES:
+        v["lcpp_own"] = lambda w, x: C.lcpp_mul_mat_vec_own(w, x, qt, rows)
     return v
 
 

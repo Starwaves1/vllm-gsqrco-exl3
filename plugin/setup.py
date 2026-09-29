@@ -55,7 +55,7 @@ if _should_build_extension():
     if os.environ.get("VLLM_GGUF_BUILD_LCPP") == "1" and not is_rocm:
         lcpp = pathlib.Path("vllm_gguf_plugin/csrc/lcpp").resolve()
         cuda = lcpp / "ggml/src/ggml-cuda"
-        sources += ["vllm_gguf_plugin/csrc/lcpp_shim.cu"] + [
+        sources += ["vllm_gguf_plugin/csrc/lcpp_shim.cu", "vllm_gguf_plugin/csrc/lcpp_owned_k4.cu"] + [
             str(cuda / f) for f in ["mmvq.cu", "quantize.cu"]
         ] + [
             str(cuda / "template-instances" / f"mmq-instance-{t}.cu")

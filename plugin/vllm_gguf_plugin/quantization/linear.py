@@ -34,6 +34,10 @@ from .utils import (
 )
 
 
+# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
+_OWN_MIN_ROWS = {WeightType.IQ4_XS: 4, WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+
+
 def _fused_mul_mat_gguf(
     x: torch.Tensor, weight: torch.Tensor, weight_type: int
 ) -> torch.Tensor:
@@ -50,6 +54,12 @@ def _fused_mul_mat_gguf(
         # at 1..8 rows (cloud/results/phase3/item5)
         if x.shape[0] <= 8 and weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS):
             return torch.ops._C_gguf.lcpp_mul_mat_vec_iq3(
+                weight, x, weight_type, weight.shape[0]
+            )
+        # IQ4_XS / Q4_K / IQ2_S: the owned kernel (lcpp_owned_k4.cu) where it beats MMVQ and
+        # MMQ (cloud/results/opt/k1)
+        if x.shape[0] <= 8 and x.shape[0] >= _OWN_MIN_ROWS.get(weight_type, 9):
+            return torch.ops._C_gguf.lcpp_mul_mat_vec_own(
                 weight, x, weight_type, weight.shape[0]
             )
         # MMQ is faster than MMVQ from 8 rows (cloud/results/phase2/micro/micro.tsv)

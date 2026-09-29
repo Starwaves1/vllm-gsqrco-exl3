@@ -19,8 +19,8 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SO = os.path.join(ROOT, "plugin/vllm_gguf_plugin/_C_gguf.abi3.so")
 
-IQ3_S, IQ3_XXS, Q4_K, IQ1_M = 21, 18, 12, 29
-TS = {IQ3_S: 110, IQ3_XXS: 98, Q4_K: 144}  # bytes per 256-value block
+IQ3_S, IQ3_XXS, Q4_K, IQ1_M, IQ4_XS, IQ2_S = 21, 18, 12, 29, 23, 22
+TS = {IQ3_S: 110, IQ3_XXS: 98, Q4_K: 144, IQ4_XS: 136, IQ2_S: 82}  # bytes per 256-value block
 K = 5120
 
 _CHILD = r"""
@@ -31,7 +31,7 @@ import torch
 torch.ops.load_library(sys.argv[1])
 ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
-out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3") if hasattr(ops, n)]}
+out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_own") if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
     stride = stride or row_bytes
@@ -104,6 +104,17 @@ CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
 CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
 CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
 CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
+# the owned IQ4_XS / Q4_K / IQ2_S kernel: the same, with its own type check
+OWN_OP = "lcpp_mul_mat_vec_own"
+for t in (IQ4_XS, Q4_K, IQ2_S):
+    CASES[f"{OWN_OP}-valid-{t}"] = (_case(OWN_OP, t), "must be CUDA tensors")
+    CASES[f"{OWN_OP}-row_strided-{t}"] = (_case(OWN_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
+CASES[f"{OWN_OP}-iq3_s"] = (_case(OWN_OP, IQ3_S), "IQ4_XS, Q4_K or IQ2_S only")
+CASES[f"{OWN_OP}-1_row"] = (_case(OWN_OP, Q4_K, n=1), "must be CUDA tensors")
+CASES[f"{OWN_OP}-9_rows"] = (_case(OWN_OP, Q4_K, n=9), "at most 8 rows")
+CASES[f"{OWN_OP}-k_not_512"] = (_case(OWN_OP, Q4_K, row_bytes=144, k=256), "must be a multiple of 512")
+CASES[f"{OWN_OP}-w_misaligned"] = (_case(OWN_OP, Q4_K, w_offset=1), "16-byte aligned")
+CASES[f"{OWN_OP}-k_mismatch"] = (_case(OWN_OP, Q4_K, k=K // 2), "columns, W rows hold")
 
 
 @pytest.fixture(scope="module")
@@ -123,7 +134,8 @@ def child():
 
 
 def test_ops_registered_without_cuda_init(child):
-    assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3"]
+    assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
+                                   "lcpp_mul_mat_vec_own"]
     assert child["cuda_initialized"] is False
 
 

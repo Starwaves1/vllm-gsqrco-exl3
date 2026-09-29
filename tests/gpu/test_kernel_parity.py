@@ -16,7 +16,8 @@ build, skipped otherwise): lcpp_mul_mat_vec_q at 1..8 tokens and lcpp_mul_mat_q 
 against the same references (plus the D2S6 model for Q2_K MMQ, see _refs.py), with the
 allocator's free blocks poisoned (0xFF) first so an unzeroed scratch read shows up; CUDA-graph
 capture + replay must be bit-exact with an eager call. lcpp_mul_mat_vec_iq3 (the shim's own
-IQ3_S/IQ3_XXS kernel for 1..8 rows) is checked the same way and against vendored MMVQ on fp32 X.
+IQ3_S/IQ3_XXS kernel for 1..8 rows) and lcpp_mul_mat_vec_own (IQ4_XS/Q4_K/IQ2_S, lcpp_owned_k4.cu)
+are checked the same way and against vendored MMVQ on fp32 X.
 Run the file with VLLM_GGUF_LCPP=1 and
 the routing tests go through Route L too (then the mixed-shard layer test also runs).
 """
@@ -44,6 +45,11 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # reads); 128 = production's prefill chunk (--long-prefill-token-threshold 128).
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
 IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]     # the owned lcpp_mul_mat_vec_iq3 kernel
+OWN_TYPES = ["IQ4_XS", "Q4_K", "IQ2_S"]  # the owned lcpp_mul_mat_vec_own kernel
+
+
+def _owned_op(C, name):
+    return C.lcpp_mul_mat_vec_iq3 if name in IQ3_TYPES else C.lcpp_mul_mat_vec_own
 
 
 def _sample(tensors_by_type, name, rows=ROWS, big=None):
@@ -274,11 +280,11 @@ def test_lcpp_mmq_odd_rows(tensors_by_type, name, n):
 @pytest.mark.parametrize("shape", ["real", "row_tail", "k_tail"])
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
 @pytest.mark.parametrize("n", LCPP_MMVQ_TOKENS)
-@pytest.mark.parametrize("name", IQ3_TYPES)
+@pytest.mark.parametrize("name", IQ3_TYPES + OWN_TYPES)
 def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
-    """The owned IQ3 kernel (lcpp_mul_mat_vec_iq3) takes MMVQ's q8_1 input and computes each
-    32-value slice exactly as the vendored vec_dot; only the fp32 order of a row's slice sums
-    differs. 16-bit X: the CPU reference models, as for MMVQ. fp32 X (fp32 output, no final
+    """The owned kernels (lcpp_mul_mat_vec_iq3, lcpp_mul_mat_vec_own) take MMVQ's q8_1 input and
+    compute each 32-value slice's integer sum exactly as the vendored vec_dot; only the fp32 order
+    of a row's slice sums differs (Q4_K: also the fp32 rounding of its scale and min terms). 16-bit X: the CPU reference models, as for MMVQ. fp32 X (fp32 output, no final
     rounding): within 1e-5 of vendored MMVQ itself. row_tail: 202 rows (the last CTA's 16
     rows are part-filled; even, because vendored MMVQ, the reference, reads one weight row past
     the end at an odd row count: compute-sanitizer memcheck); k_tail: K = 4608 (the last staged
@@ -296,7 +302,7 @@ def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
     x = _x(n, raw.shape[1] // bsz * 256, dtype, seed=1000 + n)
     w = torch.from_numpy(raw).cuda()
     _poison_allocator()
-    y = C.lcpp_mul_mat_vec_iq3(w, x.cuda(), int(qt), w.shape[0])
+    y = _owned_op(C, name)(w, x.cuda(), int(qt), w.shape[0])
     ref = C.lcpp_mul_mat_vec_q(w, x.cuda(), int(qt), w.shape[0])
     torch.cuda.synchronize()
     assert y.shape == (n, raw.shape[0]) and y.dtype == x.dtype
@@ -344,9 +350,9 @@ def test_lcpp_graph_replay(tensors_by_type, name, op_n):
 
 
 @pytest.mark.parametrize("n", [1, 4, 8])
-@pytest.mark.parametrize("name", IQ3_TYPES)
+@pytest.mark.parametrize("name", IQ3_TYPES + OWN_TYPES)
 def test_lcpp_iq3_graph_replay(tensors_by_type, name, n):
-    _graph_replay(tensors_by_type, name, n, _lcpp().lcpp_mul_mat_vec_iq3)
+    _graph_replay(tensors_by_type, name, n, _owned_op(_lcpp(), name))
 
 
 def _graph_replay(tensors_by_type, name, n, fn):
