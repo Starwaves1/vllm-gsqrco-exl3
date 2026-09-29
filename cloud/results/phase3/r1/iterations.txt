@@ -85,7 +85,9 @@ Final run on f27f7a7 (r1-final-tests.sh): kernel parity, whole file, VLLM_GGUF_L
 80 skipped, 0 failed (final-parity.log); CPU guards + pack tests 95 passed (final-cpu.log); plugin
 CPU tests 86 passed, 1 skipped (final-plugin-cpu.log; 85 at opt-k2); GPU guards -k iq3: 78 passed,
 6 failed, all IQ3_S-mmvq, the stock e2b8ad5 path, the same 6 as K2's run (final-guards.log).
-Sanitizer: see final-sanitizer-*.log (the first attempt named stale test ids and ran nothing).
+Sanitizer (rerun with fixed test ids; the first attempt named stale ids and ran nothing): memcheck
+and initcheck 0 errors on 44 cases (40 packed-op cases incl. n = 9/16/32, 4 packed layers incl.
+unpack + MMQ at 128 rows), final-sanitizer-*.log.
 
 End to end (production run_benchmarks.sh single, T=0 real prompts, 350 W; one server per job, same
 session; base = wt-k2, i.e. opt-k2 197513b built in place; + 8k prefill at c=1, 4 prompts):

@@ -164,7 +164,7 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   row count the owned kernels take would pack nothing today. The unpack goes only when owned
   kernels take prefill-sized row counts too. Tests: kernel parity 2626 pass / 80 skip / 0 fail,
   GPU guards -k iq3 78 pass + the known 6 stock IQ3_S-mmvq failures, CPU guards + pack 95, plugin
-  CPU 86; sanitizer in final-sanitizer-*.log. Review (/check, Fable, 2 rounds): fixed an inherited
+  CPU 86; memcheck + initcheck 0 errors on 44 packed / unpack cases. Review (/check, Fable, 2 rounds): fixed an inherited
   pack that would have corrupted dequantizing methods (embeddings, diffusion), a broken unit test,
   test gaps and write-up precision. Kept or not is Garrett's
   call (decode vs prefill). Log: cloud/results/phase3/r1/iterations.txt.
