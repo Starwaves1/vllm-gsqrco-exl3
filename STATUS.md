@@ -158,7 +158,8 @@ moved 0.633 -> 0.651 with MMQ numerics; ms/step fell only 0.8% / 1.2%.
   32 rows unpacks the 5.72 GB of IQ3 weights (~14 ms), so with production's 128-token prefill
   chunks 8k prefill is -13 % (+1.08 s TTFT) and mean TTFT rises at every C (c=1 223 -> 256 ms,
   c=8 1226 -> 1264). Decode tok/s c=1 +10 %, c=2 +7 %, c=4 +19 %, c=8 -3 % (ms/step -9 / -9 /
-  -15 / -0.3 %; tok/step shifts with the new numerics). Load +5..8 s (warm start 206 s to serve
+  -15 / -0.3 %; tok/step shifts with the new numerics); ms/step 30.0 / 32.2 / 39.9 / 55.7 vs
+  production 27.6 / 27.3 / 30.0 / 41.3, so still slower per step at every c. Load +5..8 s (warm start 206 s to serve
   vs 205; the first start after a code change recompiles once), KV cache -0.9 %. Repacking only tensors whose every
   row count the owned kernels take would pack nothing today. The unpack goes only when owned
   kernels take prefill-sized row counts too. Tests: kernel parity 2626 pass / 80 skip / 0 fail,

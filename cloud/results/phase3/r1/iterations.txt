@@ -98,7 +98,9 @@ session; base = wt-k2, i.e. opt-k2 197513b built in place; + 8k prefill at c=1, 
   slow with TTFT +20..35 % (cause unconfirmed; other agents' host load is the likely one; pass 1
   matches K2's published pass-2 90.3 / 173.2); R1 = pass 2 (pass 1 within 1.5 %).
   ms/step (C x 1000 / tok/s x tok/step): c=1 32.9 -> 30.0 (-9 %), c=2 35.4 -> 32.2 (-9 %),
-  c=4 46.8 -> 39.9 (-15 %), c=8 55.9 -> 55.7 (-0.3 %). tok/step moves with the new numerics (the
+  c=4 46.8 -> 39.9 (-15 %), c=8 55.9 -> 55.7 (-0.3 %).
+  Against production (W4A16, same bench) per step 27.6 / 27.3 / 30.0 / 41.3 ms at c=1/2/4/8: R1 is
+  still slower per step at every c (+9 / +18 / +33 / +35 %); base was +19 / +30 / +56 / +35 %. tok/step moves with the new numerics (the
   packed kernel replaces dp4a at 1..5 rows and MMQ at 9..32, different fp32 orders): c=2 3.06 ->
   2.96, c=4 3.04 -> 3.09, c=8 3.07 -> 2.96; whole-run MTP acceptance 0.637 -> 0.641.
   TTFT (mean, ms, same cohorts): c=1 223 -> 256, c=2 321 -> 352, c=4 476 -> 555, c=8 1226 -> 1264.
