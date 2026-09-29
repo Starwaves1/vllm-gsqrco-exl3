@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vast 3090 box</title>
+<style>
+:root{color-scheme:light;--page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);--series:#2a78d6;
+ --good:#0ca30c;--warning:#fab219;--critical:#d03b3b}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--page:#0d0d0d;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);--series:#3987e5}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px 20px 40px;background:var(--page);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:28px 0 10px;color:var(--ink2);font-weight:600}
+header{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline}
+.muted{color:var(--muted)}.ink2{color:var(--ink2)}
+.pill{display:inline-flex;gap:6px;align-items:center;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.tile,.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.tile .l{color:var(--ink2);font-size:12px}.tile .v{font-size:22px;font-weight:600;margin-top:2px}.tile .s{color:var(--muted);font-size:12px}
+.ranges button{font:inherit;background:var(--surface);color:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer}
+.ranges button.on{color:var(--ink);border-color:var(--series);font-weight:600}
+.charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(380px,45%),1fr));gap:10px;margin-top:10px}
+.chart{position:relative}.chart h3{margin:0 0 4px;font-size:13px;font-weight:600}
+.chart svg{display:block;width:100%;height:170px;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;white-space:nowrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.tip b{font-size:13px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:4px 10px 4px 0;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{color:var(--ink2);font-weight:600;font-size:12px}td.cmd{white-space:normal;color:var(--muted);font-size:12px;word-break:break-all}
+pre{background:var(--page);border:1px solid var(--border);border-radius:6px;padding:8px;overflow-x:auto;font-size:11.5px;margin:8px 0 0}
+.posts .p{padding:8px 0;border-bottom:1px solid var(--grid)}.posts .t{white-space:pre-wrap;margin-top:2px}
+button.link{font:inherit;background:none;border:none;color:var(--series);cursor:pointer;padding:0}
+</style></head><body>
+<header><h1>Vast.ai RTX 3090 box</h1><span id="online" class="pill"></span><span id="meta" class="muted"></span></header>
+
+<h2>Box now</h2><div id="tiles" class="tiles"></div>
+
+<h2>History</h2>
+<div class="ranges" id="ranges"></div>
+<div class="charts" id="charts"></div>
+
+<h2>GPU queue</h2>
+<div id="running" class="card"></div>
+<h3 style="font-size:13px;margin:14px 0 6px">Queued</h3><div id="queued"></div>
+<h3 style="font-size:13px;margin:14px 0 6px">History <span class="muted" style="font-weight:400">(last 200)</span></h3><div id="history"></div>
+
+<h2>Progress</h2><div id="posts" class="posts"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function el(tag, props, ...kids) {  // untrusted text only ever goes through textContent
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) k === 'style' ? e.style.cssText = v : e[k] = v;
+  for (const c of kids) if (c != null) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const GB = b => (b / 1e9).toFixed(1);
+const fmtT = s => s ? new Date(s * 1000).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-';
+function dur(s) {
+  if (s == null || s < 0) return '-';
+  s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`;
+}
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function status(label, color) { return el('span', {className: 'pill'}, el('span', {className: 'dot', style: `background:var(${color})`}), label); }
+async function get(u) { const r = await fetch(u, {cache: 'no-store'}); return r.json(); }
+
+// ---- box now ----
+function tile(l, v, s) { return el('div', {className: 'tile'}, el('div', {className: 'l'}, l), el('div', {className: 'v'}, v), s ? el('div', {className: 's'}, s) : null); }
+async function loadNow() {
+  const n = await get('/api/now'), s = n.sample;
+  $('online').replaceChildren(n.online ? status('Online', '--good') : status('Offline', '--critical'));
+  $('meta').textContent = [
+    s ? `sample ${fmtT(s.ts)}` : 'no samples yet',
+    !n.online && n.error ? `ssh: ${n.error}` : '',
+    n.hours != null ? `${n.hours.toFixed(1)} h since first sample, ~$${n.cost.toFixed(2)} at $${n.rate}/h` : ''
+  ].filter(Boolean).join(' · ');
+  if (!s) return $('tiles').replaceChildren();
+  $('tiles').replaceChildren(
+    tile('GPU util', `${s.util}%`),
+    tile('VRAM', `${(s.vram_used / 1024).toFixed(1)} GB`, `of ${(s.vram_total / 1024).toFixed(1)} GB`),
+    tile('Power', `${Math.round(s.power)} W`, `limit ${Math.round(s.power_limit)} W`),
+    tile('SM clock', `${s.sm_clock} MHz`, `mem ${s.mem_clock} MHz`),
+    tile('GPU temp', `${s.temp} °C`),
+    tile('Host RAM used', `${GB(s.ram_used)} GB`, `${GB(s.ram_avail)} GB avail` + (s.ram_limit ? `, cgroup limit ${GB(s.ram_limit)} GB` : '')),
+    tile('Disk /', `${GB(s.disk_used)} GB`, `${GB(s.disk_free)} GB free`),
+    tile('Load', s.load[0].toFixed(2), `5m ${s.load[1].toFixed(2)} · 15m ${s.load[2].toFixed(2)}`));
+}
+
+// ---- history charts: one series each, one axis each ----
+const RANGES = [['1h', 3600], ['6h', 21600], ['24h', 86400], ['all', 0]];
+let range = +(localStorage.range ?? 3600), hist = [];
+const CHARTS = [
+  {title: 'GPU utilization', unit: '%', v: d => d.util, max: () => 100},
+  {title: 'Power draw', unit: 'W', v: d => d.power, max: d => Math.max(...d.map(x => x.power_limit || 0)), ref: d => d.at(-1)?.power_limit, refLabel: 'limit'},
+  {title: 'SM clock', unit: 'MHz', v: d => d.sm_clock, max: d => Math.max(...d.map(x => x.sm_clock || 0))},
+  {title: 'VRAM used', unit: 'GB', v: d => d.vram_used / 1024, max: d => Math.max(...d.map(x => (x.vram_total || 0) / 1024))},
+];
+function niceStep(m) { if (!(m > 0)) return 1; const p = 10 ** Math.floor(Math.log10(m)), f = m / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+const NS = 'http://www.w3.org/2000/svg';
+function s(tag, a) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); return e; }
+function drawChart(box, c, data) {
+  const svg = box.querySelector('svg'), tip = box.querySelector('.tip');
+  const W = svg.clientWidth || 400, H = 170, L = 44, R = 50, T = 8, B = 20;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.replaceChildren();
+  if (!data.length) { svg.append(Object.assign(s('text', {x: L, y: H / 2, fill: css('--muted'), 'font-size': 12}), {textContent: 'no data in range'})); return; }
+  const t0 = range ? Date.now() / 1000 - range : data[0].ts, t1 = Date.now() / 1000;
+  const mx = c.max(data) || 1, step = niceStep(mx / 5), ymax = step * Math.ceil(mx / step - 1e-9), x = t => L + (t - t0) / (t1 - t0 || 1) * (W - L - R), y = v => T + (1 - v / ymax) * (H - T - B);
+  for (let v = 0; v <= ymax + 1e-9; v += step) {  // hairline grid + clean ticks
+    svg.append(s('line', {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: css(v ? '--grid' : '--axis'), 'stroke-width': 1}));
+    svg.append(Object.assign(s('text', {x: L - 6, y: y(v) + 4, 'text-anchor': 'end', fill: css('--muted'), 'font-size': 11}), {textContent: +v.toFixed(1)}));
+  }
+  for (let i = 0; i <= 4; i++) {
+    const t = t0 + (t1 - t0) * i / 4;
+    const lab = new Date(t * 1000).toLocaleString([], (t1 - t0) > 86400 ? {month: 'short', day: 'numeric', hour: '2-digit'} : {hour: '2-digit', minute: '2-digit'});
+    svg.append(Object.assign(s('text', {x: x(t), y: H - 4, 'text-anchor': i ? i === 4 ? 'end' : 'middle' : 'start', fill: css('--muted'), 'font-size': 11}), {textContent: lab}));
+  }
+  if (c.ref) {
+    const r = c.ref(data);
+    if (r) { svg.append(s('line', {x1: L, x2: W - R, y1: y(r), y2: y(r), stroke: css('--axis'), 'stroke-width': 1}));
+      svg.append(Object.assign(s('text', {x: L + 4, y: y(r) - 4, fill: css('--muted'), 'font-size': 11}), {textContent: `${c.refLabel} ${Math.round(r)} ${c.unit}`})); }
+  }
+  // split into runs where samples are < 3 min apart, so offline periods show as gaps
+  const runs = []; let run = [];
+  for (const d of data) { if (run.length && d.ts - run.at(-1).ts > 180) { runs.push(run); run = []; } if (c.v(d) != null) run.push(d); }
+  runs.push(run);
+  const col = css('--series');
+  for (const r of runs) {
+    if (!r.length) continue;
+    const pts = r.map(d => `${x(d.ts).toFixed(1)},${y(c.v(d)).toFixed(1)}`);
+    svg.append(s('path', {d: `M${x(r[0].ts)},${y(0)}L${pts.join('L')}L${x(r.at(-1).ts)},${y(0)}Z`, fill: col, 'fill-opacity': .1}));
+    svg.append(s('path', {d: 'M' + pts.join('L'), fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'}));
+  }
+  const last = data.at(-1), lv = c.v(last), fmt = v => `${+v.toFixed(v < 10 ? 1 : 0)} ${c.unit}`;
+  svg.append(s('circle', {cx: x(last.ts), cy: y(lv), r: 4, fill: col, stroke: css('--surface'), 'stroke-width': 2}));
+  svg.append(Object.assign(s('text', {x: x(last.ts) + 8, y: y(lv) + 4, fill: css('--ink2'), 'font-size': 11}), {textContent: fmt(lv)}));
+  const cross = s('line', {y1: T, y2: H - B, stroke: css('--muted'), 'stroke-width': 1, visibility: 'hidden'});
+  const mark = s('circle', {r: 4, fill: col, stroke: css('--surface'), 'stroke-width': 2, visibility: 'hidden'});
+  svg.append(cross, mark);
+  svg.onpointermove = e => {
+    const px = (e.clientX - svg.getBoundingClientRect().left) * W / svg.clientWidth;
+    let best = data[0]; for (const d of data) if (Math.abs(x(d.ts) - px) < Math.abs(x(best.ts) - px)) best = d;
+    const bx = x(best.ts), v = c.v(best);
+    cross.setAttribute('x1', bx); cross.setAttribute('x2', bx); cross.setAttribute('visibility', 'visible');
+    mark.setAttribute('cx', bx); mark.setAttribute('cy', y(v)); mark.setAttribute('visibility', 'visible');
+    tip.replaceChildren(el('b', {}, fmt(v)), el('span', {className: 'muted'}, ' ' + fmtT(best.ts)));
+    tip.style.display = 'block';
+    const bw = box.clientWidth, px2 = bx * svg.clientWidth / W;
+    tip.style.left = Math.min(px2 + 10, bw - tip.offsetWidth) + 'px'; tip.style.top = '20px';
+  };
+  svg.onpointerleave = () => { cross.setAttribute('visibility', 'hidden'); mark.setAttribute('visibility', 'hidden'); tip.style.display = 'none'; };
+}
+function drawCharts() { CHARTS.forEach((c, i) => drawChart($('charts').children[i], c, hist)); }
+async function loadHistory() { hist = await get('/api/history?since=' + (range ? Math.floor(Date.now() / 1000 - range) : 0)); drawCharts(); }
+$('ranges').append(...RANGES.map(([l, v]) => el('button', {className: v === range ? 'on' : '', textContent: l, onclick: e => {
+  range = v; localStorage.range = v; [...$('ranges').children].forEach(b => b.className = b === e.target ? 'on' : ''); loadHistory(); }})));
+$('charts').append(...CHARTS.map(c => el('div', {className: 'card chart'}, el('h3', {}, `${c.title} (${c.unit})`), document.createElementNS(NS, 'svg'), el('div', {className: 'tip'}))));
+addEventListener('resize', drawCharts);
+
+// ---- queue ----
+let showTail = false;
+const submitted = id => { const p = id.split('-')[0]; return /^\d{16}$/.test(p) ? p / 1e6 : null; };
+async function loadQueue() {
+  const q = await get('/api/queue'), r = q.running, now = Date.now() / 1000;
+  if (r) {
+    const st = Date.parse(r.started) / 1000;
+    $('running').replaceChildren(
+      el('div', {}, status('Running', '--series'), ' ', el('b', {}, r.id.split('-').slice(1).join('-')), el('span', {className: 'muted'}, `  ${r.id}`)),
+      el('div', {className: 'ink2'}, `started ${fmtT(st)} · elapsed ${dur(now - st)} · waited ${dur(st - submitted(r.id))}` + (q.online ? '' : ' · box offline, may be stale')),
+      el('button', {className: 'link', textContent: showTail ? 'hide log tail' : 'show log tail', onclick: () => { showTail = !showTail; loadQueue(); }}),
+      ...(showTail ? [el('pre', {}, (r.tail || []).join('\n') || '(empty log)')] : []));
+  } else $('running').replaceChildren(el('span', {className: 'muted'}, 'No job running.'));
+  $('queued').replaceChildren(q.queued.length ? el('table', {},
+    el('tr', {}, ...['#', 'name', 'submitted', 'waiting', 'command'].map(h => el('th', {}, h))),
+    ...q.queued.map((j, i) => el('tr', {}, el('td', {}, i + 1), el('td', {}, j.id.split('-').slice(1).join('-')), el('td', {}, fmtT(submitted(j.id))),
+      el('td', {}, dur(now - submitted(j.id))), el('td', {className: 'cmd'}, j.cmd || ''))))
+    : el('span', {className: 'muted'}, 'Queue empty.'));
+  $('history').replaceChildren(el('table', {},
+    el('tr', {}, ...['name', 'submitted', 'started', 'ended', 'duration', 'status'].map(h => el('th', {}, h))),
+    ...q.history.map(j => el('tr', {title: j.id}, el('td', {}, j.name), el('td', {}, fmtT(j.submitted)), el('td', {}, fmtT(j.started)), el('td', {}, fmtT(j.ended)),
+      el('td', {}, dur(j.ended - j.started)),
+      el('td', {}, j.status === '0' ? status('✓ ok', '--good') : status(`✗ exit ${j.status}`, '--critical'))))));
+}
+
+// ---- posts ----
+async function loadPosts() {
+  const p = await get('/api/posts');
+  $('posts').replaceChildren(...(p.length ? p.map(x => el('div', {className: 'p'},
+    el('div', {className: 'muted'}, `${fmtT(x.ts)} · ${x.author}`), el('div', {className: 't'}, x.text))) : [el('span', {className: 'muted'}, 'No posts yet.')]));
+}
+
+function refresh() { for (const f of [loadNow, loadHistory, loadQueue, loadPosts]) f().catch(e => console.error(e)); }
+refresh(); setInterval(refresh, 30000);
+</script></body></html>

@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Poll the Vast.ai box once a minute over one ssh call; append to data/."""
+import json, os, subprocess, time
+
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+SSH = ["ssh", "-p", "40262", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+       "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@24.196.244.156"]
+Q = "/workspace/gpuq"
+REMOTE = f"""
+echo @@gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
+echo @@mem; free -b | awk 'NR==2{{print $3,$7}}'
+echo @@disk; df -B1 / | awk 'NR==2{{print $3,$4}}'
+echo @@load; cat /proc/loadavg
+echo @@cgmax; cat /sys/fs/cgroup/memory.max
+echo @@running; cat {Q}/running 2>/dev/null
+echo @@queued; for f in {Q}/jobs/*.job; do [ -e "$f" ] && printf '%s\\t%s\\n' "$(basename "$f" .job)" "$(head -c 400 "$f" | tr '\\n\\t' '  ')"; done
+echo @@status; grep -H '' {Q}/out/*.status 2>/dev/null
+echo @@logs; stat -c '%n %W %Y' {Q}/out/*.log 2>/dev/null
+echo @@tail; r=$(cut -d' ' -f1 {Q}/running 2>/dev/null); [ -n "$r" ] && tail -n 20 {Q}/out/$r.log | cut -c1-300
+echo @@end
+"""
+BANNER = ("Welcome to vast.ai", "Have fun!", "AI agents: READ")
+
+
+def sections(text):
+    out, cur = {}, None
+    for line in text.splitlines():
+        if line.startswith(BANNER):
+            continue
+        if line.startswith("@@"):
+            cur = out.setdefault(line[2:], [])
+        elif cur is not None:
+            cur.append(line)
+    return out
+
+
+def num(s):
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def job_id(path, ext):
+    return os.path.basename(path)[: -len(ext)]
+
+
+def poll():
+    now = time.time()
+    r = subprocess.run(SSH + [REMOTE], capture_output=True, text=True, timeout=60)
+    s = sections(r.stdout)
+    if "end" not in s or not s.get("gpu"):
+        raise RuntimeError((r.stderr.strip() or "no output")[-300:])
+    g = [x.strip() for x in s["gpu"][0].split(",")]
+    keys = ["util", "vram_used", "vram_total", "power", "power_limit", "sm_clock", "mem_clock", "temp"]
+    sample = {"ts": round(now), **{k: num(v) for k, v in zip(keys, g[1:])}}
+    mem = (s.get("mem") or ["0 0"])[0].split()
+    disk = (s.get("disk") or ["0 0"])[0].split()
+    sample.update(ram_used=int(mem[0]), ram_avail=int(mem[1]), disk_used=int(disk[0]),
+                  disk_free=int(disk[1]), load=[num(x) for x in (s.get("load") or ["0 0 0"])[0].split()[:3]])
+    cg = (s.get("cgmax") or ["max"])[0].strip()
+    sample["ram_limit"] = int(cg) if cg.isdigit() else None
+
+    running = None
+    if s.get("running") and s["running"][0].strip():
+        rid, rstart = (s["running"][0].split() + [""])[:2]
+        running = {"id": rid, "started": rstart, "tail": s.get("tail", [])}
+    queued = [dict(zip(("id", "cmd"), l.split("\t", 1))) for l in s.get("queued", []) if l]
+    queued = [q for q in queued if not running or q["id"] != running["id"]]
+    status = {}
+    for l in s.get("status", []):
+        path, _, code = l.partition(":")
+        status[job_id(path, ".status")] = code.strip()
+    logs = {}
+    for l in s.get("logs", []):
+        path, birth, mtime = l.rsplit(" ", 2)
+        logs[job_id(path, ".log")] = (int(birth), int(mtime))
+    return sample, running, queued, status, logs
+
+
+def main():
+    os.makedirs(DATA, exist_ok=True)
+    jobs_path = os.path.join(DATA, "jobs.json")
+    while True:
+        t0 = time.time()
+        try:
+            jobs = json.load(open(jobs_path)) if os.path.exists(jobs_path) else {}
+        except ValueError:
+            jobs = {}
+        try:
+            sample, running, queued, status, logs = poll()
+            with open(os.path.join(DATA, "samples.jsonl"), "a") as f:
+                f.write(json.dumps(sample) + "\n")
+            # Finished jobs: history is kept locally so it survives the box being destroyed.
+            for jid, code in status.items():
+                birth, mtime = logs.get(jid, (0, 0))
+                jobs[jid] = {"status": code, "started": birth or None, "ended": mtime or None}
+            now = {"online": True, "ts": sample["ts"], "sample": sample,
+                   "running": running, "queued": queued}
+        except Exception as e:  # ssh down, timeout, parse failure: mark offline, keep last data
+            old = {}
+            try:
+                old = json.load(open(os.path.join(DATA, "now.json")))
+            except (OSError, ValueError):
+                pass
+            now = {**old, "online": False, "error": str(e)[-300:], "checked": round(t0)}
+        for path, obj in ((jobs_path, jobs), (os.path.join(DATA, "now.json"), now)):
+            with open(path + ".tmp", "w") as f:
+                json.dump(obj, f)
+            os.replace(path + ".tmp", path)
+        time.sleep(max(1, 60 - (time.time() - t0)))
+
+
+if __name__ == "__main__":
+    main()

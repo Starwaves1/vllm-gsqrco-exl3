@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""dash/post "text"  -> append a progress post to data/posts.jsonl (author: $DASH_AUTHOR or $USER)."""
+import json, os, sys, time
+
+if len(sys.argv) < 2 or not " ".join(sys.argv[1:]).strip():
+    sys.exit('usage: dash/post "text"')
+data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+os.makedirs(data, exist_ok=True)
+post = {"ts": round(time.time()), "author": os.environ.get("DASH_AUTHOR") or os.environ.get("USER", "?"),
+        "text": " ".join(sys.argv[1:])}
+with open(os.path.join(data, "posts.jsonl"), "a") as f:
+    f.write(json.dumps(post) + "\n")
