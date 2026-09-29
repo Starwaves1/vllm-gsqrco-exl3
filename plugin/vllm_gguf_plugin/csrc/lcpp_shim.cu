@@ -465,10 +465,15 @@ static __device__ __forceinline__ int iq3_scale(int sumi, int ls) {
   return type == GGML_TYPE_IQ3_S ? sumi * (1 + 2 * ls) : (ls * sumi + sumi / 2) / 2;
 }
 
-template <ggml_type type, int ncols>
+// Output in X's dtype, rounded to nearest even as torch's cast from fp32.
+static __device__ __forceinline__ void iq3_store(float* p, float v) { *p = v; }
+static __device__ __forceinline__ void iq3_store(half* p, float v) { *p = __float2half_rn(v); }
+static __device__ __forceinline__ void iq3_store(nv_bfloat16* p, float v) { *p = __float2bfloat16_rn(v); }
+
+template <ggml_type type, int ncols, typename dst_t>
 static __global__ void __launch_bounds__(IQ3_WARPS * WARP_SIZE)
 iq3_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
-                float* __restrict__ dst, const int nrows, const int ncols_x,
+                dst_t* __restrict__ dst, const int nrows, const int ncols_x,
                 const int64_t row_bytes) {
   using traits = iq3_traits<type>;
   constexpr int slices = QK_K / QK8_1;  // 32-value slices (q8_1 blocks) per weight block
@@ -535,30 +540,44 @@ iq3_mul_mat_vec(const char* __restrict__ vx, const block_q8_1* __restrict__ vy,
     for (int r = 0; r < IQ3_ROWS_PER_WARP; ++r) {
       acc[j][r] = warp_reduce_sum<WARP_SIZE>(acc[j][r]);
       if (lane == 0 && row0 + r < nrows) {
-        dst[(int64_t)j * nrows + row0 + r] = acc[j][r];
+        iq3_store(dst + (int64_t)j * nrows + row0 + r, acc[j][r]);
       }
     }
   }
 }
 
 // W [nrows, row_bytes] IQ3_S/IQ3_XXS blocks, y: ncols block_q8_1 rows of k
-// values (16-byte aligned; k % 512 == 0), dst [ncols, nrows] fp32.
-template <ggml_type type>
-static void iq3_mul_mat_vec_cuda(const char* vx, const void* vy, float* dst, int nrows, int k,
+// values (16-byte aligned; k % 512 == 0), dst [ncols, nrows] fp32, fp16 or bf16
+// (written directly: no separate output cast kernel).
+template <ggml_type type, typename dst_t>
+static void iq3_mul_mat_vec_cuda(const char* vx, const void* vy, dst_t* dst, int nrows, int k,
                                  int64_t row_bytes, int ncols, cudaStream_t stream) {
   const dim3 grid((nrows + IQ3_WARPS * IQ3_ROWS_PER_WARP - 1) / (IQ3_WARPS * IQ3_ROWS_PER_WARP));
   const dim3 block(WARP_SIZE, IQ3_WARPS);
   const block_q8_1* y = (const block_q8_1*)vy;
   switch (ncols) {
-    case 1: iq3_mul_mat_vec<type, 1><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 2: iq3_mul_mat_vec<type, 2><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 3: iq3_mul_mat_vec<type, 3><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 4: iq3_mul_mat_vec<type, 4><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 5: iq3_mul_mat_vec<type, 5><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 6: iq3_mul_mat_vec<type, 6><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 7: iq3_mul_mat_vec<type, 7><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
-    case 8: iq3_mul_mat_vec<type, 8><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 1: iq3_mul_mat_vec<type, 1, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 2: iq3_mul_mat_vec<type, 2, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 3: iq3_mul_mat_vec<type, 3, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 4: iq3_mul_mat_vec<type, 4, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 5: iq3_mul_mat_vec<type, 5, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 6: iq3_mul_mat_vec<type, 6, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 7: iq3_mul_mat_vec<type, 7, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
+    case 8: iq3_mul_mat_vec<type, 8, dst_t><<<grid, block, 0, stream>>>(vx, y, dst, nrows, k, row_bytes); break;
     default: GGML_ABORT("iq3_mul_mat_vec: %d activation rows", ncols);
+  }
+}
+
+template <ggml_type type>
+static void iq3_mul_mat_vec_y(const char* vx, const void* vy, const Tensor& y, int nrows, int k,
+                              int64_t row_bytes, int ncols, cudaStream_t stream) {
+  switch (y.scalar_type()) {
+    case ScalarType::Float:
+      iq3_mul_mat_vec_cuda<type>(vx, vy, (float*)y.data_ptr(), nrows, k, row_bytes, ncols, stream); break;
+    case ScalarType::Half:
+      iq3_mul_mat_vec_cuda<type>(vx, vy, (half*)y.data_ptr(), nrows, k, row_bytes, ncols, stream); break;
+    default:  // BFloat16
+      iq3_mul_mat_vec_cuda<type>(vx, vy, (nv_bfloat16*)y.data_ptr(), nrows, k, row_bytes, ncols, stream); break;
   }
 }
 
@@ -703,12 +722,15 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
   const DeviceGuard guard(device);
   const cudaStream_t stream = torch_stream(device);
 
-  // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast);
-  // MMVQ/MMQ write fp32 dst only, so 16-bit X costs one output cast.
+  // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast).
+  // The IQ3 kernel writes X's dtype; MMVQ/MMQ write fp32 dst only, so for them
+  // 16-bit X costs one output cast.
   // Launches per call with 16-bit X:
+  //   IQ3:  quantize, iq3_mul_mat_vec                                = 2
   //   MMVQ: quantize, mul_mat_vec_q, cast Y                          = 3
   //   MMQ:  tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
-  Tensor yf = torch::stable::new_empty(X, {n, row}, ScalarType::Float);
+  const ScalarType y_dtype = kernel == Kernel::iq3 ? out_dtype : ScalarType::Float;
+  Tensor y = torch::stable::new_empty(X, {n, row}, y_dtype);
 
   ggml_tensor src0{};
   src0.type = (ggml_type)type;
@@ -727,7 +749,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
   dst.ne[0] = row; dst.ne[1] = n; dst.ne[2] = 1; dst.ne[3] = 1;
   dst.nb[0] = sizeof(float); dst.nb[1] = row * sizeof(float);
   dst.nb[2] = dst.nb[1] * n; dst.nb[3] = dst.nb[2];
-  dst.data = yf.data_ptr();
+  dst.data = y.data_ptr();
 
   {
     ggml_backend_cuda_context ctx(device);
@@ -740,9 +762,9 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
       ggml_cuda_pool_alloc<char> q8(ctx.pool(), n * k_padded * sizeof(block_q8_1) / QK8_1);
       quantize_x(X, q8.get(), src0.type, false, k_padded, stream);
       if (kernel == Kernel::iq3) {
-        (type == GGML_TYPE_IQ3_S ? iq3_mul_mat_vec_cuda<GGML_TYPE_IQ3_S>
-                                 : iq3_mul_mat_vec_cuda<GGML_TYPE_IQ3_XXS>)(
-            (const char*)src0.data, q8.get(), (float*)dst.data, (int)row, (int)k, src0.nb[1], (int)n, stream);
+        (type == GGML_TYPE_IQ3_S ? iq3_mul_mat_vec_y<GGML_TYPE_IQ3_S>
+                                 : iq3_mul_mat_vec_y<GGML_TYPE_IQ3_XXS>)(
+            (const char*)src0.data, q8.get(), y, (int)row, (int)k, src0.nb[1], (int)n, stream);
       } else {
         ggml_cuda_op_mul_mat_vec_q(ctx, &src0, &src1, &dst, (const char*)src0.data, nullptr,
                                    q8.get(), (float*)dst.data, 0, row, n, k_padded, stream);
@@ -753,9 +775,7 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel) 
     CUDA_CHECK(cudaGetLastError());
   }  // pool tensors released here, stream-ordered by the caching allocator
 
-  return out_dtype == ScalarType::Float
-             ? yf
-             : torch::stable::to(yf, std::optional<ScalarType>(out_dtype));
+  return y_dtype == out_dtype ? y : torch::stable::to(y, std::optional<ScalarType>(out_dtype));
 }
 
 Tensor lcpp_mul_mat_vec_q(Tensor W, Tensor X, int64_t type, int64_t row) {

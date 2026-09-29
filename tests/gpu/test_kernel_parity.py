@@ -306,6 +306,10 @@ def test_lcpp_iq3(tensors_by_type, name, n, dtype, shape):
         assert err <= 1e-5
     else:
         _check(y, raw, name, x, mmq=False, lcpp=True)
+        # 16-bit output is written by the kernel: equal to its fp32 output cast by torch
+        # (same q8_1 bytes: 16-bit to float is exact)
+        y32 = C.lcpp_mul_mat_vec_iq3(w, x.cuda().float(), int(qt), w.shape[0])
+        assert torch.equal(y, y32.to(y.dtype))
 
 
 @pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
