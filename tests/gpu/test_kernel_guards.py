@@ -41,6 +41,11 @@ FAULT = ("illegal memory access", "misaligned address", "unspecified launch fail
 @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
 @pytest.mark.parametrize("case", CASES)
 def test_guard_case(case, type_op):
+    res = _run_case(case, type_op)
+    assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+
+
+def _run_case(case, type_op):
     if not GGUF.exists():
         pytest.skip(f"GGUF not found: {GGUF}")
     name, op = type_op
@@ -52,7 +57,7 @@ def test_guard_case(case, type_op):
         cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
     env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
                PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
-    if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+    if san and not case.startswith("graph"):  # a graph cannot capture cudaMalloc
         env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
     tail = (p.stdout + p.stderr)[-2000:]
@@ -60,12 +65,12 @@ def test_guard_case(case, type_op):
         pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
     assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
     assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
-    res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
-    assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+    return json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
 
 
 @pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
 def test_iq3_mma_first_call_in_capture(name):
     """The mma op sets its launch attributes (dynamic shared memory, resident CTAs) on its first
     call in a process; that call may happen inside CUDA-graph capture."""
-    test_guard_case("graph_first", (name, "lcpp_iq3_mma"))
+    res = _run_case("graph_first", (name, "lcpp_iq3_mma"))
+    assert res["status"] == "ok", res

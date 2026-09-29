@@ -93,7 +93,7 @@ def main() -> None:
     elif case in ("x_q8_short", "x_q8_misaligned"):
         q8 = torch.ops._C_gguf.lcpp_quantize_q8_1(xc, qt, False, False)
         if case == "x_q8_short":
-            q8 = q8[:-1]
+            q8 = q8[:-1].clone()  # its own, short allocation
         else:
             q8 = torch.cat([q8.new_zeros(1), q8])[1:]
         extra = (q8,)

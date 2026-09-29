@@ -484,21 +484,25 @@ def _padded_layer(shards, qts, k, monkeypatch):
     return layer, method
 
 
-def _mixed_block(gguf_reader, a, b, a_narrower=False):
-    """First block whose tensors a and b have different Route L types (with a_narrower: a's
-    rows hold fewer bytes than b's, so a's run is packed tighter than the padded row)."""
+def _mixed_block(gguf_reader, a, b, a_narrower=False, types=None):
+    """First block whose tensors a and b have different Route L types (types: exactly these
+    (a, b) type names; with a_narrower: a's rows hold fewer bytes than b's, so a's run is packed
+    tighter than the padded row)."""
     by_name = {t.name: t for t in gguf_reader.tensors}
     for i in range(64):
         ta, tb = by_name.get(f"blk.{i}.{a}.weight"), by_name.get(f"blk.{i}.{b}.weight")
         if ta is not None and tb is not None and ta.tensor_type != tb.tensor_type \
                 and {ta.tensor_type.name, tb.tensor_type.name} <= set(LCPP_TYPES) \
+                and types in (None, (ta.tensor_type.name, tb.tensor_type.name)) \
                 and (not a_narrower or ta.data.shape[1] < tb.data.shape[1]):
             return i, ta, tb
-    pytest.skip(f"no block with a mixed-type {a}/{b} pair on Route L types")
+    pytest.skip(f"no block with a mixed-type {a}/{b} pair on Route L types {types or ''}")
 
 
+# IQ4_XS + Q4_K: at 8 rows MMQ (quantizes X itself) beside the Q4_K kernel (reads apply()'s x_q8)
+@pytest.mark.parametrize("types", [None, ("IQ4_XS", "Q4_K")], ids=["first", "IQ4_XS+Q4_K"])
 @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
-def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
+def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, types, monkeypatch):
     """A fused gate/up layer whose shards have different quant types, through
     GGUFLinearMethod's padded-weight build and apply(): with VLLM_GGUF_LCPP=1 each shard is
     stored contiguously and passed as a view (no copy), and the result is bit-exact with the
@@ -511,7 +515,7 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     _lcpp()  # skips without the lcpp build
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
-    blk, *ts = _mixed_block(gguf_reader, "ffn_gate", "ffn_up")
+    blk, *ts = _mixed_block(gguf_reader, "ffn_gate", "ffn_up", types=types)
     shards = [torch.from_numpy(np.ascontiguousarray(t.data)).cuda() for t in ts]
     qts = [int(t.tensor_type) for t in ts]
     assert shards[0].shape[1] != shards[1].shape[1]  # different row bytes: the padded case
@@ -533,9 +537,11 @@ def test_lcpp_mixed_shard_layer(tensors_by_type, gguf_reader, n, monkeypatch):
     assert torch.equal(y, ref)
 
 
+# IQ3_XXS + Q4_K: z (6144 rows) on the Q4_K kernel from 3 rows, reading the qkv run's shared x_q8
+@pytest.mark.parametrize("types", [None, ("IQ3_XXS", "Q4_K")], ids=["first", "IQ3_XXS+Q4_K"])
 @pytest.mark.parametrize("a_narrower", [False, True], ids=["qkv_widest", "qkv_narrower"])
 @pytest.mark.parametrize("n", [1, 4, 8, 9, 128])
-def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeypatch):
+def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, types, monkeypatch):
     """GDN in_proj_qkvz: shards q, k, v are row slices of one attn_qkv tensor (one type) and z is
     attn_gate (another type). apply() runs one product for the q/k/v run and one for z. Against
     the routed op on each of the four shards alone it is bit-exact through MMVQ and the IQ3
@@ -552,7 +558,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     import _refs
 
-    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower)
+    blk, tqkv, tz = _mixed_block(gguf_reader, "attn_qkv", "attn_gate", a_narrower, types)
     qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
     z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
     shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
@@ -567,7 +573,7 @@ def test_lcpp_same_type_run(tensors_by_type, gguf_reader, n, a_narrower, monkeyp
     print(f"\nblk.{blk} qkv {tqkv.tensor_type.name} + z {tz.tensor_type.name}, n={n}: "
           f"max |run - per shard| {(y.float() - per_shard.float()).abs().max().item():.3g}")
     assert torch.equal(y, whole)  # one product per run
-    if n <= 8:  # MMVQ / the IQ3 kernel (this layer is IQ3_S + IQ3_XXS)
+    if n <= 8:  # 1..8-row kernels, rows independent (the qkv runs used here are IQ3 types)
         assert torch.equal(y, per_shard)
     else:
         assert _refs.rel_err(y, per_shard.double().cpu()) <= 1e-3
