@@ -44,6 +44,9 @@ fi
 export GSQ_GGUF
 export GSQ_HF_CONFIG=${GSQ_HF_CONFIG:-$GSQ_ROOT/hf-config/$GSQ_MODEL_NAME}
 
+# EXL3 checkpoint for the EXL3 plugin (plugin-exl3; scripts/serve-exl3.sh), a plain HF dir.
+export GSQ_EXL3_MODEL=${GSQ_EXL3_MODEL:-$GSQ_ROOT/models/Qwen3.8-27B-exl3-3.50bpw}
+
 # Baseline (W4A16) for A/B runs: production's model by default.
 export GSQ_BASELINE_MODEL=${GSQ_BASELINE_MODEL:-$GSQ_PROD_MODEL_DIR}
 
@@ -65,6 +68,8 @@ export GSQ_API_KEY=${GSQ_API_KEY:-gsq-local-test}
 # and gguf. The serve scripts pick the list; unset would load all three.
 export GSQ_PLUGINS_OFF=lora_filesystem_resolver,lora_hf_hub_resolver
 export GSQ_PLUGINS_ON=$GSQ_PLUGINS_OFF,gguf
+# EXL3 serving: every plugin a production venv with both packages would load
+export GSQ_PLUGINS_EXL3=$GSQ_PLUGINS_ON,exl3
 
 gsq_die() { echo "gsq: $*" >&2; exit 2; }
 

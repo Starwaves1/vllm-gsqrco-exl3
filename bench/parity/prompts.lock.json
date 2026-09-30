@@ -1,3 +1,4 @@
 {
- "seed=20260927,tail=256,spread=32": "eb7ac4b45c892c9e99fb5749a4a7dbec56c9fb706cd7dd5efec39134603e1a4a"
+ "seed=20260927,tail=256,spread=32,vllm=0.27.1": "eb7ac4b45c892c9e99fb5749a4a7dbec56c9fb706cd7dd5efec39134603e1a4a",
+ "seed=20260927,tail=256,spread=32,vllm=0.30.1rc1.dev285+gd28795f1a": "20d770b6ee0ded78bca9f68d2d5b0238eb0c6331b767aa5bda67572cb3c2c65c"
 }

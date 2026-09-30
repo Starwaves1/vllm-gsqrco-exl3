@@ -21,7 +21,7 @@ untested. Labels as elsewhere: VERIFIED (checked here), DOCUMENTED, INFERRED.
 | `.../csrc/exl3_shim.cu` | all adaptation: ops, guards, capture guard, warmup, CPU registration |
 | `tools/exl3_draft_head.py` | writes the pruned MTP draft head as bf16 (GPU, once per checkpoint) |
 | `tools/exl3_meta_dry_run.py` | vLLM's real model + loader on the meta device against the checkpoint's metadata |
-| `bench/parity/exl3_logits.py` | exllamav3-native logit dump for parity (skeleton, not run) |
+| `bench/parity/exl3_logits.py` | exllamav3-native logit dump for parity (not run yet) |
 | `hf-config/Qwen3.8-27B-exl3-3.50bpw/` | the checkpoint's metadata: `config.json`, tokenizer files, safetensors index, shard headers (`safetensors_headers.json`, read by HTTP range), `PROVENANCE.json` |
 | `tests/cpu/test_exl3_*.py` | CPU tests (below) |
 
@@ -183,7 +183,7 @@ compiled and linked, never run. All 60 vendored `.cu` are built; compiling only 
 instances the checkpoint uses would need a shim-owned kernel map and is not worth it at this
 build time.
 
-## Tests (CPU, `GSQ_LIGHT=1 GSQ_VENV=.venv-main tools/capped tools/pytest tests/cpu -k exl3`: 153 passed)
+## Tests (CPU, `GSQ_LIGHT=1 GSQ_VENV=.venv-main tools/capped tools/pytest tests/cpu -k exl3`: 157 passed)
 
 | file | what | count |
 |---|---|---|
@@ -193,7 +193,8 @@ build time.
 | `test_exl3_routing.py` | the routing table at every boundary, the hook, both dequant paths reproducing x @ W against CPU stand-ins | 25 |
 | `test_exl3_linear.py` | loader and parts: q/k/v out of order, GDN tuple shard, gate_up, missing shards/scales, bad shapes, codebook check, copy semantics, TP refusal, apply's concatenation | 16 |
 | `test_exl3_draft_head.py` | the draft head tool on a synthetic checkpoint | 7 |
-| `test_exl3_parity_skeleton.py` | the parity script's chunk plan | 6 |
+| `test_exl3_parity_skeleton.py` | the parity script's chunk plan | 8 |
+| `test_exl3_gpu_cases.py` | the GPU kernel cases (`tests/gpu/exl3_cases.py`) against the checkpoint's headers | 2 |
 
 ## Untested (everything numeric)
 
@@ -218,6 +219,47 @@ Harnesses as for GGUF: jobs go through the rented box's `gpuq` queue (`dash/`); 
 | 5 | optional Swift quant | exllamav3 convert at about 3.3-3.5 bpw, plain then SC | 2-6 |
 | 6 | soak | `bench/soak.sh` 24 h at c=2 with graphs | 24 |
 
-Before phase 1: build `_C_exl3` on the box (`GSQ_PLUGIN=plugin-exl3 tools/build-plugin.sh`,
-about 8 min at 2 jobs), download the 15.3 GB checkpoint, set `EXLLAMAV3_TUNE_CACHE` under the run
-dir.
+## GPU phase 1 box, part A (prep, CPU only, 2026-09-30)
+
+Rented RTX 3090 (350 W, 64 cores) while its GPU ran the GGUF 24 h soak. Scripts:
+`cloud/results/exl3/box-scripts/` (`00-prep.sh` stages, `lib.sh` + one gpuq job per `0N-*.sh`).
+VERIFIED on the box:
+
+- `/workspace/venv-main` = `env/prod-main-freeze.txt` (216 pins) + the `2a0fe5e1e1` overlay (38
+  files; all 3184 tracked files checked). 123 distributions are hard links to the 0.27.1 venv's
+  identical files (`venv-seed.py`, every file checked against its RECORD sha256), 93 downloaded:
+  24 s, +3.2 GB; overlay 59 s. `import vllm` under `CUDA_VISIBLE_DEVICES=""`: 0.30.1rc1.dev285.
+- Both plugins editable in that venv, CUDA 13.0.88 pip toolchain (`tools/setup-cuda-toolchain.sh`;
+  the box's `/usr/local/cuda` is 12.8), sm86, 8 jobs beside the soak: `_C_gguf` with
+  `VLLM_GGUF_BUILD_LCPP=1` 56 s (33.8 MB, 15 ops), `_C_exl3` 127 s (42.7 MB, 5 ops); vendored
+  sha256 OK for both; freeze = `env/gsq-main-freeze.txt` + the EXL3 plugin; CUDA never initialized.
+  Fix found here: the box has no system cuBLAS headers, so `plugin-exl3/setup.py` now falls back to
+  the nvidia wheel's include dir, as `plugin/setup.py` does (ms4 builds from `/usr/include`).
+- Parity reference `/workspace/venv-exl3ref`: exllamav3 d3739fd (1.5.3) from
+  `/workspace/ref/exllamav3`, `exllamav3_ext` built for sm86 in 340 s (133.7 MB), torch 2.13.0+cu130
+  and its libraries hard-linked from venv-main (same files), `EXL3_INT8_GEMV=0` set at interpreter
+  start by a `.pth`. No flash-attn needed (`attn_mode` "flash_attn" is exllamav3's own kernel).
+- `bench/parity/prompts.lock.json` is keyed by vLLM version: the corpus is the venv's vLLM source,
+  so main has its own fingerprint (`20d770b6...`, identical on ms4 and the box). Without this,
+  `prompts.py` refused to write on main.
+- Not done: the checkpoint download (14.31 GiB). The disk had 8 GB free (151 GB: 56 GB models,
+  28 GB the soak's fs KV tier, 18 GB old runs, 16 GB torch compile cache). `00-prep.sh postsoak`
+  deletes the soak's leftover KV state once the soak job has finished, with
+  `CONFIRM_DELETE_SOAK_KV=1`; then `00-prep.sh model` (about 3 min at 96 MiB/s).
+
+GPU jobs (not run), in order, one gpuq job each:
+
+| job | what | est. |
+|---|---|---|
+| `01-kernel-parity.sh` | `tests/gpu/exl3_ref_dump.py` (exllamav3 on 6 checkpoint tensors, K 3/4/5/6), then `tests/gpu/test_exl3_kernels.py` (549 cases: dequant bit-exact, routed gemm vs fp64 inside exllamav3's error, routes, graph replay, fresh-process capture/guard cases), compute-sanitizer memcheck + initcheck on 71 of them | 1-1.5 h |
+| `02-draft-head.sh` | `tools/exl3_draft_head.py` on the checkpoint with production's 40,960 ids; rows checked against the EXL3 lm_head | 5 min |
+| `03-smoke.sh` | `scripts/serve-exl3.sh` on production's main argv (MTP k=5 schedule, fp8 KV, 200k): chat/reasoning/tool smoke, draft rows, MTP counters, VRAM, KV tokens | 15-20 min |
+| `04-parity-ref.sh` | `prompts.py` + `bench/parity/exl3_logits.py`: exllamav3 logits for the 11 sequences (to 120k), then its own spread (`EXL3_HGEMM_F16ACC=0`) | 20-40 min |
+| `05-parity-vllm.sh` | `vllm_logprobs.py --model` (EXL3 dir) at bf16 then fp8 KV, `compare.py` against 04 | 1.5-2.5 h |
+| `06-ladder.sh` | `bench/speed/run.sh exl3 --start`: c=1/2/4/8 cohorts, prefill 8k/64k/180k, clocks | 1-1.5 h |
+| `07-fit.sh` | `tests/gpu/test_fit_200k.py` against a serve-exl3 server at gpu-util 0.94, fp8 KV | 20-30 min |
+
+exllamav3's context on 24 GB (INFERRED, not run): about 10.8 GiB of weights on the GPU (its
+embedding stays on the CPU), fp16 KV 64 KiB/token for the 16 attention layers (7.3 GiB at
+120k), one recurrent slot (0.15 GiB), 0.25 GB of logits per chunk: about 19-20 GiB at 120k, so
+all 11 sequences should fit. `exl3_logits.py` records an out-of-memory sequence and goes on.

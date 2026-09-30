@@ -39,6 +39,20 @@ if _should_build_extension():
         "-Xcudafe", "--diag_suppress=177",
         "-Xcudafe", "--diag_suppress=20012",
     ]
+    cxx_args = ["-O3"]
+    # cublas_v2.h / cusparse.h (vendored hgemm, torch's CUDAContextLight.h): a pip-only
+    # toolkit (tools/setup-cuda-toolchain.sh) lacks them, so fall back to the nvidia wheels'
+    # headers, as plugin/setup.py does. The symbols resolve through libtorch_cuda's cuBLAS.
+    try:
+        import nvidia
+
+        for base in nvidia.__path__:
+            for inc in sorted(pathlib.Path(base).glob("*/include")):
+                if (inc / "cublas_v2.h").exists():
+                    nvcc_args += ["-Xcompiler", f"-idirafter,{inc}"]
+                    cxx_args += ["-idirafter", str(inc)]
+    except ImportError:
+        pass
     setup_kwargs.update(
         ext_modules=[
             CUDAExtension(
@@ -46,7 +60,7 @@ if _should_build_extension():
                 sources=sources,
                 # Absolute: torch's ninja build runs from build/temp*.
                 include_dirs=[str((csrc / "exl3").resolve()), str(csrc.resolve())],
-                extra_compile_args={"cxx": ["-O3"], "nvcc": nvcc_args},
+                extra_compile_args={"cxx": cxx_args, "nvcc": nvcc_args},
             )
         ],
         cmdclass={"build_ext": BuildExtension},
