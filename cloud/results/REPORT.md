@@ -152,6 +152,26 @@ become partly compute-bound.
 | vLLM GPU work | ~3.0 | | ~4.6 | ~7.3 |
 | plugin plumbing | ~1.4 | | ~1.4 | ~1.8 |
 
+Where the remaining gap sits: MTP steps, not single-row decode. The model matrix
+(`cloud/results/models/summary.txt`, same box, same build) served every model with and without MTP.
+Without MTP (1 row per sequence per step) the GGUF per-step cost vs production's W4A16 is:
+
+| ms/step, no MTP | c=1 | c=2 | c=4 | c=8 |
+|---|---|---|---|---|
+| Swift GGUF | 19.6 | 20.4 | 22.7 | 26.9 |
+| W4A16 | 20.6 | 22.3 | 22.8 | 22.8 |
+| ratio | 0.95 | 0.92 | 1.00 | 1.18 |
+| GGUF eff. GB/s (11.35 GB/step) / W4A16 (13.25 GB/step) | 580 / 644 | 556 / 595 | 500 / 581 | 422 / 581 |
+
+The GGUF reads 14% fewer bytes per step but streams them 10-27% slower per byte. It is faster per
+step at 1-2 rows, even at 4 rows, and loses at 8. An MTP step (4 rows per sequence: the target
+verifies 4 tokens, plus 3 draft passes) costs 1.46 / 1.58 / 1.59 / 1.70x a plain step on the GGUF
+(Base GGUF with vs without MTP, same session and build). On W4A16 it costs 1.34 / 1.22 / 1.32 / 1.81x
+(cross-session). So the per-step deficit with MTP (1.01-1.19x) comes from the 4..32-row products
+the MTP verify pass creates, which is where the owned kernels' efficiency (the "GEMM above 13 ms" row)
+is lowest. The GGUF's tok/s lead with MTP comes from acceptance (0.63-0.65 vs 0.52). ISTA's base GGUF
+has the same bytes and speed as Swift (no-MTP per-step ratio 1.00).
+
 ## 8. Owned kernels and changes, with measured contribution
 
 Each contribution comes from the stage where the change landed (same-session A/B or the stage's
