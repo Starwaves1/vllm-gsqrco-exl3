@@ -34,7 +34,7 @@ if os.environ.get("GSQ_ALLOW_GPU") != "1":
 import numpy as np  # noqa: E402
 
 MAGIC = 0x4C4F4731
-HF_CONFIG = ROOT / "hf-config" / "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp"
+HF_CONFIG = Path(os.environ.get("GSQ_HF_CONFIG") or ROOT / "hf-config" / "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp")
 
 
 def write_rows(path: Path, pos: np.ndarray, rows: np.ndarray) -> None:

@@ -164,7 +164,12 @@ def verify(out: Path, gguf_path: Path, template: Path) -> None:
     check(int(rope["partial_rotary_factor"] * t["head_dim"]) == meta[a + "rope.dimension_count"],
           "partial_rotary_factor * head_dim == rope.dimension_count")
     check(list(rope["mrope_section"]) == list(meta[a + "rope.dimension_sections"])[:3], "mrope_section")
-    recurrent = list(meta[a + "attention.recurrent_layers"])
+    if a + "attention.recurrent_layers" in meta:
+        recurrent = list(meta[a + "attention.recurrent_layers"])
+    else:  # ISTA's GGUFs omit the key; llama.cpp derives it the same way (src/models/qwen35.cpp)
+        fai = meta[a + "full_attention_interval"]
+        recurrent = [(i + 1) % fai != 0 for i in range(meta[a + "block_count"] - n_mtp)] + [False] * n_mtp
+        print(f"note  no {a}attention.recurrent_layers; derived from full_attention_interval {fai}")
     want_types = ["linear_attention" if r else "full_attention" for r in recurrent[: t["num_hidden_layers"]]]
     check(t["layer_types"] == want_types, "layer_types == GGUF recurrent_layers (first 64)")
     check(recurrent[t["num_hidden_layers"]:] == [False] * n_mtp, "MTP block is full attention")
