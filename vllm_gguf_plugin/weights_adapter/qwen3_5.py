@@ -161,6 +161,21 @@ def build_qwen35_mtp_mapper(block_index: int, is_moe: bool) -> WeightsMapper:
     )
 
 
+def _require_text_only(model_config: ModelConfig) -> None:
+    """A multimodal GGUF without mm_proj can only serve its language model."""
+    mm_config = model_config.multimodal_config
+    if mm_config is not None and all(
+        mm_config.get_limit_per_prompt(modality) == 0 for modality in ("image", "video")
+    ):
+        return
+    raise RuntimeError(
+        "Could not find mm_proj for multimodal Qwen3.5/3.6 GGUF. Place "
+        "*mmproj*.gguf beside the backbone or pass "
+        "model_loader_extra_config={'mm_proj': ...}, or serve text only "
+        'with --limit-mm-per-prompt \'{"image": 0, "video": 0}\'.'
+    )
+
+
 def _map_tensor_name(mapper: WeightsMapper, name: str) -> str | None:
     mapped = mapper.apply_list([name])[0]
     return mapped if mapped != name else None
@@ -207,13 +222,10 @@ class Qwen35GGUFAdapter(BaseGGUFWeightsAdapter):
         )
         has_vision = getattr(patched, "vision_config", None) is not None
 
-        if has_vision and files.mm_proj is None:
-            raise RuntimeError(
-                "Could not find mm_proj for multimodal Qwen3.5/3.6 GGUF. "
-                "Place *mmproj*.gguf beside the backbone or pass "
-                "model_loader_extra_config={'mm_proj': ...}."
-            )
-
+        # A multimodal config without mm_proj stays multimodal: the text
+        # weights keep the language_model prefix, and vLLM only builds the
+        # Qwen3.5 MTP draft for model_type qwen3_5. build_name_map() checks
+        # that the vision tower is disabled.
         if files.mm_proj is not None and not has_vision:
             config_cls = (
                 Qwen3_5MoeConfig
@@ -231,7 +243,9 @@ class Qwen35GGUFAdapter(BaseGGUFWeightsAdapter):
         model_config: ModelConfig,
     ) -> dict[str, str]:
         config = model_config.hf_config
-        is_multimodal = files.mm_proj is not None
+        is_multimodal = getattr(config, "vision_config", None) is not None
+        if is_multimodal and files.mm_proj is None:
+            _require_text_only(model_config)
         is_moe = config.model_type in QWEN35_MOE_MODEL_TYPES
         text_mapper = build_qwen35_text_mapper(is_multimodal, is_moe)
         vision_mapper = build_qwen35_vision_mapper()
