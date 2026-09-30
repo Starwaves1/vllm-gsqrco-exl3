@@ -123,6 +123,8 @@ except AttributeError as error:
 class GGUFEmbeddingMethod(GGUFLinearMethod):
     """Embedding method for GGUF."""
 
+    pack_iq3 = False  # apply() dequantizes the GGUF bytes
+
     def create_weights(
         self,
         layer: torch.nn.Module,

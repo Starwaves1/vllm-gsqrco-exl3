@@ -14,8 +14,8 @@ cudaMalloc boundaries, so the case then runs with PYTORCH_NO_CUDA_MEMORY_CACHING
 allocation per tensor; graph_replay excepted, as capture cannot cudaMalloc); under torch's
 caching allocator a read past a tensor stays inside its segment and goes unreported.
 Cases failing at e2b8ad5 are recorded in STATUS.md (Phase 1). The Route L ops
-(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3[_mma] / lcpp_mul_mat_vec_own /
-lcpp_mul_mat_mma_k, csrc/lcpp_shim.cu) check every one of these before
+(lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_iq3[_mma[_packed]] / lcpp_mul_mat_iq3_packed /
+lcpp_mul_mat_vec_own / lcpp_mul_mat_mma_k, csrc/lcpp_shim.cu) check every one of these before
 launching, so their rows must all pass; they skip without the VLLM_GGUF_BUILD_LCPP=1 build.
 """
 
@@ -37,7 +37,9 @@ TYPES_OPS = [("IQ3_S", "mmvq"), ("IQ4_XS", "mmvq"), ("Q4_K", "mmvq"), ("Q4_K", "
              ("IQ3_S", "lcpp_mmq"), ("IQ3_XXS", "lcpp_mmq"), ("Q2_K", "lcpp_mmq"), ("Q4_K", "lcpp_mmq"),
              ("Q6_K", "lcpp_mmq"), ("IQ3_S", "lcpp_iq3"), ("IQ3_XXS", "lcpp_iq3"),
              ("IQ3_S", "lcpp_iq3_mma"), ("IQ3_XXS", "lcpp_iq3_mma"), ("Q4_K", "lcpp_own"), ("IQ2_S", "lcpp_own"),
-             ("Q4_K", "lcpp_mma_k"), ("IQ4_XS", "lcpp_mma_k"), ("IQ2_S", "lcpp_mma_k")]
+             ("Q4_K", "lcpp_mma_k"), ("IQ4_XS", "lcpp_mma_k"), ("IQ2_S", "lcpp_mma_k"),
+             ("IQ3_S", "lcpp_iq3_mma_packed"), ("IQ3_XXS", "lcpp_iq3_mma_packed"),
+             ("IQ3_S", "lcpp_iq3_packed"), ("IQ3_XXS", "lcpp_iq3_packed")]
 FAULT = ("illegal memory access", "misaligned address", "unspecified launch failure", "CUDA error", "an illegal instruction")
 
 
@@ -78,4 +80,19 @@ def test_iq3_mma_first_call_in_capture(name):
     """The mma op sets its launch attributes (dynamic shared memory, resident CTAs) on its first
     call in a process; that call may happen inside CUDA-graph capture."""
     res = _run_case("graph_first", (name, "lcpp_iq3_mma"))
+    assert res["status"] == "ok", res
+
+
+@pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
+def test_iq3_mma_packed_first_call_in_capture(name):
+    """The same for the packed op (its launch attributes are set per column-group variant)."""
+    res = _run_case("graph_first", (name, "lcpp_iq3_mma_packed"))
+    assert res["status"] == "ok", res
+
+
+@pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
+def test_iq3_packed_first_call_in_capture(name):
+    """The same for the tiled packed op (launch attributes per tile shape, 129 rows: the split
+    tiles' fixup kernel is captured too)."""
+    res = _run_case("graph_first", (name, "lcpp_iq3_packed"))
     assert res["status"] == "ok", res

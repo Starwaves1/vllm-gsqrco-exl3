@@ -17,6 +17,7 @@ from vllm.platforms import current_platform
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
+from . import iq3_pack
 from .layout import GGUFLinearLayout
 from .params import (
     GGUFUninitializedWeightParameter,
@@ -43,8 +44,10 @@ _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 # Most activation rows at which IQ1_M is routed to MMVQ (8 rows per call above 8).
 _IQ1_M_MAX_ROWS = 32
 _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
+# packed IQ3: lcpp_mul_mat_vec_iq3_mma_packed up to here, lcpp_mul_mat_iq3_packed above
+PACKED_VEC_MAX_ROWS = 8
 # Route L ops that quantize X themselves (MMQ's layout): the rest read apply()'s shared x_q8.
-_OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k")
+_OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed")
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -57,10 +60,18 @@ def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
     return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 
 
-def _lcpp_op(n: int, weight_type: int, rows: int, k: int) -> str | None:
+def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) -> str | None:
     """The Route L op for n activation rows times a weight_type weight with
-    rows rows and k columns, or None if Route L has none. All but
-    _OWN_QUANTIZE_OPS read X as q8_1 blocks."""
+    rows rows and k columns, or None if Route L has none; packed: the layer's
+    IQ3 runs are in iq3_pack's layout. All but _OWN_QUANTIZE_OPS read X as
+    q8_1 blocks."""
+    if packed and weight_type in _IQ3_TYPES:
+        # IQ3_S / IQ3_XXS in iq3_pack's layout (GGUFLinearMethod._pack_iq3): the owned int8
+        # tensor-core kernels, the decode one up to PACKED_VEC_MAX_ROWS (cloud/results/phase3/r1),
+        # the tiled one above (r2)
+        if n <= PACKED_VEC_MAX_ROWS:
+            return "lcpp_mul_mat_vec_iq3_mma_packed"
+        return "lcpp_mul_mat_iq3_packed"
     if weight_type == WeightType.IQ1_M:
         # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then the
         # stock dequantize + x @ W.T (cloud/results/opt-p2/runs/micro-iq1m-host.txt)
@@ -86,6 +97,7 @@ def _fused_mul_mat_gguf(
     weight: torch.Tensor,
     weight_type: int,
     x_q8: torch.Tensor | None = None,
+    packed: bool = False,
 ) -> torch.Tensor:
     """x @ weight.T. x_q8: x already quantized by _quantize_x_q8_1 for this
     product and others on the same x; used if this product reads q8_1."""
@@ -99,7 +111,7 @@ def _fused_mul_mat_gguf(
         return x @ weight.T
     name = None
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1])
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
     if name is not None:
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
@@ -158,17 +170,19 @@ def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
 
 
 def _quantize_x_q8_1(
-    x: torch.Tensor, weight_types: list[int], weight_rows: list[int]
+    x: torch.Tensor, weight_types: list[int], weight_rows: list[int], packed: bool = False
 ) -> torch.Tensor:
     """x as q8_1 blocks, quantized once for all products on x of weights with
-    these types and row counts that read q8_1 (Route L; the same bytes each
-    would make). When none of them does (MMQ quantizes x itself, in its own
-    layout), an unfilled buffer of the same shape: no product reads it."""
+    these types and row counts (packed: see _lcpp_op) that read q8_1 (Route L;
+    the same bytes each would make). When none of them does (MMQ and the other
+    _OWN_QUANTIZE_OPS quantize x themselves, in MMQ's layout), an unfilled
+    buffer of the same shape: no product reads it."""
     n, k = x.shape
     q8_1 = [
         t
         for t, rows in zip(weight_types, weight_rows)
-        if t in ops.LCPP_QUANT_TYPES and _lcpp_op(n, t, rows, k) not in (None, *_OWN_QUANTIZE_OPS)
+        if t in ops.LCPP_QUANT_TYPES
+        and _lcpp_op(n, t, rows, k, packed) not in (None, *_OWN_QUANTIZE_OPS)
     ]
     if n and q8_1:
         return torch.ops._C_gguf.lcpp_quantize_q8_1(x, q8_1[0], False, False)
@@ -180,6 +194,7 @@ def _fused_mul_mat_gguf_fake(
     weight: torch.Tensor,
     weight_type: int,
     x_q8: torch.Tensor | None = None,
+    packed: bool = False,
 ) -> torch.Tensor:
     return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
 
@@ -204,7 +219,7 @@ def _unquantized_gemm_fake(
 
 
 def _quantize_x_q8_1_fake(
-    x: torch.Tensor, weight_types: list[int], weight_rows: list[int]
+    x: torch.Tensor, weight_types: list[int], weight_rows: list[int], packed: bool = False
 ) -> torch.Tensor:
     # block_q8_1: 32 int8 values + a half2 (scale, sum) = 36 bytes
     return torch.empty(x.shape[0] * x.shape[1] // 32 * 36, dtype=torch.uint8, device=x.device)
@@ -253,6 +268,10 @@ class GGUFUnquantizedLinearMethod(UnquantizedLinearMethod):
 @register_weight_loader_v2_supported_method
 class GGUFLinearMethod(LinearMethodBase):
     """Linear method for GGUF."""
+
+    # apply() sends IQ3 weights to the packed kernel (_pack_iq3); False in subclasses whose
+    # apply() reads the GGUF bytes (ggml_dequantize)
+    pack_iq3 = True
 
     def __init__(
         self,
@@ -333,6 +352,30 @@ class GGUFLinearMethod(LinearMethodBase):
                 f"Unsupported GGUF quantization type {weight_type} in layer {layer}."
             )
         self._create_padded_weight_param(layer)
+        if ops.LCPP_ENABLED and self.pack_iq3:
+            self._pack_iq3(layer)
+
+    def _pack_iq3(self, layer: torch.nn.Module) -> None:
+        """Store the layer's IQ3_S / IQ3_XXS products (each same-type run of a multi-shard
+        weight) in iq3_pack's layout, in place, and set weight.iq3_packed; apply() then routes
+        them to the packed kernels. All or nothing per layer: only if every IQ3 run has a
+        multiple of 16 rows (iq3_pack's tile) and 16-byte aligned bytes (the kernels' loads)."""
+        weight = layer.weight
+        if getattr(weight, "iq3_packed", False):
+            return
+        if hasattr(weight, "shard_offset_map"):
+            types = layer.weight_type.shard_weight_type
+            fallback = layer.weight_type.weight_type
+            runs = list(_shard_runs(weight, weight.shard_id,
+                                    [types.get(i, fallback) for i in weight.shard_id]))
+        else:
+            runs = [(weight.data, layer.weight_type.weight_type)]
+        runs = [(w, t) for w, t in runs if t in _IQ3_TYPES]
+        if not runs or any(w.shape[0] % iq3_pack.ROWS or w.data_ptr() % 16 for w, _ in runs):
+            return
+        for w, t in runs:
+            iq3_pack.pack_(w, t)
+        weight.iq3_packed = True
 
     def _materialize_gguf_parameters(self, layer: torch.nn.Module) -> None:
         self._materialize_weight(layer)
@@ -414,6 +457,7 @@ class GGUFLinearMethod(LinearMethodBase):
             x = self.layout.input_to_gguf(x)
 
         shard_id = layer.weight.shard_id
+        packed = getattr(layer.weight, "iq3_packed", False)  # its IQ3 runs are packed
         if shard_id:
             shard_id = ["q", "k", "v"] if "q" in shard_id else shard_id
             weight = layer.weight
@@ -423,7 +467,7 @@ class GGUFLinearMethod(LinearMethodBase):
                 for idx in shard_id
             ]
             if len(set(shard_weight_types)) == 1:
-                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0])
+                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0], None, packed)
                 if bias is not None:
                     out.add_(bias)
                 return out
@@ -431,17 +475,17 @@ class GGUFLinearMethod(LinearMethodBase):
             # Route L: the runs share one q8_1 quantization of x (the cat stays
             # outside the ops, where inductor folds it into a following split)
             x_q8 = (
-                quantize_x_q8_1(x, [t for _, t in runs], [w.shape[0] for w, _ in runs])
+                quantize_x_q8_1(x, [t for _, t in runs], [w.shape[0] for w, _ in runs], packed)
                 if ops.LCPP_ENABLED
                 else None
             )
             out = torch.cat(
-                [fused_mul_mat_gguf_op(x, w, t, x_q8) for w, t in runs], axis=1
+                [fused_mul_mat_gguf_op(x, w, t, x_q8, packed) for w, t in runs], axis=1
             )
         else:
             weight = layer.weight
             weight_type = layer.weight_type.weight_type
-            out = fused_mul_mat_gguf_op(x, weight, weight_type)
+            out = fused_mul_mat_gguf_op(x, weight, weight_type, None, packed)
         if bias is not None:
             out.add_(bias)
         return out

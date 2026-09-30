@@ -32,7 +32,8 @@ torch.ops.load_library(sys.argv[1])
 ops = torch.ops._C_gguf
 cases = json.loads(sys.argv[3])
 out = {"registered": [n for n in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_own", "lcpp_mul_mat_mma_k")
+                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+                                   "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_vec_own", "lcpp_mul_mat_mma_k")
                       if hasattr(ops, n)]}
 
 def w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
@@ -99,13 +100,23 @@ CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), "must be CUDA ten
 CASES["lcpp_mul_mat_vec_q-iq1_m"] = (_case("lcpp_mul_mat_vec_q", IQ1_M), "must be CUDA tensors")
 CASES["lcpp_mul_mat_q-iq1_m"] = (_case("lcpp_mul_mat_q", IQ1_M, n=64), "no MMQ for IQ1_M")
 # the owned IQ3 kernels share check_inputs (MMVQ limits) and add a type check
-for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
+for IQ3_OP in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+               "lcpp_mul_mat_iq3_packed"):
+    packed = IQ3_OP.endswith("_packed")
     for t in (IQ3_S, IQ3_XXS):
         CASES[f"{IQ3_OP}-valid-{t}"] = (_case(IQ3_OP, t), "must be CUDA tensors")
         CASES[f"{IQ3_OP}-row_strided-{t}"] = (_case(IQ3_OP, t, stride=2 * K // 256 * TS[t]), "rows must be contiguous")
     CASES[f"{IQ3_OP}-q4_k"] = (_case(IQ3_OP, Q4_K), "IQ3_S or IQ3_XXS only")
     CASES[f"{IQ3_OP}-1_row"] = (_case(IQ3_OP, n=1), "must be CUDA tensors")
-    CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
+    if packed:  # 16-row tiles; the vec kernel up to 32 rows, the tiled one any
+        CASES[f"{IQ3_OP}-32_rows"] = (_case(IQ3_OP, n=32), "must be CUDA tensors")
+        if IQ3_OP == "lcpp_mul_mat_iq3_packed":
+            CASES[f"{IQ3_OP}-2048_rows"] = (_case(IQ3_OP, n=2048), "must be CUDA tensors")
+        else:
+            CASES[f"{IQ3_OP}-33_rows"] = (_case(IQ3_OP, n=33), "at most 32 rows")
+        CASES[f"{IQ3_OP}-row_not_16"] = (_case(IQ3_OP, row=200), "must be a multiple of 16")
+    else:
+        CASES[f"{IQ3_OP}-9_rows"] = (_case(IQ3_OP, n=9), "at most 8 rows")
     CASES[f"{IQ3_OP}-k_not_512"] = (_case(IQ3_OP, row_bytes=110, k=256), "must be a multiple of 512")
     CASES[f"{IQ3_OP}-w_misaligned"] = (_case(IQ3_OP, w_offset=1), "16-byte aligned")
     CASES[f"{IQ3_OP}-k_mismatch"] = (_case(IQ3_OP, k=K // 2), "columns, W rows hold")
@@ -134,7 +145,6 @@ CASES[f"{MMA_OP}-k_not_512"] = (_case(MMA_OP, Q4_K, n=16, row_bytes=144, k=256),
 CASES[f"{MMA_OP}-w_misaligned"] = (_case(MMA_OP, Q4_K, n=16, w_offset=1), "16-byte aligned")
 CASES[f"{MMA_OP}-k_mismatch"] = (_case(MMA_OP, Q4_K, n=16, k=K // 2), "columns, W rows hold")
 
-
 @pytest.fixture(scope="module")
 def child():
     if not os.path.exists(SO):
@@ -153,7 +163,8 @@ def child():
 
 def test_ops_registered_without_cuda_init(child):
     assert child["registered"] == ["lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_vec_iq3",
-                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_own", "lcpp_mul_mat_mma_k"]
+                                   "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_iq3_mma_packed",
+                                   "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_vec_own", "lcpp_mul_mat_mma_k"]
     assert child["cuda_initialized"] is False
 
 

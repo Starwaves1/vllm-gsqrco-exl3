@@ -7,6 +7,7 @@ from gguf import GGMLQuantizationType as T
 
 IQ3, MMA, OWN = "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma", "lcpp_mul_mat_vec_own"
 MMVQ, MMQ, MMA_K = "lcpp_mul_mat_vec_q", "lcpp_mul_mat_q", "lcpp_mul_mat_mma_k"
+PACKED_VEC, PACKED_TILED = "lcpp_mul_mat_vec_iq3_mma_packed", "lcpp_mul_mat_iq3_packed"
 BIG = 17408  # ffn_gate/up rows; 2048 = attn_k + attn_v, one Q4_K run in several blocks
 K = 5120  # hidden size: K of every product but ffn_down
 
@@ -41,11 +42,29 @@ CASES = [
 
 @pytest.mark.parametrize("qt,n,rows,want", CASES, ids=lambda v: getattr(v, "name", str(v)))
 def test_lcpp_op(qt, n, rows, want):
-    """rows: W rows, or (W rows, K) where K matters (IQ4_XS on mma_k)."""
+    """rows: W rows, or (W rows, K) where K matters (IQ4_XS on mma_k). Unpacked layers."""
     from vllm_gguf_plugin.quantization.linear import _lcpp_op
 
     rows, k = rows if isinstance(rows, tuple) else (rows, K)
     assert _lcpp_op(n, int(qt), rows, k) == want
+    assert _lcpp_op(n, int(qt), rows, k, False) == want
+
+
+PACKED_CASES = [
+    # packed IQ3 (GGUFLinearMethod._pack_iq3): the packed mma kernel 1..8, the tiled one from 9
+    *[(t, n, rows, want) for t in (T.IQ3_S, T.IQ3_XXS) for rows in (1024, BIG)
+      for n, want in ((1, PACKED_VEC), (5, PACKED_VEC), (6, PACKED_VEC), (8, PACKED_VEC),
+                      (9, PACKED_TILED), (32, PACKED_TILED), (128, PACKED_TILED), (2048, PACKED_TILED))],
+    # a packed layer's other runs route as unpacked
+    (T.Q4_K, 3, BIG, OWN), (T.Q4_K, 9, BIG, MMA_K), (T.IQ4_XS, 8, BIG, MMQ), (T.IQ1_M, 9, BIG, MMVQ),
+]
+
+
+@pytest.mark.parametrize("qt,n,rows,want", PACKED_CASES, ids=lambda v: getattr(v, "name", str(v)))
+def test_lcpp_op_packed(qt, n, rows, want):
+    from vllm_gguf_plugin.quantization.linear import _lcpp_op
+
+    assert _lcpp_op(n, int(qt), rows, K, True) == want
 
 
 class _Quantizer:
@@ -71,7 +90,7 @@ class _Quantizer:
     (33, [T.IQ1_M, T.Q4_K], [BIG, BIG], None),         # stock dequantize beside MMQ
     (0, [T.IQ3_S], [BIG], None),                       # no rows: nothing to quantize
 ], ids=lambda v: str(v) if not isinstance(v, list) else "+".join(getattr(t, "name", str(t)) for t in v))
-def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want):
+def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want, packed=False):
     """apply()'s shared quantize runs (once, MMVQ layout) iff some run's op reads q8_1; else it
     returns an unfilled buffer of the q8_1 size that nothing reads."""
     import torch
@@ -81,11 +100,20 @@ def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want):
     q = _Quantizer()
     monkeypatch.setattr(torch.ops, "_C_gguf", q, raising=False)
     x = torch.zeros(n, 512, dtype=torch.bfloat16)
-    out = _quantize_x_q8_1(x, [int(t) for t in types], rows)
+    out = _quantize_x_q8_1(x, [int(t) for t in types], rows, packed)
     if want is None:
         assert q.calls == [] and out.dtype == torch.uint8 and out.numel() == n * 512 // 32 * 36
     else:
         assert q.calls == [(int(want), False, False)] and out == "filled"
+
+
+@pytest.mark.parametrize("n,types,rows,want", [
+    (4, [T.IQ3_S, T.Q4_K], [BIG, BIG], T.IQ3_S),       # the packed mma kernel reads it
+    (9, [T.IQ3_S, T.IQ1_M], [BIG, BIG], T.IQ1_M),      # the tiled one quantizes for itself
+    (9, [T.IQ3_XXS, T.Q4_K], [BIG, BIG], None),        # tiled + mma_k
+], ids=lambda v: str(v) if not isinstance(v, list) else "+".join(getattr(t, "name", str(t)) for t in v))
+def test_quantize_x_q8_1_fills_packed(monkeypatch, n, types, rows, want):
+    test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want, packed=True)
 
 
 def test_fused_mul_mat_gguf_zero_rows():

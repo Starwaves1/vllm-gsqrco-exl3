@@ -1,0 +1,25 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 50.2 us
+  n=   16 new     60.4 | new_tn16     60.7 | new_tn32     73.3 | new_tn64    111.5   floors dram 50 int8 10  rel 3.9e-07
+  n=   32 new     75.3 | new_tn16    112.4 | new_tn32     76.8 | new_tn64    114.8   floors dram 50 int8 20  rel 3.6e-07
+  n=   64 new    121.7 | new_tn16    197.1 | new_tn32    144.8 | new_tn64    122.7   floors dram 50 int8 40  rel 3.9e-07
+  n=  128 new    228.6 | new_tn16    375.0 | new_tn32    270.0 | new_tn64    230.8   floors dram 50 int8 80  rel 4.4e-07
+  n=  256 new    438.6 | new_tn16    728.2 | new_tn32    506.7 | new_tn64    440.5   floors dram 50 int8 161  rel 4.4e-07
+  n= 2048 new   3183.1 | new_tn16   5804.8 | new_tn32   3912.2 | new_tn64   3198.7   floors dram 50 int8 1285  rel 2.3e-07
+
+IQ3_S 5120x17408: 38.3 MB, DRAM floor 49.4 us
+  n=   16 new     69.1 | new_tn16     68.6 | new_tn32     79.2 | new_tn64    115.3   floors dram 49 int8 10  rel 5.0e-07
+  n=   32 new     91.5 | new_tn16    114.3 | new_tn32     89.6 | new_tn64    125.8   floors dram 49 int8 20  rel 4.8e-07
+  n=   64 new    145.6 | new_tn16    190.4 | new_tn32    154.9 | new_tn64    146.7   floors dram 49 int8 40  rel 5.1e-07
+  n=  128 new    255.7 | new_tn16    374.5 | new_tn32    254.4 | new_tn64    257.6   floors dram 49 int8 80  rel 5.0e-07
+  n=  256 new    405.4 | new_tn16    741.9 | new_tn32    495.8 | new_tn64    406.4   floors dram 49 int8 161  rel 0.0e+00 exact
+  n= 2048 new   3224.6 | new_tn16   5828.0 | new_tn32   3976.1 | new_tn64   3230.0   floors dram 49 int8 1285  rel 8.4e-07
+
+IQ3_S 10240x5120: 22.5 MB, DRAM floor 31.4 us
+  n=   16 new     49.6 | new_tn16     49.9 | new_tn32     56.0 | new_tn64     79.4   floors dram 31 int8 6  rel 3.9e-07
+  n=   32 new     59.9 | new_tn16     60.9 | new_tn32     67.4 | new_tn64     91.7   floors dram 31 int8 12  rel 0.0e+00 exact
+  n=   64 new     78.8 | new_tn16    115.8 | new_tn32     78.1 | new_tn64    117.4   floors dram 31 int8 24  rel 0.0e+00 exact
+  n=  128 new    126.1 | new_tn16    223.2 | new_tn32    152.6 | new_tn64    126.3   floors dram 31 int8 47  rel 0.0e+00 exact
+  n=  256 new    242.9 | new_tn16    437.8 | new_tn32    295.5 | new_tn64    243.6   floors dram 31 int8 95  rel 0.0e+00 exact
+  n= 2048 new   1925.0 | new_tn16   3448.9 | new_tn32   2355.0 | new_tn64   1919.3   floors dram 31 int8 756  rel 3.0e-07
+rc=0

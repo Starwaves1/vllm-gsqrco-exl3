@@ -33,6 +33,8 @@ def dequant_gemm_gguf(
 class DiffusionGGUFLinearMethod(GGUFLinearMethod):
     """GGUF linear method using dequant+GEMM for N-D diffusion tensors."""
 
+    pack_iq3 = False  # apply() dequantizes the GGUF bytes
+
     def apply(
         self,
         layer: torch.nn.Module,

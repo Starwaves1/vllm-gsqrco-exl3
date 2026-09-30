@@ -1,0 +1,203 @@
+F.......................F...........F...........F...........F........... [ 70%]
+F.............................                                           [100%]
+=================================== FAILURES ===================================
+___________________ test_guard_case[x_noncontig-IQ3_S-mmvq] ____________________
+
+case = 'x_noncontig', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
+>       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_noncontig', 'status': 'mismatch', 'rel_err': 1.4966837550862009}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:64: AssertionError
+___________________ test_guard_case[x_rowstride-IQ3_S-mmvq] ____________________
+
+case = 'x_rowstride', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
+>       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'x_rowstride', 'status': 'mismatch', 'rel_err': 1.431901716047911}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:64: AssertionError
+__________________ test_guard_case[w_narrow_view-IQ3_S-mmvq] ___________________
+
+case = 'w_narrow_view', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
+>       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'w_narrow_view', 'status': 'mismatch', 'rel_err': nan}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:64: AssertionError
+___________________ test_guard_case[w_misaligned-IQ3_S-mmvq] ___________________
+
+case = 'w_misaligned', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+>       assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+E       AssertionError: device fault:
+E         /workspace/wt-r2/tests/gpu/_guard_case.py:65: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+E           w = torch.from_numpy(raw).cuda()
+E         Traceback (most recent call last):
+E           File "/workspace/wt-r2/tests/gpu/_guard_case.py", line 132, in <module>
+E             main()
+E           File "/workspace/wt-r2/tests/gpu/_guard_case.py", line 115, in main
+E             torch.cuda.synchronize()
+E           File "/workspace/gsq-vllm/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+E             return torch._C._cuda_synchronize()
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         torch.AcceleratorError: CUDA error: misaligned address
+E         Search for `cudaErrorMisalignedAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E         
+E         
+E       assert not True
+E        +  where True = any(<generator object test_guard_case.<locals>.<genexpr> at 0x7ff32cddee90>)
+
+tests/gpu/test_kernel_guards.py:61: AssertionError
+___________________ test_guard_case[row_too_big-IQ3_S-mmvq] ____________________
+
+case = 'row_too_big', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
+>       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'row_too_big', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:64: AssertionError
+____________________ test_guard_case[k_mismatch-IQ3_S-mmvq] ____________________
+
+case = 'k_mismatch', type_op = ('IQ3_S', 'mmvq')
+
+    @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
+    @pytest.mark.parametrize("case", CASES)
+    def test_guard_case(case, type_op):
+        if not GGUF.exists():
+            pytest.skip(f"GGUF not found: {GGUF}")
+        name, op = type_op
+        cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
+        san = os.environ.get("GSQ_COMPUTE_SANITIZER")
+        if san:
+            cmd = [san, "--tool", "memcheck", "--error-exitcode", "99"] + cmd
+        env = dict(os.environ, GSQ_GGUF=str(GGUF), CUDA_LAUNCH_BLOCKING="1",
+                   PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), os.environ.get("PYTHONPATH", "")]))
+        if san and case != "graph_replay":  # a graph cannot capture cudaMalloc
+            env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+        tail = (p.stdout + p.stderr)[-2000:]
+        if "built without VLLM_GGUF_BUILD_LCPP" in p.stderr:
+            pytest.skip("_C_gguf built without VLLM_GGUF_BUILD_LCPP=1")
+        assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
+        assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
+        res = json.loads(next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{")))
+>       assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
+E       AssertionError: silently wrong: {'case': 'k_mismatch', 'status': 'mismatch', 'note': 'accepted invalid shapes silently'}
+E       assert 'mismatch' in ('ok', 'rejected')
+
+tests/gpu/test_kernel_guards.py:64: AssertionError
+=========================== short test summary info ============================
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[x_noncontig-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[x_rowstride-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[w_narrow_view-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[w_misaligned-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[row_too_big-IQ3_S-mmvq]
+FAILED tests/gpu/test_kernel_guards.py::test_guard_case[k_mismatch-IQ3_S-mmvq]
+6 failed, 96 passed, 72 deselected in 1939.45s (0:32:19)

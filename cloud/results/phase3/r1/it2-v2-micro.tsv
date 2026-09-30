@@ -1,0 +1,9 @@
+type	rows	K	n	variant	graph_us	eager_us	GBps
+IQ3_S	17408	5120	16	lcpp_iq3_mma_packed	83.4	85.8	459
+IQ3_S	17408	5120	32	lcpp_iq3_mma_packed	155.8	158.6	246
+IQ3_S	5120	17408	16	lcpp_iq3_mma_packed	89.9	104.4	426
+IQ3_S	5120	17408	32	lcpp_iq3_mma_packed	164.7	165.8	233
+IQ3_XXS	17408	5120	16	lcpp_iq3_mma_packed	86.8	96.3	393
+IQ3_XXS	17408	5120	32	lcpp_iq3_mma_packed	159.1	163.7	214
+IQ3_XXS	5120	17408	16	lcpp_iq3_mma_packed	93.2	104.5	366
+IQ3_XXS	5120	17408	32	lcpp_iq3_mma_packed	165.9	167.2	206

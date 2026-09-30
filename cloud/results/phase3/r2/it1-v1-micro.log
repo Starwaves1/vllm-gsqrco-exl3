@@ -1,0 +1,11 @@
+
+IQ3_S 17408x5120: 38.3 MB, DRAM floor 233.0 us
+  n=   32 new    120.5   floors dram 233 int8 20  rel 4.3e-07
+  n=  128 new    374.3   floors dram 233 int8 80  rel 5.1e-07
+  n= 2048 new   4442.5   floors dram 233 int8 1285  rel 2.8e-07
+
+IQ3_XXS 17408x5120: 34.1 MB, DRAM floor 207.9 us
+  n=   32 new    119.9   floors dram 208 int8 20  rel 3.1e-07
+  n=  128 new    374.0   floors dram 208 int8 80  rel 4.4e-07
+  n= 2048 new   4465.1   floors dram 208 int8 1285  rel 2.4e-07
+rc=0

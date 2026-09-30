@@ -14,6 +14,9 @@ Variants (only where production could route them):
   lcpp_own       torch.ops._C_gguf.lcpp_mul_mat_vec_own (owned Q4_K/IQ2_S kernel), n <= 8
   lcpp_iq3_mma   torch.ops._C_gguf.lcpp_mul_mat_vec_iq3_mma (IQ3 on int8 tensor cores), n <= 8
   lcpp_mma_k     torch.ops._C_gguf.lcpp_mul_mat_mma_k (owned Q4_K/IQ4_XS/IQ2_S int8 mma kernel), n <= 64
+  lcpp_iq3_mma_packed  the same on W packed by quantization/iq3_pack.py, n <= 32
+  lcpp_iq3_packed      torch.ops._C_gguf.lcpp_mul_mat_iq3_packed (tiled int8 tensor-core kernel on
+                       the packed W, any n; routed above 8 rows)
 Times: "graph" = GPU time per call, 10 calls captured in one CUDA graph and replayed (no CPU
 launch cost; decode runs under CUDA graphs up to 32 tokens); "eager" = wall per call of plain
 back-to-back calls (prefill chunks above 32 tokens run eager). GB/s = weight bytes / graph time.
@@ -34,6 +37,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from vllm_gguf_plugin import ops  # noqa: E402
+from vllm_gguf_plugin.quantization import iq3_pack  # noqa: E402
 
 TYPES = ["IQ3_S", "IQ3_XXS", "IQ4_XS", "Q4_K", "IQ2_S"]
 OWN_TYPES = ["Q4_K", "IQ2_S"]
@@ -54,7 +58,7 @@ def weight(reader, name, rows, k):
     return torch.from_numpy(np.ascontiguousarray(blocks[idx]).reshape(rows, -1)).cuda(), int(qt)
 
 
-def variants(name, qt, rows, k, n):
+def variants(name, qt, rows, k, n, packed=None):
     C = torch.ops._C_gguf
     v = {}
     if n <= 16:
@@ -73,6 +77,10 @@ def variants(name, qt, rows, k, n):
         v["lcpp_own"] = lambda w, x: C.lcpp_mul_mat_vec_own(w, x, qt, rows)
     if n <= 64 and name in MMA_K_TYPES:
         v["lcpp_mma_k"] = lambda w, x: C.lcpp_mul_mat_mma_k(w, x, qt, rows)
+    if n <= 32 and name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_vec_iq3_mma_packed"):
+        v["lcpp_iq3_mma_packed"] = lambda w, x: C.lcpp_mul_mat_vec_iq3_mma_packed(packed, x, qt, rows)
+    if name.startswith("IQ3") and hasattr(C, "lcpp_mul_mat_iq3_packed"):
+        v["lcpp_iq3_packed"] = lambda w, x: C.lcpp_mul_mat_iq3_packed(packed, x, qt, rows)
     return v
 
 
@@ -132,12 +140,13 @@ def main():
     print(f"{torch.cuda.get_device_name()}  X bf16, {PER_GRAPH} calls per graph", flush=True)
     for name, (rows, k) in cases:
         w, qt = weight(reader, name, rows, k)
+        packed = iq3_pack.pack(w, qt) if name.startswith("IQ3") else None
         mb = w.numel() / 1e6
         print(f"\n{name} {rows}x{k} ({mb:.1f} MB)", flush=True)
         for n in tokens:
             x = torch.randn(n, k, device="cuda", dtype=torch.bfloat16)
             row = []
-            for vname, fn in variants(name, qt, rows, k, n).items():
+            for vname, fn in variants(name, qt, rows, k, n, packed).items():
                 if args.variants and vname not in args.variants.split(","):
                     continue
                 g = time_graph(fn, w, x)
@@ -146,7 +155,7 @@ def main():
                 lines.append(f"{name}\t{rows}\t{k}\t{n}\t{vname}\t{g:.1f}\t{e:.1f}\t{gbps:.0f}")
                 row.append(f"{vname} {g:8.1f}us {gbps:4.0f}GB/s (eager {e:.0f})")
             print(f"  n={n:5d}  " + " | ".join(row), flush=True)
-        del w
+        del w, packed
         torch.cuda.empty_cache()
     if args.out:
         Path(args.out).write_text("\n".join(lines) + "\n")
