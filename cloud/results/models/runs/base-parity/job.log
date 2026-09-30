@@ -1,0 +1,25 @@
+start 2026-09-30T08:19:06Z
+llama rc=0
+llama done 2026-09-30T08:19:36Z
+vllm rc=0
+(EngineCore pid=1031416) INFO 09-30 08:24:29 [kv_cache_utils.py:2389] GPU KV cache size: 104,777 tokens
+compare rc=1 (exit 1 expected: no >=100k prompt in this set)
+seq_000 chat      1024 tok  KLD mean 0.07118 p99 1.16510 max 6.8802  top1 0.9609
+seq_001 chat      2048 tok  KLD mean 0.14346 p99 4.04564 max 15.3367  top1 0.9306
+seq_002 code      1536 tok  KLD mean 0.00468 p99 0.11403 max 0.2269  top1 0.9826
+seq_003 code      4096 tok  KLD mean 0.00199 p99 0.03406 max 0.0650  top1 0.9931
+seq_004 code      8192 tok  KLD mean 0.00182 p99 0.02292 max 0.0271  top1 0.9826
+seq_005 prose     8192 tok  KLD mean 0.02389 p99 0.02120 max 6.1824  top1 0.9826
+{
+ "kld_mean": 0.04060515318085082,
+ "top1": 0.9722877358490566,
+ "positions": 1696,
+ "long_kld_mean": null,
+ "long_top1": null,
+ "thresholds": {
+  "kld_mean_max": 0.001,
+  "top1_min": 0.99
+ },
+ "pass": false
+}
+end 2026-09-30T08:39:58Z

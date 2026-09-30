@@ -1,0 +1,24 @@
+row                          decode tok/s c=1/2/4/8         tok/step               ms/step                    eff GB/s                 ms/GB                 
+Swift GGUF mtp               110.3 / 192.7 / 348.1 / 541.3  3.08 / 3.04 / 3.11 / 2.99 27.9 / 31.6 / 35.7 / 44.2  407 / 360 / 318 / 257    2.46 / 2.78 / 3.15 / 3.89
+Swift GGUF nomtp             51.1 / 98.0 / 176.1 / 297.4    1.00 / 1.00 / 1.00 / 1.00 19.6 / 20.4 / 22.7 / 26.9  580 / 556 / 500 / 422    1.72 / 1.80 / 2.00 / 2.37
+Base GGUF mtp                104.8 / 186.9 / 333.1 / 528.8  3.01 / 3.01 / 3.01 / 3.01 28.7 / 32.2 / 36.1 / 45.5  395 / 352 / 314 / 249    2.53 / 2.84 / 3.18 / 4.01
+Base GGUF nomtp              51.0 / 97.9 / 175.9 / 299.6    1.00 / 1.00 / 1.00 / 1.00 19.6 / 20.4 / 22.7 / 26.7  579 / 556 / 499 / 425    1.73 / 1.80 / 2.00 / 2.35
+prod W4A16 mtp               94.1 / 194.4 / 345.1 / 505.4   2.60 / 2.65 / 2.59 / 2.61 27.6 / 27.3 / 30.0 / 41.3  480 / 486 / 441 / 321    2.08 / 2.06 / 2.27 / 3.12
+prod W4A16 nomtp             48.6 / 89.8 / 175.4 / 351.0    1.00 / 1.00 / 1.00 / 1.00 20.6 / 22.3 / 22.8 / 22.8  644 / 595 / 581 / 581    1.55 / 1.68 / 1.72 / 1.72
+Official INT4 stock nomtp    44.2 / 82.5 / 161.1 / 321.7    1.00 / 1.00 / 1.00 / 1.00 22.6 / 24.2 / 24.8 / 24.9  669 / 624 / 610 / 609    1.49 / 1.60 / 1.64 / 1.64
+
+row                          prefill 8k   180k  KV tokens  max len       VRAM   acceptance   GB/step (+MTP)  source
+Swift GGUF mtp                     1248    644     253906   200000  22551 MiB        0.650    11.35 (+0.35)  Integration 2 (4cbd091)
+Swift GGUF nomtp                   1312    682     285156   200000  22575 MiB            -    11.35 (+0.35)  this run
+Base GGUF mtp                      1225    645     253906   200000  22549 MiB       0.6284    11.35 (+0.35)  this run
+Base GGUF nomtp                    1309    680     285937   200000  22575 MiB            -    11.35 (+0.35)  this run
+prod W4A16 mtp                     1108    603     207812   200000        n/r 0.522 (T=default run)    13.25 (+0.33)  phase 1b
+prod W4A16 nomtp                   1133    622     231250   200000  22779 MiB            -    13.25 (+0.33)  this run
+Official INT4 stock nomtp          1109      -     136800   136800  22793 MiB            -    15.14 (+0.85)  this run
+
+ms/step Swift GGUF nomtp / prod W4A16 nomtp: 0.951 / 0.916 / 0.996 / 1.180  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF nomtp / prod W4A16 nomtp: 0.953 / 0.917 / 0.997 / 1.172  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF nomtp / Swift GGUF nomtp: 1.002 / 1.001 / 1.001 / 0.993  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF mtp / Swift GGUF mtp: 1.029 / 1.021 / 1.011 / 1.030  (c=1/2/4/8; >1 = slower)
+ms/step Official INT4 stock nomtp / prod W4A16 nomtp: 1.100 / 1.088 / 1.089 / 1.091  (c=1/2/4/8; >1 = slower)
+ms/step Swift GGUF nomtp / Official INT4 stock nomtp: 0.865 / 0.842 / 0.915 / 1.082  (c=1/2/4/8; >1 = slower)

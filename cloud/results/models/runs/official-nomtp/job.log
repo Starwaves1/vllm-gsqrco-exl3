@@ -1,0 +1,31 @@
+start 2026-09-30T09:17:51Z
+21ec44e Model matrix job: stock-vLLM official row without the fs KV tier (stock FileSystemTierManager takes no max_bytes) and auto-fit max len
+cfg=official-nomtp kind=baseline venv=/workspace/venv-stock model=/workspace/models/RedHatAI-Qwen3.8-27B-INT4 no_mtp=1
+VRAM after load: 22793 MiB, 24576 MiB
+(APIServer pid=1044687) WARNING 09-30 09:18:14 [config.py:817] Qwen3.5 model specifies mamba_ssm_dtype='float32' in its config, but --mamba-ssm-cache-dtype='float16' was passed. Using the user-specified value.
+(EngineCore pid=1045403) INFO 09-30 09:18:31 [core.py:121] Initializing a V1 LLM engine (v0.27.1) with config: model='/workspace/models/RedHatAI-Qwen3.8-27B-INT4', speculative_config=None, tokenizer='/workspace/models/RedHatAI-Qwen3.8-27B-INT4', skip_tokenizer_init=False, tokenizer_mode=auto, revisi
+(EngineCore pid=1045403) INFO 09-30 09:18:45 [default_loader.py:430] Loading weights took 3.29 seconds
+(EngineCore pid=1045403) INFO 09-30 09:18:46 [gpu_model_runner.py:5405] Model loading took 16.84 GiB memory and 4.895299 seconds
+(EngineCore pid=1045403) INFO 09-30 09:18:51 [flashinfer.py:824] FlashInfer resolved query dtypes: prefill=torch.bfloat16, decode=torch.bfloat16, decode_backend=flashinfer-native, kv_cache_dtype=torch.float8_e4m3fn, arch=sm86
+(EngineCore pid=1045403) INFO 09-30 09:19:17 [kv_cache_utils.py:2043] Auto-fit max_model_len: reduced from 262144 to 136800 to fit in available GPU memory (4.34 GiB available for KV cache)
+(EngineCore pid=1045403) INFO 09-30 09:19:17 [kv_cache_utils.py:2235] GPU KV cache size: 136,800 tokens
+(EngineCore pid=1045403) INFO 09-30 09:19:17 [kv_cache_utils.py:2236] Maximum concurrency for 136,800 tokens per request: 1.00x
+(EngineCore pid=1045403) INFO 09-30 09:19:28 [core.py:348] init engine (profile, create kv cache, warmup model) took 42.80 s (compilation: 1.90 s)
+max_model_len=136800; spec_decode metric lines: 0
+SMOKE_OK
+max_model_len 136800 < 180001: 180k prefill skipped
+speed rc=0
+ROW cohort C1 real prompts T=0 | e2e=43.94 tok/s | decode(C/meanTPOT)=44.2 | tok/step=- | meanTTFT=143.38 ms
+ROW cohort C2 real prompts T=0 | e2e=78.13 tok/s | decode(C/meanTPOT)=82.5 | tok/step=- | meanTTFT=226.06 ms
+ROW cohort C4 real prompts T=0 | e2e=154.35 tok/s | decode(C/meanTPOT)=161.4 | tok/step=- | meanTTFT=435.79 ms
+ROW cohort C8 real prompts T=0 | e2e=304.36 tok/s | decode(C/meanTPOT)=322.1 | tok/step=- | meanTTFT=719.81 ms
+ROW cohort C1 real prompts T=0 | e2e=43.94 tok/s | decode(C/meanTPOT)=44.2 | tok/step=- | meanTTFT=143.41 ms
+ROW cohort C2 real prompts T=0 | e2e=78.16 tok/s | decode(C/meanTPOT)=82.5 | tok/step=- | meanTTFT=227.49 ms
+ROW cohort C4 real prompts T=0 | e2e=151.08 tok/s | decode(C/meanTPOT)=161.1 | tok/step=- | meanTTFT=407.20 ms
+ROW cohort C8 real prompts T=0 | e2e=303.37 tok/s | decode(C/meanTPOT)=321.7 | tok/step=- | meanTTFT=768.22 ms
+ROW prefill len=8192 conc=1 seed=548774249 | 1109 tok/s | meanTTFT=7383.33 ms
+ROW MTP | no drafts recorded (speculative decoding off?)
+ROW clocks /workspace/runs/models/official-nomtp/speed/clocks-decode-pass1.csv: 741 s busy, median SM 1815 MHz, mem 9501 MHz, 348.7 W, util 94%
+ROW clocks /workspace/runs/models/official-nomtp/speed/clocks-decode-pass2.csv: 738 s busy, median SM 1815 MHz, mem 9501 MHz, 348.6 W, util 94%
+ROW clocks /workspace/runs/models/official-nomtp/speed/clocks-prefill-8192-c1.csv: 58 s busy, median SM 1830 MHz, mem 9501 MHz, 348.3 W, util 96%
+end 2026-09-30T09:48:51Z

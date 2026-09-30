@@ -1,0 +1,127 @@
+Model matrix: {Swift GGUF, Base GGUF, prod W4A16, official Qwen3.8-27B INT4 on stock vLLM} x {MTP k=3, no MTP}
+Box: the same rented RTX 3090 (350 W, driver 595.84) as Integration 2 / final phase. Worktree /workspace/wt-models =
+main + this matrix's commits (56989a5, 8ad3e36, 21ec44e; box jobs ran on 8ad3e36, official-nomtp on 21ec44e);
+plugin .so = wt-final's b9cdfa5 build (plugin C++/CUDA identical; only iq3_pack.py's docstring differs).
+Route L on (VLLM_GGUF_LCPP=1). One gpuq job per serve + bench cycle (box-scripts/job.sh <model>-<mtp|nomtp>).
+
+Models (weight bytes: runs/inventory.txt; "read/step" = layers + output head, i.e. what one target forward
+streams; token embedding is a row gather, the vision tower is not run, the MTP block is listed separately):
+  Swift  ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF IQ3_S-mtp, 12,120,016,896 B file; read/step 11.353 GB, MTP block 0.348 GB
+  Base   ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF @d562806 Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf, 12,120,016,960 B,
+         sha256 58fd8267...c12f = HF LFS oid (runs/dl-base.log; the repo has no SHA256SUMS file, the LFS oid is
+         the sha256); base_model Qwen/Qwen3.8-27B. read/step 11.353 GB, MTP block 0.348 GB
+  W4A16  production's Qwen3.8-27B-W4A16-AutoRound-fast (heresy finetune; lm_head int4, embed int8 = production's
+         patched vLLM), 15.79 GB files; read/step 13.252 GB, MTP block 0.327 GB
+  Official  RedHatAI/Qwen3.8-27B-INT4 @91bd022 (llm-compressor AWQ+GPTQ W4A16 g128 sym of Qwen/Qwen3.8-27B,
+         compressed-tensors -> Marlin on sm86; native MTP head in model_mtp.safetensors; sha256 of both
+         safetensors = LFS oids), 19.45 GB files; embed + lm_head bf16 (stock vLLM does not quantize the
+         embedding); read/step 15.139 GB, MTP block 0.849 GB
+Why RedHatAI: Qwen publishes only BF16 (55.6 GB) and FP8 (30.9 GB) for Qwen3.8-27B; neither fits 24 GB, and there is
+no official Int4/3-bit/mixed release, so nothing official sits near 12 GB. The nearest-size vLLM checkpoint,
+ISTA-DASLab/Qwen3.8-27B-3Bit-GSQ (11.8 GB W3A16), needs a quantized-embedding patch and the Humming kernel (GSQ
+issue #8: 34-43% of bandwidth on Ampere), so it is neither stock nor fast. RedHatAI is Red Hat's (vLLM
+maintainers') llm-compressor release of the official weights, in Marlin's
+symmetric g128 layout, and it ships the MTP head (the most-downloaded Int4, cyankiwi's AWQ, is g32 asymmetric
+and 21 GB).
+
+Base GGUF vs Swift GGUF (runs/inventory.txt): same 866 tensors, same names, shapes and per-tensor ggml types
+(0 differences), same bytes: Swift reused ISTA's allocation exactly. Arch qwen35, 64 layers + 1 nextn (MTP) layer.
+Metadata: Base lacks qwen35.attention.recurrent_layers (llama.cpp derives it from full_attention_interval=4,
+src/models/qwen35.cpp); general.* and imatrix keys differ. Embedded chat template: identical sha256 (c3cf9e34),
+= Qwen's stock template. Qwen/Qwen3.8-27B's HF files equal Swift's (tokenizer, vocab, merges, generation and
+preprocessor configs byte-identical); config.json differs only in top-level dtype/use_cache, vision model_type
+and transformers_version (served dtype bfloat16 either way, logged); no processor_config.json in Qwen's repo.
+hf-config/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp: built from Qwen/Qwen3.8-27B@1d4bf0f with make_hf_config.py, production's
+chat template, Swift's 61,440-id draft list (no Base output corpus); verify: 35 checks pass (runs/verify-base.txt;
+Swift's dir re-verified with the same tool, 35 pass). Parsers unchanged: qwen3 reasoning, qwen3_coder tools
+(the RedHatAI card suggests qwen3_xml; production's qwen3_coder kept for every row).
+
+Configs. mtp = production's argv (env/prod-serve-argv.txt) as served before. nomtp = the same argv minus
+--speculative-config (GSQ_NO_MTP=1 in scripts/env.sh), nothing else. No-MTP runs: no spec_decode metrics, server
+log speculative_config=None, and in every cohort mean ITL = mean TPOT (e.g. Base c=1 19.58 / 19.59 ms; with MTP
+28.76 / 9.54), i.e. one token per sequence per step: tok/step = 1.00.
+Official (stock vLLM 0.27.1 wheel, /workspace/venv-stock = env/prod-freeze.txt from PyPI, FREEZE_EQUAL, no
+overlay, no plugin): production's argv except (a) no fs KV tier (stock FileSystemTierManager rejects max_bytes;
+the CPU tier stays), (b) --max-model-len -1: 200000 does not fit (6.25 GiB KV needed, 4.31 GiB free;
+official-nomtp-attempt1/), auto-fit gives 136,800, so no 180k prefill; mamba_keep_every_n_chunks is an overlay
+key that stock ignores. Official mtp does NOT load: after the target (16.84 GiB in the no-MTP run), the stock drafter allocates a
+2.37 GiB bf16 embedding/lm_head placeholder and OOMs (20.12 GiB allocated, 23.56 GiB card; official-mtp/).
+
+Ladder = bench/speed/run.sh unmodified: production's run_benchmarks.sh single twice (pass 2 kept), T=0 cohorts,
+decode = C*1000/meanTPOT; prefill salted c=1 at 8k and 180k (64k skipped). ms/step = C*1000/tok/s*tok/step.
+eff GB/s = read/step GB / ms/step; ms/GB = ms/step / read/step GB. With MTP a step also runs 3 draft passes
+(MTP block + 61,440-row draft head for the GGUF / W4A16; full 248k-row bf16 lm_head on stock vLLM), so eff GB/s
+understates MTP rows. Cited rows: Swift mtp = Integration 2 ladder (4cbd091, same box, 2026-09-30 01:37);
+W4A16 mtp = phase 1b (greedy pass 2; its acceptance 0.522 is the whole T=default+T=0 run; VRAM not recorded).
+
+row                          decode tok/s c=1/2/4/8         tok/step               ms/step                    eff GB/s                 ms/GB                 
+Swift GGUF mtp               110.3 / 192.7 / 348.1 / 541.3  3.08 / 3.04 / 3.11 / 2.99 27.9 / 31.6 / 35.7 / 44.2  407 / 360 / 318 / 257    2.46 / 2.78 / 3.15 / 3.89
+Swift GGUF nomtp             51.1 / 98.0 / 176.1 / 297.4    1.00 / 1.00 / 1.00 / 1.00 19.6 / 20.4 / 22.7 / 26.9  580 / 556 / 500 / 422    1.72 / 1.80 / 2.00 / 2.37
+Base GGUF mtp                104.8 / 186.9 / 333.1 / 528.8  3.01 / 3.01 / 3.01 / 3.01 28.7 / 32.2 / 36.1 / 45.5  395 / 352 / 314 / 249    2.53 / 2.84 / 3.18 / 4.01
+Base GGUF nomtp              51.0 / 97.9 / 175.9 / 299.6    1.00 / 1.00 / 1.00 / 1.00 19.6 / 20.4 / 22.7 / 26.7  579 / 556 / 499 / 425    1.73 / 1.80 / 2.00 / 2.35
+prod W4A16 mtp               94.1 / 194.4 / 345.1 / 505.4   2.60 / 2.65 / 2.59 / 2.61 27.6 / 27.3 / 30.0 / 41.3  480 / 486 / 441 / 321    2.08 / 2.06 / 2.27 / 3.12
+prod W4A16 nomtp             48.6 / 89.8 / 175.4 / 351.0    1.00 / 1.00 / 1.00 / 1.00 20.6 / 22.3 / 22.8 / 22.8  644 / 595 / 581 / 581    1.55 / 1.68 / 1.72 / 1.72
+Official INT4 stock nomtp    44.2 / 82.5 / 161.1 / 321.7    1.00 / 1.00 / 1.00 / 1.00 22.6 / 24.2 / 24.8 / 24.9  669 / 624 / 610 / 609    1.49 / 1.60 / 1.64 / 1.64
+
+row                          prefill 8k   180k  KV tokens  max len       VRAM   acceptance   GB/step (+MTP)  source
+Swift GGUF mtp                     1248    644     253906   200000  22551 MiB        0.650    11.35 (+0.35)  Integration 2 (4cbd091)
+Swift GGUF nomtp                   1312    682     285156   200000  22575 MiB            -    11.35 (+0.35)  this run
+Base GGUF mtp                      1225    645     253906   200000  22549 MiB       0.6284    11.35 (+0.35)  this run
+Base GGUF nomtp                    1309    680     285937   200000  22575 MiB            -    11.35 (+0.35)  this run
+prod W4A16 mtp                     1108    603     207812   200000        n/r 0.522 (T=default run)    13.25 (+0.33)  phase 1b
+prod W4A16 nomtp                   1133    622     231250   200000  22779 MiB            -    13.25 (+0.33)  this run
+Official INT4 stock nomtp          1109      -     136800   136800  22793 MiB            -    15.14 (+0.85)  this run
+
+ms/step Swift GGUF nomtp / prod W4A16 nomtp: 0.951 / 0.916 / 0.996 / 1.180  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF nomtp / prod W4A16 nomtp: 0.953 / 0.917 / 0.997 / 1.172  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF nomtp / Swift GGUF nomtp: 1.002 / 1.001 / 1.001 / 0.993  (c=1/2/4/8; >1 = slower)
+ms/step Base GGUF mtp / Swift GGUF mtp: 1.029 / 1.021 / 1.011 / 1.030  (c=1/2/4/8; >1 = slower)
+ms/step Official INT4 stock nomtp / prod W4A16 nomtp: 1.100 / 1.088 / 1.089 / 1.091  (c=1/2/4/8; >1 = slower)
+ms/step Swift GGUF nomtp / Official INT4 stock nomtp: 0.865 / 0.842 / 0.915 / 1.082  (c=1/2/4/8; >1 = slower)
+
+Decode clocks (pass 2 median SM / power / util): GGUF nomtp 1725 MHz 349 W 92%; W4A16 nomtp 1815 MHz 349 W 92%;
+official nomtp 1815 MHz 349 W 94%; Base mtp 1755 MHz 342 W 88% (Swift mtp, Integration 2: 1725 MHz 344 W 88%).
+All decode runs sit at the 350 W cap.
+
+Per-step verdict (no MTP, the pure comparison): the GGUF path is faster per step than production's W4A16 at
+c=1 (0.95x: 19.6 vs 20.6 ms) and c=2 (0.92x: 20.4 vs 22.3), equal at c=4 (1.00x: 22.7 vs 22.8) and 1.17x slower at
+c=8 (26.9 vs 22.8). It reads 14% fewer bytes per step (11.35 vs 13.25 GB) but streams them 10-27% slower per
+byte (580 vs 644 GB/s at c=1, 422 vs 581 at c=8), so the size advantage wins at 1-2 rows and loses by c=8. Against
+the stock official INT4 (15.14 GB/step, the most bandwidth-efficient row: 669 GB/s at c=1) the GGUF is 0.87 / 0.84 /
+0.92 / 1.08x per step. With MTP the GGUF step (4 rows per sequence) is slower than W4A16's at every c
+(Integration 2: 1.01 / 1.16 / 1.19 / 1.07x): an MTP step costs 1.42 / 1.55 / 1.57 / 1.64x a plain step on the
+GGUF vs 1.34 / 1.22 / 1.32 / 1.81x on W4A16, i.e. the GGUF's multi-row kernels, not single-row decode, are where
+it loses; its tok/s lead with MTP is acceptance (0.63-0.65 vs 0.52).
+Base vs Swift: same kernels, same speed. No MTP: per-step ratio 1.00 / 1.00 / 1.00 / 0.99 (c=1/2/4/8), prefill
+1309 / 680 vs 1312 / 682 tok/s, KV 285,937 vs 285,156 tokens, same 12.45 GiB load. With MTP Base is 1-3% slower per
+step than the Integration 2 Swift numbers (28.7 / 32.2 / 36.1 / 45.5 vs 27.9 / 31.6 / 35.7 / 44.2 ms), a
+cross-session comparison inside the report's 1-4% run-to-run band, and it accepts slightly fewer drafts
+(0.628 vs 0.650 whole run; per position 0.801 / 0.616 / 0.468 vs 0.808 / 0.638 / 0.504) with Swift's draft list.
+MTP vs no MTP on the GGUF: 36,031 fewer KV tokens (253,906 vs 285,937), VRAM after load 22,549 vs 22,575 MiB
+(gpu-util fills the rest either way); W4A16 207,812 vs 231,250.
+Swift nomtp was run twice: run 1 (swift-nomtp-run1/) pass 2 read 50.1 / 96.8 / 166.7 / 285.4 tok/s, 5% below its own
+pass 1 (51.0 / 98.0 / 176.1 / 299.7) at c=4/8; the rerun (swift-nomtp/, in the table) matches Base and its pass 1.
+Cause of the dip unknown (clocks and util identical); treat ~5% at c>=4 as possible session noise.
+
+Smoke (chat, reasoning split, qwen3_coder tool call get_weather{Paris, celsius}): SMOKE_OK on Base mtp, Base nomtp,
+official nomtp (runs/*/smoke.json). Base loads and parses with no errors beyond the "[ERROR] min_frames/max_frames
+not documented" transformers docstring lines, which Swift's logs show too.
+
+Base logit parity (seq_000-005 of the phase-1b prompt set; llama.cpp b11211 llama_logits on the Base GGUF, f16 KV,
+30 s; vLLM side bf16 KV, Route L; runs/base-parity/):
+seq      tokens  Base KLD  top-1    Swift Int2 KLD  top-1
+seq_000    1024  0.07118   0.9609   0.06807         0.9531
+seq_001    2048  0.14346   0.9306   0.14089         0.9479
+seq_002    1536  0.00468   0.9826   0.00651         0.9826
+seq_003    4096  0.00199   0.9931   0.00157         0.9861
+seq_004    8192  0.00182   0.9826   0.00171         1.0000
+seq_005    8192  0.02389   0.9826   0.04188         0.9826
+all 1696 positions: Base KLD 0.0406, top-1 97.23%; Swift (Integration 2, same positions) 0.0430, 97.58%.
+Same picture as Swift: chat prompts carry single-position spikes (max 6.9 / 15.3), code prompts ~0.002; the
+absolute gate (0.001) fails as for every build. The 100k prompts were skipped.
+
+Box: 2026-09-30 05:22-09:50 UTC. CPU side 05:22-05:36 (Base download + sha256 2 min, RedHatAI 2 min, stock venv
+3 min, inventory, hf-config verify). GPU: 8 gpuq jobs 05:36-09:49 = 4.2 GPU-hours (base-mtp 33 min,
+base-nomtp 40, swift-nomtp 41 + rerun 38, w4a16-nomtp 41, official-mtp 1.5 (OOM), official-nomtp 7.5 (fs tier
+failure) + 31, parity 21). Left on the box: /workspace/models/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf (12.1 GB),
+/workspace/models/RedHatAI-Qwen3.8-27B-INT4 (19.5 GB), /workspace/venv-stock (7.8 GB), /workspace/wt-models.

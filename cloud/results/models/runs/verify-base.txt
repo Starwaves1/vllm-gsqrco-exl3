@@ -1,0 +1,37 @@
+ok    config.json has no quantization_config
+ok    model_type qwen3_5 (vLLM's MTP override matches it)
+ok    architecture
+ok    text_config.hidden_size = 5120 (GGUF 5120)
+ok    text_config.intermediate_size = 17408 (GGUF 17408)
+ok    text_config.num_attention_heads = 24 (GGUF 24)
+ok    text_config.num_key_value_heads = 4 (GGUF 4)
+ok    text_config.head_dim = 256 (GGUF 256)
+ok    text_config.num_hidden_layers = 64 (GGUF 64)
+ok    text_config.mtp_num_hidden_layers = 1 (GGUF 1)
+ok    text_config.max_position_embeddings = 262144 (GGUF 262144)
+ok    text_config.linear_conv_kernel_dim = 4 (GGUF 4)
+ok    text_config.linear_key_head_dim = 128 (GGUF 128)
+ok    text_config.linear_num_key_heads = 16 (GGUF 16)
+ok    text_config.linear_num_value_heads = 48 (GGUF 48)
+ok    text_config.full_attention_interval = 4 (GGUF 4)
+ok    value_length == head_dim
+ok    linear_num_value_heads * linear_value_head_dim == ssm.inner_size
+ok    rms_norm_eps
+ok    rope_theta
+ok    partial_rotary_factor * head_dim == rope.dimension_count
+ok    mrope_section
+note  no qwen35.attention.recurrent_layers; derived from full_attention_interval 4
+ok    layer_types == GGUF recurrent_layers (first 64)
+ok    MTP block is full attention
+ok    GGUF tensor count 866
+ok    tie_word_embeddings matches output.weight presence
+ok    GGUF has 248320 tokens == vocab_size 248320
+ok    all 248077 HF token strings equal the GGUF's (mismatches: [])
+ok    243 GGUF-only ids are padding entries beyond the HF vocab
+ok    merges identical (247587 vs 247587)
+ok    pre-tokenizer regex == llama.cpp qwen35 (llama-vocab.cpp:395)
+ok    generation eos [248046, 248044] contains GGUF eos 248046; bos 248044
+ok    chat_template.jinja == production's
+ok    AutoTokenizer loads production's chat template
+ok    chat template renders and tokenizes (166 ids)
+all checks passed

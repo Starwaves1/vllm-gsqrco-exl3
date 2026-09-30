@@ -1,0 +1,41 @@
+== Swift GGUF: 866 tensors, 12,109,021,184 bytes total
+   embed (gather)         407,244,800 B    0.407 GB
+   layers 0-63         10,638,125,056 B   10.638 GB
+   mtp block              348,469,248 B    0.348 GB
+   output head            715,182,080 B    0.715 GB
+   READ/STEP (layers + output head) 11,353,307,136 B = 11.353 GB; + mtp block 0.348 GB
+   bytes by type: IQ3_S 3.643, IQ4_XS 3.022, IQ3_XXS 2.075, Q4_K 1.582, IQ2_S 0.800, Q6_K 0.348, Q2_K 0.241, IQ2_XS 0.221, IQ2_XXS 0.099, BF16 0.047, IQ1_M 0.019, F32 0.011
+== Base GGUF: 866 tensors, 12,109,021,184 bytes total
+   embed (gather)         407,244,800 B    0.407 GB
+   layers 0-63         10,638,125,056 B   10.638 GB
+   mtp block              348,469,248 B    0.348 GB
+   output head            715,182,080 B    0.715 GB
+   READ/STEP (layers + output head) 11,353,307,136 B = 11.353 GB; + mtp block 0.348 GB
+   bytes by type: IQ3_S 3.643, IQ4_XS 3.022, IQ3_XXS 2.075, Q4_K 1.582, IQ2_S 0.800, Q6_K 0.348, Q2_K 0.241, IQ2_XS 0.221, IQ2_XXS 0.099, BF16 0.047, IQ1_M 0.019, F32 0.011
+== tensor names equal: True | only Swift: [] | only Base: []
+== per-tensor type differences: 0; shape differences: 0
+== metadata keys only Swift: ['general.license.link', 'general.license.name', 'general.version', 'qwen35.attention.recurrent_layers']; only Base: ['general.description', 'general.quantized_by', 'general.repo_url', 'general.sampling.min_p', 'quantize.imatrix.chunks_count', 'quantize.imatrix.dataset', 'quantize.imatrix.entries_count', 'quantize.imatrix.file']
+   GGUF.kv_count: Swift=49 | Base=53
+   general.basename: Swift=Swift | Base=Qwen3.8-27B
+   general.file_type: Swift=32 | Base=26
+   general.license: Swift=other | Base=apache-2.0
+   general.name: Swift=Swift15-GSQ-V1MIX-ISTAalloc-IQ3_S MTP | Base=Qwen3.8-27B GSQ-RCO
+   general.tags: Swift=['qwen3_8', 'reasoning', 'efficient-thinking', 'token-efficient', 'post-training', 'terminal-bench', | Base=['gsq-rco', 'ista-daslab']
+== Swift embedded chat template sha256: c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041
+   Swift nextn_predict_layers=1 block_count=65 general.name=Swift15-GSQ-V1MIX-ISTAalloc-IQ3_S MTP
+== Base embedded chat template sha256: c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041
+   Base nextn_predict_layers=1 block_count=65 general.name=Qwen3.8-27B GSQ-RCO
+== /workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast: 2022 tensors, 15,791,521,680 bytes total
+   embed (gather)       1,291,264,016 B    1.291 GB
+   layers 0-63         12,596,073,728 B   12.596 GB
+   mtp block              327,158,928 B    0.327 GB
+   output head            655,564,816 B    0.656 GB
+   vision (not run)       921,460,192 B    0.921 GB
+   READ/STEP (layers + output head) 13,251,638,544 B = 13.252 GB; + mtp block 0.327 GB
+== /workspace/models/RedHatAI-Qwen3.8-27B-INT4: 2031 tensors, 19,452,526,368 bytes total
+   embed (gather)       2,542,796,800 B    2.543 GB
+   layers 0-63         12,596,073,792 B   12.596 GB
+   mtp block              849,398,784 B    0.849 GB
+   output head          2,542,796,800 B    2.543 GB
+   vision (not run)       921,460,192 B    0.921 GB
+   READ/STEP (layers + output head) 15,138,870,592 B = 15.139 GB; + mtp block 0.849 GB

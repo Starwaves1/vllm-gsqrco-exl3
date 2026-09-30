@@ -1,0 +1,25 @@
+start 2026-09-30T05:27:32Z
+[90mHint: A new version of huggingface_hub (2.0.0) is available! You are using version 1.28.0.[0m
+[90mHint: The `hf-cli` skill is not installed. Run `hf skills add -g --claude` to teach your AI agents how to use the `hf` CLI.[0m
+Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 12 files:   8%|▊         | 1/12 [00:00<00:03,  3.31it/s]Fetching 12 files:  58%|█████▊    | 7/12 [00:00<00:00, 20.85it/s]Fetching 12 files:  92%|█████████▏| 11/12 [00:08<00:00,  1.10it/s]Fetching 12 files:  92%|█████████▏| 11/12 [00:20<00:00,  1.10it/s]Fetching 12 files: 100%|██████████| 12/12 [01:32<00:00, 12.75s/it]Fetching 12 files: 100%|██████████| 12/12 [01:32<00:00,  7.74s/it]
+[32m✓ Downloaded[0m
+  path: /workspace/models/RedHatAI-Qwen3.8-27B-INT4
+total 19016628
+drwxrwxr-x 3 root root        4096 Sep 30 05:29 .
+drwxrwxr-x 4 root root         173 Sep 30 05:27 ..
+drwxrwxr-x 3 root root          25 Sep 30 05:27 .cache
+-rw-rw-r-- 1 root root        1570 Sep 30 05:27 .gitattributes
+-rw-rw-r-- 1 root root        6452 Sep 30 05:27 README.md
+-rw-rw-r-- 1 root root        8952 Sep 30 05:27 chat_template.jinja
+-rw-rw-r-- 1 root root       20952 Sep 30 05:27 config.json
+-rw-rw-r-- 1 root root         214 Sep 30 05:27 generation_config.json
+-rw-rw-r-- 1 root root 18603387656 Sep 30 05:29 model.safetensors
+-rw-rw-r-- 1 root root      170752 Sep 30 05:27 model.safetensors.index.json
+-rw-rw-r-- 1 root root   849400392 Sep 30 05:27 model_mtp.safetensors
+-rw-rw-r-- 1 root root        1220 Sep 30 05:27 processor_config.json
+-rw-rw-r-- 1 root root        1449 Sep 30 05:27 recipe.yaml
+-rw-rw-r-- 1 root root    19989325 Sep 30 05:27 tokenizer.json
+-rw-rw-r-- 1 root root        1166 Sep 30 05:27 tokenizer_config.json
+19G	/workspace/models/RedHatAI-Qwen3.8-27B-INT4
+end 2026-09-30T05:29:06Z

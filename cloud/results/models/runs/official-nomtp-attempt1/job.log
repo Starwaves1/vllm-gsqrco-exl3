@@ -1,0 +1,49 @@
+start 2026-09-30T08:11:38Z
+8ad3e36 Model matrix: box jobs (one server per config), Base parity job; make_hf_config verify derives recurrent layers when the GGUF omits them; vllm_logprobs takes GSQ_HF_CONFIG
+cfg=official-nomtp kind=baseline venv=/workspace/venv-stock model=/workspace/models/RedHatAI-Qwen3.8-27B-INT4 no_mtp=1
+gsq: server pid 1027359 exited
+(EngineCore pid=1027742) ERROR 09-30 08:15:14 [core.py:1349] ValueError: To serve at least one request with the model's max seq len (200000), (6.25 GiB KV cache is needed, which is larger than the available KV cache memory (4.31 GiB). Based on the available memory, the estimated maximum model length is 136000. Try increasing `gpu_memory_utilization` (which also controls CPU memory on the CPU backe
+(EngineCore pid=1027742) ValueError: To serve at least one request with the model's max seq len (200000), (6.25 GiB KV cache is needed, which is larger than the available KV cache memory (4.31 GiB). Based on the available memory, the estimated maximum model length is 136000. Try increasing `gpu_memory_utilization` (which also controls CPU memory on the CPU backend) or decreasing `max_model_len` wh
+production's --max-model-len 200000 does not fit; retrying with --max-model-len -1 (fit to memory)
+gsq: server pid 1029122 exited
+SERVER_FAILED
+(APIServer pid=1029122)                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=1029122)     return await anext(self.gen)
+(APIServer pid=1029122)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 132, in build_async_engine_client
+(APIServer pid=1029122)     async with build_async_engine_client_from_engine_args(
+(APIServer pid=1029122)                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=1029122)     return await anext(self.gen)
+(APIServer pid=1029122)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 168, in build_async_engine_client_from_engine_args
+(APIServer pid=1029122)     async_llm = AsyncLLM.from_vllm_config(
+(APIServer pid=1029122)                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py", line 220, in from_vllm_config
+(APIServer pid=1029122)     return cls(
+(APIServer pid=1029122)            ^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py", line 149, in __init__
+(APIServer pid=1029122)     self.engine_core = EngineCoreClient.make_async_mp_client(
+(APIServer pid=1029122)                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=1029122)     return func(*args, **kwargs)
+(APIServer pid=1029122)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 139, in make_async_mp_client
+(APIServer pid=1029122)     return AsyncMPClient(*client_args)
+(APIServer pid=1029122)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=1029122)     return func(*args, **kwargs)
+(APIServer pid=1029122)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 987, in __init__
+(APIServer pid=1029122)     super().__init__(
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/core_client.py", line 609, in __init__
+(APIServer pid=1029122)     with launch_core_engines(
+(APIServer pid=1029122)          ^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=1029122)   File "/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+(APIServer pid=1029122)     next(self.gen)
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/utils.py", line 1194, in launch_core_engines
+(APIServer pid=1029122)     wait_for_engine_startup(
+(APIServer pid=1029122)   File "/workspace/venv-stock/lib/python3.12/site-packages/vllm/v1/engine/utils.py", line 1253, in wait_for_engine_startup
+(APIServer pid=1029122)     raise RuntimeError(
+(APIServer pid=1029122) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}

@@ -1,0 +1,31 @@
+# kind=gsq url=http://127.0.0.1:18090 tokenizer=/workspace/wt-models/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp 2026-09-30T06:54:38Z
+# production run_benchmarks.sh single, pass 1 (warm-up, discard)
+# Wed Sep 30 06:54:38 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=50.28 tok/s | decode(C/meanTPOT)=50.7 | tok/step=- | meanTTFT=197.64 ms
+ROW cohort C2 real prompts T=default | e2e=91.58 tok/s | decode(C/meanTPOT)=97.4 | tok/step=- | meanTTFT=324.06 ms
+ROW cohort C4 real prompts T=default | e2e=162.48 tok/s | decode(C/meanTPOT)=174.7 | tok/step=- | meanTTFT=562.18 ms
+ROW cohort C8 real prompts T=default | e2e=269.76 tok/s | decode(C/meanTPOT)=296.7 | tok/step=- | meanTTFT=1061.48 ms
+ROW cohort C1 real prompts T=0 | e2e=50.55 tok/s | decode(C/meanTPOT)=51.0 | tok/step=- | meanTTFT=197.46 ms
+ROW cohort C2 real prompts T=0 | e2e=94.01 tok/s | decode(C/meanTPOT)=98.0 | tok/step=- | meanTTFT=318.59 ms
+ROW cohort C4 real prompts T=0 | e2e=162.81 tok/s | decode(C/meanTPOT)=176.1 | tok/step=- | meanTTFT=557.80 ms
+ROW cohort C8 real prompts T=0 | e2e=274.80 tok/s | decode(C/meanTPOT)=299.7 | tok/step=- | meanTTFT=1075.06 ms
+# raw logs in /workspace/runs/models/swift-nomtp/speed/prod-pass1
+# production run_benchmarks.sh single, pass 2
+# Wed Sep 30 07:06:52 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=50.19 tok/s | decode(C/meanTPOT)=50.6 | tok/step=- | meanTTFT=198.03 ms
+ROW cohort C2 real prompts T=default | e2e=91.87 tok/s | decode(C/meanTPOT)=97.3 | tok/step=- | meanTTFT=320.44 ms
+ROW cohort C4 real prompts T=default | e2e=160.52 tok/s | decode(C/meanTPOT)=173.2 | tok/step=- | meanTTFT=568.39 ms
+ROW cohort C8 real prompts T=default | e2e=272.52 tok/s | decode(C/meanTPOT)=297.0 | tok/step=- | meanTTFT=1059.44 ms
+ROW cohort C1 real prompts T=0 | e2e=49.64 tok/s | decode(C/meanTPOT)=50.1 | tok/step=- | meanTTFT=229.79 ms
+ROW cohort C2 real prompts T=0 | e2e=92.78 tok/s | decode(C/meanTPOT)=96.8 | tok/step=- | meanTTFT=318.35 ms
+ROW cohort C4 real prompts T=0 | e2e=157.97 tok/s | decode(C/meanTPOT)=166.7 | tok/step=- | meanTTFT=619.76 ms
+ROW cohort C8 real prompts T=0 | e2e=259.39 tok/s | decode(C/meanTPOT)=285.4 | tok/step=- | meanTTFT=1111.96 ms
+# raw logs in /workspace/runs/models/swift-nomtp/speed/prod-pass2
+# salted prefill ladder
+ROW prefill len=8192 conc=1 seed=295255614 | 1310 tok/s | meanTTFT=6250.34 ms
+ROW prefill len=180000 conc=1 seed=487372155 | 681 tok/s | meanTTFT=264322.67 ms
+ROW MTP | no drafts recorded (speculative decoding off?)
+ROW clocks /workspace/runs/models/swift-nomtp/speed/clocks-decode-pass1.csv: 651 s busy, median SM 1725 MHz, mem 9501 MHz, 348.9 W, util 92%
+ROW clocks /workspace/runs/models/swift-nomtp/speed/clocks-decode-pass2.csv: 662 s busy, median SM 1725 MHz, mem 9501 MHz, 348.8 W, util 92%
+ROW clocks /workspace/runs/models/swift-nomtp/speed/clocks-prefill-180000-c1.csv: 527 s busy, median SM 1815 MHz, mem 9501 MHz, 347.4 W, util 96%
+ROW clocks /workspace/runs/models/swift-nomtp/speed/clocks-prefill-8192-c1.csv: 50 s busy, median SM 1710 MHz, mem 9501 MHz, 347.8 W, util 96%

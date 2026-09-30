@@ -1,0 +1,30 @@
+start 2026-09-30T07:29:28Z
+8ad3e36 Model matrix: box jobs (one server per config), Base parity job; make_hf_config verify derives recurrent layers when the GGUF omits them; vllm_logprobs takes GSQ_HF_CONFIG
+cfg=w4a16-nomtp kind=baseline venv=/workspace/gsq-vllm/.venv model=/workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast no_mtp=1
+VRAM after load: 22779 MiB, 24576 MiB
+(APIServer pid=1015567) WARNING 09-30 07:29:43 [config.py:817] Qwen3.5 model specifies mamba_ssm_dtype='float32' in its config, but --mamba-ssm-cache-dtype='float16' was passed. Using the user-specified value.
+(EngineCore pid=1015967) INFO 09-30 07:30:00 [core.py:121] Initializing a V1 LLM engine (v0.27.1) with config: model='/workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast', speculative_config=None, tokenizer='/workspace/models/Qwen3.8-27B-W4A16-AutoRound-fast', skip_tokenizer_init=False, tokenizer_mod
+(EngineCore pid=1015967) INFO 09-30 07:30:19 [default_loader.py:430] Loading weights took 8.50 seconds
+(EngineCore pid=1015967) INFO 09-30 07:30:20 [gpu_model_runner.py:5455] Model loading took 13.91 GiB memory and 10.342892 seconds
+(EngineCore pid=1015967) INFO 09-30 07:32:40 [flashinfer.py:889] FlashInfer resolved query dtypes: prefill=torch.bfloat16, decode=torch.bfloat16, decode_backend=flashinfer-native, kv_cache_dtype=torch.float8_e4m3fn, arch=sm86
+(EngineCore pid=1015967) INFO 09-30 07:32:43 [kv_cache_utils.py:2389] GPU KV cache size: 231,250 tokens
+(EngineCore pid=1015967) INFO 09-30 07:32:43 [kv_cache_utils.py:2390] Maximum concurrency for 200,000 tokens per request: 1.16x
+(EngineCore pid=1015967) INFO 09-30 07:32:55 [core.py:348] init engine (profile, create kv cache, warmup model) took 155.42 s (compilation: 67.99 s)
+max_model_len=200000; spec_decode metric lines: 0
+speed rc=0
+ROW cohort C1 real prompts T=0 | e2e=48.29 tok/s | decode(C/meanTPOT)=48.6 | tok/step=- | meanTTFT=140.88 ms
+ROW cohort C2 real prompts T=0 | e2e=89.01 tok/s | decode(C/meanTPOT)=89.8 | tok/step=- | meanTTFT=221.65 ms
+ROW cohort C4 real prompts T=0 | e2e=170.47 tok/s | decode(C/meanTPOT)=175.2 | tok/step=- | meanTTFT=398.74 ms
+ROW cohort C8 real prompts T=0 | e2e=339.89 tok/s | decode(C/meanTPOT)=351.2 | tok/step=- | meanTTFT=762.42 ms
+ROW cohort C1 real prompts T=0 | e2e=48.30 tok/s | decode(C/meanTPOT)=48.6 | tok/step=- | meanTTFT=140.87 ms
+ROW cohort C2 real prompts T=0 | e2e=89.03 tok/s | decode(C/meanTPOT)=89.8 | tok/step=- | meanTTFT=221.88 ms
+ROW cohort C4 real prompts T=0 | e2e=172.47 tok/s | decode(C/meanTPOT)=175.4 | tok/step=- | meanTTFT=400.23 ms
+ROW cohort C8 real prompts T=0 | e2e=339.88 tok/s | decode(C/meanTPOT)=351.0 | tok/step=- | meanTTFT=755.55 ms
+ROW prefill len=8192 conc=1 seed=788295929 | 1133 tok/s | meanTTFT=7229.93 ms
+ROW prefill len=180000 conc=1 seed=156688599 | 622 tok/s | meanTTFT=289615.74 ms
+ROW MTP | no drafts recorded (speculative decoding off?)
+ROW clocks /workspace/runs/models/w4a16-nomtp/speed/clocks-decode-pass1.csv: 683 s busy, median SM 1830 MHz, mem 9501 MHz, 348.8 W, util 92%
+ROW clocks /workspace/runs/models/w4a16-nomtp/speed/clocks-decode-pass2.csv: 675 s busy, median SM 1815 MHz, mem 9501 MHz, 348.9 W, util 92%
+ROW clocks /workspace/runs/models/w4a16-nomtp/speed/clocks-prefill-180000-c1.csv: 577 s busy, median SM 1860 MHz, mem 9501 MHz, 347.6 W, util 97%
+ROW clocks /workspace/runs/models/w4a16-nomtp/speed/clocks-prefill-8192-c1.csv: 57 s busy, median SM 1830 MHz, mem 9501 MHz, 348.2 W, util 96%
+end 2026-09-30T08:10:08Z
