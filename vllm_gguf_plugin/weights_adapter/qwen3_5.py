@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
@@ -380,8 +381,22 @@ class Qwen35GGUFAdapter(BaseGGUFWeightsAdapter):
         yield from split_stacked_experts(transformed())
 
 
+def _draft_vocab_ids(model_config: ModelConfig) -> torch.Tensor | None:
+    """Row ids of a pruned MTP draft head: mtp_draft_vocab_ids.pt in the model
+    (HF config) directory, unless MTP_DRAFT_VOCAB=0. The model must define
+    mtp.draft_lm_head over these rows (not in vLLM: see the PR)."""
+    path = os.path.join(model_config.model, "mtp_draft_vocab_ids.pt")
+    if os.path.exists(path) and os.environ.get("MTP_DRAFT_VOCAB", "1") != "0":
+        return torch.load(path, map_location="cpu", weights_only=True)
+    return None
+
+
 class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
-    """Qwen3.5/3.6 single-block MTP draft stored in a GGUF nextn block."""
+    """Qwen3.5/3.6 single-block MTP draft stored in a GGUF nextn block.
+
+    With a pruned draft head (_draft_vocab_ids), mtp.draft_lm_head gets the
+    GGUF output.weight rows listed in mtp_draft_vocab_ids.pt: a lossless row
+    slice of the quantized blocks."""
 
     #: embed_tokens is shared from the target after vLLM probes the draft's
     #: embed_input_ids, so it must stay an ordinary module. lm_head is shared
@@ -426,6 +441,8 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
                 len(unmapped),
                 unmapped,
             )
+        if _draft_vocab_ids(model_config) is not None:
+            name_map["output.weight"] = "mtp.draft_lm_head.weight"
         return name_map
 
     def transform_weights(
@@ -433,7 +450,7 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
         weights: Iterable[GGUFWeight],
         model_config: ModelConfig,
     ) -> Iterable[GGUFWeight]:
-        del model_config
+        draft_ids = _draft_vocab_ids(model_config)
 
         def transformed() -> Iterable[GGUFWeight]:
             quantized_bases: set[str] = set()
@@ -441,7 +458,9 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
                 # weight_type entries arrive before their packed weight data.
                 if name.endswith(".weight_type"):
                     quantized_bases.add(name.removesuffix(".weight_type"))
-                if name.endswith(_MTP_NORM_SUFFIXES):
+                if name == "mtp.draft_lm_head.weight":
+                    weight = weight[draft_ids]
+                elif name.endswith(_MTP_NORM_SUFFIXES):
                     weight = weight - 1
                 elif (
                     name.endswith(".weight")
