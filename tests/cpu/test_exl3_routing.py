@@ -55,9 +55,10 @@ class FakeShim:
         self.w, self.suh, self.svh = w, suh, svh
         self.calls = []
 
-    def exl3_gemm(self, x, trellis, suh, svh, mcg, mul1):
+    def exl3_gemm(self, x, trellis, suh, svh, mcg, mul1, out_fp32):
+        assert x.dtype == torch.half
         self.calls.append(("gemm", x.shape[0]))
-        return (x.float() @ self.w).to(x.dtype)
+        return (x.float() @ self.w).to(torch.float if out_fp32 else torch.half)
 
     def exl3_dequant(self, trellis, suh, svh, mcg, mul1, n_start, n_count, had):
         self.calls.append(("dequant", n_start, n_count, had))
@@ -94,10 +95,10 @@ def test_exl3_linear_paths(fake, rows, path):
     from vllm_exl3_plugin.ops import exl3_linear
 
     shim, trellis = fake
-    x = torch.randn(rows, shim.w.shape[0], generator=torch.Generator().manual_seed(1)).to(torch.bfloat16)
-    y = exl3_linear(x, trellis, shim.suh, shim.svh, False, True)
+    x = torch.randn(rows, shim.w.shape[0], generator=torch.Generator().manual_seed(1)).half()
+    y = exl3_linear(x, trellis, shim.suh, shim.svh, False, True, True)
     ref = x.float() @ shim.w
-    assert y.dtype == torch.bfloat16 and y.shape == ref.shape
+    assert y.dtype == torch.float and y.shape == ref.shape
     assert torch.allclose(y.float(), ref, rtol=2e-2, atol=2e-2), (y.float() - ref).abs().max()
     kinds = [c[0] for c in shim.calls]
     n_out = shim.w.shape[1]
@@ -112,12 +113,14 @@ def test_exl3_linear_paths(fake, rows, path):
         assert kinds == ["dequant", "hgemm", "dequant", "hgemm"]
         assert shim.calls[0] == ("dequant", 0, 32768, True)
         assert shim.calls[2] == ("dequant", 32768, n_out - 32768, True)
+    assert exl3_linear(x, trellis, shim.suh, shim.svh, False, True, False).dtype == torch.half
 
 
 def test_fake_impl_shape():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 
-    x = torch.empty(7, 5120, dtype=torch.bfloat16, device="meta")
+    x = torch.empty(7, 5120, dtype=torch.half, device="meta")
     trellis = torch.empty(320, 64, 64, dtype=torch.int16, device="meta")
-    y = exl3_linear_fake(x, trellis, None, None, False, True)
-    assert y.shape == (7, 1024) and y.dtype == torch.bfloat16 and y.device.type == "meta"
+    y = exl3_linear_fake(x, trellis, None, None, False, True, True)
+    assert y.shape == (7, 1024) and y.dtype == torch.float and y.device.type == "meta"
+    assert exl3_linear_fake(x, trellis, None, None, False, True, False).dtype == torch.half

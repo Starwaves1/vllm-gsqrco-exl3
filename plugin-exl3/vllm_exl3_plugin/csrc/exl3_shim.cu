@@ -4,11 +4,10 @@
 //
 // Ops (x: activations [m, k]; trellis: int16 [k/16, n/16, 16*K] (+8 for half-integer K);
 // suh: fp16 [k]; svh: fp16 [n]; mcg/mul1: the codebook flags from the checkpoint):
-//   exl3_gemm(x, trellis, suh, svh, mcg, mul1) -> [m, n] in x's dtype (fp16 or bf16)
+//   exl3_gemm(x, trellis, suh, svh, mcg, mul1, out_fp32) -> [m, n] fp32 or fp16
 //       vendored exl3_gemm (QTIP GEMV where its heuristic picks it, else the cooperative
-//       kernel, autotuned per shape). bf16 x is cast to fp16 here and the kernel writes fp32,
-//       cast back to bf16; fp16 x gets fp16 out. Any m; the kernel re-streams the weight per
-//       16 rows (see EXL3.md, routing).
+//       kernel, autotuned per shape) on fp16 x (the kernels' only activation dtype; the caller
+//       casts once per layer). Any m; the kernel re-streams the weight per 16 rows (EXL3.md).
 //   exl3_dequant(trellis, suh, svh, mcg, mul1, n_start, n_count, had) -> fp16 [k, n_count]
 //       columns n_start..n_start+n_count of the weight, W[in, out] (y = x @ W). had=true: the
 //       original basis (reconstruct_had_slice: both Hadamards, suh and svh folded in);
@@ -17,16 +16,17 @@
 //       of fp16 x, times pre_scale before or post_scale after (at most one), times scale.
 //   exl3_hgemm(a, b) -> fp16 [m, n] = a @ b, a fp16 [m, k], b fp16 [k, n]: vendored
 //       hgemm_recon (fp16-accumulate MMA where the rate probe enables it, else cuBLAS).
-//   exl3_warmup(trellis, suh, svh, mcg, mul1, rows, dtype) -> int: the one-time host work
-//       (DevCtx cudaMalloc of locks and workspace, the f16acc rate probe, one autotune
-//       session per activation-row bucket) for this weight shape, run once per row count in
-//       rows with x of dtype. Must run outside CUDA graph capture (it synchronizes); it
-//       throws if the current stream is capturing. Returns how many row counts it ran.
+//   exl3_warmup(trellis, suh, svh, mcg, mul1, rows, out_fp32): the one-time host work (DevCtx
+//       cudaMalloc of locks and workspace, the f16acc rate probe, autotune sessions, kernel
+//       attributes) for this weight shape: exl3_gemm once per row count in rows, and one
+//       f16acc-sized hgemm. Must run outside CUDA graph capture (it synchronizes); it throws
+//       if the current stream is capturing.
 //
 // Capture safety: exl3_gemm and exl3_hgemm refuse to run while the current stream is
-// capturing unless exl3_warmup already ran that shape (row count 1..16 exactly, or any count
-// >= 17: the autotune key buckets rows at 16) on that device. Without that, the vendored code
-// could cudaMalloc, synchronize or autotune inside the capture.
+// capturing unless exl3_warmup already ran that shape and row bucket on that device. The
+// buckets follow the vendored choices: 1 row (GEMV m == 1 mode), then 2, 4, 8, 16 by
+// rounding up (GEMV m <= 8, autotune key min(pow2(max(m, 2)), 16)); 16 covers every m >= 9.
+// Without that, the vendored code could cudaMalloc, synchronize or autotune inside capture.
 //
 // exllamav3's int8-activation GEMV (EXL3_INT8_GEMV, on by default in d3739fd for mul1 K <= 5
 // at m <= 2 on Ampere) is switched off when this library loads: it changes the numerics
@@ -124,10 +124,10 @@ void check_cuda(std::initializer_list<const at::Tensor*> ts, const char* op) {
   }
 }
 
-// x [m, k] fp16/bf16, rows contiguous; returns m
+// x [m, k] fp16, rows contiguous; returns m
 int64_t check_x(const at::Tensor& x, int64_t k, const char* op) {
   TORCH_CHECK(x.dim() == 2, op, ": x must be 2-D");
-  TORCH_CHECK(x.scalar_type() == at::kHalf || x.scalar_type() == at::kBFloat16, op, ": x must be fp16 or bf16");
+  TORCH_CHECK(x.scalar_type() == at::kHalf, op, ": x must be fp16");
   TORCH_CHECK(x.size(1) == k, op, ": x has ", x.size(1), " columns, the weight has k=", k);
   TORCH_CHECK(x.is_contiguous(), op, ": x must be contiguous");
   TORCH_CHECK(reinterpret_cast<uintptr_t>(x.data_ptr()) % 16 == 0, op, ": x must be 16-byte aligned");
@@ -143,7 +143,11 @@ std::mutex g_mutex;
 std::set<Key> g_warmed;
 std::set<int> g_hgemm_warmed;
 
-int64_t row_bucket(int64_t m) { return m <= 16 ? m : 17; }
+int64_t row_bucket(int64_t m) {
+  int64_t b = 1;
+  while (b < m && b < 16) b *= 2;
+  return b;
+}
 
 Key gemm_key(int device, const at::Tensor& trellis, bool mcg, bool mul1, bool fp32, int64_t m) {
   return {device, trellis.size(0) * 16, trellis.size(1) * 16, trellis.size(2), mul1 ? 2 : mcg ? 1 : 0, fp32,
@@ -160,7 +164,7 @@ bool capturing(cudaStream_t stream) {
 // Ops
 
 at::Tensor gemm_impl(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh,
-                     bool mcg, bool mul1, bool warming) {
+                     bool mcg, bool mul1, bool out_fp32, bool warming) {
   const char* op = "exl3_gemm";
   check_trellis(trellis, mcg, mul1, op);
   const int64_t k = trellis.size(0) * 16, n = trellis.size(1) * 16;
@@ -169,25 +173,24 @@ at::Tensor gemm_impl(const at::Tensor& x, const at::Tensor& trellis, const at::T
   check_scale(svh, n, "svh", op);
   check_cuda({&x, &trellis, &suh, &svh}, op);
 
-  const bool bf16 = x.scalar_type() == at::kBFloat16;
-  if (m == 0) return at::empty({0, n}, x.options());
+  const at::ScalarType out_dtype = out_fp32 ? at::kFloat : at::kHalf;
+  if (m == 0) return at::empty({0, n}, x.options().dtype(out_dtype));
   const c10::cuda::CUDAGuard guard(x.device());
   const cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
   if (!warming && capturing(stream)) {
     std::lock_guard<std::mutex> lock(g_mutex);
-    TORCH_CHECK(g_warmed.count(gemm_key(x.get_device(), trellis, mcg, mul1, bf16, m)), op,
+    TORCH_CHECK(g_warmed.count(gemm_key(x.get_device(), trellis, mcg, mul1, out_fp32, m)), op,
                 ": shape k=", k, " n=", n, " rows=", m, " was not warmed up (exl3_warmup) before CUDA graph capture");
   }
-  const at::Tensor xh = bf16 ? x.to(at::kHalf) : x;
-  at::Tensor c = at::empty({m, n}, x.options().dtype(bf16 ? at::kFloat : at::kHalf));
-  at::Tensor a_had = at::empty_like(xh);
-  exl3_gemm(xh, trellis, c, suh, a_had, svh, -1, mcg, mul1, 0);
-  return bf16 ? c.to(at::kBFloat16) : c;
+  at::Tensor c = at::empty({m, n}, x.options().dtype(out_dtype));
+  at::Tensor a_had = at::empty_like(x);
+  exl3_gemm(x, trellis, c, suh, a_had, svh, -1, mcg, mul1, 0);
+  return c;
 }
 
 at::Tensor exl3_gemm_op(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh,
-                        const at::Tensor& svh, bool mcg, bool mul1) {
-  return gemm_impl(x, trellis, suh, svh, mcg, mul1, false);
+                        const at::Tensor& svh, bool mcg, bool mul1, bool out_fp32) {
+  return gemm_impl(x, trellis, suh, svh, mcg, mul1, out_fp32, false);
 }
 
 at::Tensor exl3_dequant_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg,
@@ -252,14 +255,13 @@ at::Tensor hgemm_impl(const at::Tensor& a, const at::Tensor& b, bool warming) {
 
 at::Tensor exl3_hgemm_op(const at::Tensor& a, const at::Tensor& b) { return hgemm_impl(a, b, false); }
 
-int64_t exl3_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg, bool mul1,
-                       at::IntArrayRef rows, at::ScalarType dtype) {
+void exl3_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg, bool mul1,
+                    at::IntArrayRef rows, bool out_fp32) {
   const char* op = "exl3_warmup";
   check_trellis(trellis, mcg, mul1, op);
   const int64_t k = trellis.size(0) * 16, n = trellis.size(1) * 16;
   check_scale(suh, k, "suh", op);
   check_scale(svh, n, "svh", op);
-  TORCH_CHECK(dtype == at::kHalf || dtype == at::kBFloat16, op, ": dtype must be fp16 or bf16");
   for (int64_t m : rows) TORCH_CHECK(m >= 1 && m <= INT_MAX, op, ": row counts must be >= 1, got ", m);
   check_cuda({&trellis, &suh, &svh}, op);
 
@@ -276,35 +278,33 @@ int64_t exl3_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const a
 
   // One call per row count: autotune sessions (syncs, disk cache), kernel attributes,
   // GEMV occupancy lookups. x is zeros; outputs are discarded.
-  int64_t ran = 0;
   for (int64_t m : rows) {
-    at::Tensor x = at::zeros({m, k}, trellis.options().dtype(dtype));
-    gemm_impl(x, trellis, suh, svh, mcg, mul1, true);
-    ++ran;
+    at::Tensor x = at::zeros({m, k}, trellis.options().dtype(at::kHalf));
+    gemm_impl(x, trellis, suh, svh, mcg, mul1, out_fp32, true);
   }
-  // hgemm_recon on this k: its cuBLAS / f16acc path (the >144-row route)
+  // hgemm_recon at a size its f16acc kernel takes (hgemm_f16acc.cu worthwhile(): >= 384 rows,
+  // >= one block per SM): the kernel's one-time attribute set (the >144-row route)
   {
-    at::Tensor a = at::zeros({256, k}, trellis.options().dtype(at::kHalf));
-    at::Tensor b = at::zeros({k, 128}, trellis.options().dtype(at::kHalf));
+    at::Tensor a = at::zeros({384, k}, trellis.options().dtype(at::kHalf));
+    at::Tensor b = at::zeros({k, 4096}, trellis.options().dtype(at::kHalf));
     hgemm_impl(a, b, true);
   }
   C10_CUDA_CHECK(cudaStreamSynchronize(stream));
 
   std::lock_guard<std::mutex> lock(g_mutex);
-  for (int64_t m : rows) g_warmed.insert(gemm_key(device, trellis, mcg, mul1, dtype == at::kBFloat16, m));
+  for (int64_t m : rows) g_warmed.insert(gemm_key(device, trellis, mcg, mul1, out_fp32, m));
   g_hgemm_warmed.insert(device);
-  return ran;
 }
 
 }  // namespace
 
 TORCH_LIBRARY(_C_exl3, m) {
-  m.def("exl3_gemm(Tensor x, Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1) -> Tensor");
+  m.def("exl3_gemm(Tensor x, Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, bool out_fp32) -> Tensor");
   m.def("exl3_dequant(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int n_start, int n_count, "
         "bool had) -> Tensor");
   m.def("exl3_had_r_128(Tensor x, Tensor? pre_scale, Tensor? post_scale, float scale) -> Tensor");
   m.def("exl3_hgemm(Tensor a, Tensor b) -> Tensor");
-  m.def("exl3_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, ScalarType dtype) -> int");
+  m.def("exl3_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, bool out_fp32) -> ()");
 }
 
 TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {

@@ -29,9 +29,9 @@ from ..format import as_uint32, bits_from_tile
 
 _QKV = {"q": 0, "k": 1, "v": 2}
 _TENSORS = ("trellis", "suh", "svh")
-# Row counts exl3_warmup runs per shape: 1..16 each (autotune bucket and GEMV choice depend
-# on them) and 17, which stands for every count above 16 (one autotune bucket).
-WARMUP_ROWS = list(range(1, 18))
+# Row counts exl3_warmup runs per shape, one per vendored bucket (exl3_shim.cu row_bucket):
+# 1 (GEMV m == 1), 2, 4, 8 (GEMV to 8 rows, autotune buckets), 16 (every m >= 9).
+WARMUP_ROWS = [1, 2, 4, 8, 16]
 _WARMED: set[tuple] = set()
 
 
@@ -148,10 +148,11 @@ class EXL3LinearMethod(LinearMethodBase):
         if not ops.OPS_AVAILABLE:
             raise RuntimeError("EXL3 plugin: _C_exl3 is not built (VLLM_EXL3_BUILD=1, see EXL3.md)")
         for trellis, suh, svh in parts:
-            key = (trellis.device.index, tuple(trellis.shape), quant.codebook, layer.exl3_dtype)
+            out_fp32 = layer.exl3_dtype != torch.half
+            key = (trellis.device.index, tuple(trellis.shape), quant.codebook, out_fp32)
             if key in _WARMED:
                 continue
-            torch.ops._C_exl3.exl3_warmup(trellis, suh, svh, quant.mcg, quant.mul1, WARMUP_ROWS, layer.exl3_dtype)
+            torch.ops._C_exl3.exl3_warmup(trellis, suh, svh, quant.mcg, quant.mul1, WARMUP_ROWS, out_fp32)
             _WARMED.add(key)
 
     def apply(
@@ -161,20 +162,24 @@ class EXL3LinearMethod(LinearMethodBase):
         bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         quant = self.quant_config.quant
-        x2 = x.reshape(-1, x.shape[-1])
+        # the kernels take fp16: cast once per layer, not per part; with a bf16 model the
+        # kernels write fp32 (no second fp16 rounding) and the result is cast once
+        xh = x.reshape(-1, x.shape[-1]).to(torch.half)
+        out_fp32 = x.dtype != torch.half
         outs = [
             torch.ops.vllm._exl3_linear(
-                x2,
+                xh,
                 getattr(layer, f"exl3_trellis_{i}"),
                 getattr(layer, f"exl3_suh_{i}"),
                 getattr(layer, f"exl3_svh_{i}"),
                 quant.mcg,
                 quant.mul1,
+                out_fp32,
             )
             for i in range(layer.exl3_num_parts)
         ]
         out = outs[0] if len(outs) == 1 else torch.cat(outs, dim=-1)
-        out = out.reshape(*x.shape[:-1], out.shape[-1])
+        out = out.to(x.dtype).reshape(*x.shape[:-1], out.shape[-1])
         if bias is not None:
             out = out + bias
         return out

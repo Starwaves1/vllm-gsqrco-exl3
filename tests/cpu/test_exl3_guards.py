@@ -54,7 +54,8 @@ for name, c in cases.items():
     try:
         op = c["op"]
         if op == "exl3_gemm":
-            ops.exl3_gemm(t(a["x"]), t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["mcg"], a["mul1"])
+            ops.exl3_gemm(t(a["x"]), t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["mcg"], a["mul1"],
+                          a["out_fp32"])
         elif op == "exl3_dequant":
             ops.exl3_dequant(t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["mcg"], a["mul1"],
                              a["n_start"], a["n_count"], a["had"])
@@ -64,7 +65,7 @@ for name, c in cases.items():
             ops.exl3_hgemm(t(a["a"]), t(a["b"]))
         elif op == "exl3_warmup":
             ops.exl3_warmup(t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["mcg"], a["mul1"], a["rows"],
-                            getattr(torch, a["dtype"]))
+                            a["out_fp32"])
         res[name] = "no error"
     except RuntimeError as e:
         res[name] = str(e).splitlines()[0][:300]
@@ -83,10 +84,10 @@ def trellis(k=K_IN, n=N_OUT, width=64, **kw):
     return T(k // 16, n // 16, width, dtype=kw.pop("dtype", "int16"), **kw)
 
 
-def gemm(x=None, tr=None, suh=None, svh=None, mcg=False, mul1=True):
+def gemm(x=None, tr=None, suh=None, svh=None, mcg=False, mul1=True, out_fp32=True):
     return dict(op="exl3_gemm", args=dict(
-        x=x or T(4, K_IN, dtype="bfloat16"), trellis=tr or trellis(),
-        suh=suh or T(K_IN), svh=svh or T(N_OUT), mcg=mcg, mul1=mul1))
+        x=x or T(4, K_IN), trellis=tr or trellis(),
+        suh=suh or T(K_IN), svh=svh or T(N_OUT), mcg=mcg, mul1=mul1, out_fp32=out_fp32))
 
 
 def dequant(n_start=0, n_count=N_OUT, had=True, tr=None, mcg=False, mul1=True):
@@ -94,20 +95,20 @@ def dequant(n_start=0, n_count=N_OUT, had=True, tr=None, mcg=False, mul1=True):
                                              mcg=mcg, mul1=mul1, n_start=n_start, n_count=n_count, had=had))
 
 
-def warmup(rows=(1, 2, 17), dtype="bfloat16", tr=None):
+def warmup(rows=(1, 2, 4, 8, 16), out_fp32=True, tr=None):
     return dict(op="exl3_warmup", args=dict(trellis=tr or trellis(), suh=T(K_IN), svh=T(N_OUT),
-                                            mcg=False, mul1=True, rows=list(rows), dtype=dtype))
+                                            mcg=False, mul1=True, rows=list(rows), out_fp32=out_fp32))
 
 
 CUDA = "must be CUDA tensors"
 # name -> (case, expected message fragment)
 CASES = {
     # exl3_gemm: valid calls reach the device check
-    "gemm-valid-bf16-K4": (gemm(), CUDA),
-    "gemm-valid-fp16": (gemm(x=T(4, K_IN)), CUDA),
-    "gemm-valid-1-row": (gemm(x=T(1, K_IN, dtype="bfloat16")), CUDA),
-    "gemm-valid-0-rows": (gemm(x=T(0, K_IN, dtype="bfloat16")), CUDA),
-    "gemm-valid-200-rows": (gemm(x=T(200, K_IN, dtype="bfloat16")), CUDA),
+    "gemm-valid-K4-out-fp32": (gemm(), CUDA),
+    "gemm-valid-out-fp16": (gemm(out_fp32=False), CUDA),
+    "gemm-valid-1-row": (gemm(x=T(1, K_IN)), CUDA),
+    "gemm-valid-0-rows": (gemm(x=T(0, K_IN)), CUDA),
+    "gemm-valid-200-rows": (gemm(x=T(200, K_IN)), CUDA),
     "gemm-valid-K3": (gemm(tr=trellis(width=48)), CUDA),
     "gemm-valid-K6": (gemm(tr=trellis(width=96)), CUDA),
     "gemm-valid-K3.5-mul1": (gemm(tr=trellis(width=56)), CUDA),
@@ -122,13 +123,14 @@ CASES = {
     "gemm-trellis-K9": (gemm(tr=trellis(width=144)), "unsupported bit width"),
     "gemm-trellis-K4.5": (gemm(tr=trellis(width=72)), "unsupported bit width"),
     "gemm-n-not-128": (gemm(tr=trellis(n=64), svh=T(64)), "multiples of 128"),
-    "gemm-k-not-128": (gemm(x=T(4, 5104, dtype="bfloat16"), tr=trellis(k=5104), suh=T(5104)), "multiples of 128"),
+    "gemm-k-not-128": (gemm(x=T(4, 5104), tr=trellis(k=5104), suh=T(5104)), "multiples of 128"),
     "gemm-trellis-misaligned": (gemm(tr=trellis(offset=1)), "trellis must be 16-byte aligned"),
-    "gemm-x-k-mismatch": (gemm(x=T(4, 4096, dtype="bfloat16")), "columns, the weight has k=5120"),
-    "gemm-x-fp32": (gemm(x=T(4, K_IN, dtype="float32")), "x must be fp16 or bf16"),
-    "gemm-x-1d": (gemm(x=T(K_IN, dtype="bfloat16")), "x must be 2-D"),
-    "gemm-x-noncontig": (gemm(x=T(4, K_IN, dtype="bfloat16", t=True)), "x must be contiguous"),
-    "gemm-x-misaligned": (gemm(x=T(4, K_IN, dtype="bfloat16", offset=1)), "x must be 16-byte aligned"),
+    "gemm-x-k-mismatch": (gemm(x=T(4, 4096)), "columns, the weight has k=5120"),
+    "gemm-x-fp32": (gemm(x=T(4, K_IN, dtype="float32")), "x must be fp16"),
+    "gemm-x-bf16": (gemm(x=T(4, K_IN, dtype="bfloat16")), "x must be fp16"),
+    "gemm-x-1d": (gemm(x=T(K_IN)), "x must be 2-D"),
+    "gemm-x-noncontig": (gemm(x=T(4, K_IN, t=True)), "x must be contiguous"),
+    "gemm-x-misaligned": (gemm(x=T(4, K_IN, offset=1)), "x must be 16-byte aligned"),
     "gemm-suh-size": (gemm(suh=T(4096)), "suh must be 1-D of size 5120"),
     "gemm-suh-bf16": (gemm(suh=T(K_IN, dtype="bfloat16")), "suh must be fp16"),
     "gemm-suh-misaligned": (gemm(suh=T(K_IN, offset=1)), "suh must be 16-byte aligned"),
@@ -164,9 +166,8 @@ CASES = {
                         "must be contiguous"),
     # exl3_warmup
     "warmup-valid": (warmup(), CUDA),
-    "warmup-valid-fp16": (warmup(dtype="float16"), CUDA),
+    "warmup-valid-out-fp16": (warmup(out_fp32=False), CUDA),
     "warmup-rows-0": (warmup(rows=(0, 1)), "row counts must be >= 1"),
-    "warmup-fp32": (warmup(dtype="float32"), "dtype must be fp16 or bf16"),
     "warmup-bad-trellis": (warmup(tr=trellis(width=50)), "is not 16*K or 16*K+8"),
 }
 

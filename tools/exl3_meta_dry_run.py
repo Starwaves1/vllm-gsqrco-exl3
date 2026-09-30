@@ -9,9 +9,11 @@ stored name/shape/dtype, except the 0-dim codebook tensors (the kernels' mul1 mu
 which the plugin checks at load).
 
 Checks:
-  * every checkpoint tensor is consumed: kept by the main model's or the MTP draft's name
-    mapping (vLLM's own mappers) and loaded without an "unexpected weight" error; the vision
-    tower is built (production serves images), so model.visual.* counts too;
+  * every checkpoint tensor is consumed: both models get every tensor, as vLLM's loader does;
+    the main model keeps what its mapper keeps, the MTP draft what its remap passes on (counted
+    where it enters its loader, so a change in the overlay's filter fails here); unknown names
+    raise in vLLM's loader; the vision tower is built (production serves images), so
+    model.visual.* counts too;
   * every model parameter is reported loaded by load_weights (strict, as vLLM does for
     unquantized checkpoints; MTP: embed_tokens and lm_head are shared from the target later
     but load here too, since the checkpoint has them);
@@ -140,6 +142,13 @@ def meta_weights(tensors, codebook_mult):
             yield name, torch.empty(shape, dtype=DTYPES[dtype], device="meta")
 
 
+def _count(weights, captured):
+    captured["arrived"] = 0
+    for item in weights:
+        captured["arrived"] += 1
+        yield item
+
+
 def kept_by(label: str, name: str) -> bool:
     """Whether the main model's / MTP draft's load_weights keeps a checkpoint name (vLLM's
     own mapping: Qwen3_5ForConditionalGeneration.hf_to_vllm_mapper drops mtp.*;
@@ -156,6 +165,7 @@ def main():
     from vllm.distributed import init_distributed_environment, initialize_model_parallel
     from vllm.engine.arg_utils import EngineArgs
     from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
+    from vllm.model_executor.models.utils import AutoWeightsLoader
 
     import vllm_exl3_plugin
     from vllm_exl3_plugin.format import EXL3QuantConfig
@@ -165,6 +175,7 @@ def main():
     with open(os.path.join(HF_DIR, "config.json")) as f:
         qcfg = EXL3QuantConfig.from_dict(json.load(f)["quantization_config"])
     tensors = checkpoint_tensors(DRAFT_HEAD)
+    orig_awl = AutoWeightsLoader.load_weights
 
     tmp = tempfile.mkdtemp(prefix="gsq-exl3-dryrun-")
     try:
@@ -204,14 +215,21 @@ def main():
         results = {}
         for label, model_config in [("main", vllm_config.model_config),
                                     ("mtp", vllm_config.speculative_config.draft_model_config)]:
+            # both models get every tensor, as vLLM's loader does; each keeps its own
             fed = {n: t for n, t in tensors.items() if kept_by(label, n)}
             captured = {}
 
-            def weights(self, mc, model, _fed=fed):
-                return meta_weights(_fed, qcfg.codebook_mult)
+            def weights(self, mc, model):
+                return meta_weights(tensors, qcfg.codebook_mult)
+
+            def awl(self, w, *a, _orig=orig_awl, _captured=captured, **k):
+                if self.module is _captured.get("top"):  # the model's own top-level loader
+                    w = _count(w, _captured)
+                return _orig(self, w, *a, **k)
 
             orig_weights = DefaultModelLoader.get_all_weights
             DefaultModelLoader.get_all_weights = weights
+            AutoWeightsLoader.load_weights = awl
             try:
                 with set_current_vllm_config(vllm_config):
                     from vllm.model_executor.model_loader.utils import get_model_architecture
@@ -220,6 +238,7 @@ def main():
                     orig_lw = arch_cls.load_weights
 
                     def lw(self, w, _orig=orig_lw, _captured=captured):
+                        _captured["top"] = self
                         out = _orig(self, w)
                         _captured["loaded"] = set(out) if out is not None else None
                         return out
@@ -232,6 +251,7 @@ def main():
                         arch_cls.load_weights = orig_lw
             finally:
                 DefaultModelLoader.get_all_weights = orig_weights
+                AutoWeightsLoader.load_weights = orig_awl
 
             params = {n for n, _ in model.named_parameters()}
             loaded = captured.get("loaded") or set()
@@ -248,12 +268,16 @@ def main():
             unquant = sorted(n for n, m in model.named_modules()
                              if type(getattr(m, "quant_method", None)).__name__
                              in ("UnquantizedLinearMethod", "UnquantizedEmbeddingMethod"))
-            results[label] = dict(fed=set(fed), n_params=len(params), n_loaded=len(loaded),
+            # MTP: what its own remap passed on must be exactly what kept_by says it keeps
+            # (main: its mapper drops inside the loader, so every tensor arrives)
+            want_in = len(fed) if label == "mtp" else len(tensors)
+            results[label] = dict(fed=set(fed), arrived=captured.get("arrived", 0), want_in=want_in, n_params=len(params), n_loaded=len(loaded),
                                   missing=missing + placeholder_missing, exl3_layers=len(exl3),
                                   parts=parts, fed_trellis=fed_trellis, bits=bits,
                                   arch=type(model).__name__, unquant=unquant)
             r = results[label]
-            print(f"[{label}] {r['arch']}: fed {len(fed)} tensors ({fed_trellis} EXL3), "
+            print(f"[{label}] {r['arch']}: kept {len(fed)} tensors ({fed_trellis} EXL3; {r['arrived']} reached "
+                  f"its loader, want {r['want_in']}), "
                   f"params {r['n_params']}, loaded {r['n_loaded']}, missing {len(r['missing'])} "
                   f"{r['missing'][:6]}, EXL3 layers {len(exl3)} with {parts} parts, K {bits}, "
                   f"unquantized modules {len(unquant)} (e.g. {[u for u in unquant if 'visual' not in u][:4]}), "
@@ -269,7 +293,8 @@ def main():
         ok = (not unmapped
               and set(overlap) == {"lm_head.trellis", "lm_head.suh", "lm_head.svh", "lm_head.mul1",
                                    "model.language_model.embed_tokens.weight"}
-              and all(not r["missing"] and r["parts"] == r["fed_trellis"] for r in results.values())
+              and all(not r["missing"] and r["parts"] == r["fed_trellis"] and r["arrived"] == r["want_in"]
+                      for r in results.values())
               and (not DRAFT_HEAD or "model.draft_lm_head" in results["mtp"]["unquant"]))
         no_gpu.assert_no_gpu_libs()
         fds = [os.readlink(f"/proc/self/fd/{fd}") for fd in os.listdir("/proc/self/fd")

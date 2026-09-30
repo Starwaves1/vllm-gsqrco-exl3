@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """torch.ops._C_exl3 (csrc/exl3_shim.cu) behind one routed custom op.
 
-`exl3_linear(x, trellis, suh, svh, mcg, mul1)` is x @ W for one EXL3 tensor W, x [n, k]
-fp16/bf16, result in x's dtype. It is registered as the vLLM custom op
+`exl3_linear(x, trellis, suh, svh, mcg, mul1, out_fp32)` is x @ W for one EXL3 tensor W,
+x [n, k] fp16 (the kernels' activation dtype; the linear method casts once per layer), result
+fp32 or fp16. It is registered as the vLLM custom op
 `torch.ops.vllm._exl3_linear` (with a fake impl), so torch.compile sees one opaque node per
 EXL3 tensor and the row-count choice below is made per call, not when the graph is traced.
 
@@ -59,9 +60,9 @@ def _exl3_op(n: int) -> str:
 
 
 def _recon_hgemm(x, trellis, suh, svh, mcg: bool, mul1: bool, fused: bool) -> torch.Tensor:
-    """exllamav3's reconstruct_hgemm: dequantize W in column slices, fp16 GEMM."""
+    """exllamav3's reconstruct_hgemm: dequantize W in column slices, fp16 GEMM, fp16 out."""
     ops = torch.ops._C_exl3
-    xh = x.to(torch.half)
+    xh = x
     if not fused:  # rotated basis: the input Hadamard (with suh) on x, the output one on y
         xh = ops.exl3_had_r_128(xh, suh, None, 1.0)
     n = trellis.shape[1] * 16
@@ -73,7 +74,7 @@ def _recon_hgemm(x, trellis, suh, svh, mcg: bool, mul1: bool, fused: bool) -> to
     y = ys[0] if len(ys) == 1 else torch.cat(ys, dim=1)
     if not fused:
         y = ops.exl3_had_r_128(y, None, svh, 1.0)
-    return y.to(x.dtype)
+    return y
 
 
 def exl3_linear(
@@ -83,11 +84,13 @@ def exl3_linear(
     svh: torch.Tensor,
     mcg: bool,
     mul1: bool,
+    out_fp32: bool,
 ) -> torch.Tensor:
     name = _exl3_op(x.shape[0])
     if name == RECON_HGEMM or name == RECON_HAD_HGEMM:
-        return _recon_hgemm(x, trellis, suh, svh, mcg, mul1, name == RECON_HAD_HGEMM)
-    return getattr(torch.ops._C_exl3, name)(x.contiguous(), trellis, suh, svh, mcg, mul1)
+        y = _recon_hgemm(x, trellis, suh, svh, mcg, mul1, name == RECON_HAD_HGEMM)
+        return y.float() if out_fp32 else y
+    return getattr(torch.ops._C_exl3, name)(x.contiguous(), trellis, suh, svh, mcg, mul1, out_fp32)
 
 
 def exl3_linear_fake(
@@ -97,8 +100,9 @@ def exl3_linear_fake(
     svh: torch.Tensor,
     mcg: bool,
     mul1: bool,
+    out_fp32: bool,
 ) -> torch.Tensor:
-    return x.new_empty(x.shape[0], trellis.shape[1] * 16)
+    return x.new_empty(x.shape[0], trellis.shape[1] * 16, dtype=torch.float if out_fp32 else torch.half)
 
 
 def _register() -> None:

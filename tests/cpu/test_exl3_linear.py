@@ -160,9 +160,9 @@ def test_apply_concatenates_parts(monkeypatch, method):
         load(layer, tensors(256, n, tag=tag), sid)
     method.process_weights_after_loading(layer)
 
-    def fake_linear(x, trellis, suh, svh, mcg, mul1):
-        assert (mcg, mul1) == (False, True)
-        return torch.full((x.shape[0], svh.shape[0]), float(trellis[0, 0, 0]), dtype=x.dtype)
+    def fake_linear(x, trellis, suh, svh, mcg, mul1, out_fp32):
+        assert (mcg, mul1, out_fp32, x.dtype) == (False, True, True, torch.half)  # bf16 model
+        return torch.full((x.shape[0], svh.shape[0]), float(trellis[0, 0, 0]), dtype=torch.float)
 
     class FakeVllmOps:
         _exl3_linear = staticmethod(fake_linear)
@@ -170,5 +170,5 @@ def test_apply_concatenates_parts(monkeypatch, method):
     monkeypatch.setattr(L.torch.ops, "vllm", FakeVllmOps, raising=False)
     x = torch.zeros(2, 3, 256, dtype=torch.bfloat16)
     y = method.apply(layer, x, bias=torch.ones(768, dtype=torch.bfloat16))
-    assert y.shape == (2, 3, 768)
+    assert y.shape == (2, 3, 768) and y.dtype == torch.bfloat16
     assert y[0, 0, :512].eq(2).all() and y[0, 0, 512:640].eq(3).all() and y[0, 0, 640:].eq(4).all()

@@ -55,11 +55,11 @@ Three things the feasibility survey did not list (VERIFIED while building):
 
 | op | what |
 |---|---|
-| `exl3_gemm(x, trellis, suh, svh, mcg, mul1)` | vendored `exl3_gemm`: the QTIP GEMV where its 3090-tuned heuristic picks it, else the cooperative kernel, autotuned per shape. x fp16 or bf16 `[m, k]`; output in x's dtype. bf16 x is cast to fp16 in the shim and the kernel writes fp32 (`c_fp32`), cast to bf16: no fp16 rounding or overflow on the output side. exllamav3 itself defaults to fp16 output |
+| `exl3_gemm(x, trellis, suh, svh, mcg, mul1, out_fp32)` | vendored `exl3_gemm`: the QTIP GEMV where its 3090-tuned heuristic picks it, else the cooperative kernel, autotuned per shape. x fp16 `[m, k]` (the kernels' only activation dtype); output fp32 (`c_fp32`) or fp16. `EXL3LinearMethod.apply` casts bf16 x to fp16 once per layer, asks for fp32 output with a bf16 model (no fp16 rounding or overflow on the output side; exllamav3 itself defaults to fp16 output) and casts once after concatenating the parts |
 | `exl3_dequant(trellis, suh, svh, mcg, mul1, n_start, n_count, had)` | fp16 `W[k, n_count]` (y = x @ W) for 128-aligned columns: `had=True` the original basis (`reconstruct_had_slice`, both Hadamards and suh/svh folded in), `had=False` the rotated basis (`reconstruct_slice`) |
 | `exl3_had_r_128(x, pre_scale?, post_scale?, scale)` | vendored `had_r_128` on fp16 rows, into a new tensor |
 | `exl3_hgemm(a, b)` | vendored `hgemm_recon`: fp16-accumulate MMA where the one-time rate probe enables it (a 3090 should, 2x), else cuBLAS |
-| `exl3_warmup(trellis, suh, svh, mcg, mul1, rows, dtype)` | the one-time host work for one weight shape, see below |
+| `exl3_warmup(trellis, suh, svh, mcg, mul1, rows, out_fp32)` | the one-time host work for one weight shape, see below |
 
 Guards run before any CUDA call: trellis 3-D int16 contiguous 16-byte aligned, tile width 16*K
 (K 1..8) or 16*K+8 (K 1..3, mul1 only), k and n multiples of 128, mcg/mul1 exclusive; x 2-D
@@ -72,9 +72,11 @@ its lock buffer and the cuBLAS workspace, `hgemm_f16acc` runs a timed rate probe
 (`cudaEventSynchronize`), and each (shape, row bucket) runs an autotune session that times
 candidates with syncs and writes `~/.cache/exllamav3/autotune/` (`EXLLAMAV3_TUNE_CACHE`
 overrides). None of this may happen inside a CUDA graph capture. `exl3_warmup` does all of it for
-one weight shape at row counts 1..17 (1..16 exactly, because the GEMV choice and the autotune
-bucket depend on them; 17 stands for every count above 16, one bucket) and records the shape.
-It throws if the current stream is capturing. `exl3_gemm` and `exl3_hgemm` throw if the stream is
+one weight shape: `exl3_gemm` at row counts 1, 2, 4, 8, 16 (the vendored choices depend on m only
+through these buckets: the GEMV's m == 1 mode, the GEMV limit of 8 rows, and the autotune key
+`min(pow2(max(m, 2)), 16)`), plus one `hgemm_recon` at 384 x k x 4096, large enough for the
+f16acc kernel's own one-time attribute set (`worthwhile()` wants >= 384 rows and a block per SM).
+It records the shape and throws if the current stream is capturing. `exl3_gemm` and `exl3_hgemm` throw if the stream is
 capturing and the shape was not warmed. `EXL3LinearMethod.process_weights_after_loading` calls
 `exl3_warmup` once per distinct shape when the weights are on CUDA, which is during model load,
 before vLLM's memory profiling and graph capture.
@@ -94,10 +96,13 @@ n = activation rows of one product.
 | >= 1024 | `recon_had_hgemm` | original-basis dequant, `exl3_hgemm` on raw x |
 
 This is exllamav3's own dispatch (`LinearEXL3.forward`, `reconstruct_hgemm`): threshold 144,
-fused reconstruct from 1024 rows, dequant in 32768-column slices. Differences: the shim
-concatenates slices instead of writing into one output (only matters above 32768 outputs,
-i.e. the lm_head at > 144 rows, which vLLM never sends: logits are computed for sampled
-positions only), and the fp32 output above. vLLM's graph capture sizes (up to 48 in production)
+fused reconstruct from 1024 rows, dequant in 32768-column slices. Differences: the fp32 output
+above, and the slices are concatenated instead of written into one output. That only matters
+above 32768 outputs, i.e. the lm_head at more than 144 rows. Production's argv and the parity
+harness never send that (logits are computed for sampled positions only), but a
+`prompt_logprobs` request does, with whole prompt chunks: at 2048 rows about 1 GB of fp16
+slices plus the concatenated copy, outside vLLM's profiled budget. Fix if it matters: let
+`exl3_hgemm` write into a slice of one preallocated output, as exllamav3 does. vLLM's graph capture sizes (up to 48 in production)
 all route to `exl3_gemm` (`test_capture_sizes_stay_on_gemm`), so captured graphs hold no dequant
 buffers.
 
