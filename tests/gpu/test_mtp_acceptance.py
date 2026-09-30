@@ -1,4 +1,4 @@
-"""MTP acceptance readout on the GGUF server (k=3, production sampling and greedy),
+"""MTP acceptance readout on the GGUF server (k from the production argv, production sampling and greedy),
 via bench/speed/mtp_acceptance.py. HANDOFF §2 wants it within 2 points of llama.cpp's on
 the same file: pass that readout (bench/speed/mtp_acceptance.py --engine llama against
 bench/speed/serve-llamacpp.sh) as GSQ_LLAMACPP_MTP=<json>. Without it the test records
@@ -20,6 +20,12 @@ from pathlib import Path
 from gsq_gpu import API_KEY, ROOT, RUNS
 
 
+def _spec_k() -> int:
+    """num_speculative_tokens of the argv the server runs (GSQ_PROD_ARGV, as scripts/env.sh defaults it)."""
+    argv = Path(os.environ.get("GSQ_PROD_ARGV", ROOT / "env/prod-serve-argv.txt")).read_text().splitlines()
+    return json.loads(argv[argv.index("--speculative-config") + 1])["num_speculative_tokens"]
+
+
 def test_mtp_acceptance(gsq_server):
     url, _ = gsq_server
     out = RUNS / time.strftime("%Y%m%d-%H%M%S-mtp-vllm.json")
@@ -35,7 +41,7 @@ def test_mtp_acceptance(gsq_server):
     for t, r in res.items():
         assert r["drafted"] > 0, f"{t}: no drafts; speculative decoding is not active"
         pp = r.get("per_position") or []
-        assert len(pp) == 3, f"{t}: expected 3 draft positions (k=3), got {pp}"
+        assert len(pp) == _spec_k(), f"{t}: expected {_spec_k()} draft positions, got {pp}"
     if not ref:
         warnings.warn(f"no llama.cpp reference (GSQ_LLAMACPP_MTP); readout only: {out}")
     assert p.returncode == 0, "acceptance differs from llama.cpp by more than 2 points"
