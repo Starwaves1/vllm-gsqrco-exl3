@@ -4,6 +4,15 @@ Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark repo
 
 ## Current state (2026-09-30)
 
+Production moved to vLLM main today (0.30.1rc1.dev285 + overlay 2a0fe5e1e1, k=5 MTP schedule, 16 seqs,
+capture 48; `env/prod-main-*`). The CPU-side preparation is done (`cloud/results/vllm-main-compat-cpu.md`).
+The plugin fix for the MTP draft config source now builds the draft from the HF config dir on both
+versions. `.venv-main` is a verified copy of production's venv-main with gguf-py and the Route L plugin
+(`GSQ_VENV=.venv-main`). `tests/cpu` gives 676 passed / 54 xfailed and the plugin CPU tests 87 passed on
+both venvs. The meta dry run under the new argv passes on both, with the draft head on and off. Next,
+on a GPU: switch the harness to main, then smoke, MTP acceptance, 200k fit, re-benchmark against
+production's W4A16 on main, and soak. The numbers below are from 0.27.1.
+
 Route L (llama.cpp b11211 MMVQ/MMQ behind `lcpp_shim.cu`, `VLLM_GGUF_LCPP=1`) is on main with
 phase 3, Integration 1 (opt-p, K1, K2) and Integration 2 (P2, K3, R2): IQ3 weights repacked at load
 and run on owned int8 tensor-core kernels at every row count, owned kernels for Q4_K/IQ2_S at 1..8

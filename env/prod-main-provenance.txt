@@ -1,0 +1,13 @@
+# Production stack on vLLM main, recorded read-only 2026-09-30 (qwen-vllm.service MainPID 348189, started 17:12:10 EDT).
+# Files: prod-main-freeze.txt (uv pip freeze of venv-main/bin/python, 216 pins), prod-main-serve-argv.txt (/proc/<pid>/cmdline).
+# The 0.27.1 files (prod-freeze.txt, prod-serve-argv.txt, gsq-freeze.txt) are kept for the old .venv.
+deploy_repo        ~/qwen38-27b-rtx3090 branch vllm-main e09dee5725b16b3a56abc3a22a7f92ff7c953b52 ("cutover script: edit the drop-in in place instead of installing a snapshot")
+venv               ~/qwen38-27b-rtx3090/venv-main (venv -> venv-main); interpreter venv-main/bin/python, script venv/bin/vllm
+vllm_wheel         vllm 0.30.1rc1.dev285+gd28795f1a from https://wheels.vllm.ai/d28795f1a7af4e3ce2530d4f0bdaec4ecbede693/vllm-0.30.1rc1.dev285%2Bgd28795f1a-cp38-abi3-manylinux_2_28_x86_64.whl
+overlay_base       d28795f1a7af4e3ce2530d4f0bdaec4ecbede693 (upstream main, the wheel's commit; deploy-vllm.sh BASE_REF)
+overlay_commit     2a0fe5e1e1d7199f853012dfededcbb696e3083a on ~/vllm qwen38/main (Starwaves1/vllm), "[KV Offload][Tiering] write-back: keep up to 256 MB of chunk jobs in flight when no reads wait (#7)"; 38 files under vllm/ differ from the base
+overlay_method     scripts/deploy-vllm.sh (copies the vllm/ files that differ from the deployed commit into site-packages); deploy/vllm-deployed-commit = 2a0fe5e1e1
+launcher           single-user/start_qwen_vision.sh -> start_qwen.sh; env from the unit drop-in: MODEL=...TT709-W4A16-AutoRound-fast MAX_SEQS=16 DRAFT_TOKENS=5 SPEC_SCHEDULE=[[1,4,5],[5,8,3],[9,16,2]] CG=48 ASYNC_SCHED=0 PYTHONHASHSEED=0
+launcher_env       VLLM_USE_V2_MODEL_RUNNER=0 (start_qwen.sh default), VLLM_USE_FLASHINFER_SAMPLER=0, PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+flashinfer         flashinfer-python 0.7.0 + flashinfer-jit-cache(-sm80) 0.7.0+cu130 (prebuilt; this host's FlashInfer JIT is broken)
+torch              torch 2.13.0 (cu130), same build as the 0.27.1 venv

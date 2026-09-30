@@ -8,6 +8,7 @@ iterator does torch.tensor(memmap), i.e. materializes each tensor in RAM).
 
 Checks:
   * every one of the 866 GGUF tensors is mapped (851 main + 15 MTP), no unmapped;
+    with the draft head on, output.weight also feeds mtp.draft_lm_head (MTP 16);
   * every non-vision model parameter is reported loaded by load_weights
     (MTP: except embed_tokens/lm_head, which vLLM shares from the target);
   * each stored GGUF tensor's logical shape (rows, cols) equals the vLLM
@@ -15,8 +16,11 @@ Checks:
   * the 48 linear_attn.out_proj layers carry the GDN head-tiling layout.
 
 Guards: tools/no_gpu.py (NVML/libcuda via ctypes blocked), torch CUDA init
-blocked, platform = NonNvmlCudaPlatform stub reporting sm86, gloo world size 1,
-production's syv draft_lm_head patch disabled (MTP_DRAFT_VOCAB=0).
+blocked, platform = NonNvmlCudaPlatform stub reporting sm86, gloo world size 1.
+Engine args follow production's argv (env/prod-main-serve-argv.txt: MTP k=5 with the
+per-batch-size schedule, 16 seqs, cudagraph capture 48) except max_model_len 4096.
+The pruned draft head (hf-config/.../mtp_draft_vocab_ids.pt) is on unless
+MTP_DRAFT_VOCAB=0, as in production's overlay.
 
 Run (3 GB cap, only when MemAvailable >= 11 GB):
   flock /tmp/gsq-heavy.lock systemd-run --user --scope -q -p MemoryMax=3G \
@@ -31,7 +35,8 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import no_gpu  # noqa: E402
 
-os.environ["MTP_DRAFT_VOCAB"] = "0"
+DRAFT_HEAD = os.environ.get("MTP_DRAFT_VOCAB", "1") != "0"
+os.environ.setdefault("VLLM_USE_V2_MODEL_RUNNER", "0")  # as production's launcher
 os.environ.setdefault("VLLM_PLUGINS", "gguf")
 os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
 
@@ -160,10 +165,25 @@ def main():
         args = EngineArgs(
             model=GGUF, hf_config_path=HF_DIR, tokenizer=HF_DIR, skip_tokenizer_init=True,
             limit_mm_per_prompt={"image": 0, "video": 0}, max_model_len=4096,
-            enforce_eager=True, kv_cache_dtype="fp8",
-            speculative_config={"method": "mtp", "num_speculative_tokens": 3},
+            max_num_seqs=16, max_num_batched_tokens=2048, kv_cache_dtype="fp8",
+            mamba_ssm_cache_dtype="float16", async_scheduling=False,
+            enable_prefix_caching=True, mamba_cache_mode="align",
+            long_prefill_token_threshold=128, scheduling_policy="priority",
+            speculative_config={
+                "method": "mtp", "num_speculative_tokens": 5,
+                "draft_sample_method": "probabilistic",
+                "num_speculative_tokens_per_batch_size": [[1, 4, 5], [5, 8, 3], [9, 16, 2]],
+            },
+            compilation_config={"max_cudagraph_capture_size": 48,
+                                "custom_ops": ["+rms_norm", "+silu_and_mul"]},
         )
         vllm_config = args.create_engine_config()
+        spec, draft = vllm_config.speculative_config, vllm_config.speculative_config.draft_model_config
+        cc = vllm_config.compilation_config
+        print(f"spec: k={spec.num_speculative_tokens} schedule={spec.num_speculative_tokens_per_batch_size} "
+              f"max_num_seqs={vllm_config.scheduler_config.max_num_seqs} cudagraph={cc.cudagraph_mode} "
+              f"capture<={cc.max_cudagraph_capture_size}; draft model={draft.model} "
+              f"model_weights={draft.model_weights} draft_head={DRAFT_HEAD}", flush=True)
         vllm_config.device_config.device = torch.device("meta")
         with set_current_vllm_config(vllm_config):
             init_distributed_environment(
@@ -214,7 +234,9 @@ def main():
             loaded = captured.get("loaded") or set()
             # MTP draft: embed_tokens/lm_head are shared from the target after
             # loading (Qwen35MtpGGUFAdapter.extra_unquantized_modules), not loaded.
-            shared = {"lm_head.weight", "model.embed_tokens.weight"} if label == "mtp" else set()
+            # With the draft head on, lm_head is an empty GGUF placeholder.
+            shared = ({"lm_head.weight", "lm_head.weight_type", "model.embed_tokens.weight"}
+                      if label == "mtp" else set())
             missing = sorted(p for p in params - loaded - shared if "visual." not in p)
             layouts = {
                 n: m.quant_method.layout for n, m in model.named_modules()
@@ -245,8 +267,11 @@ def main():
         print(f"GGUF tensors {len(all_names)}; main {len(results['main']['mapped'])} + "
               f"mtp {len(results['mtp']['mapped'])}; overlap {len(overlap)}; unmapped {len(unmapped)} {unmapped[:10]}")
         ok = (
-            len(all_names) == 866 and not unmapped and not overlap
-            and len(results["main"]["mapped"]) == 851 and len(results["mtp"]["mapped"]) == 15
+            len(all_names) == 866 and not unmapped
+            and overlap == ({"output.weight"} if DRAFT_HEAD else set())
+            and len(results["main"]["mapped"]) == 851
+            and len(results["mtp"]["mapped"]) == 15 + DRAFT_HEAD
+            and draft.model == HF_DIR and draft.model_weights == GGUF
             and all(not r["missing"] and not r["shape_errors"] for r in results.values())
             and results["main"]["n_layouts"] == 48 and results["main"]["gdn_ok"]
         )
@@ -315,6 +340,10 @@ def check_shapes(model, GGUFLinearMethod):
             qt = wt.shard_weight_type.get(sid, wt.weight_type) if sid is not None else wt.weight_type
             idx = 0 if sid is None else order.get(sid, sid)
             want_rows = out_sizes[idx]
+            if data.dim() != 2:
+                if name != "lm_head" or data.numel():  # MTP: empty shared placeholder
+                    errors.append((name, sid, tuple(data.shape), qt))
+                continue
             if qt in (0, 1, 30):  # F32, F16, BF16: stored unpacked
                 rows, cols = data.shape[0], data.shape[1]
             else:

@@ -41,11 +41,11 @@ _Avoid_: standard types (that name covers the Q4_0/Q8_0 family too)
 ### The stacks
 
 **Production stack**:
-The live vLLM 0.27.1 install on the RTX 3090 serving `Starw1/Qwen3.8-27B-absolute-heresy-W4A16` (the heresy finetune, W4A16 AutoRound) behind ports 18080/18081. Read-only for this project.
+The live vLLM install on the RTX 3090 (vLLM main 0.30.1rc1.dev285 + overlay 2a0fe5e1e1 since 2026-09-30, `env/prod-main-*`; 0.27.1 before, `env/prod-*`) serving `Starw1/Qwen3.8-27B-absolute-heresy-W4A16` (the heresy finetune, W4A16 AutoRound) behind ports 18080/18081. Read-only for this project.
 _Avoid_: prod model = Swift, base Qwen3.8 W4A16 (both wrong: it is the heresy finetune), production W4A16 when Swift W4A16 is meant
 
 **Isolated venv**:
-This repo's `.venv`: a byte-for-byte copy of the production stack's packages plus gguf-py and the plugin. The only place the plugin exists.
+This repo's `.venv` (0.27.1) or `.venv-main` (vLLM main, `GSQ_VENV=.venv-main`): a byte-for-byte copy of the production stack's packages plus gguf-py and the plugin. The only places the plugin exists.
 _Avoid_: prod venv, gsq venv
 
 **Baseline model**:

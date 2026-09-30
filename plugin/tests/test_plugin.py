@@ -2,6 +2,7 @@
 
 import gc
 import weakref
+from types import SimpleNamespace
 
 import torch
 import vllm.engine.arg_utils as arg_utils_module
@@ -290,6 +291,32 @@ def test_register_sets_engine_args_for_gguf_model(monkeypatch):
     assert captured["model_weights"] == "/tmp/model.gguf"
     assert captured["quantization"] == "gguf"
     assert engine_args.load_format == "gguf"
+
+
+def test_mtp_draft_config_comes_from_hf_config_dir(monkeypatch):
+    register()
+
+    def fake_speculative_config(target_model_config, **kwargs):
+        # vLLM main's MTP branch; 0.27.1 used target_model_config.model only.
+        model = target_model_config.model_weights or target_model_config.model
+        draft = SimpleNamespace(model=model, model_weights="")
+        return SimpleNamespace(method="mtp", draft_model_config=draft)
+
+    monkeypatch.setattr(arg_utils_module, "SpeculativeConfig", fake_speculative_config)
+    engine_args = EngineArgs(
+        model="/tmp/model.gguf",
+        speculative_config={"method": "mtp", "num_speculative_tokens": 3},
+    )
+    engine_args.model_weights = "/tmp/model.gguf"  # set by create_model_config
+    target = SimpleNamespace(model="/tmp/hf-config", model_weights="/tmp/model.gguf")
+
+    config = engine_args.create_speculative_config(
+        target_model_config=target, target_parallel_config=None
+    )
+
+    assert config.draft_model_config.model == "/tmp/hf-config"
+    assert config.draft_model_config.model_weights == "/tmp/model.gguf"
+    assert target.model_weights == "/tmp/model.gguf"
 
 
 def test_register_skips_speculator_probe_for_gguf():
