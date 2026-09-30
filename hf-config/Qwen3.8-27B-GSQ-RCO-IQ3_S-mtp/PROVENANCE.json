@@ -1,0 +1,36 @@
+{
+  "source_repo": "Qwen/Qwen3.8-27B@1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0 (files fetched to source_dir; the repo has no processor_config.json)",
+  "gguf": "ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF@d562806dbafae37109975e970aae91b43e73b440 Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf sha256 58fd826723939933dc86f45b7fe04545cbc2de1c70f6fe2cdd3858c87a98c12f",
+  "draft_ids_note": "Swift's 61,440-id draft list reused (no Base output corpus); ids only limit which tokens the draft head can propose",
+  "source_dir": "/tmp/qwen38-base-src",
+  "chat_template_source": "/home/garrett/models/qwen-sharp/chat_template.jinja",
+  "changes": [
+    "config.json: quantization_config removed; everything else identical",
+    "chat_template.jinja: production's template instead of the source's stock one"
+  ],
+  "sources": {
+    "config.json": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+    "generation_config.json": "e70c136c1b78ddc1fb0905bac8e733a4dc448d4f852a5dd75143fffc70be550e",
+    "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+    "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+    "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+    "video_preprocessor_config.json": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13",
+    "chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "production chat_template.jinja": "d1f22a89eac3609dcfaa7b471b1f7d23bee2f084d275d26f4f8231d1d7908f4e",
+    "hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/mtp_draft_vocab_ids.pt": "21e0de837ac23b3738e807549e57773b27e76596227b4f2e234a65e71882d782"
+  },
+  "outputs": {
+    "chat_template.jinja": "d1f22a89eac3609dcfaa7b471b1f7d23bee2f084d275d26f4f8231d1d7908f4e",
+    "config.json": "7718cd6bf3d6521d5550966d4ab8484fc81a01347d74b7e52163070f35ca7f35",
+    "generation_config.json": "e70c136c1b78ddc1fb0905bac8e733a4dc448d4f852a5dd75143fffc70be550e",
+    "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+    "mtp_draft_vocab_ids.pt": "21e0de837ac23b3738e807549e57773b27e76596227b4f2e234a65e71882d782",
+    "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+    "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "video_preprocessor_config.json": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13",
+    "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+  }
+}

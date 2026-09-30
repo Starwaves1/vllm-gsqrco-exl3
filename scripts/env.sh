@@ -27,7 +27,8 @@ export GSQ_PROD_KV_TIER_ROOT=/mnt/kvcache/tier
 export GSQ_PROD_CHAT_TEMPLATE_SHA256=d1f22a89eac3609dcfaa7b471b1f7d23bee2f084d275d26f4f8231d1d7908f4e
 
 # The model under test and its HF config dir (Phase A item 4).
-export GSQ_MODEL_NAME=Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp
+# GSQ_MODEL_NAME picks another GGUF of the family (its own hf-config/<name>, same checks).
+export GSQ_MODEL_NAME=${GSQ_MODEL_NAME:-Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp}
 export GSQ_GGUF_REPO=ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF
 export GSQ_GGUF_FILE=$GSQ_MODEL_NAME.gguf
 export GSQ_GGUF_SHA256=9aecf1cd41b2cb2f32a74e0d889e33855ebef43b26f43b43feb5720239e677e5
@@ -132,7 +133,8 @@ gsq_load_prod_argv() {
 # Rewrite GSQ_ARGV for a harness server. $1 = model positional; rest = extra args
 # appended at the end. Changes: interpreter/venv, model, --port, --host, --chat-template
 # (same bytes, repo copy), fs tier root/cap in --kv-transfer-config, optional CPU tier
-# size (GSQ_CPU_TIER_BYTES) and --max-model-len (GSQ_MAX_MODEL_LEN). Everything else is production's.
+# size (GSQ_CPU_TIER_BYTES), --max-model-len (GSQ_MAX_MODEL_LEN) and GSQ_NO_MTP=1 (drops
+# --speculative-config). Everything else is production's.
 gsq_rewrite_argv() {
   local model=$1; shift
   local out=("$GSQ_VENV/bin/python" "$GSQ_VENV/bin/vllm" serve "$model")
@@ -144,6 +146,7 @@ gsq_rewrite_argv() {
       --host) out+=(--host "$GSQ_HOST"); i=$((i+2)); continue ;;
       --chat-template) out+=(--chat-template "$GSQ_HF_CONFIG/chat_template.jinja"); i=$((i+2)); continue ;;
       --max-model-len) out+=(--max-model-len "${GSQ_MAX_MODEL_LEN:-$v}"); i=$((i+2)); continue ;;
+      --speculative-config) [ "${GSQ_NO_MTP:-0}" = 1 ] && { i=$((i+2)); continue; } ;;
       --kv-transfer-config)
         local j=$v
         # GSQ_CPU_TIER_BYTES: smaller CPU tier for a box whose /dev/shm can't hold 24 GiB

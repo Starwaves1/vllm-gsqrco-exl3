@@ -90,9 +90,10 @@ def _repo_path(path: Path) -> str:
 def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     config = json.loads((src / "config.json").read_text())
-    config.pop("quantization_config")
+    config.pop("quantization_config", None)  # absent in an unquantized source (base Qwen3.8)
     (out / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-    for name in COPIED:
+    copied = [name for name in COPIED if (src / name).exists()]  # base Qwen3.8 has no processor_config.json
+    for name in copied:
         shutil.copyfile(src / name, out / name)
     shutil.copyfile(template, out / "chat_template.jinja")
     if draft_ids.resolve() != (out / DRAFT_IDS.name).resolve():
@@ -102,10 +103,10 @@ def build(src: Path, template: Path, draft_ids: Path, out: Path) -> None:
         "chat_template_source": str(template),
         "changes": [
             "config.json: quantization_config removed; everything else identical",
-            "chat_template.jinja: production's template instead of Swift's stock one",
+            "chat_template.jinja: production's template instead of the source's stock one",
         ],
         "sources": {
-            name: sha256(src / name) for name in ["config.json", *COPIED, "chat_template.jinja"]
+            name: sha256(src / name) for name in ["config.json", *copied, "chat_template.jinja"]
         }
         | {"production chat_template.jinja": sha256(template), _repo_path(draft_ids): sha256(draft_ids)},
         "outputs": {p.name: sha256(p) for p in sorted(out.iterdir()) if p.name != "PROVENANCE.json"},
