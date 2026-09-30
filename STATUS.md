@@ -15,7 +15,7 @@ on the GPU (0.59 s for all IQ3 at load, was 6.78 s and ~9x per chunk; no host me
 Open against HANDOFF section 2: the absolute logit gate (KLD 0.0249 vs <= 0.001), c=2 decode (0.99x)
 and per-step speed at every c, T=1 MTP acceptance (vLLM draft sampling), the DeepSWE run. Full
 report with the checklist: `cloud/results/REPORT.md`. Production is untouched. Without MTP the GGUF is
-0.95 / 0.92 / 1.00 / 1.17x W4A16 per step at c=1/2/4/8, and ISTA's base GGUF runs at Swift's speed (see "Model matrix").
+0.95 / 0.92 / 1.00 / 1.17-1.18x W4A16 per step at c=1/2/4/8, and ISTA's base GGUF runs at Swift's speed (see "Model matrix").
 
 The remaining sections are dated history ("Model matrix" is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
 
@@ -57,23 +57,27 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
 ## Model matrix: GGUF vs W4A16 vs stock official INT4, with and without MTP (2026-09-30, same 350 W 3090)
 
 Data, scripts, per-run logs: `cloud/results/models/` (summary.txt, table.txt, runs/). Worktree /workspace/wt-models
-(main + 56989a5 / 8ad3e36 / 21ec44e), plugin build = wt-final's b9cdfa5, Route L on. "nomtp" = production's argv
-minus `--speculative-config` (`GSQ_NO_MTP=1`, new in `scripts/env.sh`), nothing else; confirmed one token per
+(main + 56989a5 / 8ad3e36 / 21ec44e), plugin build = wt-final's b9cdfa5, Route L on. "nomtp" = the box harness's
+argv (production's with box tier sizes/paths, as in phase 1b) minus `--speculative-config` (`GSQ_NO_MTP=1`, new in
+`scripts/env.sh`), nothing else; confirmed one token per
 sequence per step (no spec_decode metrics; mean ITL = mean TPOT in every cohort). Decode = pass 2, T=0,
 C*1000/meanTPOT; prefill salted c=1. GB = weight bytes one target forward streams (layers + output head;
 embedding gather, vision tower and MTP block excluded). eff GB/s = GB / ms/step; MTP rows also run 3 draft
 passes per step, so their GB/s is understated.
 
-| row | decode tok/s c=1/2/4/8 | ms/step c=1/2/4/8 | eff GB/s | ms per GB | prefill 8k / 180k | KV tokens | VRAM after load | acceptance | GB/step (+MTP) |
+| row | decode tok/s c=1/2/4/8 | ms/step c=1/2/4/8 | eff GB/s | ms per GB | prefill 8k / 180k | KV tokens | VRAM after load | acceptance | GB/step (+MTP block) |
 |---|---|---|---|---|---|---|---|---|---|
 | Swift GGUF mtp (Integration 2) | 110.3 / 192.7 / 348.1 / 541.3 | 27.9 / 31.6 / 35.7 / 44.2 | 407 / 360 / 318 / 257 | 2.46 / 2.78 / 3.15 / 3.89 | 1248 / 644 | 253,906 | 22,551 MiB | 0.650 | 11.35 (+0.35) |
 | Swift GGUF nomtp | 51.1 / 98.0 / 176.1 / 297.4 | 19.6 / 20.4 / 22.7 / 26.9 | 580 / 556 / 500 / 422 | 1.72 / 1.80 / 2.00 / 2.37 | 1312 / 682 | 285,156 | 22,575 MiB | - | 11.35 |
 | Base GGUF mtp | 104.8 / 186.9 / 333.1 / 528.8 | 28.7 / 32.2 / 36.1 / 45.5 | 395 / 352 / 314 / 249 | 2.53 / 2.84 / 3.18 / 4.01 | 1225 / 645 | 253,906 | 22,549 MiB | 0.628 | 11.35 (+0.35) |
 | Base GGUF nomtp | 51.0 / 97.9 / 175.9 / 299.6 | 19.6 / 20.4 / 22.7 / 26.7 | 579 / 556 / 499 / 425 | 1.73 / 1.80 / 2.00 / 2.35 | 1309 / 680 | 285,937 | 22,575 MiB | - | 11.35 |
-| prod W4A16 mtp (phase 1b) | 94.1 / 194.4 / 345.1 / 505.4 | 27.6 / 27.3 / 30.0 / 41.3 | 480 / 486 / 441 / 321 | 2.08 / 2.06 / 2.27 / 3.12 | 1108 / 603 | 207,812 | n/r | 0.522 (T=default run) | 13.25 (+0.33) |
+| prod W4A16 mtp (phase 1b) | 94.1 / 194.4 / 345.1 / 505.4 | 27.6 / 27.3 / 30.0 / 41.3 | 480 / 486 / 441 / 321 | 2.08 / 2.06 / 2.27 / 3.12 | 1108 / 603 | 207,812 | n/r | 0.522 | 13.25 (+0.33) |
 | prod W4A16 nomtp | 48.6 / 89.8 / 175.4 / 351.0 | 20.6 / 22.3 / 22.8 / 22.8 | 644 / 595 / 581 / 581 | 1.55 / 1.68 / 1.72 / 1.72 | 1133 / 622 | 231,250 | 22,779 MiB | - | 13.25 |
-| Official-INT4-stock-vLLM mtp | does not load: OOM allocating the stock drafter's 2.37 GiB bf16 placeholder (20.12 GiB already allocated) | | | | | | | | 15.14 (+0.85) |
+| Official-INT4-stock-vLLM mtp | does not load (1) | - | - | - | - | - | - | - | 15.14 (+0.85) |
 | Official-INT4-stock-vLLM nomtp | 44.2 / 82.5 / 161.1 / 321.7 | 22.6 / 24.2 / 24.8 / 24.9 | 669 / 624 / 610 / 609 | 1.49 / 1.60 / 1.64 / 1.64 | 1109 / - (max len 136,800) | 136,800 | 22,793 MiB | - | 15.14 |
+
+(1) OOM at weight load: the stock drafter allocates its own 2.37 GiB bf16 lm_head/embedding with 20.12 GiB
+already allocated on the 23.56 GiB card; max-model-len or gpu-util cannot help.
 
 - Official = RedHatAI/Qwen3.8-27B-INT4 (llm-compressor W4A16 g128 sym of Qwen/Qwen3.8-27B, Marlin on sm86,
   native MTP head) on stock vLLM 0.27.1 (/workspace/venv-stock = production's freeze from PyPI, no overlay, no
@@ -82,11 +86,11 @@ passes per step, so their GB/s is understated.
   kernel. Stock deviations from production's argv: no fs KV tier (stock `FileSystemTierManager` rejects
   `max_bytes`), `--max-model-len -1` (200k needs 6.25 GiB KV, 4.31 GiB free; auto-fit 136,800, so no 180k run).
 - **Per step without MTP the GGUF path is faster than production's W4A16 at c=1 (0.95x) and c=2 (0.92x), equal
-  at c=4 (1.00x), and 1.17x slower at c=8.** It streams 14% fewer bytes (11.35 vs 13.25 GB) but 10-27% slower
+  at c=4 (1.00x), and 1.17-1.18x slower at c=8.** It streams 14% fewer bytes (11.35 vs 13.25 GB) but 10-27% slower
   per byte (580 vs 644 GB/s at c=1, 422 vs 581 at c=8). Versus the stock official INT4 (15.14 GB, 669 GB/s at
   c=1, the most bandwidth-efficient path here): 0.87 / 0.84 / 0.92 / 1.08x. With MTP the GGUF loses per step at
-  every c (1.01 / 1.16 / 1.19 / 1.07x, Integration 2): its MTP step (4 rows per sequence) costs 1.42 / 1.55 /
-  1.57 / 1.64x a plain step vs W4A16's 1.34 / 1.22 / 1.32 / 1.81x, so the gap is in the multi-row kernels at
+  every c (1.01 / 1.16 / 1.19 / 1.07x, Integration 2): its MTP step (4 rows per sequence) costs 1.46 / 1.58 /
+  1.59 / 1.70x a plain step (Base, same session) vs W4A16's 1.34 / 1.22 / 1.32 / 1.81x (cross-session), so the gap is in the multi-row kernels at
   c=2/4, not single-row decode; its tok/s lead with MTP comes from acceptance.
 - **Base behaves like Swift.** ISTA's base GGUF (ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF IQ3_S-mtp, sha256 = HF LFS
   oid) has the same 866 tensors with identical per-tensor types and bytes (Swift reused ISTA's allocation
@@ -99,8 +103,8 @@ passes per step, so their GB/s is understated.
   derives it from `full_attention_interval` as llama.cpp does, and `build` accepts an unquantized source without
   `processor_config.json`. `hf-config/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp` is a new dir (KV-tier namespace rule),
   selected with `GSQ_MODEL_NAME` (now overridable in `scripts/env.sh`); 35 verify checks pass.
-- Swift nomtp was run twice: the first run's pass 2 was 5% low at c=4/8 against its own pass 1 (clocks equal,
-  cause unknown); the rerun matches Base and is the one in the table.
+- Swift nomtp was run twice: a transient ~5% dip hit one pass-2 cohort set in each run (run 1's T=0 at c=4/8,
+  the rerun's T=default), none of Base's; clocks equal, cause unknown. The table uses the rerun's clean T=0 cohorts.
 - Box: 05:22-09:50 UTC, 8 gpuq jobs = 4.2 GPU-hours (the 24 h soak had been stopped to free the GPU).
 
 ## Final phase: bounded IQ3 repack, 24 h soak, benchmark report (2026-09-30, same 350 W 3090)

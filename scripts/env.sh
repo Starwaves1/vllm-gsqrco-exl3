@@ -27,11 +27,12 @@ export GSQ_PROD_KV_TIER_ROOT=/mnt/kvcache/tier
 export GSQ_PROD_CHAT_TEMPLATE_SHA256=d1f22a89eac3609dcfaa7b471b1f7d23bee2f084d275d26f4f8231d1d7908f4e
 
 # The model under test and its HF config dir (Phase A item 4).
-# GSQ_MODEL_NAME picks another GGUF of the family (its own hf-config/<name>, same checks).
+# GSQ_MODEL_NAME picks another GGUF of the family (its own hf-config/<name>); set GSQ_GGUF_REPO and
+# GSQ_GGUF_SHA256 with it for cloud/bootstrap.sh's download.
 export GSQ_MODEL_NAME=${GSQ_MODEL_NAME:-Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp}
-export GSQ_GGUF_REPO=ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF
+export GSQ_GGUF_REPO=${GSQ_GGUF_REPO:-ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF}
 export GSQ_GGUF_FILE=$GSQ_MODEL_NAME.gguf
-export GSQ_GGUF_SHA256=9aecf1cd41b2cb2f32a74e0d889e33855ebef43b26f43b43feb5720239e677e5
+export GSQ_GGUF_SHA256=${GSQ_GGUF_SHA256:-9aecf1cd41b2cb2f32a74e0d889e33855ebef43b26f43b43feb5720239e677e5}
 if [ -z "${GSQ_GGUF:-}" ]; then
   for _g in "$GSQ_ROOT/models/$GSQ_GGUF_FILE" \
             "$GSQ_PROD_REPO/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF/$GSQ_GGUF_FILE"; do

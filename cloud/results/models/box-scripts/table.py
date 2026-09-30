@@ -19,7 +19,7 @@ CITED = {  # measured earlier, same box / power limit
     "swift-mtp": dict(src="Integration 2 (4cbd091)", tps=[110.3, 192.7, 348.1, 541.3], ts=[3.08, 3.04, 3.11, 2.99],
                       pf={8192: 1248, 180000: 644}, kv=253906, vram="22551 MiB", acc="0.650", mml=200000),
     "w4a16-mtp": dict(src="phase 1b", tps=[94.1, 194.4, 345.1, 505.4], ts=[2.60, 2.65, 2.59, 2.61],
-                      pf={8192: 1108, 180000: 603}, kv=207812, vram="n/r", acc="0.522 (T=default run)", mml=200000),
+                      pf={8192: 1108, 180000: 603}, kv=207812, vram="n/r", acc="0.522", mml=200000),
 }
 CS = [1, 2, 4, 8]
 
@@ -70,10 +70,10 @@ for model, spec, r in rows:
           f"{' / '.join(f(x) for x in ms):26s} {' / '.join(f(None if x is None else g / x * 1000, 0) for x in ms):24s} "
           f"{' / '.join(f(None if x is None else x / g, 2) for x in ms):22s}")
 print()
-print(f"{'row':28s} {'prefill 8k':>10s} {'180k':>6s} {'KV tokens':>10s} {'max len':>8s} {'VRAM':>10s} {'acceptance':>12s} {'GB/step (+MTP)':>16s}  source")
+print(f"{'row':28s} {'prefill 8k':>10s} {'180k':>6s} {'KV tokens':>10s} {'max len':>8s} {'VRAM':>10s} {'acceptance':>12s} {'GB/step (+MTP block)':>22s}  source")
 for model, spec, r in rows:
     print(f"{NAME[model] + ' ' + spec:28s} {r['pf'].get(8192, '-'):>10} {r['pf'].get(180000, '-'):>6} {r['kv'] or '-':>10} "
-          f"{r['mml'] or '-':>8} {r['vram']:>10} {r['acc']:>12} {f'{GB[model]:.2f} (+{MTPGB[model]:.2f})':>16s}  {r['src']}")
+          f"{r['mml'] or '-':>8} {r['vram']:>10} {r['acc']:>12} {f'{GB[model]:.2f} (+{MTPGB[model]:.2f})':>22s}  {r['src']}")
 print()
 ref = {(m, s): r for m, s, r in rows}
 def per_step(key):
