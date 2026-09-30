@@ -1,6 +1,6 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: Integration 2 (Integration 1 + P2 + K3 + R2 on main): decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 2" below.
+Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); 24 h soak: see "Final phase".
 
 ## Current state (2026-09-30)
 
@@ -10,7 +10,11 @@ and run on owned int8 tensor-core kernels at every row count, owned kernels for 
 rows and Q4_K/IQ4_XS/IQ2_S at 9..32, IQ1_M on MMVQ, one q8_1 quantize per fused layer. Measured on a
 rented 350 W 3090: decode 1.17 / 0.99 / 1.01 / 1.07x the production W4A16 baseline at c=1/2/4/8 in
 tok/s, but per engine step still 1.01-1.19x slower (the tok/s lead is MTP acceptance); prefill
-1.07-1.13x (see "Integration 2"). Production is untouched.
+1.07-1.13x (see "Integration 2"). The IQ3 repack now runs with scratch bounded to min(tensor, 64 MiB)
+on the GPU (0.59 s for all IQ3 at load, was 6.78 s and ~9x per chunk; no host memory either way).
+Open against HANDOFF section 2: the absolute logit gate (KLD 0.0249 vs <= 0.001), c=2 decode (0.99x)
+and per-step speed at every c, T=1 MTP acceptance (vLLM draft sampling), the DeepSWE run. Full
+report with the checklist: `cloud/results/REPORT.md`. Production is untouched.
 
 The remaining sections are dated history ("Integration 2", then "Integration 1", is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
 
@@ -48,6 +52,34 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
 - Box-only gotcha: a stopped vLLM leaves its CPU-tier mmap (`/dev/shm/vllm_offload_*.mmap`)
   behind; with a 15 GB /dev/shm the next start fails with EFAULT in
   `shared_offload_region.py`. Clear it between runs when no vLLM is running.
+
+## Final phase: bounded IQ3 repack, 24 h soak, benchmark report (2026-09-30, same 350 W 3090)
+
+Box worktree /workspace/wt-final = main (`b9cdfa5` for every box job), built in place. Scripts and
+data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
+
+- Repack (`iq3_pack.py`): the old pack widened to int32/int64 and built its output by `torch.cat`
+  of permuted copies (~35x its input). The load path (`pack_`, 256 rows per step, on the GPU weight)
+  peaked at 9.16x the tensor on 1024-row tensors; the tests' whole-tensor `pack()` at 36.7x
+  (1.31 GiB). Now uint8, strided reads into one output buffer, tile groups sized so scratch <=
+  min(tensor, 64 MiB): measured 0.99x max over all 222 IQ3 tensors, 0.59 s total (was 6.78 s),
+  bytes identical to the old pack on every tensor (`pack/packmem-cuda.txt`). New GPU test
+  `test_iq3_pack_inplace_peak` enforces the bound. Parity -k "pack or packed or iq3" 2664 pass / 104
+  skip / 0 fail; CPU pack + routing + guards 259 pass.
+- Host memory at load (server session, sampled every 0.5 s, `pack/loadrss-*`): the pack never touches
+  it (weights are on the GPU). Peak RSS / RssAnon in the model-loading window 17.5 / 5.2 GB before,
+  15.8 / 4.0 GB after, both from one ~2 s transient ~68 s into the load (GGUF file pages + <= 1.3 GB
+  anon), identical in shape in both runs; otherwise 4-5 GB (anon 3-4). "Model loading took" 129.6 ->
+  124.7 s. After load the session holds ~31 GiB, mostly the CPU KV tier (13 GiB here, 24 GiB in
+  production's argv) and page cache.
+- Soak harness fixes: gpuq stores a job as `"$*"`, so `bash -c "source box-env.sh; ..."` loses its
+  quoting and the first launch ran without box-env (fs tier root refused); the shared venv's editable
+  install imports /workspace/gsq-vllm/plugin (an old build) unless PYTHONPATH points at the worktree.
+  Both handled by `final/box-scripts/soak.sh`; the engine's maps show wt-final's `.so`.
+  `soak_load.py` counted reasoning-only answers (max_tokens 16 ends inside the thinking; vLLM returns
+  content None, tokens in message.reasoning) as bad_output: fixed in `cf8fbde` after the soak started
+  (the running load generator keeps the old check; its records are reclassified in the soak summary).
+- Soak: in progress (see below when done).
 
 ## Integration 2: P2 + K3 + R2 merged (2026-09-30, same 350 W 3090)
 
