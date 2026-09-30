@@ -853,6 +853,31 @@ def test_iq3_pack_roundtrip(tensors_by_type, name):
     print(f"\n{name}: {len(ts)} tensors, {blocks} blocks round-trip")
 
 
+@pytest.mark.parametrize("name", IQ3_TYPES)
+def test_iq3_pack_inplace_peak(tensors_by_type, name):
+    """pack_ (the load path) on the type's smallest and largest tensor: equals pack, and its
+    scratch on the GPU is at most min(tensor bytes, CHUNK_BYTES) (peak <= 2x the tensor)."""
+    import gguf
+    import numpy as np
+    import torch
+
+    from vllm_gguf_plugin.quantization import iq3_pack
+
+    qt = int(gguf.GGMLQuantizationType[name])
+    ts = tensors_by_type.get(name) or pytest.skip(f"{name} not in this GGUF")
+    for t in (min(ts, key=lambda t: t.data.size), max(ts, key=lambda t: t.data.size)):
+        w = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+        ref = iq3_pack.pack(w, qt)
+        torch.cuda.synchronize()
+        base = torch.cuda.memory_allocated()
+        torch.cuda.reset_peak_memory_stats()
+        iq3_pack.pack_(w, qt)
+        torch.cuda.synchronize()
+        scratch = torch.cuda.max_memory_allocated() - base
+        assert scratch <= min(w.numel(), iq3_pack.CHUNK_BYTES), (t.name, scratch, w.numel())
+        assert torch.equal(w, ref)
+
+
 @pytest.mark.parametrize("shape", ["real", "k_tail", "k_min", "few_rows", "many_tiles"])
 @pytest.mark.parametrize("dtype", ["bfloat16", "float16", "float32"])
 @pytest.mark.parametrize("n", PACKED_TOKENS)

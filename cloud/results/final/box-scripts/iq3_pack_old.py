@@ -34,7 +34,6 @@ from gguf import GGML_QUANT_SIZES
 from gguf import GGMLQuantizationType as WeightType
 
 ROWS = 16  # rows per tile (the mma's M)
-CHUNK_BYTES = 64 << 20  # pack_'s scratch cap
 
 # IQ3_S: where X5..X7 (row g+8, slice pairs 1..3) live in H0..H4's top 3 bits, as
 # (x, bit offset in x, h, bit offset in h's byte, width)
@@ -63,6 +62,14 @@ def _xxs_decode(b: torch.Tensor) -> torch.Tensor:
     return (b & 7) | (e3 << 3) | (b & 0x70)
 
 
+def _tiles(w: torch.Tensor, bsize: int) -> torch.Tensor:
+    rows, rb = w.shape
+    nb = rb // bsize
+    assert w.dtype == torch.uint8 and rows % ROWS == 0 and rb == nb * bsize, (w.shape, w.dtype)
+    # [tile, block, row (R, g), byte]
+    return w.view(rows // ROWS, ROWS, nb, bsize).permute(0, 2, 1, 3).reshape(-1, 2, 8, bsize)
+
+
 def _lanes(v: torch.Tensor) -> torch.Tensor:
     """[N, R2, G8, S8, W8] per-word values -> [N, lane32, R2, 16] with byte 2s+e = word 2t+e."""
     n = v.shape[0]
@@ -70,71 +77,45 @@ def _lanes(v: torch.Tensor) -> torch.Tensor:
     return v.permute(0, 2, 4, 1, 3, 5).reshape(n, 32, 2, 16)
 
 
-def _pack_tiles(w: torch.Tensor, weight_type: WeightType) -> torch.Tensor:
-    """pack() on whole tiles, in uint8. Reads strided views of w and writes each part of a
-    tile-block straight into the output: scratch is the output plus about 1.2x w's bytes of
-    per-word temporaries (IQ3_S's 5-bit words, IQ3_XXS's sign words)."""
+def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
+    """[rows, row_bytes] uint8 GGUF blocks (rows % 16 == 0) -> the packed bytes, same shape."""
+    weight_type = WeightType(weight_type)
+    assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
     bsize = GGML_QUANT_SIZES[weight_type][1]
     rows, rb = w.shape
-    nb = rb // bsize
-    assert w.dtype == torch.uint8 and rows % ROWS == 0 and rb == nb * bsize, (w.shape, w.dtype)
-    lead = (rows // ROWS, nb)                        # tile, block
-    b = w.view(rows // ROWS, 2, 8, nb, bsize).permute(0, 3, 1, 2, 4)  # view: tile, block, R, G, bytes
-    n = lead[0] * nb
-    out = torch.empty_like(w)
-    o = out.view(*lead, ROWS * bsize)                # tile t's bytes, block j at j * 16 * bsize
-    fb = 1664 if weight_type == WeightType.IQ3_S else 1472
-    # grid-index bytes: [R, lane (G, T), byte (S, E)] from word 2T+E of slice S
-    q = b[..., 2:66].reshape(*lead, 2, 8, 8, 4, 2)   # R G S T E
-    o[..., :1024].view(*lead, 2, 8, 4, 8, 2).copy_(q.permute(0, 1, 2, 3, 5, 4, 6))
-    o[..., fb + 64:].view(*lead, 8, 2, 2).copy_(b[..., 0:2].transpose(2, 3))  # d per g: rows g, g+8
-    u8 = dict(dtype=torch.uint8, device=w.device)
+    b = _tiles(w, bsize).int()                      # N, R, G, bytes
+    n = b.shape[0]
+    d = b[..., 0:2]
     if weight_type == WeightType.IQ3_S:
-        o[..., fb:fb + 64].view(*lead, 8, 2, 4).copy_(b[..., 106:110].transpose(2, 3))
-        # elementwise results keep b's permuted strides: reshape (not view) to N
-        hn = (b[..., 74:106].reshape(*lead, 2, 8, 8, 4, 1) >> torch.tensor([0, 4], **u8)).reshape(n, 2, 8, 8, 8)
-        hn &= 0xF                                    # N R G S W: sign nibble
-        hn |= ((b[..., 66:74].reshape(*lead, 2, 8, 8, 1) >> torch.arange(8, **u8)) & 1).reshape(n, 2, 8, 8, 8) << 4
-        x = _lanes(hn).reshape(n, 32, 8, 4)          # X_i byte j, i = 4R + c
-        del hn
+        q = b[..., 2:66].reshape(n, 2, 8, 8, 8)
+        qh = b[..., 66:74].reshape(n, 2, 8, 8, 1)
+        signs = b[..., 74:106].reshape(n, 2, 8, 8, 4, 1)
+        sc = b[..., 106:110]
+        wbit = torch.arange(8, device=w.device)
+        nib = ((signs >> (4 * torch.arange(2, device=w.device))) & 0xF).reshape(n, 2, 8, 8, 8)
+        hn = nib | ((qh >> wbit) & 1) << 4          # N R G S W: 5 bits
+        x = _lanes(hn).reshape(n, 32, 2, 4, 4).reshape(n, 32, 8, 4)  # X_i byte j, i = 4R + c
         h = x[:, :, :5].clone()
         for xi, xo, hi, ho, width in _S_HI:
             h[:, :, hi] |= ((x[:, :, xi] >> xo) & ((1 << width) - 1)) << ho
-        o[..., 1024:1536].view(n, 32, 4, 4).copy_(h[:, :, :4])
-        o[..., 1536:1664].view(n, 32, 4).copy_(h[:, :, 4])
+        frag = [h[:, :, :4].reshape(n, 32 * 16), h[:, :, 4].reshape(n, 32 * 4)]
     else:
-        aux = b[..., 66:98].reshape(*lead, 2, 8, 8, 4).contiguous().view(torch.int32)[..., 0]  # R G S, LE
-        sc4 = ((aux >> 28) & 0xF).to(torch.uint8)
-        o[..., fb:fb + 64].view(*lead, 8, 2, 4).copy_((sc4[..., 0::2] | sc4[..., 1::2] << 4).transpose(2, 3))
-        raw = torch.stack([((aux >> 7 * i) & 0x7F).to(torch.uint8) for i in range(4)], -1)  # R G S T
-        del aux, sc4
-        bb = _xxs_recode(raw).reshape(n, 2, 8, 8, 4).permute(0, 2, 4, 1, 3).reshape(n, 32, 16)  # lane, (R, S)
-        del raw
-        sp = bb[:, :, 14].short() | bb[:, :, 15].short() << 7  # B3 bytes 2, 3 -> bit 7 of bytes 0..13
-        lo = bb[:, :, :14] | ((sp.unsqueeze(-1) >> torch.arange(14, dtype=torch.int16, device=w.device)) & 1).to(torch.uint8) << 7
-        o[..., 1024:1280].view(n, 32, 8).copy_(lo[:, :, 0:8])
-        o[..., 1280:1408].view(n, 32, 4).copy_(lo[:, :, 8:12])
-        o[..., 1408:1472].view(n, 32, 2).copy_(lo[:, :, 12:14])
-    return out
-
-
-def pack_(w: torch.Tensor, weight_type: int) -> None:
-    """pack() in place, a group of whole tiles at a time: the peak is w plus at most
-    min(w's bytes, CHUNK_BYTES) of scratch (_pack_tiles needs about 2.2x its chunk)."""
-    weight_type = WeightType(weight_type)
-    assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
-    rows, rb = w.shape
-    assert rows % ROWS == 0, w.shape
-    step = ROWS * max(1, min(CHUNK_BYTES, w.numel()) // (3 * ROWS * rb))
-    for r0 in range(0, rows, step):
-        w[r0:r0 + step].copy_(_pack_tiles(w[r0:r0 + step], weight_type))
-
-
-def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
-    """[rows, row_bytes] uint8 GGUF blocks (rows % 16 == 0) -> the packed bytes, same shape."""
-    p = w.clone()
-    pack_(p, weight_type)
-    return p
+        q = b[..., 2:66].reshape(n, 2, 8, 8, 8)
+        aux = b[..., 66:98].reshape(n, 2, 8, 8, 4)
+        aux = aux[..., 0] | aux[..., 1] << 8 | aux[..., 2] << 16 | aux[..., 3] << 24  # N R G S
+        raw = (aux.unsqueeze(-1) >> (7 * torch.arange(4, device=w.device))) & 0x7F     # N R G S T
+        sc4 = (aux >> 28) & 0xF
+        sc = torch.stack([sc4[..., 2 * i] | sc4[..., 2 * i + 1] << 4 for i in range(4)], -1)
+        bb = _xxs_recode(raw).permute(0, 2, 4, 1, 3).reshape(n, 32, 16)  # lane, (R, S)
+        sp = bb[:, :, 14] | bb[:, :, 15] << 7        # B3 bytes 2, 3 -> bit 7 of bytes 0..13
+        lo = bb[:, :, :14] | ((sp.unsqueeze(-1) >> torch.arange(14, device=w.device)) & 1) << 7
+        frag = [lo[:, :, 0:8].reshape(n, 256), lo[:, :, 8:12].reshape(n, 128), lo[:, :, 12:14].reshape(n, 64)]
+    qb = _lanes(q)                                   # N lane R 16
+    out = torch.cat(
+        [qb[:, :, 0].reshape(n, 512), qb[:, :, 1].reshape(n, 512)] + frag
+        + [sc.permute(0, 2, 1, 3).reshape(n, 64), d.permute(0, 2, 1, 3).reshape(n, 32)], dim=1)
+    assert out.shape[1] == ROWS * bsize
+    return out.to(torch.uint8).view(rows, rb)
 
 
 def unpack(p: torch.Tensor, weight_type: int) -> torch.Tensor:
@@ -178,3 +159,9 @@ def unpack(p: torch.Tensor, weight_type: int) -> torch.Tensor:
     blocks = torch.cat([d] + body, -1)               # N R G bsize
     return (blocks.reshape(rows // ROWS, nb, ROWS, bsize).permute(0, 2, 1, 3)
             .reshape(rows, rb).to(torch.uint8))
+
+
+def pack_(w: torch.Tensor, weight_type: int) -> None:
+    """pack() in place, 16 tiles at a time (bounded scratch while loading)."""
+    for r0 in range(0, w.shape[0], 256):
+        w[r0:r0 + 256] = pack(w[r0:r0 + 256], weight_type)
