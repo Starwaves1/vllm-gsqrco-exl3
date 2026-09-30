@@ -13,7 +13,10 @@ case $MODEL in
   swift) KIND=gsq ;;
   base) KIND=gsq; export GSQ_MODEL_NAME=Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp GSQ_GGUF=/workspace/models/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf ;;
   w4a16) KIND=baseline ;;
-  official) KIND=baseline; export GSQ_VENV=/workspace/venv-stock GSQ_BASELINE_MODEL=/workspace/models/RedHatAI-Qwen3.8-27B-INT4 ;;
+  # stock vLLM: the fs KV tier takes no max_bytes (overlay-only) -> CPU tier only; 200k does not fit
+  # (attempt 1: 6.25 GiB KV needed, 4.31 GiB free) -> --max-model-len -1 (auto-fit)
+  official) KIND=baseline; export GSQ_VENV=/workspace/venv-stock GSQ_BASELINE_MODEL=/workspace/models/RedHatAI-Qwen3.8-27B-INT4 \
+              GSQ_KV_FS_TIER=0 GSQ_MAX_MODEL_LEN=-1 ;;
   *) echo "bad config $CFG"; exit 2 ;;
 esac
 case $SPEC in mtp) ;; nomtp) export GSQ_NO_MTP=1 ;; *) echo "bad config $CFG"; exit 2 ;; esac
