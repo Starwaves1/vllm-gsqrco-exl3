@@ -1,0 +1,25 @@
+EOS-first empty completion, soak 20260930-100520, request #80 (plan order): long_hit /v1/completions, 16404 prompt tokens, T=1 top_p 0.95 top_k 20, max_tokens 32, priority 6
+logged: finish stop, completion_tokens 1, latency 0.67 s (t=1790763922, 10:25:22 UTC)
+
+Rebuilt by replaying soak_load's Plan (validated: 200 records, kinds and 53 long-prompt lengths match) and resent once with logprobs=5 (soak_eos.py --resend 0):
+prompt tail: ' pre-class code.\n# ----...\n\n\nclass UnquantizedMoEKernelOracle(MoE\n# follow-up 05aab281: what does the code above do?\n'
+resend: finish length, 32 tokens, text '# follow-up a8043479: is it complete?\n\nTwo commits: 28d3e38b181'
+first-token top-5 logprobs: '#' -0.431, '\n\n' -3.118, 'follow' -3.243, '0' -3.681, '<|im_end|>' -3.931 (p = 0.020)
+
+Reading: EOS is a 2% first-token candidate inside the T=1 nucleus of this raw-completion prompt, so ~2% EOS-first per such request is expected sampling, not a fault.
+
+Server log lines at 10:25:22 (no per-request lines at default log level):
+468:(APIServer pid=1056675) INFO 09-30 10:25:22 [loggers.py:310] Engine 000: Avg prompt throughput: 171.4 tokens/s, Avg generation throughput: 146.0 tokens/s, Running: 1 reqs, Waiting: 0 reqs, GPU KV cache usage: 4.3%, Prefix cache hit rate: 19.7%, External pr
+469:(APIServer pid=1056675) INFO 09-30 10:25:22 [metrics.py:120] SpecDecoding metrics: Mean acceptance length: 2.85, Accepted throughput: 94.79 tokens/s, Drafted throughput: 153.59 tokens/s, Accepted: 948 tokens, Drafted: 1536 tokens, Per-position acceptance r
+470:(APIServer pid=1056675) INFO 09-30 10:25:22 [metrics.py:103] KV Transfer metrics: vllm:kv_offload_cpu_cache_usage_perc=0.0, vllm:kv_offload_cpu_cache_write_usage_perc=0.0, vllm:kv_offload_cpu_cache_read_usage_perc=0.0, vllm:kv_offload_fs_cache_bytes=163663
+
+Second case, hit vs miss (soak_eos.py --resend 1 --hit-vs-miss; 10:52 UTC, 4 EOS-first of 72 long_hit so far):
+request #1 of the EOS list: long_hit, 32787 prompt tokens, T=1, max_tokens 256, priority 2; prompt tail
+'...final_size = config.image_size\n       \n# follow-up 26effda7: what does the code above do?\n'
+first-token top-5 logprobs, T=0, max_tokens 1:
+  prefix-cache hit        '#' -0.817  '<|im_end|>' -1.692  '\n\n' -3.067  '\n' -3.442  'Answer' -3.942
+  miss (cache_salt)       '#' -0.900  '<|im_end|>' -1.525  '\n\n' -3.087  '\n' -3.650  'Answer' -3.900
+  hit again               '#' -0.822  '<|im_end|>' -1.697  '\n\n' -2.947  '\n' -3.322  'Answer' -3.947
+EOS is the second candidate (p 0.18 on a hit, 0.22 on a miss) on this raw-completion prompt, same ranking with and
+without the prefix cache (the ~0.1-0.2 nat spread matches the hit-to-hit spread of '\n\n'). EOS-first on long_hit is
+the model's distribution for these "follow-up" prompts at T=1, not a prefix-cache fault.

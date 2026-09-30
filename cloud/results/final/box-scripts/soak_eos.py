@@ -16,6 +16,7 @@ ap.add_argument("--resend", type=int)
 ap.add_argument("--url", default="http://127.0.0.1:18090")
 ap.add_argument("--key", default="gsq-local-test")
 ap.add_argument("--seed", type=int, default=20260927)
+ap.add_argument("--hit-vs-miss", action="store_true", help="resend twice at T=0: as is (prefix-cache hit) and with a cache_salt (miss)")
 a = ap.parse_args()
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "bench"))
 import soak_load  # noqa: E402
@@ -41,8 +42,20 @@ print("rebuilt:", q["kind"], q["path"], "prompt tokens", len(body.get("prompt", 
 tail = plan.tok.decode(body["prompt"][-40:]) if "prompt" in body else ""
 print("prompt tail:", repr(tail))
 h = {"Authorization": f"Bearer {a.key}", "Content-Type": "application/json"}
-d = json.loads(urllib.request.urlopen(urllib.request.Request(a.url + q["path"], json.dumps(body).encode(), h), timeout=3600).read())
-c = d["choices"][0]
-lp = c.get("logprobs") or {}
-print("resend: finish", c.get("finish_reason"), "usage", d["usage"], "text", repr((c.get("text") or "")[:200]))
-print("first-token top-5:", (lp.get("top_logprobs") or [None])[0])
+
+
+def send(b):
+    d = json.loads(urllib.request.urlopen(urllib.request.Request(a.url + q["path"], json.dumps(b).encode(), h), timeout=3600).read())
+    c = d["choices"][0]
+    lp = c.get("logprobs") or {}
+    return c.get("finish_reason"), d["usage"], (c.get("text") or "")[:200], (lp.get("top_logprobs") or [None])[0]
+
+
+runs = [("resend", body)]
+if a.hit_vs_miss:
+    g = dict(body, temperature=0.0, max_tokens=1)
+    runs = [("T=0 hit", g), ("T=0 miss (cache_salt)", dict(g, cache_salt="soak-eos-miss")), ("T=0 hit again", g)]
+for name, b in runs:
+    fin, usage, text, top = send(b)
+    print(f"{name}: finish {fin} usage {usage} text {text!r}")
+    print(f"  first-token top-5: {top}")
