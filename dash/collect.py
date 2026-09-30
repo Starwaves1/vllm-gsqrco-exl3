@@ -3,8 +3,10 @@
 import json, os, subprocess, time
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-SSH = ["ssh", "-p", "40262", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-       "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@24.196.244.156"]
+import json as _json, os as _os
+_BOX = _json.load(open(_os.path.join(_os.path.dirname(__file__), "data", "box.json")))  # {"host":..., "port":...}; gitignored
+SSH = ["ssh", "-p", str(_BOX["port"]), "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+       "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@" + _BOX["host"]]
 Q = "/workspace/gpuq"
 REMOTE = f"""
 echo @@dash:gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
