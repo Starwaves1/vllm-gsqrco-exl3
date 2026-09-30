@@ -1,0 +1,7 @@
+/workspace/wt-final/cloud/results/final/box-scripts/packmem.py:30: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  src = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+222 IQ3 tensors, 5453 MiB, new == old bytes on every tensor
+old: pack_ total 6.78 s; max scratch 9.164x tensor (('blk.3.attn_k.weight', 'IQ3_S', (1024, 2200), 2.1))
+new: pack_ total 0.59 s; max scratch 0.986x tensor (('blk.1.attn_gate.weight', 'IQ3_XXS', (6144, 1960), 11.5))
+old: whole-tensor pack() on blk.1.ffn_down.weight (36.5 MiB): peak above input 1339 MiB = 36.65x
+new: whole-tensor pack() on blk.1.ffn_down.weight (36.5 MiB): peak above input 70 MiB = 1.91x

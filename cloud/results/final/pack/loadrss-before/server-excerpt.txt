@@ -1,0 +1,4 @@
+(EngineCore pid=944702) INFO 09-30 03:55:41 [gpu_model_runner.py:5358] Starting to load model /workspace/wt-int2/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp...
+(EngineCore pid=944702) INFO 09-30 03:57:51 [gpu_model_runner.py:5455] Model loading took 12.45 GiB memory and 129.635328 seconds
+(EngineCore pid=944702) INFO 09-30 03:58:22 [kv_cache_utils.py:2389] GPU KV cache size: 253,125 tokens
+(EngineCore pid=944702) INFO 09-30 03:58:33 [core.py:348] init engine (profile, create kv cache, warmup model) took 41.92 s (compilation: 21.84 s)

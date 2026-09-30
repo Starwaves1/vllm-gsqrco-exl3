@@ -72,7 +72,7 @@ def _lanes(v: torch.Tensor) -> torch.Tensor:
 
 def _pack_tiles(w: torch.Tensor, weight_type: WeightType) -> torch.Tensor:
     """pack() on whole tiles, in uint8. Reads strided views of w and writes each part of a
-    tile-block straight into the output: scratch is the output plus about 1.2x w's bytes of
+    tile-block straight into the output: scratch is the output plus up to ~2x w's bytes of
     per-word temporaries (IQ3_S's 5-bit words, IQ3_XXS's sign words)."""
     bsize = GGML_QUANT_SIZES[weight_type][1]
     rows, rb = w.shape
@@ -120,7 +120,8 @@ def _pack_tiles(w: torch.Tensor, weight_type: WeightType) -> torch.Tensor:
 
 def pack_(w: torch.Tensor, weight_type: int) -> None:
     """pack() in place, a group of whole tiles at a time: the peak is w plus at most
-    min(w's bytes, CHUNK_BYTES) of scratch (_pack_tiles needs about 2.2x its chunk)."""
+    min(w's bytes, CHUNK_BYTES) of scratch (_pack_tiles needs up to ~3x its chunk: 2.96x measured
+    on IQ3_XXS, less on IQ3_S; linear in the chunk, so the same for every shape)."""
     weight_type = WeightType(weight_type)
     assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
     rows, rb = w.shape
