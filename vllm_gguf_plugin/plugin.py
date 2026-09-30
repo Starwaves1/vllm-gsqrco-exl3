@@ -81,19 +81,27 @@ def _patch_engine_args() -> None:
     original_create_speculative_config = EngineArgs.create_speculative_config
 
     @wraps(original_create_speculative_config)
-    def create_speculative_config(self, *args, **kwargs):
+    def create_speculative_config(self, target_model_config, *args, **kwargs):
         configured_model = getattr(self, "spec_model", None)
         if self.speculative_config is not None:
             configured_model = configured_model or self.speculative_config.get("model")
 
-        config = original_create_speculative_config(self, *args, **kwargs)
+        # Newer vLLM builds the MTP draft from the target's model_weights (the
+        # .gguf, with no config.json beside it) when it is set; older versions
+        # used model (the HF config source). Blank model_weights meanwhile so
+        # both take the config source.
         gguf_model = self.model_weights
-        if (
-            config is not None
-            and config.method == "mtp"
-            and configured_model is None
-            and _is_gguf_reference(gguf_model)
-        ):
+        gguf_draft = configured_model is None and _is_gguf_reference(gguf_model)
+        target_weights = target_model_config.model_weights
+        if gguf_draft:
+            target_model_config.model_weights = ""
+        try:
+            config = original_create_speculative_config(
+                self, target_model_config, *args, **kwargs
+            )
+        finally:
+            target_model_config.model_weights = target_weights
+        if gguf_draft and config is not None and config.method == "mtp":
             config.draft_model_config.model_weights = gguf_model
         return config
 
