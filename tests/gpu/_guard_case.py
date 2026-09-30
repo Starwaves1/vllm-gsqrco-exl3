@@ -18,7 +18,7 @@ gguf_kernel.cu:98,118-285 per STATUS):
   k_mismatch       X has fewer columns than W's rows hold (reads past X)
   x_rowstride      X is x[:, :k] of a wider buffer (row stride > k, unit inner stride)
   graph_replay     capture the op in a CUDA graph, replay with new X contents, compare
-  x_q8_short       pre-quantized X (x_q8, the 1..8-row lcpp ops only) one byte short
+  x_q8_short       pre-quantized X (x_q8, the q8_1-reading lcpp ops only) one byte short
   x_q8_misaligned  x_q8 starts 1 byte into its storage
   x_q8_dtype, x_q8_2d, x_q8_strided, x_q8_cpu   x_q8 as int8, 2-D, stride 2, on the CPU
 """
