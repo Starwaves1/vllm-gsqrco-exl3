@@ -23,3 +23,16 @@ first-token top-5 logprobs, T=0, max_tokens 1:
 EOS is the second candidate (p 0.18 on a hit, 0.22 on a miss) on this raw-completion prompt, same ranking with and
 without the prefix cache (the ~0.1-0.2 nat spread matches the hit-to-hit spread of '\n\n'). EOS-first on long_hit is
 the model's distribution for these "follow-up" prompts at T=1, not a prefix-cache fault.
+
+Other bad_output (hour 3, t=1790774111, plan index 1455): chat "mutex vs semaphore (variant 7b9190d4)", T=1, max_tokens 256,
+priority -10: finish length, 256 completion tokens, but neither message.content nor message.reasoning had non-whitespace
+text (soak_load does not log the text). Resent from the rebuilt plan at 14:15 UTC: T=1 twice and T=0 once, all normal
+(reasoning 860-1138 chars, one T=1 run reached content). Not reproduced; one sample in ~1,780 requests; cause unknown
+(INFERRED: a degenerate whitespace sample at T=1).
+
+Second empty 256-token output (hour 9, t=1790795966, plan index 3786): greedy (T=0) "mutex vs semaphore (variant
+8400758c)", max_tokens 256, priority -7: finish length, 256 tokens, no content and no reasoning text. Resent twice at
+20:20 UTC (T=0): both normal (reasoning ~1 KB, then content), and the two resends differ from each other: T=0 is not
+batch-invariant under concurrent load with MTP. Both unexplained empties are the same shape (the mutex prompt, 256 tokens,
+output cut inside or right after the reasoning), which points at the response side (qwen3 reasoning parser) rather than the
+kernels; unconfirmed, because soak_load does not keep the text. Open: log the raw text of bad outputs in soak_load.

@@ -113,6 +113,8 @@ def send(url: str, key: str, req: dict) -> dict:
             ok = fin in ("stop", "length", "tool_calls") and (text.strip() or tool)
             rec.update(status="ok" if ok else "bad_output", finish=fin, tool_calls=len(tool),
                        prompt_tokens=d["usage"]["prompt_tokens"], completion_tokens=d["usage"]["completion_tokens"])
+            if not ok:
+                rec["choice"] = json.dumps(c)[:2000]  # what came back, for diagnosis
     except urllib.error.HTTPError as e:
         rec.update(status=f"http_{e.code}", error=e.read()[:300].decode(errors="replace"))
     except Exception as e:  # connection refused/reset = server trouble
