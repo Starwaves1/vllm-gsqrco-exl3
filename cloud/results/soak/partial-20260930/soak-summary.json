@@ -1,0 +1,57 @@
+{
+ "hours_monitored": 1.19,
+ "monitor_rows": 72,
+ "server_alive_all": true,
+ "health_non_200_rows": 0,
+ "restarts": 0,
+ "fault_lines": [],
+ "requests": 621,
+ "status": {
+  "reasoning_only": 139,
+  "ok": 410,
+  "aborted": 70,
+  "bad_output": 2
+ },
+ "by_kind": {
+  "abort": 70,
+  "chat": 224,
+  "greedy": 60,
+  "long_hit": 116,
+  "long_new": 57,
+  "tool": 94
+ },
+ "tool_calls_parsed": 94,
+ "gpu_mib_min_max": [
+  22500,
+  23496
+ ],
+ "gpu_mib_min_max_after_1h": [
+  23496,
+  23496
+ ],
+ "rss_gib_min_max": [
+  31.15,
+  31.4
+ ],
+ "rss_gib_min_max_after_1h": [
+  31.4,
+  31.4
+ ],
+ "preemptions_total": 0.0,
+ "per_hour": [
+  {
+   "hour": 0,
+   "requests": 567,
+   "completion_tokens": 158175,
+   "prompt_tokens": 5678142,
+   "completion_tok_per_s": 43.9
+  },
+  {
+   "hour": 1,
+   "requests": 54,
+   "completion_tokens": 14021,
+   "prompt_tokens": 1005987,
+   "completion_tok_per_s": 3.9
+  }
+ ]
+}

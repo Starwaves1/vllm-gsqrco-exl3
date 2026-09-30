@@ -1,6 +1,6 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); 24 h soak: see "Final phase".
+Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); 24 h soak not run yet (see "Final phase").
 
 ## Current state (2026-09-30)
 
@@ -79,7 +79,9 @@ data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
   `soak_load.py` counted reasoning-only answers (max_tokens 16 ends inside the thinking; vLLM returns
   content None, tokens in message.reasoning) as bad_output: fixed in `cf8fbde` after the soak started
   (the running load generator keeps the old check; its records are reclassified in the soak summary).
-- Soak: in progress (see below when done).
+- Soak: not run yet (waits for the model/MTP test matrix). A first start ran 1.19 h on b9cdfa5
+  (04:12-05:24 UTC) and was stopped on request: 621 requests, 0 faults, 0 restarts, GPU 23,472-23,496
+  MiB after the first row, host RSS 31.15-31.40 GiB (`cloud/results/soak/partial-20260930/`).
 
 ## Integration 2: P2 + K3 + R2 merged (2026-09-30, same 350 W 3090)
 

@@ -237,7 +237,26 @@ with 62 GB shared with production, the CPU tier size is the number to watch.
 
 ## 12. Soak
 
-Pending: 24 h at c=2, started 2026-09-30 04:12 UTC on the final build.
+The 24 h soak at c=2 has not run yet: it waits for the model/MTP test matrix on the same GPU.
+A first start on the final build ran 1.19 h (2026-09-30 04:12-05:24 UTC) and was stopped on request
+so the GPU could go to the test matrix. Nothing went wrong in that window
+(`cloud/results/soak/partial-20260930/`):
+
+| | 1.19 h partial |
+|---|---|
+| server alive / health 200 | every 60 s row (72 rows) |
+| restarts / fault lines | 0 / 0 |
+| requests | 621: ok 410, aborted streams 70, reasoning-only 139, empty completion 2 |
+| tool calls parsed | 94 |
+| GPU MiB (server) | 22,500 at the first row, then 23,472-23,496 |
+| host RSS (server session) | 31.15-31.40 GiB |
+| completion tokens/s (hour 0) | 43.9 |
+
+"reasoning-only" = max_tokens ended inside the thinking, so vLLM returned content None with the
+tokens in `message.reasoning`. The load generator counted these as bad output, and `soak_load.py`
+now counts them as output (`cf8fbde`). The 2 empty completions are long_hit requests (prefix-cache
+hits on 32k and 120k raw-completion prompts at T=1) whose first token was EOS; 2 of ~120 long_hit
+requests. Not a fault, but worth watching in the full soak.
 
 ## 13. Definition of done (HANDOFF section 2)
 

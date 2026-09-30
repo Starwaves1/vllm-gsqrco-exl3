@@ -1,0 +1,621 @@
+{"t": 1790741546.0555632, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 2.3926212787628174}
+{"t": 1790741546.0566082, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 2.3916447162628174}
+{"t": 1790741548.4483058, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 0.6526620388031006}
+{"t": 1790741548.448503, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0673344135284424}
+{"t": 1790741550.814046, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 363, "latency": 17.205054998397827}
+{"t": 1790741568.0191867, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 901, "latency": 38.663618326187134}
+{"t": 1790741606.6840997, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 256, "latency": 233.86779379844666}
+{"t": 1790741840.5533328, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 120020, "completion_tokens": 181, "latency": 4.1955788135528564}
+{"t": 1790741844.749724, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 1.219116449356079}
+{"t": 1790741845.9689329, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 16, "latency": 0.5203464031219482}
+{"t": 1790741846.4893656, "kind": "abort", "status": "aborted", "chunks": 8, "latency": 0.524937629699707}
+{"t": 1790741847.0143688, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 16, "latency": 0.520404577255249}
+{"t": 1790741550.8081436, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 1024, "latency": 312.00051045417786}
+{"t": 1790741862.8087392, "kind": "abort", "status": "aborted", "chunks": 38, "latency": 3.2340784072875977}
+{"t": 1790741866.042911, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.40963268280029297}
+{"t": 1790741866.4526281, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 35, "latency": 0.8872406482696533}
+{"t": 1790741867.3407013, "kind": "long_hit", "status": "bad_output", "finish": "stop", "tool_calls": 0, "prompt_tokens": 120022, "completion_tokens": 1, "latency": 0.6771478652954102}
+{"t": 1790741847.7491539, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 256, "latency": 21.699134826660156}
+{"t": 1790741868.0185695, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 383, "latency": 4.639096975326538}
+{"t": 1790741872.6577494, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.3994557857513428}
+{"t": 1790741873.0580103, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 256, "latency": 4.431326389312744}
+{"t": 1790741877.4907832, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 256, "latency": 4.741897821426392}
+{"t": 1790741869.4483695, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1488, "latency": 20.476151943206787}
+{"t": 1790741889.924873, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 256, "latency": 3.5690724849700928}
+{"t": 1790741893.4941227, "kind": "abort", "status": "aborted", "chunks": 1, "latency": 0.22829484939575195}
+{"t": 1790741893.7224884, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 0.9638102054595947}
+{"t": 1790741882.2333853, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 965, "latency": 12.539137125015259}
+{"t": 1790741894.8680274, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 3.0879337787628174}
+{"t": 1790741897.9560394, "kind": "abort", "status": "aborted", "chunks": 11, "latency": 1.4006426334381104}
+{"t": 1790741899.3567445, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 256, "latency": 5.761377811431885}
+{"t": 1790741905.1182067, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 0.4066898822784424}
+{"t": 1790741905.5249743, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 256, "latency": 3.1136271953582764}
+{"t": 1790741908.6386814, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 49, "latency": 1.0481624603271484}
+{"t": 1790741894.867439, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 1024, "latency": 25.011573553085327}
+{"t": 1790741919.8790984, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 50.41686725616455}
+{"t": 1790741970.296057, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 384, "latency": 20.313689470291138}
+{"t": 1790741990.6098356, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 16, "latency": 0.44618940353393555}
+{"t": 1790741991.056097, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0738170146942139}
+{"t": 1790741911.3041883, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65536, "completion_tokens": 1024, "latency": 103.91087555885315}
+{"t": 1790742015.2153826, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 8212, "completion_tokens": 20, "latency": 1.0442595481872559}
+{"t": 1790741992.4064386, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 1024, "latency": 45.85057806968689}
+{"t": 1790742038.257097, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.730440855026245}
+{"t": 1790742040.9876313, "kind": "abort", "status": "aborted", "chunks": 38, "latency": 5.4027979373931885}
+{"t": 1790742046.390518, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 374, "latency": 9.78411865234375}
+{"t": 1790742056.1747112, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 285, "latency": 4.53938627243042}
+{"t": 1790742060.714396, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 32, "latency": 1.0543060302734375}
+{"t": 1790742061.7689016, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.3821830749511719}
+{"t": 1790742062.1511495, "kind": "abort", "status": "aborted", "chunks": 8, "latency": 0.4585254192352295}
+{"t": 1790742062.6097322, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 64, "latency": 0.8865838050842285}
+{"t": 1790742016.6699786, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 1024, "latency": 55.71319842338562}
+{"t": 1790742072.3832722, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.367720365524292}
+{"t": 1790742072.751067, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 16, "latency": 0.4343411922454834}
+{"t": 1790742073.1854835, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 211, "completion_tokens": 64, "latency": 0.9692275524139404}
+{"t": 1790742063.684515, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 256, "latency": 11.604815006256104}
+{"t": 1790742075.2894042, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 64, "latency": 0.9716169834136963}
+{"t": 1790742076.2613318, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 256, "latency": 3.8183469772338867}
+{"t": 1790742080.079857, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 488, "latency": 6.427121877670288}
+{"t": 1790742074.1547856, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 1042, "latency": 13.120055675506592}
+{"t": 1790742087.479946, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32785, "completion_tokens": 256, "latency": 11.01492166519165}
+{"t": 1790742098.4951255, "kind": "abort", "status": "aborted", "chunks": 18, "latency": 2.355330467224121}
+{"t": 1790742100.8508208, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 1024, "latency": 48.25887060165405}
+{"t": 1790742087.4762855, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65536, "completion_tokens": 32, "latency": 88.82426118850708}
+{"t": 1790742176.300632, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 64, "latency": 2.6972618103027344}
+{"t": 1790742149.3311396, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 1024, "latency": 58.63208055496216}
+{"t": 1790742207.9635413, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 519, "latency": 29.76455020904541}
+{"t": 1790742182.1749883, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 32, "latency": 287.76973152160645}
+{"t": 1790742469.944815, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 1.1093478202819824}
+{"t": 1790742237.728929, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 120018, "completion_tokens": 40, "latency": 234.24933862686157}
+{"t": 1790742471.978997, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.40349817276000977}
+{"t": 1790742472.3825603, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.405820369720459}
+{"t": 1790742472.7884355, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 644, "latency": 7.3178229331970215}
+{"t": 1790742471.0545282, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 816, "latency": 14.682027816772461}
+{"t": 1790742485.7367508, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.9715063571929932}
+{"t": 1790742486.708378, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.8662521839141846}
+{"t": 1790742480.3115883, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 256, "latency": 10.924424409866333}
+{"t": 1790742491.2360978, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 0.9841346740722656}
+{"t": 1790742492.2202933, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9666798114776611}
+{"t": 1790742493.1870387, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.360851526260376}
+{"t": 1790742487.5747025, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 184, "completion_tokens": 1024, "latency": 12.589896440505981}
+{"t": 1790742500.1649406, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 32, "latency": 0.9830014705657959}
+{"t": 1790742501.148117, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.9009220600128174}
+{"t": 1790742493.5479555, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 598, "latency": 8.864554166793823}
+{"t": 1790742502.0491135, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 256, "latency": 8.44107174873352}
+{"t": 1790742510.49027, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 64, "latency": 3.0364742279052734}
+{"t": 1790742513.5268269, "kind": "abort", "status": "aborted", "chunks": 22, "latency": 2.8677968978881836}
+{"t": 1790742516.3949232, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 1024, "latency": 29.095136165618896}
+{"t": 1790742502.7934237, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 1024, "latency": 46.500389099121094}
+{"t": 1790742549.2938998, "kind": "abort", "status": "aborted", "chunks": 15, "latency": 0.6558465957641602}
+{"t": 1790742549.9498076, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8737456798553467}
+{"t": 1790742550.8236308, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0025720596313477}
+{"t": 1790742545.4902043, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 678, "latency": 8.33257269859314}
+{"t": 1790742553.8231032, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 115, "latency": 1.7969555854797363}
+{"t": 1790742555.620251, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.3627445697784424}
+{"t": 1790742555.983049, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.9001789093017578}
+{"t": 1790742556.883273, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.867377758026123}
+{"t": 1790742557.7506897, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 51, "latency": 1.031029462814331}
+{"t": 1790742558.7817574, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 50, "latency": 0.9996283054351807}
+{"t": 1790742551.8262882, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 707, "latency": 9.85656213760376}
+{"t": 1790742559.781452, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 256, "latency": 3.0502679347991943}
+{"t": 1790742562.831806, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 256, "latency": 2.6968657970428467}
+{"t": 1790742565.5287578, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 64, "latency": 0.890754222869873}
+{"t": 1790742561.6829505, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 678, "latency": 7.465235948562622}
+{"t": 1790742569.1482687, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9656591415405273}
+{"t": 1790742566.4195864, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 210, "completion_tokens": 399, "latency": 5.10864782333374}
+{"t": 1790742571.5282927, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.000253677368164}
+{"t": 1790742570.1139987, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 548, "latency": 6.282933950424194}
+{"t": 1790742572.5286098, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 310, "latency": 4.392295837402344}
+{"t": 1790742576.9209733, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 1.123504400253296}
+{"t": 1790742576.3972511, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 256, "latency": 8.420959234237671}
+{"t": 1790742584.818597, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 238, "latency": 10.685328960418701}
+{"t": 1790742595.504073, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 16, "latency": 0.4143800735473633}
+{"t": 1790742595.9185154, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 53, "latency": 1.0616555213928223}
+{"t": 1790742596.98059, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 32, "latency": 0.9297823905944824}
+{"t": 1790742597.9106557, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.089677095413208}
+{"t": 1790742599.0004094, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 16, "latency": 0.40682554244995117}
+{"t": 1790742578.272723, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 256, "latency": 21.279756784439087}
+{"t": 1790742599.4072878, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0074167251586914}
+{"t": 1790742600.4147615, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 54, "latency": 1.0636415481567383}
+{"t": 1790742601.4784732, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 0.39754772186279297}
+{"t": 1790742601.8770397, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 32, "latency": 1.4688096046447754}
+{"t": 1790742599.5525417, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 256, "latency": 5.111979961395264}
+{"t": 1790742604.6645901, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 16, "latency": 0.37131381034851074}
+{"t": 1790742605.036288, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 256, "latency": 3.8158929347991943}
+{"t": 1790742608.8524504, "kind": "abort", "status": "aborted", "chunks": 1, "latency": 0.23369073867797852}
+{"t": 1790742603.3464966, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8212, "completion_tokens": 1024, "latency": 37.592007875442505}
+{"t": 1790742640.9386425, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.959439992904663}
+{"t": 1790742643.8984425, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 1.5763664245605469}
+{"t": 1790742609.3800075, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 38.64362931251526}
+{"t": 1790742648.0237148, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 64, "latency": 0.793480396270752}
+{"t": 1790742648.817257, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9783015251159668}
+{"t": 1790742645.4749916, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 805, "latency": 21.374377012252808}
+{"t": 1790742666.8494513, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.8958139419555664}
+{"t": 1790742669.7453454, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.5846831798553467}
+{"t": 1790742672.3301058, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 50, "latency": 2.856797456741333}
+{"t": 1790742675.1869788, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 256, "latency": 11.313577651977539}
+{"t": 1790742686.5006452, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 0.9722282886505127}
+{"t": 1790742687.4732766, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 0.9975857734680176}
+{"t": 1790742650.0254982, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 39.44014763832092}
+{"t": 1790742688.4715168, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 256, "latency": 3.410421848297119}
+{"t": 1790742691.8822038, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 64, "latency": 0.8349285125732422}
+{"t": 1790742689.4657362, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 256, "latency": 3.611473798751831}
+{"t": 1790742692.7172058, "kind": "abort", "status": "aborted", "chunks": 20, "latency": 0.94590163230896}
+{"t": 1790742693.0772884, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 256, "latency": 3.5456502437591553}
+{"t": 1790742693.6634562, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 256, "latency": 4.788647890090942}
+{"t": 1790742698.4522903, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 2.8495373725891113}
+{"t": 1790742701.302248, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32786, "completion_tokens": 32, "latency": 1.8806941509246826}
+{"t": 1790742703.1831923, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.3107690811157227}
+{"t": 1790742697.0470436, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 35.73918557167053}
+{"t": 1790742732.786317, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 0.9791848659515381}
+{"t": 1790742705.4940357, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 185, "completion_tokens": 845, "latency": 28.88467836380005}
+{"t": 1790742734.3788018, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.8183424472808838}
+{"t": 1790742735.1972096, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 2.7674660682678223}
+{"t": 1790742737.964762, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 2.931779384613037}
+{"t": 1790742740.8966222, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.869814395904541}
+{"t": 1790742741.766506, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 64, "latency": 2.7915525436401367}
+{"t": 1790742744.5581334, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 16, "latency": 1.0401673316955566}
+{"t": 1790742745.5983932, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.9007940292358398}
+{"t": 1790742746.499259, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 16, "latency": 1.1910202503204346}
+{"t": 1790742747.6903403, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 2.0698647499084473}
+{"t": 1790742749.7602994, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 64, "latency": 3.2231452465057373}
+{"t": 1790742752.9835248, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 34, "latency": 2.147357702255249}
+{"t": 1790742755.130961, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.546884775161743}
+{"t": 1790742757.6779313, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 532, "latency": 32.4448082447052}
+{"t": 1790742790.1228244, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 3.3652894496917725}
+{"t": 1790742793.4881985, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 1.406193494796753}
+{"t": 1790742734.3436112, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65536, "completion_tokens": 256, "latency": 84.72300267219543}
+{"t": 1790742819.0666993, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 16, "latency": 0.4543302059173584}
+{"t": 1790742794.8948448, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 1024, "latency": 29.226710081100464}
+{"t": 1790742824.1221611, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 32788, "completion_tokens": 2, "latency": 0.517747163772583}
+{"t": 1790742824.6401777, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 576, "latency": 6.755438804626465}
+{"t": 1790742819.521114, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 1039, "latency": 13.089559078216553}
+{"t": 1790742832.6110759, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 1.0892720222473145}
+{"t": 1790742833.7005978, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 34, "latency": 0.8676519393920898}
+{"t": 1790742834.5683184, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.3948943614959717}
+{"t": 1790742834.9632776, "kind": "abort", "status": "aborted", "chunks": 12, "latency": 0.5580723285675049}
+{"t": 1790742835.5217283, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 0.9541776180267334}
+{"t": 1790742831.395704, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 379, "latency": 6.234378337860107}
+{"t": 1790742836.4766653, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65556, "completion_tokens": 32, "latency": 1.8800034523010254}
+{"t": 1790742837.630165, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.393514633178711}
+{"t": 1790742838.3574383, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32788, "completion_tokens": 256, "latency": 3.544849395751953}
+{"t": 1790742839.0237656, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 3.6649768352508545}
+{"t": 1790742842.6888192, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 803, "latency": 7.915369749069214}
+{"t": 1790742850.6042762, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 16, "latency": 0.42701196670532227}
+{"t": 1790742841.9025588, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 14.21155571937561}
+{"t": 1790742856.114202, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 412, "latency": 19.5217924118042}
+{"t": 1790742851.4251723, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 35.31066036224365}
+{"t": 1790742886.7359223, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 380, "latency": 4.140361309051514}
+{"t": 1790742875.6360786, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 1008, "latency": 20.979405879974365}
+{"t": 1790742896.6157026, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.9128730297088623}
+{"t": 1790742897.5286565, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 64, "latency": 1.0264897346496582}
+{"t": 1790742898.5552316, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 256, "latency": 3.3957982063293457}
+{"t": 1790742890.8767064, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 1024, "latency": 14.861011028289795}
+{"t": 1790742901.951437, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 256, "latency": 3.7865467071533203}
+{"t": 1790742905.7384355, "kind": "abort", "status": "aborted", "chunks": 4, "latency": 0.3803234100341797}
+{"t": 1790742906.1188238, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 211, "completion_tokens": 16, "latency": 0.46623897552490234}
+{"t": 1790742906.5851345, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.3629722595214844}
+{"t": 1790742905.7382045, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.4430911540985107}
+{"t": 1790742906.948172, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.5342776775360107}
+{"t": 1790742907.1813602, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 1.1054844856262207}
+{"t": 1790742908.2869065, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 0.9838719367980957}
+{"t": 1790742909.2708385, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 3.367582321166992}
+{"t": 1790742912.6384974, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 0.9687774181365967}
+{"t": 1790742907.4825149, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 458, "latency": 6.880103826522827}
+{"t": 1790742913.60736, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 1.3611419200897217}
+{"t": 1790742914.9685721, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.3660757541656494}
+{"t": 1790742914.3626971, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.2737910747528076}
+{"t": 1790742915.3347344, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 789, "latency": 8.735137462615967}
+{"t": 1790742924.0699604, "kind": "abort", "status": "aborted", "chunks": 36, "latency": 1.3470523357391357}
+{"t": 1790742915.6365588, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 1024, "latency": 12.12317442893982}
+{"t": 1790742925.4170785, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 3.107672691345215}
+{"t": 1790742928.5253675, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65555, "completion_tokens": 32, "latency": 1.6483619213104248}
+{"t": 1790742930.174206, "kind": "abort", "status": "aborted", "chunks": 2, "latency": 0.233717679977417}
+{"t": 1790742927.75982, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 5.197552680969238}
+{"t": 1790742932.9574585, "kind": "abort", "status": "aborted", "chunks": 14, "latency": 0.6677641868591309}
+{"t": 1790742930.4083924, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32788, "completion_tokens": 1024, "latency": 13.625594854354858}
+{"t": 1790742944.034251, "kind": "abort", "status": "aborted", "chunks": 16, "latency": 0.6877899169921875}
+{"t": 1790742944.7221034, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 53, "latency": 1.0051240921020508}
+{"t": 1790742945.727304, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 46, "latency": 0.9996597766876221}
+{"t": 1790742933.6252904, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 1024, "latency": 13.88995361328125}
+{"t": 1790742947.5157962, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65556, "completion_tokens": 32, "latency": 1.5869426727294922}
+{"t": 1790742949.1032052, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 0.9109795093536377}
+{"t": 1790742950.0142558, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 48, "latency": 0.962177038192749}
+{"t": 1790742946.7270358, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 195, "completion_tokens": 256, "latency": 5.057188987731934}
+{"t": 1790742950.97681, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 1024, "latency": 9.810969591140747}
+{"t": 1790742960.7880428, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 0.8864984512329102}
+{"t": 1790742961.6746266, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 0.7883503437042236}
+{"t": 1790742962.4630458, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 0.9847958087921143}
+{"t": 1790742963.4482021, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 256, "latency": 3.174199104309082}
+{"t": 1790742951.7843103, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 1379, "latency": 20.526209831237793}
+{"t": 1790742972.3106015, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.2705225944519043}
+{"t": 1790742974.5812023, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.3419196605682373}
+{"t": 1790742976.923206, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 256, "latency": 11.629863262176514}
+{"t": 1790742988.5531545, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.9804067611694336}
+{"t": 1790742990.1490448, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 46.153700828552246}
+{"t": 1790742967.0573802, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 1024, "latency": 73.07174468040466}
+{"t": 1790743036.303379, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65558, "completion_tokens": 256, "latency": 5.272973537445068}
+{"t": 1790743041.5768194, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 256, "latency": 3.1356046199798584}
+{"t": 1790743044.7125087, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.3817250728607178}
+{"t": 1790743045.0946484, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 32, "latency": 0.8019974231719971}
+{"t": 1790743045.896909, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 1.0672423839569092}
+{"t": 1790743040.1295385, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 867, "latency": 16.430304527282715}
+{"t": 1790743047.162519, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 1024, "latency": 19.34260082244873}
+{"t": 1790743056.5601199, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 1566, "latency": 34.92583465576172}
+{"t": 1790743091.4860473, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 11.183540344238281}
+{"t": 1790743102.669674, "kind": "abort", "status": "aborted", "chunks": 27, "latency": 1.1310744285583496}
+{"t": 1790743067.031676, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 41.14702868461609}
+{"t": 1790743108.416444, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 40.718926668167114}
+{"t": 1790743104.089268, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 1024, "latency": 49.80024170875549}
+{"t": 1790743149.135463, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 409, "latency": 5.838419437408447}
+{"t": 1790743154.9739726, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 64, "latency": 0.8184337615966797}
+{"t": 1790743153.8895965, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 256, "latency": 3.3749961853027344}
+{"t": 1790743157.2650094, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 57, "latency": 1.2608191967010498}
+{"t": 1790743158.5261116, "kind": "abort", "status": "aborted", "chunks": 39, "latency": 1.437232494354248}
+{"t": 1790743159.963673, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 256, "latency": 3.1254308223724365}
+{"t": 1790743163.0892956, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 781, "latency": 8.10437273979187}
+{"t": 1790743171.1937504, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 0.9645533561706543}
+{"t": 1790743155.7924757, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 1257, "latency": 16.55360436439514}
+{"t": 1790743172.1587198, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 256, "latency": 4.20821738243103}
+{"t": 1790743172.3463955, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8211, "completion_tokens": 256, "latency": 4.584210157394409}
+{"t": 1790743176.9307365, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.35738682746887207}
+{"t": 1790743176.3672094, "kind": "abort", "status": "aborted", "chunks": 34, "latency": 1.5403554439544678}
+{"t": 1790743177.2881947, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 991, "latency": 11.053606033325195}
+{"t": 1790743188.3418872, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 291, "latency": 3.9241275787353516}
+{"t": 1790743192.2660985, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 16, "latency": 0.39619994163513184}
+{"t": 1790743192.6623936, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 256, "latency": 3.566286563873291}
+{"t": 1790743196.228768, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 34, "latency": 0.869910717010498}
+{"t": 1790743197.098756, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 0.9658174514770508}
+{"t": 1790743177.9076593, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1740, "latency": 20.814231872558594}
+{"t": 1790743198.0646515, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 324, "latency": 10.999780654907227}
+{"t": 1790743199.1030757, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 38.07191324234009}
+{"t": 1790743237.1753857, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 32, "latency": 0.8007423877716064}
+{"t": 1790743237.9763868, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8690550327301025}
+{"t": 1790743238.8455052, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 46, "latency": 0.9666132926940918}
+{"t": 1790743209.06452, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 1034, "latency": 31.764521837234497}
+{"t": 1790743239.8121858, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 195, "completion_tokens": 256, "latency": 3.303873062133789}
+{"t": 1790743240.829122, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 960, "latency": 10.758660078048706}
+{"t": 1790743243.1161408, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 862, "latency": 8.613373756408691}
+{"t": 1790743251.5878692, "kind": "abort", "status": "aborted", "chunks": 32, "latency": 1.1135122776031494}
+{"t": 1790743254.1346025, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 1024, "latency": 53.16208505630493}
+{"t": 1790743307.2967772, "kind": "abort", "status": "aborted", "chunks": 37, "latency": 6.0651819705963135}
+{"t": 1790743313.3620632, "kind": "abort", "status": "aborted", "chunks": 3, "latency": 0.7867558002471924}
+{"t": 1790743314.1489203, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 16, "latency": 1.2370638847351074}
+{"t": 1790743315.3860676, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 1021, "latency": 65.79869270324707}
+{"t": 1790743381.1848543, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 462, "latency": 33.29032778739929}
+{"t": 1790743414.4756155, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 256, "latency": 17.66801404953003}
+{"t": 1790743432.143902, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 256, "latency": 4.404536724090576}
+{"t": 1790743436.8349307, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 18.308034896850586}
+{"t": 1790743253.977866, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 1024, "latency": 208.4338128566742}
+{"t": 1790743462.4117634, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 16, "latency": 0.8685576915740967}
+{"t": 1790743455.278619, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 32, "latency": 9.820068359375}
+{"t": 1790743463.4721022, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 20.057985067367554}
+{"t": 1790743483.530176, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 0.9705462455749512}
+{"t": 1790743465.2286382, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 1024, "latency": 26.661784410476685}
+{"t": 1790743491.8907726, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 2, "latency": 0.7128796577453613}
+{"t": 1790743484.5007951, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 724, "latency": 8.98372769355774}
+{"t": 1790743492.6040542, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 32, "latency": 1.1831793785095215}
+{"t": 1790743493.4846027, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 256, "latency": 4.253309726715088}
+{"t": 1790743493.7875688, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 256, "latency": 4.528239727020264}
+{"t": 1790743497.7379925, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 54, "latency": 1.5082178115844727}
+{"t": 1790743498.3161893, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 1.232497215270996}
+{"t": 1790743499.2462952, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 585, "latency": 7.987724542617798}
+{"t": 1790743507.2340996, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8803431987762451}
+{"t": 1790743508.1145303, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 0.9353442192077637}
+{"t": 1790743509.049946, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0152626037597656}
+{"t": 1790743499.5490718, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 854, "latency": 10.81986951828003}
+{"t": 1790743510.0652854, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 1.4592270851135254}
+{"t": 1790743510.3692596, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8211, "completion_tokens": 256, "latency": 5.426548004150391}
+{"t": 1790743515.7962008, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16403, "completion_tokens": 32, "latency": 1.1726939678192139}
+{"t": 1790743516.9690738, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 46, "latency": 1.0140714645385742}
+{"t": 1790743517.983216, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0135912895202637}
+{"t": 1790743511.5245914, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 844, "latency": 10.30031418800354}
+{"t": 1790743521.8249931, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 0.9384198188781738}
+{"t": 1790743522.763502, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 195, "completion_tokens": 16, "latency": 0.40155887603759766}
+{"t": 1790743523.1651266, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.36214494705200195}
+{"t": 1790743518.996879, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 738, "latency": 8.389782905578613}
+{"t": 1790743527.3867497, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 256, "latency": 3.562748432159424}
+{"t": 1790743523.5273361, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 835, "latency": 9.453269720077515}
+{"t": 1790743532.9806828, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 0.9662539958953857}
+{"t": 1790743530.9495852, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 467, "latency": 6.856280326843262}
+{"t": 1790743537.8059502, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 0.9837148189544678}
+{"t": 1790743538.7897384, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 34, "latency": 0.8712015151977539}
+{"t": 1790743539.6610262, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 256, "latency": 2.7807137966156006}
+{"t": 1790743542.441819, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 34, "latency": 0.8678891658782959}
+{"t": 1790743533.9470148, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 1508, "latency": 19.01310658454895}
+{"t": 1790743552.9602008, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0147700309753418}
+{"t": 1790743553.975057, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 64, "latency": 0.8385519981384277}
+{"t": 1790743543.3097827, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 1024, "latency": 13.040186405181885}
+{"t": 1790743554.8139052, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8211, "completion_tokens": 1024, "latency": 31.8923282623291}
+{"t": 1790743556.7792127, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 256, "latency": 42.4599552154541}
+{"t": 1790743599.2392557, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 16, "latency": 0.4181180000305176}
+{"t": 1790743586.7067313, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 256, "latency": 13.225554943084717}
+{"t": 1790743599.6574414, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.5400485992431641}
+{"t": 1790743599.9325478, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 0.3519876003265381}
+{"t": 1790743600.4726017, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 16.911126136779785}
+{"t": 1790743600.4736726, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 954, "latency": 23.074974060058594}
+{"t": 1790743617.383815, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 454, "latency": 6.32995343208313}
+{"t": 1790743623.5489447, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 32, "latency": 1.225940227508545}
+{"t": 1790743624.7749906, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.0133640766143799}
+{"t": 1790743623.7138364, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 5.851426362991333}
+{"t": 1790743629.5653448, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.238677740097046}
+{"t": 1790743632.0473685, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 17.564979791641235}
+{"t": 1790743649.6124403, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 256, "latency": 3.184069871902466}
+{"t": 1790743652.7965899, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 1.0139446258544922}
+{"t": 1790743653.8106155, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 16, "latency": 0.370999813079834}
+{"t": 1790743625.947053, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 1024, "latency": 30.43893265724182}
+{"t": 1790743656.386286, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 8212, "completion_tokens": 157, "latency": 3.157761335372925}
+{"t": 1790743659.5441837, "kind": "abort", "status": "aborted", "chunks": 16, "latency": 0.7033717632293701}
+{"t": 1790743660.2479737, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 32, "latency": 0.8955848217010498}
+{"t": 1790743661.1438427, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 3.432697057723999}
+{"t": 1790743654.1816814, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 940, "latency": 12.171534776687622}
+{"t": 1790743666.3532968, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 39, "latency": 0.9480242729187012}
+{"t": 1790743667.3014073, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.3666810989379883}
+{"t": 1790743664.576626, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 447, "latency": 5.448599338531494}
+{"t": 1790743670.0253062, "kind": "abort", "status": "aborted", "chunks": 2, "latency": 0.23076462745666504}
+{"t": 1790743670.2563987, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 32, "latency": 0.9719996452331543}
+{"t": 1790743671.2285798, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 64, "latency": 0.7885360717773438}
+{"t": 1790743667.668154, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 321, "latency": 4.58284854888916}
+{"t": 1790743672.017195, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 256, "latency": 3.512859344482422}
+{"t": 1790743675.5301392, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 980, "latency": 12.11354660987854}
+{"t": 1790743672.25107, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 1665, "latency": 18.35771918296814}
+{"t": 1790743690.6088648, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 43, "latency": 0.9643251895904541}
+{"t": 1790743691.5732708, "kind": "abort", "status": "aborted", "chunks": 14, "latency": 0.6224839687347412}
+{"t": 1790743692.1958182, "kind": "abort", "status": "aborted", "chunks": 9, "latency": 0.4642913341522217}
+{"t": 1790743692.6602101, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 421, "latency": 4.320941925048828}
+{"t": 1790743696.9812317, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 42, "latency": 0.9673881530761719}
+{"t": 1790743687.64378, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 882, "latency": 12.689571619033813}
+{"t": 1790743700.3334303, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9802806377410889}
+{"t": 1790743697.948917, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8210, "completion_tokens": 256, "latency": 4.550327301025391}
+{"t": 1790743701.314038, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 256, "latency": 4.520327806472778}
+{"t": 1790743705.8345613, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 3.234978675842285}
+{"t": 1790743702.499627, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16403, "completion_tokens": 1024, "latency": 12.879573822021484}
+{"t": 1790743715.379601, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 32, "latency": 1.2260117530822754}
+{"t": 1790743709.0696156, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 789, "latency": 9.453996419906616}
+{"t": 1790743716.6057513, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 730, "latency": 17.22932267189026}
+{"t": 1790743733.8351579, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 2.2197535037994385}
+{"t": 1790743736.0549967, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 922, "latency": 46.805060625076294}
+{"t": 1790743782.8601484, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 1024, "latency": 26.57945442199707}
+{"t": 1790743809.439692, "kind": "abort", "status": "aborted", "chunks": 36, "latency": 1.5596628189086914}
+{"t": 1790743810.9994261, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 1.139721155166626}
+{"t": 1790743719.8119843, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65536, "completion_tokens": 1024, "latency": 95.03146553039551}
+{"t": 1790743814.843535, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 256, "latency": 3.3807733058929443}
+{"t": 1790743812.139492, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 1024, "latency": 13.265984058380127}
+{"t": 1790743825.4056568, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8700864315032959}
+{"t": 1790743826.2758305, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 256, "latency": 3.3348326683044434}
+{"t": 1790743818.2243934, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1109, "latency": 13.579399585723877}
+{"t": 1790743831.803884, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.39257025718688965}
+{"t": 1790743832.196519, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 16, "latency": 0.3987572193145752}
+{"t": 1790743832.5955596, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 256, "latency": 3.7937185764312744}
+{"t": 1790743829.6107643, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 764, "latency": 9.514518022537231}
+{"t": 1790743839.1258512, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65557, "completion_tokens": 256, "latency": 5.043487071990967}
+{"t": 1790743836.3896322, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 1024, "latency": 11.779077291488647}
+{"t": 1790743848.1688852, "kind": "abort", "status": "aborted", "chunks": 18, "latency": 0.7523913383483887}
+{"t": 1790743848.9215844, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 32, "latency": 0.9920814037322998}
+{"t": 1790743849.9138455, "kind": "abort", "status": "aborted", "chunks": 30, "latency": 1.1457033157348633}
+{"t": 1790743844.1697612, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 1056, "latency": 13.809990167617798}
+{"t": 1790743857.9798396, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 42.91101813316345}
+{"t": 1790743901.1246593, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 256, "latency": 46.03184413909912}
+{"t": 1790743947.156588, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 3.5992910861968994}
+{"t": 1790743950.7564447, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65556, "completion_tokens": 1024, "latency": 72.17380857467651}
+{"t": 1790744022.931488, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 32, "latency": 38.382460832595825}
+{"t": 1790743856.016973, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 1024, "latency": 240.1460485458374}
+{"t": 1790744061.746279, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 40.57635569572449}
+{"t": 1790744102.3226874, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.401097059249878}
+{"t": 1790744104.7238688, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 2.8490307331085205}
+{"t": 1790744107.5729976, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 2.9786150455474854}
+{"t": 1790744110.551699, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 1.031447172164917}
+{"t": 1790744111.583231, "kind": "abort", "status": "aborted", "chunks": 35, "latency": 3.768193483352661}
+{"t": 1790744096.3601766, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 256, "latency": 21.592750310897827}
+{"t": 1790744117.9529996, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 621, "latency": 6.8978986740112305}
+{"t": 1790744124.850999, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 64, "latency": 0.8715248107910156}
+{"t": 1790744115.3515255, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 11.239630699157715}
+{"t": 1790744125.7228577, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 32, "latency": 1.4102203845977783}
+{"t": 1790744127.1332572, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 0.9160397052764893}
+{"t": 1790744128.0496387, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 32, "latency": 1.0361104011535645}
+{"t": 1790744126.5912392, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 3.83644437789917}
+{"t": 1790744130.4277682, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 0.9804818630218506}
+{"t": 1790744131.4086096, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 32, "latency": 1.016467571258545}
+{"t": 1790744129.085933, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 211, "completion_tokens": 599, "latency": 14.421913623809814}
+{"t": 1790744143.5079267, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.377194881439209}
+{"t": 1790744133.0674918, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 35.44662523269653}
+{"t": 1790744145.885207, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 745, "latency": 24.557875394821167}
+{"t": 1790744170.4431534, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 16, "latency": 0.4263153076171875}
+{"t": 1790744170.8695288, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9986798763275146}
+{"t": 1790744168.5142257, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 358, "latency": 4.638784885406494}
+{"t": 1790744173.1530895, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 52, "latency": 1.088444471359253}
+{"t": 1790744174.2419605, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 32787, "completion_tokens": 142, "latency": 1.9217557907104492}
+{"t": 1790744171.8686, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 256, "latency": 4.7849650382995605}
+{"t": 1790744176.6538262, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 0.883634090423584}
+{"t": 1790744177.5375302, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 0.3614027500152588}
+{"t": 1790744177.8989985, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 3.0410547256469727}
+{"t": 1790744176.1640446, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 865, "latency": 9.159370422363281}
+{"t": 1790744185.3235052, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 2.9865968227386475}
+{"t": 1790744188.310471, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 32, "latency": 0.9841313362121582}
+{"t": 1790744189.2947645, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 1.0011718273162842}
+{"t": 1790744190.2960067, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.36223673820495605}
+{"t": 1790744190.6586113, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 1.0202832221984863}
+{"t": 1790744191.6790814, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 64, "latency": 0.7894177436828613}
+{"t": 1790744180.9401422, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 942, "latency": 12.808838129043579}
+{"t": 1790744193.74906, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 480, "latency": 6.2457640171051025}
+{"t": 1790744192.468589, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 737, "latency": 7.905724287033081}
+{"t": 1790744199.9952316, "kind": "long_hit", "status": "bad_output", "finish": "stop", "tool_calls": 0, "prompt_tokens": 32784, "completion_tokens": 1, "latency": 0.4750642776489258}
+{"t": 1790744200.3747454, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 1.3451576232910156}
+{"t": 1790744200.4705772, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 1.3924484252929688}
+{"t": 1790744201.7201712, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 1.0415284633636475}
+{"t": 1790744202.7617757, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 0.9176502227783203}
+{"t": 1790744203.679503, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.36206841468811035}
+{"t": 1790744201.8631122, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 1103, "latency": 24.653928995132446}
+{"t": 1790744204.299564, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 1024, "latency": 33.37647819519043}
+{"t": 1790744226.7032087, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 256, "latency": 11.209051132202148}
+{"t": 1790744237.676133, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 16, "latency": 0.38837575912475586}
+{"t": 1790744238.0648756, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16406, "completion_tokens": 256, "latency": 10.424110412597656}
+{"t": 1790744238.0632758, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 17.135058879852295}
+{"t": 1790744255.1984365, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 256, "latency": 2.8127763271331787}
+{"t": 1790744258.0115333, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16404, "completion_tokens": 256, "latency": 4.221416473388672}
+{"t": 1790744262.2331479, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.966876745223999}
+{"t": 1790744263.2000985, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 3.107661247253418}
+{"t": 1790744266.3078465, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9658751487731934}
+{"t": 1790744267.2738035, "kind": "abort", "status": "aborted", "chunks": 2, "latency": 0.2309117317199707}
+{"t": 1790744267.504784, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 16, "latency": 0.39763593673706055}
+{"t": 1790744268.085218, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 32, "latency": 8.2158682346344}
+{"t": 1790744248.4891865, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 1683, "latency": 30.90600085258484}
+{"t": 1790744276.301378, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8211, "completion_tokens": 256, "latency": 3.3934340476989746}
+{"t": 1790744279.6949553, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.3987560272216797}
+{"t": 1790744279.395279, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.474452257156372}
+{"t": 1790744280.0938053, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 38, "latency": 0.9453518390655518}
+{"t": 1790744281.0383058, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 32, "latency": 9.81532883644104}
+{"t": 1790744290.85372, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 10.766923666000366}
+{"t": 1790744301.6209972, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16402, "completion_tokens": 1024, "latency": 55.374292612075806}
+{"t": 1790744284.0861547, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 256, "latency": 281.98524045944214}
+{"t": 1790744566.0714908, "kind": "abort", "status": "aborted", "chunks": 3, "latency": 0.3022034168243408}
+{"t": 1790744566.37401, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 32, "latency": 1.2924444675445557}
+{"t": 1790744567.6665883, "kind": "abort", "status": "aborted", "chunks": 8, "latency": 0.5249772071838379}
+{"t": 1790744568.1916382, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 48, "latency": 1.172347068786621}
+{"t": 1790744569.3640642, "kind": "abort", "status": "aborted", "chunks": 15, "latency": 0.8268980979919434}
+{"t": 1790744570.1910248, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 1.216153621673584}
+{"t": 1790744571.4072564, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 46, "latency": 1.210170030593872}
+{"t": 1790744572.6175113, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 1.2217614650726318}
+{"t": 1790744356.996257, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 1024, "latency": 221.92124915122986}
+{"t": 1790744573.8393576, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 398, "latency": 6.389128684997559}
+{"t": 1790744580.2320569, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1503, "latency": 67.41101455688477}
+{"t": 1790744647.6431649, "kind": "abort", "status": "aborted", "chunks": 9, "latency": 1.7475495338439941}
+{"t": 1790744649.3907824, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 1024, "latency": 21.94457483291626}
+{"t": 1790744671.3354504, "kind": "abort", "status": "aborted", "chunks": 3, "latency": 0.2828199863433838}
+{"t": 1790744580.2285473, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65536, "completion_tokens": 1024, "latency": 93.6473822593689}
+{"t": 1790744674.9178455, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 2.1467041969299316}
+{"t": 1790744677.0646367, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 2.7793030738830566}
+{"t": 1790744679.84454, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65558, "completion_tokens": 256, "latency": 12.064579725265503}
+{"t": 1790744691.9095662, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 256, "latency": 10.227259159088135}
+{"t": 1790744702.1369119, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 769, "latency": 42.64856314659119}
+{"t": 1790744744.7857852, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 256, "latency": 15.231093406677246}
+{"t": 1790744760.0170138, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 362, "latency": 23.119613647460938}
+{"t": 1790744783.1374931, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120020, "completion_tokens": 32, "latency": 3.8400816917419434}
+{"t": 1790744786.9783056, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 48, "latency": 4.089757442474365}
+{"t": 1790744791.0681498, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 16, "latency": 1.7198739051818848}
+{"t": 1790744674.9120538, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 1024, "latency": 253.0920741558075}
+{"t": 1790744928.0042188, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.221419095993042}
+{"t": 1790744792.7888703, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 1024, "latency": 136.829528093338}
+{"t": 1790744929.2257228, "kind": "abort", "status": "aborted", "chunks": 39, "latency": 1.6683385372161865}
+{"t": 1790744930.894159, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.4080653190612793}
+{"t": 1790744931.3025382, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 621, "latency": 6.165065765380859}
+{"t": 1790744937.4679458, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8212, "completion_tokens": 256, "latency": 3.472965717315674}
+{"t": 1790744940.9410484, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 0.9711978435516357}
+{"t": 1790744929.6191134, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 916, "latency": 12.694641351699829}
+{"t": 1790744941.912318, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 256, "latency": 3.966118574142456}
+{"t": 1790744942.313839, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 410, "latency": 4.875746965408325}
+{"t": 1790744947.189642, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 16, "latency": 0.36284518241882324}
+{"t": 1790744945.8785243, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 4.424057960510254}
+{"t": 1790744950.3026652, "kind": "abort", "status": "aborted", "chunks": 31, "latency": 1.367103099822998}
+{"t": 1790744947.553083, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65556, "completion_tokens": 256, "latency": 5.024000644683838}
+{"t": 1790744952.5775301, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 256, "latency": 3.05668306350708}
+{"t": 1790744955.634535, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8214, "completion_tokens": 256, "latency": 3.017583131790161}
+{"t": 1790744951.6698604, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 943, "latency": 17.70662212371826}
+{"t": 1790744958.8329475, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 256, "latency": 11.010047674179077}
+{"t": 1790744969.8430789, "kind": "abort", "status": "aborted", "chunks": 13, "latency": 0.5938694477081299}
+{"t": 1790744969.3765693, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 186, "completion_tokens": 256, "latency": 2.997004985809326}
+{"t": 1790744972.373648, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 64, "latency": 0.9215528964996338}
+{"t": 1790744973.2952697, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 256, "latency": 2.718165874481201}
+{"t": 1790744976.0135226, "kind": "abort", "status": "aborted", "chunks": 3, "latency": 0.2649197578430176}
+{"t": 1790744976.5213234, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16384, "completion_tokens": 32, "latency": 16.847963571548462}
+{"t": 1790744970.4370174, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 23.599197149276733}
+{"t": 1790744993.3696375, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 1.2354509830474854}
+{"t": 1790744994.036303, "kind": "abort", "status": "aborted", "chunks": 32, "latency": 1.35520339012146}
+{"t": 1790744995.391598, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 64, "latency": 0.9537980556488037}
+{"t": 1790744996.3454611, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8688251972198486}
+{"t": 1790744997.2143645, "kind": "abort", "status": "aborted", "chunks": 20, "latency": 0.8175363540649414}
+{"t": 1790744998.0324552, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65555, "completion_tokens": 32, "latency": 1.7828655242919922}
+{"t": 1790744999.8157713, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 385, "latency": 5.192548751831055}
+{"t": 1790745005.0086722, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 1.0660371780395508}
+{"t": 1790744994.6052794, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 1024, "latency": 13.716518878936768}
+{"t": 1790745006.0751112, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 256, "latency": 3.4300594329833984}
+{"t": 1790745009.505294, "kind": "abort", "status": "aborted", "chunks": 38, "latency": 1.439119815826416}
+{"t": 1790745010.9445195, "kind": "abort", "status": "aborted", "chunks": 8, "latency": 0.43826913833618164}
+{"t": 1790745011.382858, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 198, "completion_tokens": 747, "latency": 8.707917213439941}
+{"t": 1790745008.3220868, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 1024, "latency": 12.644892692565918}
+{"t": 1790745020.9671113, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 1.1421105861663818}
+{"t": 1790745022.1093016, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.9568779468536377}
+{"t": 1790745023.0662465, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 1.0750923156738281}
+{"t": 1790745024.1414173, "kind": "abort", "status": "aborted", "chunks": 7, "latency": 0.44080138206481934}
+{"t": 1790745024.5822847, "kind": "greedy", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 64, "latency": 1.0838067531585693}
+{"t": 1790745025.6661606, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.4015064239501953}
+{"t": 1790745026.067735, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 210, "completion_tokens": 16, "latency": 0.47911810874938965}
+{"t": 1790745026.5469208, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 435, "latency": 6.5327441692352295}
+{"t": 1790745020.0913603, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 65556, "completion_tokens": 1024, "latency": 16.21535587310791}
+{"t": 1790745033.0797517, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 256, "latency": 4.2038092613220215}
+{"t": 1790745037.2836182, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.1854026317596436}
+{"t": 1790745039.4693885, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 16405, "completion_tokens": 32, "latency": 2.3705499172210693}
+{"t": 1790745041.8401546, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 64, "latency": 3.117079496383667}
+{"t": 1790745044.9573233, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 64, "latency": 3.0297367572784424}
+{"t": 1790745047.9871333, "kind": "abort", "status": "aborted", "chunks": 34, "latency": 4.371571779251099}
+{"t": 1790745052.3587909, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 16, "latency": 1.0855047702789307}
+{"t": 1790745036.5559363, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 36.01969122886658}
+{"t": 1790745072.5757134, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 16, "latency": 0.3632774353027344}
+{"t": 1790745053.4443655, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 1024, "latency": 25.05812692642212}
+{"t": 1790745072.9390604, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 513, "latency": 6.645562171936035}
+{"t": 1790745079.5850585, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 32, "latency": 0.7980291843414307}
+{"t": 1790745080.383358, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 46, "latency": 1.018784999847412}
+{"t": 1790745081.402217, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 38, "latency": 0.9478294849395752}
+{"t": 1790745082.3501143, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 191, "completion_tokens": 380, "latency": 5.5648627281188965}
+{"t": 1790745087.9150531, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 195, "completion_tokens": 64, "latency": 0.9932594299316406}
+{"t": 1790745088.908388, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 192, "completion_tokens": 64, "latency": 0.9939968585968018}
+{"t": 1790745078.5028923, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32786, "completion_tokens": 1024, "latency": 12.540018796920776}
+{"t": 1790745089.902467, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 481, "latency": 5.2673375606536865}
+{"t": 1790745095.169893, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 1.0804369449615479}
+{"t": 1790745091.0431988, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 637, "latency": 7.530474424362183}
+{"t": 1790745096.2504284, "kind": "chat", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 256, "latency": 2.7608890533447266}
+{"t": 1790745099.0772204, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 54.391401290893555}
+{"t": 1790745099.4557216, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32768, "completion_tokens": 32, "latency": 54.62159323692322}
+{"t": 1790745153.4690359, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 0.998070478439331}
+{"t": 1790745154.4673662, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 16, "latency": 0.3999025821685791}
+{"t": 1790745155.0323951, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8192, "completion_tokens": 32, "latency": 8.46332597732544}
+{"t": 1790745163.4958, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9748725891113281}
+{"t": 1790745164.470746, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 64, "latency": 0.9652266502380371}
+{"t": 1790745165.4360392, "kind": "abort", "status": "aborted", "chunks": 14, "latency": 0.6306898593902588}
+{"t": 1790745166.0668292, "kind": "abort", "status": "aborted", "chunks": 25, "latency": 1.0104868412017822}
+{"t": 1790745167.0773933, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 44, "latency": 0.9801666736602783}
+{"t": 1790745154.0774205, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 583, "latency": 14.350882053375244}
+{"t": 1790745168.0576224, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 1.186389684677124}
+{"t": 1790745168.4283652, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 49, "latency": 1.3697617053985596}
+{"t": 1790745169.2444186, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32790, "completion_tokens": 32, "latency": 1.0439684391021729}
+{"t": 1790745169.7982137, "kind": "abort", "status": "aborted", "chunks": 13, "latency": 0.7547941207885742}
+{"t": 1790745170.5531507, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 64, "latency": 0.7979335784912109}
+{"t": 1790745170.288645, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 64, "latency": 1.0625250339508057}
+{"t": 1790745171.3512254, "kind": "abort", "status": "aborted", "chunks": 10, "latency": 0.7906551361083984}
+{"t": 1790745171.351444, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 1.0969114303588867}
+{"t": 1790745172.141964, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 190, "completion_tokens": 16, "latency": 0.5390312671661377}
+{"t": 1790745172.6810594, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 16, "latency": 0.3631877899169922}
+{"t": 1790745173.0443115, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 187, "completion_tokens": 16, "latency": 0.36285972595214844}
+{"t": 1790745172.448422, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 408, "latency": 5.223011493682861}
+{"t": 1790745177.6715198, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 16, "latency": 0.4011878967285156}
+{"t": 1790745178.0727718, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 197, "completion_tokens": 16, "latency": 0.4030787944793701}
+{"t": 1790745178.4759107, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 42, "latency": 0.9822263717651367}
+{"t": 1790745179.4582207, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 213, "completion_tokens": 466, "latency": 5.427694082260132}
+{"t": 1790745184.8859963, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.880319356918335}
+{"t": 1790745173.4074733, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8213, "completion_tokens": 1024, "latency": 13.238280296325684}
+{"t": 1790745185.7664058, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 1.2493371963500977}
+{"t": 1790745186.6458845, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 0.8417568206787109}
+{"t": 1790745189.9757302, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 36, "latency": 1.7992329597473145}
+{"t": 1790745191.7753856, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32788, "completion_tokens": 32, "latency": 2.089419364929199}
+{"t": 1790745193.865056, "kind": "tool", "status": "ok", "finish": "tool_calls", "tool_calls": 1, "prompt_tokens": 553, "completion_tokens": 47, "latency": 2.2559187412261963}
+{"t": 1790745198.7775104, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 256, "latency": 313.11768865585327}
+{"t": 1790745511.895291, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 466, "latency": 6.484029293060303}
+{"t": 1790745518.3797874, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 32789, "completion_tokens": 32, "latency": 1.2537486553192139}
+{"t": 1790745189.9697556, "kind": "long_new", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120000, "completion_tokens": 1024, "latency": 330.59007573127747}
+{"t": 1790745519.633814, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 1.2587809562683105}
+{"t": 1790745520.8926702, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 0.9459142684936523}
+{"t": 1790745521.8386827, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 188, "completion_tokens": 731, "latency": 7.890745401382446}
+{"t": 1790745529.729514, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 214, "completion_tokens": 64, "latency": 1.0080201625823975}
+{"t": 1790745520.559934, "kind": "greedy", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 189, "completion_tokens": 999, "latency": 12.399234533309937}
+{"t": 1790745532.9592407, "kind": "abort", "status": "aborted", "chunks": 6, "latency": 0.3604013919830322}
+{"t": 1790745533.319707, "kind": "greedy", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 64, "latency": 0.8414468765258789}
+{"t": 1790745530.7376037, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 196, "completion_tokens": 927, "latency": 13.721977949142456}
+{"t": 1790745534.1619833, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120022, "completion_tokens": 1024, "latency": 15.028089046478271}
+{"t": 1790745544.459896, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 8211, "completion_tokens": 1024, "latency": 14.843504667282104}
+{"t": 1790745549.1914637, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 1024, "latency": 17.027589559555054}
+{"t": 1790745566.219783, "kind": "abort", "status": "aborted", "chunks": 23, "latency": 1.175492286682129}
+{"t": 1790745567.3953588, "kind": "chat", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 212, "completion_tokens": 564, "latency": 7.886909246444702}
+{"t": 1790745575.282356, "kind": "abort", "status": "aborted", "chunks": 10, "latency": 0.6122756004333496}
+{"t": 1790745559.304307, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120020, "completion_tokens": 1024, "latency": 17.57068419456482}
+{"t": 1790745575.8954916, "kind": "long_hit", "status": "ok", "finish": "stop", "tool_calls": 0, "prompt_tokens": 120021, "completion_tokens": 168, "latency": 3.3878297805786133}
+{"t": 1790745579.8553417, "kind": "chat", "status": "bad_output", "finish": "length", "tool_calls": 0, "prompt_tokens": 194, "completion_tokens": 1024, "latency": 45.59212899208069}
+{"t": 1790745625.4483106, "kind": "long_hit", "status": "ok", "finish": "length", "tool_calls": 0, "prompt_tokens": 120022, "completion_tokens": 256, "latency": 17.94317364692688}
