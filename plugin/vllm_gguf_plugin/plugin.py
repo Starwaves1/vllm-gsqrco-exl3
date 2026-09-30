@@ -90,8 +90,9 @@ def _patch_engine_args() -> None:
         # no config.json beside it); 0.27.1 used model (the HF config dir). Blank
         # model_weights meanwhile so both use the config dir.
         gguf_model = self.model_weights
+        gguf_draft = configured_model is None and _is_gguf_reference(gguf_model)
         target_weights = target_model_config.model_weights
-        if configured_model is None and _is_gguf_reference(gguf_model):
+        if gguf_draft:
             target_model_config.model_weights = ""
         try:
             config = original_create_speculative_config(
@@ -99,12 +100,7 @@ def _patch_engine_args() -> None:
             )
         finally:
             target_model_config.model_weights = target_weights
-        if (
-            config is not None
-            and config.method == "mtp"
-            and configured_model is None
-            and _is_gguf_reference(gguf_model)
-        ):
+        if gguf_draft and config is not None and config.method == "mtp":
             config.draft_model_config.model_weights = gguf_model
         return config
 

@@ -4,6 +4,6 @@
 # GSQ_VENV picks the venv (default .venv; .venv-main for vLLM main).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV=${GSQ_VENV:-$ROOT/.venv}
-[ -d "$ROOT/build/pytest" ] || uv pip install --python "$ROOT/.venv/bin/python" --target "$ROOT/build/pytest" --no-deps pytest==8.4.2 pluggy==1.6.0 iniconfig==2.1.0 >&2
+[ -d "$ROOT/build/pytest" ] || uv pip install --python "$VENV/bin/python" --target "$ROOT/build/pytest" --no-deps pytest==8.4.2 pluggy==1.6.0 iniconfig==2.1.0 >&2
 export PYTHONPATH="$ROOT/build/pytest:$ROOT/tools${PYTHONPATH:+:$PYTHONPATH}"
 exec "$VENV/bin/python" -m pytest -p no:cacheprovider "$@"

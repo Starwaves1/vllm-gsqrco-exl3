@@ -43,7 +43,9 @@ idle IO, MemAvailable >= 9 GB). The production server, its venv, the deploy repo
     and an overlap of exactly `{output.weight}`, and it checks `draft.model == hf-config dir` and
     `draft.model_weights == .gguf`.
   - With the head on, the MTP `lm_head` is an empty GGUF placeholder shared from the target, so it counts as
-    shared. The shape check reports non-2D shards instead of crashing.
+    shared. The shape check reports non-2D shards instead of crashing. (The MTP `lm_head` has been a GGUF
+    placeholder since a89bc4a, so the script as it stood before this change would also have reported
+    `lm_head.weight_type` missing with the head off.)
 - `.gitignore` gains `.venv-main`. `CONTEXT.md` no longer calls production "0.27.1".
 
 ## 3. `.venv-main`
