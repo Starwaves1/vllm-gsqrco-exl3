@@ -1,0 +1,9 @@
+start 2026-09-30T02:10:51Z
+cases: 16
+memcheck: 0 of 16 cases not clean
+     16 ========= ERROR SUMMARY: 0 errors
+initcheck: 0 of 16 cases not clean
+     16 ========= ERROR SUMMARY: 0 errors
+<stdin>:6: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+pack blk.1.ffn_down.weight (5120, 7480) 38.3 MB: peak 1.31 GiB above the input
+end 2026-09-30T02:24:49Z

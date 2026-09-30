@@ -1,17 +1,18 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: Integration 1 (opt-p + K1 + K2 on main): decode 101.1 / 175.0 / 264.4 / 436.7 tok/s c=1/2/4/8 greedy (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4), prefill 1152 / 900 / 622 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 1" below.
+Latest: Integration 2 (Integration 1 + P2 + K3 + R2 on main): decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603). See "Integration 2" below.
 
-## Current state (2026-09-29)
+## Current state (2026-09-30)
 
 Route L (llama.cpp b11211 MMVQ/MMQ behind `lcpp_shim.cu`, `VLLM_GGUF_LCPP=1`) is on main with
-phase 3 and Integration 1 (opt-p, K1, K2): three owned 1..8-row kernels, one q8_1 quantize per
-fused layer's q8_1-reading runs, a 61,440-row MTP draft head. Measured on a rented 350 W 3090:
-c=1 decode 1.07x the production W4A16 baseline, c=2..8 0.77-0.90x, prefill 1.03-1.04x (see
-"Integration 1"). In flight on the box: K3 (`opt-k3`, 16-64-row mma for Q4_K/IQ2_S/IQ4_XS) and
-R1 (`opt-r1`, IQ3 load-time repack); they merge later. Production is untouched.
+phase 3, Integration 1 (opt-p, K1, K2) and Integration 2 (P2, K3, R2): IQ3 weights repacked at load
+and run on owned int8 tensor-core kernels at every row count, owned kernels for Q4_K/IQ2_S at 1..8
+rows and Q4_K/IQ4_XS/IQ2_S at 9..32, IQ1_M on MMVQ, one q8_1 quantize per fused layer. Measured on a
+rented 350 W 3090: decode 1.17 / 0.99 / 1.01 / 1.07x the production W4A16 baseline at c=1/2/4/8 in
+tok/s, but per engine step still 1.01-1.19x slower (the tok/s lead is MTP acceptance); prefill
+1.07-1.13x (see "Integration 2"). Production is untouched.
 
-The remaining sections are dated history ("Integration 1", then Phase 3, is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
+The remaining sections are dated history ("Integration 2", then "Integration 1", is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
 
 2026-09-27 handoff: deliverable 5 (kernel porting) was paused pending a prior-art survey; the survey chose Route L and kernel work resumed in phase 2/3.
 
@@ -47,6 +48,70 @@ absolute speed number below is heavily depressed. Raw data: `cloud/results/phase
 - Box-only gotcha: a stopped vLLM leaves its CPU-tier mmap (`/dev/shm/vllm_offload_*.mmap`)
   behind; with a 15 GB /dev/shm the next start fails with EFAULT in
   `shared_offload_region.py`. Clear it between runs when no vLLM is running.
+
+## Integration 2: P2 + K3 + R2 merged (2026-09-30, same 350 W 3090)
+
+Branch `integrate2` = main (Integration 1) + `opt-p2` + `opt-k3` + `opt-r2`, merged in that order
+(fewest conflicts: P2 was based on Integration 1, K3 and R2 on round-1 branches), fast-forwarded into
+main. Results, box scripts, profiles, parity: `cloud/results/integration-2/` (summary.txt). Decode =
+pass 2 of production's `run_benchmarks.sh single`, T=0, decode(C/meanTPOT); prefill = the salted
+ladder at c=1 (`bench/speed/run.sh gsq`, unmodified, clocks logged). Served: production argv, 61,440-row
+draft head, 253,906 KV tokens, 22.55 GiB VRAM after load.
+
+| | c=1 | c=2 | c=4 | c=8 | 8k | 64k | 180k |
+|---|---|---|---|---|---|---|---|
+| Integration 2 tok/s | 110.3 | 192.7 | 348.1 | 541.3 | 1248 | 954 | 644 |
+| Integration 2 ms/step | 27.9 | 31.6 | 35.7 | 44.2 | | | |
+| prod W4A16 tok/s (phase 1b, pass 2) | 94.1 | 194.4 | 345.1 | 505.4 | 1108 | 868 | 603 |
+| prod W4A16 ms/step | 27.6 | 27.3 | 30.0 | 41.3 | | | |
+| ratio tok/s / ms/step vs prod | 1.17 / 1.01 | 0.99 / 1.16 | 1.01 / 1.19 | 1.07 / 1.07 | 1.13 | 1.10 | 1.07 |
+| Integration 1 tok/s | 101.1 | 175.0 | 264.4 | 436.7 | 1152 | 900 | 622 |
+| Integration 1 ms/step | 30.5 | 34.9 | 46.7 | 55.7 | | | |
+| ratio tok/s vs Integration 1 (ms/step change) | 1.09 (-8.5%) | 1.10 (-9.5%) | 1.32 (-23.6%) | 1.24 (-20.6%) | 1.08 | 1.06 | 1.04 |
+| pre-campaign f6b96bf tok/s (ms/step) | 88.1 (33.7) | 154.3 (38.5) | 258.4 (47.2) | 432.9 (56.4) | - | - | - |
+| ratio tok/s vs f6b96bf | 1.25 | 1.25 | 1.35 | 1.25 | | | |
+
+- ms/step = C x 1000 / tok/s x tok/step; tok/step 3.08 / 3.04 / 3.11 / 2.99 (W4A16 2.60 / 2.65 /
+  2.59 / 2.61). **Per engine step this build is still slower than W4A16 at every c** (1.01x at c=1,
+  1.16x / 1.19x / 1.07x at c=2/4/8); the tok/s lead at c=1 and c=8 is MTP acceptance (0.650 here).
+- Merges. P2: two comment/doc conflicts; its IQ1_M-on-MMVQ made two of Integration 1's q8_1-fill
+  test cases wrong (they assumed IQ1_M reads no q8_1): fixed in the K3 merge. K3: `_lcpp_op` gains
+  K (IQ4_XS's 17..32-row window depends on rows x K) and returns `lcpp_mul_mat_mma_k` after the own
+  kernel's range; mma_k, like MMQ, quantizes X itself (`_OWN_QUANTIZE_OPS`), so apply()'s shared
+  x_q8 skips it; the shim's `run()` keeps x_q8 and takes K3's `check_inputs(max_rows)`. R2: packed
+  IQ3 routes inside `_lcpp_op(..., packed)` (the flag apply() reads from `weight.iq3_packed`) instead
+  of a branch before it; `_fused_mul_mat_gguf` / `_quantize_x_q8_1` take `packed` after `x_q8`; the
+  packed decode op takes apply()'s shared x_q8 like the other 1..8-row owned ops (R1 had no x_q8;
+  bit-exact either way: same q8_1 bytes). One Kernel enum and `run()` for all eight ops. Vendored
+  files unchanged (sha256).
+- Per-branch attribution (profiled GEMM ms/step vs Integration 1's and opt-p2's traces, summary.txt):
+  R2 carries c>=4: IQ3 on MMQ 19.8 -> 10.2 ms at c=4, ~23.3 -> 13.1 at c=8. R1 at c=1: IQ3 10.3 ->
+  7.8 ms, minus +0.26 ms of casts (the packed kernel writes fp32 where the dp4a one wrote bf16). K3:
+  Q4_K/IQ4_XS/IQ2_S 10.3 -> 9.0 ms at c=4, ~-0.9 at c=8. P2 (from its branch): memset -0.37 ms and
+  IQ1_M -0.27 ms at c=4. R2 and K3 write X's dtype: casts 1.05 -> 0.53 ms at c=4.
+- Profile (5 decode steps, per step; profiler inflates idle by ~1.5-6.6 ms): Route L GEMM 18.4 /
+  23.9 / 30.4 ms at c=1/4/8, plumbing 1.4 / 1.4 / 1.8, vLLM GPU 3.0 / 4.6 / 7.3, launches 2196 /
+  2325 / 2338. Biggest remaining GEMM terms: c=1 IQ4_XS on MMVQ 4.0 ms (no owned IQ4_XS decode
+  kernel); c=4/8 tiled IQ3 10.2 / 13.1 and mma_k 8.8 / 9.3; at c=8 MMQ still runs 6.7 ms (Q6_K,
+  IQ4_XS at 17..32 rows below the 12288 x 5120 cut, IQ2_XS, Q2_K).
+- Gap to the floor (~17.7 ms/step: ~13 ms weight traffic + ~4.7 ms host idle, opt-p's c=1 floor;
+  a lower bound above c=1): 10.2 / 13.9 / 18.0 / 26.5 ms at c=1/2/4/8. c=1: GEMM efficiency ~5.4,
+  vLLM GPU ~3.0, plumbing ~1.4. c=8: GEMM ~17.4 (now partly compute), vLLM ~7.3 (GDN gating 3.9),
+  plumbing ~1.8.
+- Tests on the merged build: kernel parity 3920 pass / 183 skip / 0 fail (Route L on), 3822 / 281 /
+  0 (off); the stock-kernel tests give per-test identical outcomes to Integration 1's worktree in
+  the same session (317 / 16 each); CPU guards + routing table 246 (112 + 134); GPU guards 228 / 72
+  skip / 0 fail; compute-sanitizer memcheck + initcheck on 168 cases covering every owned op (packed
+  at 1/8/9/32/33/128 rows, mma_k at 1/9/33/64): 0 access or init errors. 16 whole-tensor packed
+  cases hit CUDA OOM in the shared sanitizer process (GPU iq3_pack.pack peaks 1.31 GiB; a failed
+  test's traceback pins its tensors) and were clean rerun one per process.
+- Logit parity vs the phase-1b llama.cpp dumps: KLD 0.0249 / top-1 98.18% overall (Integration 1
+  0.0237 / 98.18%), >= 100k 0.0064 / 98.26% (0.0055 / 98.44%). Relative gate PASS on seq_000-005;
+  absolute gate FAIL as every build. seq_005 rose 0.0082 -> 0.0419 from one position (4910, KLD
+  8.89; 0.0111 without it); seq_010's top spike sits at 119784, where Integration 1's
+  summation-order variant moved it. INFERRED: the new >8-row kernels change fp32 summation order as
+  MMQ's stream-k split did. MTP greedy acceptance 0.6684 vs llama.cpp 0.6732 (-0.5 pt, ok).
+- Box: 2026-09-30 00:04-03:19 UTC, ~3.25 GPU-hours, 7 gpuq jobs (summary.txt).
 
 ## Round 2, P2: plumbing (branch opt-p2, 2026-09-29, same 350 W 3090)
 
@@ -383,7 +448,8 @@ code changed. Test and bench changes: be506ce.
 | `route-l` | Route L as first built compile-only (merged into main in phase 2) |
 | `opt-p`, `opt-k1`, `opt-k2` | optimization campaign round 1: plumbing, Q4_K/IQ2_S kernel, IQ3 mma kernel; merged via `integrate` |
 | `integrate` | Integration 1 merge branch; main was fast-forwarded to it |
-| `opt-k3`, `opt-r1` | round-1 work still running on the box (K3: 16-64-row mma; R1: IQ3 load-time repack); not merged |
+| `opt-p2`, `opt-k3`, `opt-r1`, `opt-r2` | round 2: plumbing, 9..32-row mma for Q4_K/IQ4_XS/IQ2_S, IQ3 load-time repack, tiled packed IQ3 kernel (R2 includes R1); merged via `integrate2` |
+| `integrate2` | Integration 2 merge branch; main was fast-forwarded to it |
 | `swift-gsq-rco` | the plugin fork itself, `git subtree split --prefix=plugin`: upstream history through e2b8ad5, plus our adapter commit (7794689). Kept as a clean split because Garrett intends to send it upstream later; don't push it or open a PR right now. Regenerate after new plugin commits: `git subtree split --prefix=plugin -b swift-gsq-rco` |
 
 Remote `plugin-upstream` has `pushurl = no_push`. Nothing was pushed anywhere.

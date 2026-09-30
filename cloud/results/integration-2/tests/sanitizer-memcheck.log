@@ -1,0 +1,344 @@
+========= COMPUTE-SANITIZER
+........................................................................ [ 42%]
+........................................................................ [ 85%]
+......................========= Program hit cudaErrorMemoryAllocation (error 2) due to "out of memory" on CUDA API call to cudaMalloc.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::allocate(unsigned long) [0x47ac7] in libc10_cuda.so
+=========         Host Frame: at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>) [0x183caf2] in libtorch_cpu.so
+=========         Host Frame: at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>) [0xcf408e] in libtorch_cuda.so
+=========         Host Frame: at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0xcf429d] in libtorch_cuda.so
+=========         Host Frame: at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x104c762] in libtorch_cuda.so
+=========         Host Frame: at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_memory_format_empty(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x37230a1] in libtorch_cuda.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_memory_format_empty>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x37231bb] in libtorch_cuda.so
+=========         Host Frame: at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x28da409] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::empty_memory_format>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2d18828] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_memory_format::call(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x299fcef] in libtorch_cpu.so
+=========         Host Frame: at::empty_symint(c10::ArrayRef<c10::SymInt>, c10::TensorOptions, std::optional<c10::MemoryFormat>) [0x1d14a1b] in libtorch_cpu.so
+=========         Host Frame: at::native::empty_like(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2085058] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__empty_like>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2f98f75] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_like::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2b3fa1b] in libtorch_cpu.so
+=========         Host Frame: at::empty_like(at::Tensor const&, c10::TensorOptions, std::optional<c10::MemoryFormat>) [0x18efd61] in libtorch_cpu.so
+=========         Host Frame: at::native::clone(at::Tensor const&, std::optional<c10::MemoryFormat>) [0x2084c88] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__clone>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x2f9e64e] in libtorch_cpu.so
+=========         Host Frame: at::_ops::clone::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x279ee49] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableType::(anonymous namespace)::clone(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x52b73d6] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>), &torch::autograd::VariableType::(anonymous namespace)::clone>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x52b7721] in libtorch_cpu.so
+=========         Host Frame: at::_ops::clone::call(at::Tensor const&, std::optional<c10::MemoryFormat>) [0x27e32ee] in libtorch_cpu.so
+=========         Host Frame: at::native::reshape_symint(at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x20a9020] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, c10::ArrayRef<c10::SymInt>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeImplicitAutograd__reshape>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, c10::ArrayRef<c10::SymInt> > >, at::Tensor (at::Tensor const&, c10::ArrayRef<c10::SymInt>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x30e20d1] in libtorch_cpu.so
+=========         Host Frame: at::_ops::reshape::call(at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x2b465da] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::THPVariable_reshape(_object*, _object*, _object*) [0x467bc3] in libtorch_python.so
+=========         Host Frame: method_vectorcall_VARARGS_KEYWORDS.llvm.4586389932116064702 [0x1449df4] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Program hit cudaErrorMemoryAllocation (error 2) due to "out of memory" on CUDA API call to cudaGetLastError.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, unsigned int, bool) [0x4b904] in libc10_cuda.so
+=========         Host Frame: c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::allocate(unsigned long) [0x47ae3] in libc10_cuda.so
+=========         Host Frame: at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>) [0x183caf2] in libtorch_cpu.so
+=========         Host Frame: at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>) [0xcf408e] in libtorch_cuda.so
+=========         Host Frame: at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0xcf429d] in libtorch_cuda.so
+=========         Host Frame: at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x104c762] in libtorch_cuda.so
+=========         Host Frame: at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_memory_format_empty(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x37230a1] in libtorch_cuda.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_memory_format_empty>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x37231bb] in libtorch_cuda.so
+=========         Host Frame: at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x28da409] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::empty_memory_format>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2d18828] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_memory_format::call(c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x299fcef] in libtorch_cpu.so
+=========         Host Frame: at::empty_symint(c10::ArrayRef<c10::SymInt>, c10::TensorOptions, std::optional<c10::MemoryFormat>) [0x1d14a1b] in libtorch_cpu.so
+=========         Host Frame: at::native::empty_like(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2085058] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__empty_like>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2f98f75] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_like::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>) [0x2b3fa1b] in libtorch_cpu.so
+=========         Host Frame: at::empty_like(at::Tensor const&, c10::TensorOptions, std::optional<c10::MemoryFormat>) [0x18efd61] in libtorch_cpu.so
+=========         Host Frame: at::native::clone(at::Tensor const&, std::optional<c10::MemoryFormat>) [0x2084c88] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__clone>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x2f9e64e] in libtorch_cpu.so
+=========         Host Frame: at::_ops::clone::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x279ee49] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableType::(anonymous namespace)::clone(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x52b73d6] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>), &torch::autograd::VariableType::(anonymous namespace)::clone>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::MemoryFormat>) [0x52b7721] in libtorch_cpu.so
+=========         Host Frame: at::_ops::clone::call(at::Tensor const&, std::optional<c10::MemoryFormat>) [0x27e32ee] in libtorch_cpu.so
+=========         Host Frame: at::native::reshape_symint(at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x20a9020] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, c10::ArrayRef<c10::SymInt>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeImplicitAutograd__reshape>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, c10::ArrayRef<c10::SymInt> > >, at::Tensor (at::Tensor const&, c10::ArrayRef<c10::SymInt>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x30e20d1] in libtorch_cpu.so
+=========         Host Frame: at::_ops::reshape::call(at::Tensor const&, c10::ArrayRef<c10::SymInt>) [0x2b465da] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::THPVariable_reshape(_object*, _object*, _object*) [0x467bc3] in libtorch_python.so
+=========         Host Frame: method_vectorcall_VARARGS_KEYWORDS.llvm.4586389932116064702 [0x1449df4] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+F========= Program hit cudaErrorMemoryAllocation (error 2) due to "out of memory" on CUDA API call to cudaMalloc.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::allocate(unsigned long) [0x47ac7] in libc10_cuda.so
+=========         Host Frame: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) [0x183e2a4] in libtorch_cpu.so
+=========         Host Frame: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>) [0xcf3c9d] in libtorch_cuda.so
+=========         Host Frame: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0xcf3eae] in libtorch_cuda.so
+=========         Host Frame: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x104c7f8] in libtorch_cuda.so
+=========         Host Frame: at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__empty_strided(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x3721f0c] in libtorch_cuda.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x372200e] in libtorch_cuda.so
+=========         Host Frame: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x28da994] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x2d183dd] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x29a1e67] in libtorch_cpu.so
+=========         Host Frame: at::empty_strided(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions) [0x2072847] in libtorch_cpu.so
+=========         Host Frame: at::native::_to_copy(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x207125c] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd___to_copy>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x2f99a7b] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x256d1a1] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x2d1539a] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x256d1a1] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableType::(anonymous namespace)::_to_copy(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x503ddb4] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &torch::autograd::VariableType::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x503e21e] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x262aeef] in libtorch_cpu.so
+=========         Host Frame: at::native::to(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x204dc43] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeImplicitAutograd_dtype_layout_to>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x30e37b1] in libtorch_cpu.so
+=========         Host Frame: at::_ops::to_dtype_layout::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x27e7955] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::dispatch_to(at::Tensor const&, c10::Device, bool, bool, std::optional<c10::MemoryFormat>) [0x4419aa] in libtorch_python.so
+=========         Host Frame: torch::autograd::THPVariable_cuda(_object*, _object*, _object*) [0x4a9a0a] in libtorch_python.so
+=========         Host Frame: method_vectorcall_VARARGS_KEYWORDS.llvm.4586389932116064702 [0x1449df4] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+========= Program hit cudaErrorMemoryAllocation (error 2) due to "out of memory" on CUDA API call to cudaGetLastError.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, unsigned int, bool) [0x4b904] in libc10_cuda.so
+=========         Host Frame: c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::allocate(unsigned long) [0x47ae3] in libc10_cuda.so
+=========         Host Frame: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) [0x183e2a4] in libtorch_cpu.so
+=========         Host Frame: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>) [0xcf3c9d] in libtorch_cuda.so
+=========         Host Frame: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0xcf3eae] in libtorch_cuda.so
+=========         Host Frame: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x104c7f8] in libtorch_cuda.so
+=========         Host Frame: at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__empty_strided(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x3721f0c] in libtorch_cuda.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x372200e] in libtorch_cuda.so
+=========         Host Frame: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x28da994] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x2d183dd] in libtorch_cpu.so
+=========         Host Frame: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>) [0x29a1e67] in libtorch_cpu.so
+=========         Host Frame: at::empty_strided(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions) [0x2072847] in libtorch_cpu.so
+=========         Host Frame: at::native::_to_copy(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x207125c] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd___to_copy>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x2f99a7b] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x256d1a1] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x2d1539a] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x256d1a1] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::VariableType::(anonymous namespace)::_to_copy(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x503ddb4] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &torch::autograd::VariableType::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x503e21e] in libtorch_cpu.so
+=========         Host Frame: at::_ops::_to_copy::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>) [0x262aeef] in libtorch_cpu.so
+=========         Host Frame: at::native::to(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x204dc43] in libtorch_cpu.so
+=========         Host Frame: c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeImplicitAutograd_dtype_layout_to>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x30e37b1] in libtorch_cpu.so
+=========         Host Frame: at::_ops::to_dtype_layout::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>) [0x27e7955] in libtorch_cpu.so
+=========         Host Frame: torch::autograd::dispatch_to(at::Tensor const&, c10::Device, bool, bool, std::optional<c10::MemoryFormat>) [0x4419aa] in libtorch_python.so
+=========         Host Frame: torch::autograd::THPVariable_cuda(_object*, _object*, _object*) [0x4a9a0a] in libtorch_python.so
+=========         Host Frame: method_vectorcall_VARARGS_KEYWORDS.llvm.4586389932116064702 [0x1449df4] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141f051] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: _PyObject_Call_Prepend.warm [0x16b5761] in python
+=========         Host Frame: slot_tp_call [0x14a2ef1] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x141614b] in python
+=========         Host Frame: PyEval_EvalCode [0x149ff9f] in python
+=========         Host Frame: builtin_exec [0x145d88d] in python
+=========         Host Frame: cfunction_vectorcall_FASTCALL_KEYWORDS.llvm.11515150040340816011 [0x142a3fe] in python
+=========         Host Frame: _PyEval_EvalFrameDefault [0x14162d6] in python
+=========         Host Frame: pymain_run_module [0x1582de1] in python
+=========         Host Frame: Py_RunMain [0x15826c4] in python
+=========         Host Frame: pymain_main.llvm.8263641601431312717 [0x158235e] in python
+=========         Host Frame: main [0x158216b] in python
+========= 
+F                                                 [100%]
+=================================== FAILURES ===================================
+______________________ test_lcpp_packed_layer[128-z_iq3] _______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f0e2eadc9b0>, n = 128
+z_iq3 = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f0a14525ee0>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+        qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+        z = torch.from_numpy(np.ascontiguousarray(tz.data)).cuda()
+        shards = [qkv[:2048], qkv[2048:4096], qkv[4096:], z]
+        qts = [int(tqkv.tensor_type)] * 3 + [int(tz.tensor_type)]
+        layer, method = _padded_layer(shards, qts, int(tqkv.shape[0]), monkeypatch)
+        ptr = layer.weight.data_ptr()
+>       method._pack_iq3(layer)
+
+tests/gpu/test_kernel_parity.py:1046: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+plugin/vllm_gguf_plugin/quantization/linear.py:377: in _pack_iq3
+    iq3_pack.pack_(w, t)
+plugin/vllm_gguf_plugin/quantization/iq3_pack.py:167: in pack_
+    w[r0:r0 + 256] = pack(w[r0:r0 + 256], weight_type)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = tensor([[136,   6, 156,  ..., 207, 186, 119],
+        [246,   6, 127,  ..., 191, 203, 185],
+        [126,   6, 246,  ....6,  29,  ..., 172, 175, 234],
+        [ 52,   7, 158,  ..., 247, 185, 185]], device='cuda:0',
+       dtype=torch.uint8)
+weight_type = <GGMLQuantizationType.IQ3_S: 21>
+
+    def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
+        """[rows, row_bytes] uint8 GGUF blocks (rows % 16 == 0) -> the packed bytes, same shape."""
+        weight_type = WeightType(weight_type)
+        assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
+        bsize = GGML_QUANT_SIZES[weight_type][1]
+        rows, rb = w.shape
+        b = _tiles(w, bsize).int()                      # N, R, G, bytes
+        n = b.shape[0]
+        d = b[..., 0:2]
+        if weight_type == WeightType.IQ3_S:
+            q = b[..., 2:66].reshape(n, 2, 8, 8, 8)
+            qh = b[..., 66:74].reshape(n, 2, 8, 8, 1)
+            signs = b[..., 74:106].reshape(n, 2, 8, 8, 4, 1)
+            sc = b[..., 106:110]
+            wbit = torch.arange(8, device=w.device)
+            nib = ((signs >> (4 * torch.arange(2, device=w.device))) & 0xF).reshape(n, 2, 8, 8, 8)
+            hn = nib | ((qh >> wbit) & 1) << 4          # N R G S W: 5 bits
+            x = _lanes(hn).reshape(n, 32, 2, 4, 4).reshape(n, 32, 8, 4)  # X_i byte j, i = 4R + c
+            h = x[:, :, :5].clone()
+            for xi, xo, hi, ho, width in _S_HI:
+                h[:, :, hi] |= ((x[:, :, xi] >> xo) & ((1 << width) - 1)) << ho
+>           frag = [h[:, :, :4].reshape(n, 32 * 16), h[:, :, 4].reshape(n, 32 * 4)]
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           torch.AcceleratorError: CUDA error: out of memory
+E           Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E           For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+plugin/vllm_gguf_plugin/quantization/iq3_pack.py:101: AcceleratorError
+_____________________ test_lcpp_packed_layer[128-z_other] ______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f0e2eadc9b0>, n = 128
+z_iq3 = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f0a1458c830>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/wt-int2/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_routing_whole_tensor[IQ1_M-9-True]
+  /workspace/wt-int2/tests/gpu/test_kernel_parity.py:201: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[128-z_iq3] - t...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[128-z_other]
+2 failed, 166 passed, 15 warnings in 78.01s (0:01:18)
+========= Target application returned an error
+========= ERROR SUMMARY: 4 errors

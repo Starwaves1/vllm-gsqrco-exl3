@@ -1,0 +1,10 @@
+start 2026-09-30T00:06:33Z
+build rc=0
+copying build/lib.linux-x86_64-cpython-312/vllm_gguf_plugin/_C_gguf.abi3.so -> vllm_gguf_plugin
+vendored sha256 OK
+cpu rc=0: 246 passed, 14 warnings in 8.75s
+parity lcpp rc=0: 3920 passed, 183 skipped, 15 warnings in 251.82s (0:04:11)
+parity stock rc=0: 3822 passed, 281 skipped, 15 warnings in 242.88s (0:04:02)
+parity stock (Integration 1 worktree): 1979 passed, 176 skipped, 15 warnings in 119.40s (0:01:59)
+guards rc=0: 228 passed, 72 skipped, 70 deselected in 4267.02s (1:11:07)
+end 2026-09-30T01:28:17Z

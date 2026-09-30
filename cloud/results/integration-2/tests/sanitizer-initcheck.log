@@ -1,0 +1,541 @@
+========= COMPUTE-SANITIZER
+........................................................................ [ 42%]
+........................................................................ [ 85%]
+..........FFFFFFFFFFFFFF                                                 [100%]
+=================================== FAILURES ===================================
+__________________ test_routing_packed_whole_tensor[IQ3_S-9] ___________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_S', n = 9
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+>       p = _packed(w, qt)
+            ^^^^^^^^^^^^^^
+
+tests/gpu/test_kernel_parity.py:979: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/gpu/test_kernel_parity.py:818: in _packed
+    return iq3_pack.pack(w, qt)
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = tensor([[136,   6, 156,  ..., 207, 186, 119],
+        [246,   6, 127,  ..., 191, 203, 185],
+        [126,   6, 246,  ....6, 160,  ..., 126, 187, 186],
+        [170,   6,  79,  ..., 204, 233, 184]], device='cuda:0',
+       dtype=torch.uint8)
+weight_type = <GGMLQuantizationType.IQ3_S: 21>
+
+    def pack(w: torch.Tensor, weight_type: int) -> torch.Tensor:
+        """[rows, row_bytes] uint8 GGUF blocks (rows % 16 == 0) -> the packed bytes, same shape."""
+        weight_type = WeightType(weight_type)
+        assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
+        bsize = GGML_QUANT_SIZES[weight_type][1]
+        rows, rb = w.shape
+        b = _tiles(w, bsize).int()                      # N, R, G, bytes
+        n = b.shape[0]
+        d = b[..., 0:2]
+        if weight_type == WeightType.IQ3_S:
+            q = b[..., 2:66].reshape(n, 2, 8, 8, 8)
+            qh = b[..., 66:74].reshape(n, 2, 8, 8, 1)
+            signs = b[..., 74:106].reshape(n, 2, 8, 8, 4, 1)
+            sc = b[..., 106:110]
+            wbit = torch.arange(8, device=w.device)
+            nib = ((signs >> (4 * torch.arange(2, device=w.device))) & 0xF).reshape(n, 2, 8, 8, 8)
+            hn = nib | ((qh >> wbit) & 1) << 4          # N R G S W: 5 bits
+            x = _lanes(hn).reshape(n, 32, 2, 4, 4).reshape(n, 32, 8, 4)  # X_i byte j, i = 4R + c
+>           h = x[:, :, :5].clone()
+                ^^^^^^^^^^^^^^^^^^^
+E           torch.AcceleratorError: CUDA error: out of memory
+E           Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E           For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+plugin/vllm_gguf_plugin/quantization/iq3_pack.py:98: AcceleratorError
+__________________ test_routing_packed_whole_tensor[IQ3_S-33] __________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_S', n = 33
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+_________________ test_routing_packed_whole_tensor[IQ3_S-128] __________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_S', n = 128
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+_________________ test_routing_packed_whole_tensor[IQ3_XXS-1] __________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_XXS', n = 1
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+        w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+>       p = _packed(w, qt)
+            ^^^^^^^^^^^^^^
+
+tests/gpu/test_kernel_parity.py:979: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/gpu/test_kernel_parity.py:818: in _packed
+    return iq3_pack.pack(w, qt)
+           ^^^^^^^^^^^^^^^^^^^^
+plugin/vllm_gguf_plugin/quantization/iq3_pack.py:86: in pack
+    b = _tiles(w, bsize).int()                      # N, R, G, bytes
+        ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+w = tensor([[132,  10, 145,  ..., 240, 185, 139],
+        [ 48,   8,  20,  ...,  43,  59, 142],
+        [214,   7,  13,  ....7,  14,  ...,  73,  11, 228],
+        [ 84,   7,  68,  ..., 232, 200, 201]], device='cuda:0',
+       dtype=torch.uint8)
+bsize = 98
+
+    def _tiles(w: torch.Tensor, bsize: int) -> torch.Tensor:
+        rows, rb = w.shape
+        nb = rb // bsize
+        assert w.dtype == torch.uint8 and rows % ROWS == 0 and rb == nb * bsize, (w.shape, w.dtype)
+        # [tile, block, row (R, g), byte]
+>       return w.view(rows // ROWS, ROWS, nb, bsize).permute(0, 2, 1, 3).reshape(-1, 2, 8, bsize)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+plugin/vllm_gguf_plugin/quantization/iq3_pack.py:70: AcceleratorError
+_________________ test_routing_packed_whole_tensor[IQ3_XXS-8] __________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_XXS', n = 8
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+_________________ test_routing_packed_whole_tensor[IQ3_XXS-9] __________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_XXS', n = 9
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+_________________ test_routing_packed_whole_tensor[IQ3_XXS-33] _________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_XXS', n = 33
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+________________ test_routing_packed_whole_tensor[IQ3_XXS-128] _________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+name = 'IQ3_XXS', n = 128
+
+    @pytest.mark.parametrize("n", [1, 4, 8, 9, 16, 32, 33, 128, 2048])
+    @pytest.mark.parametrize("name", IQ3_TYPES)
+    def test_routing_packed_whole_tensor(tensors_by_type, name, n):
+        """_fused_mul_mat_gguf with packed=True on a whole packed tensor: up to PACKED_VEC_MAX_ROWS
+        the packed decode kernel (bit-exact with the mma kernel 8 rows at a time), above it the
+        tiled one (bit-exact with lcpp_mul_mat_iq3_packed; within TILED_RTOL of MMQ on the GGUF
+        bytes)."""
+        import gguf
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+        from vllm_gguf_plugin.quantization.linear import PACKED_VEC_MAX_ROWS, _fused_mul_mat_gguf
+    
+        C = _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        qt = int(gguf.GGMLQuantizationType[name])
+        t, raw = _sample(tensors_by_type, name, rows=None, big=True)
+>       w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:978: AcceleratorError
+_______________________ test_lcpp_packed_layer[1-z_iq3] ________________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 1
+z_iq3 = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de1565e80>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+______________________ test_lcpp_packed_layer[1-z_other] _______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 1
+z_iq3 = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de1566f00>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+_______________________ test_lcpp_packed_layer[8-z_iq3] ________________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 8
+z_iq3 = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de16f45c0>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+______________________ test_lcpp_packed_layer[8-z_other] _______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 8
+z_iq3 = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de1512180>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+______________________ test_lcpp_packed_layer[128-z_iq3] _______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 128
+z_iq3 = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de1566750>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+_____________________ test_lcpp_packed_layer[128-z_other] ______________________
+
+tensors_by_type = {'BF16': [ReaderTensor(name='blk.0.ssm_alpha.weight', tensor_type=<GGMLQuantizationType.BF16: 30>, shape=memmap([5120,...ype=uint64), memmap([22], dtype=uint32), memmap([1650002048], dtype=uint64)], data=[1, 3, 4, 5], types=[])), ...], ...}
+gguf_reader = <gguf.gguf_reader.GGUFReader object at 0x7f74ec3b0800>, n = 128
+z_iq3 = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6de1565550>
+
+    @pytest.mark.parametrize("z_iq3", [True, False], ids=["z_iq3", "z_other"])
+    @pytest.mark.parametrize("n", [1, 4, 8, 16, 32, 128])
+    def test_lcpp_packed_layer(tensors_by_type, gguf_reader, n, z_iq3, monkeypatch):
+        """GDN in_proj_qkvz (q/k/v run of one IQ3 type + z of another type, IQ3 or not) and a
+        single-tensor layer, packed by GGUFLinearMethod._pack_iq3: every IQ3 run is packed in place
+        (the padded storage is not reallocated, other runs keep their bytes), iq3_packed is set, and
+        apply() is bit-exact with the packed kernels on each IQ3 run's own bytes and
+        with the usual routing on the others. A layer with an IQ3 run of 200 rows is not packed."""
+        import numpy as np
+        import torch
+    
+        from vllm_gguf_plugin import ops
+    
+        _lcpp()
+        if not ops.LCPP_ENABLED:
+            pytest.skip("needs VLLM_GGUF_LCPP=1")
+        from vllm_gguf_plugin.quantization.linear import _IQ3_TYPES as T, GGUFLinearMethod, _shard_weight
+    
+        blk, tqkv, tz = _qkvz_block(gguf_reader, z_iq3)
+>       qkv = torch.from_numpy(np.ascontiguousarray(tqkv.data)).cuda()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       torch.AcceleratorError: CUDA error: out of memory
+E       Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+E       For more detailed error information, run with CUDA_LOG_FILE=stderr
+
+tests/gpu/test_kernel_parity.py:1040: AcceleratorError
+=============================== warnings summary ===============================
+tests/gpu/test_kernel_parity.py: 14 warnings
+  /workspace/wt-int2/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/gpu/test_kernel_parity.py::test_routing_whole_tensor[IQ1_M-9-True]
+  /workspace/wt-int2/tests/gpu/test_kernel_parity.py:201: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_S-9]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_S-33]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_S-128]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_XXS-1]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_XXS-8]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_XXS-9]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_XXS-33]
+FAILED tests/gpu/test_kernel_parity.py::test_routing_packed_whole_tensor[IQ3_XXS-128]
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[1-z_iq3] - tor...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[1-z_other] - t...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[8-z_iq3] - tor...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[8-z_other] - t...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[128-z_iq3] - t...
+FAILED tests/gpu/test_kernel_parity.py::test_lcpp_packed_layer[128-z_other]
+14 failed, 154 passed, 15 warnings in 53.71s
+========= Target application returned an error
+========= ERROR SUMMARY: 0 errors

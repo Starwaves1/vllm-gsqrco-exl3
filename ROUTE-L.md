@@ -40,21 +40,35 @@ phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
   unchanged.
 - Runtime: `VLLM_GGUF_LCPP=1` (default off, so e2b8ad5 behaviour is unchanged).
   - `linear.py` routing (`_lcpp_op`; n = activation rows, W rows = the
-    weight's or shard run's rows).
+    weight's or shard run's rows, K = its columns; packed = the layer's IQ3
+    runs were repacked at load, see below). Integration 2 table, pinned by
+    `tests/cpu/test_lcpp_routing.py`:
 
-    | type | n = 1..5 | n = 6, 7 | n = 8 | n ≥ 9 | source |
-    |---|---|---|---|---|---|
-    | IQ3_S, IQ3_XXS | `lcpp_mul_mat_vec_iq3` (dp4a) | `lcpp_mul_mat_vec_iq3_mma` | `lcpp_mul_mat_vec_iq3_mma` | MMQ | phase3/item5, phase3/k2 |
-    | Q4_K, W rows > 2048 | MMVQ at 1, 2; `lcpp_mul_mat_vec_own` from 3 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
-    | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | MMQ | opt/k1 |
-    | other Route L types; Q4_K/IQ2_S ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | phase3 item 1 |
-    | IQ1_M (no MMQ upstream) | MMVQ | MMVQ | MMVQ | MMVQ in 8-row calls to 32 rows, then the stock dequantize + x @ W.T | opt-p2 |
+    | type | n = 1..5 | n = 6, 7 | n = 8 | n = 9..32 | n ≥ 33 | source |
+    |---|---|---|---|---|---|---|
+    | IQ3_S, IQ3_XXS, packed | `lcpp_mul_mat_vec_iq3_mma_packed` | same | same | `lcpp_mul_mat_iq3_packed` (tiled) | `lcpp_mul_mat_iq3_packed` | phase3/r1, r2 |
+    | IQ3_S, IQ3_XXS, not packed | `lcpp_mul_mat_vec_iq3` (dp4a) | `lcpp_mul_mat_vec_iq3_mma` | `lcpp_mul_mat_vec_iq3_mma` | MMQ | MMQ | phase3/item5, k2 |
+    | Q4_K, W rows > 2048 | MMVQ at 1, 2; `lcpp_mul_mat_vec_own` from 3 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_mma_k` | MMQ | opt/k1, opt/k3 |
+    | IQ2_S, W rows > 2048 | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_vec_own` | `lcpp_mul_mat_mma_k` | MMQ | opt/k1, opt/k3 |
+    | IQ4_XS, W rows > 2048 | MMVQ | MMVQ | MMQ | `lcpp_mul_mat_mma_k` at 9..16; at 17..32 only if W rows × K ≥ 12288 × 5120, else MMQ | MMQ | opt/k3 |
+    | other Route L types; Q4_K/IQ2_S/IQ4_XS ≤ 2048 W rows | MMVQ | MMVQ | MMQ | MMQ | MMQ | phase3 item 1 |
+    | IQ1_M (no MMQ upstream) | MMVQ | MMVQ | MMVQ | MMVQ in 8-row calls | stock dequantize + x @ W.T | opt-p2 |
 
+  - Packing (`GGUFLinearMethod._pack_iq3`, `quantization/iq3_pack.py`, R1):
+    with `VLLM_GGUF_LCPP=1`, after the padded weight is built, each IQ3 run
+    of a layer is rewritten in place (same bytes, lossless) into the mma
+    fragment order the packed kernels read, and `weight.iq3_packed` is set.
+    All or nothing per layer: only if every IQ3 run has a multiple of 16 rows
+    and 16-byte aligned bytes; otherwise the layer keeps the GGUF layout and
+    the not-packed row applies. Methods that dequantize GGUF bytes
+    (embedding, diffusion) set `pack_iq3 = False`.
   - A fused layer with several shard runs (mixed types) quantizes X once up
     front in `apply()` (`_quantize_x_q8_1`, opt-p) when any run's op reads
-    q8_1 (every op above but MMQ) and passes it to those runs as
-    `x_q8`. The dp4a IQ3 kernel writes X's dtype; MMVQ, MMQ and the other two
-    owned kernels write fp32 and the shim casts.
+    q8_1 and passes it to those runs as `x_q8`. MMQ, `lcpp_mul_mat_mma_k` and
+    `lcpp_mul_mat_iq3_packed` quantize X themselves in MMQ's layout
+    (`_OWN_QUANTIZE_OPS`); every other op reads the shared q8_1. The dp4a IQ3
+    kernel, mma_k and the tiled packed kernel write X's dtype; MMVQ, MMQ and
+    the other owned kernels write fp32 and the shim casts.
   - GGUF BF16/F16/F32 linears (GDN `in_proj_ba`) go through
     `GGUFUnquantizedLinearMethod`: ≤ 8 rows × ≤ 128 weight rows, no bias, as a
     batched gemv (`torch.bmm`), otherwise `F.linear` (opt-p). Independent of
@@ -67,8 +81,8 @@ phase 2, phase 3 and Integration 1: results and test counts in STATUS.md and
     multiple of the narrower shard's block size (2200/98, 1480/66, 2880/84),
     and the kernels index rows in blocks.
   - `diffusion_config.py` uses the same helper.
-- `tests/cpu/test_lcpp_guards.py`: 73 guard cases in a `no_gpu` subprocess;
-  `tests/cpu/test_lcpp_routing.py`: the routing table above, 54 cases.
+- `tests/cpu/test_lcpp_guards.py`: 112 guard tests in a `no_gpu` subprocess;
+  `tests/cpu/test_lcpp_routing.py`: the routing table above, every boundary, 134 cases (Integration 2).
 
 ## Shim overhead
 

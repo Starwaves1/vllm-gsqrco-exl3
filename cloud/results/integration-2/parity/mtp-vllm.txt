@@ -1,0 +1,4 @@
+vllm default: acceptance 0.6613294517224648  drafted 4122  accepted 2726
+vllm greedy: acceptance 0.668377321603128  drafted 4092  accepted 2735
+default: delta vs reference +0.0337 (FAIL)
+greedy: delta vs reference -0.0049 (ok)

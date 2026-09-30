@@ -1,0 +1,41 @@
+start 2026-09-30T02:24:49Z
+vllm rc=0
+compare rc=1
+seq_000 chat      1024 tok  KLD mean 0.06807 p99 0.61955 max 10.4339  top1 0.9531
+seq_001 chat      2048 tok  KLD mean 0.14089 p99 2.86282 max 11.6717  top1 0.9479
+seq_002 code      1536 tok  KLD mean 0.00651 p99 0.09461 max 0.2775  top1 0.9826
+seq_003 code      4096 tok  KLD mean 0.00157 p99 0.01945 max 0.0700  top1 0.9861
+seq_004 code      8192 tok  KLD mean 0.00171 p99 0.01852 max 0.0374  top1 1.0000
+seq_005 prose     8192 tok  KLD mean 0.04188 p99 0.19975 max 8.8905  top1 0.9826
+seq_006 code     32768 tok  KLD mean 0.00089 p99 0.01657 max 0.0501  top1 0.9931
+seq_007 mixed    32768 tok  KLD mean 0.00146 p99 0.04076 max 0.0689  top1 0.9896
+seq_008 mixed    65536 tok  KLD mean 0.00334 p99 0.04597 max 0.3170  top1 0.9965
+seq_009 code    102400 tok  KLD mean 0.00196 p99 0.02611 max 0.0384  top1 0.9826
+seq_010 mixed   120000 tok  KLD mean 0.01075 p99 0.17351 max 0.4673  top1 0.9826
+{
+ "kld_mean": 0.024930856466688783,
+ "top1": 0.9818239795918368,
+ "positions": 3136,
+ "long_kld_mean": 0.0063544407687571285,
+ "long_top1": 0.9826388888888888,
+ "thresholds": {
+  "kld_mean_max": 0.001,
+  "top1_min": 0.99
+ },
+ "pass": false
+}
+(APIServer pid=929479) INFO 09-30 03:08:01 [api_utils.py:273] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf', 'chat_template': '/workspace/wt-int2/hf-config/Swift-1.5-Qwe
+(APIServer pid=929479) WARNING 09-30 03:08:02 [speculative.py:912] Enabling num_speculative_tokens > 1 will run multiple times of forward on same MTP layer,which may result in lower acceptance rate
+(APIServer pid=929479) INFO 09-30 03:08:02 [speculative.py:1157] Overriding draft model max model len from 262144 to 200000
+(APIServer pid=929479) WARNING 09-30 03:08:02 [vllm.py:1774] max_num_scheduled_tokens is set to 2048 based on the speculative decoding settings. This may lead to suboptimal performance. Consider increasing max_num_batche
+(EngineCore pid=929858) INFO 09-30 03:08:18 [core.py:121] Initializing a V1 LLM engine (v0.27.1) with config: model='/workspace/wt-int2/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp', speculative_config=SpeculativeCo
+(EngineCore pid=929858) WARNING 09-30 03:08:20 [__init__.py:205] min_p and logit_bias parameters won't work with speculative decoding.
+(EngineCore pid=929858) WARNING 09-30 03:09:43 [vllm.py:1774] max_num_scheduled_tokens is set to 2048 based on the speculative decoding settings. This may lead to suboptimal performance. Consider increasing max_num_batch
+(EngineCore pid=929858) INFO 09-30 03:10:25 [qwen3_5_mtp.py:107] MTP drafter uses a 61440-token draft head
+VRAM after load: 22551 MiB, 24576 MiB
+mtp rc=1
+vllm default: acceptance 0.6613294517224648  drafted 4122  accepted 2726
+vllm greedy: acceptance 0.668377321603128  drafted 4092  accepted 2735
+default: delta vs reference +0.0337 (FAIL)
+greedy: delta vs reference -0.0049 (ok)
+end 2026-09-30T03:12:55Z

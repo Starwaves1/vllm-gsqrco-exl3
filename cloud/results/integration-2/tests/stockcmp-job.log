@@ -1,0 +1,10 @@
+start 2026-09-30T03:18:07Z
+int2:     317 PASSED       2 SKIPPED 
+int1:     317 PASSED       2 SKIPPED 
+318,319c318,319
+< SKIPPED [8] tests/gpu/test_kernel_parity.py:59: no IQ1_M tensor with rows>5120 == False
+< SKIPPED [8] tests/gpu/test_kernel_parity.py:59: no IQ2_XXS tensor with rows>5120 == False
+---
+> SKIPPED [8] tests/gpu/test_kernel_parity.py:70: no IQ1_M tensor with rows>5120 == False
+> SKIPPED [8] tests/gpu/test_kernel_parity.py:70: no IQ2_XXS tensor with rows>5120 == False
+end 2026-09-30T03:19:23Z

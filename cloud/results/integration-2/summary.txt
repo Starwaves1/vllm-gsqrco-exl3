@@ -1,0 +1,128 @@
+Integration 2: main (Integration 1, a90962d) + opt-p2 + opt-k3 + opt-r2 (branch integrate2), rented
+RTX 3090, 350 W power limit, driver 595.84. Box worktree /workspace/wt-int2, built in place
+(VLLM_GGUF_BUILD_LCPP=1), Route L on (VLLM_GGUF_LCPP=1). Write-up with the merge resolutions: STATUS.md
+"Integration 2"; routing table: ROUTE-L.md.
+
+Commits: merges 30211b1 (opt-p2 d4f2912), d79ab71 (opt-k3 106343b), 4cbd091 (opt-r2 f20db23). Every box
+job (tests, sanitizer, ladder, parity, profile) ran on 4cbd091; later commits are docs, results and
+review fixes (see STATUS).
+Served: production's argv (env/prod-serve-argv.txt: fp8 KV, --max-model-len 200000, MTP k=3,
+probabilistic draft sampling), this worktree's hf-config. MTP draft head 61,440 rows; GPU KV cache
+253,906 tokens (Integration 1 247,656); load: model loading 130.5 s (12.45 GiB, incl. the IQ3 repack),
+engine init 216.5 s (torch.compile 130.1 s, cold cache for this build), 01:30:57 -> healthy 01:37:29
+= 6.5 min; VRAM after load 22,551 / 24,576 MiB.
+
+box-scripts/  lib.sh (env, serve, stopall), tests.sh, sanitizer.sh, sanitizer2.sh, ladder.sh,
+              parity.sh, profile.sh, stockcmp.sh (one gpuq job each), summ.py (ms/step table),
+              pstep.py / pstep2.py (profile summarisers; mma_k and the packed IQ3 kernels classified)
+runs/         ladder-summary.txt + ladder.log + clocks-*.csv (bench/speed/run.sh gsq, unmodified),
+              profile-c1-c4-c8.txt (5 decode steps each at c=1, 4, 8, per class and per family/type)
+tests/        build, CPU guards + routing table, parity (Route L on, off, off on Integration 1's
+              worktree), stock-test per-test diff vs Integration 1, GPU guards, compute-sanitizer
+              memcheck/initcheck (ids in sanitizer-ids.txt; sanitizer2-* = the OOM cases per process)
+parity/       compare.txt, parity.json (per-position KLD and top-1 hits for all 11 prompts; the vLLM
+              logit dumps stay on the box in /workspace/runs/int2-parity/vllm), MTP acceptance
+
+Decode (pass 2, T=0, decode(C/meanTPOT) tok/s), ms/step, and prefill (salted ladder, c=1, tok/s):
+                          c=1    c=2    c=4    c=8    8k    64k   180k
+Integration 2           110.3  192.7  348.1  541.3  1248   954   644
+  ms/step                27.9   31.6   35.7   44.2
+  tok/step               3.08   3.04   3.11   2.99
+prod W4A16 (1b, pass 2)  94.1  194.4  345.1  505.4  1108   868   603
+  ms/step                27.6   27.3   30.0   41.3
+  ratio tok/s            1.17   0.99   1.01   1.07  1.13  1.10  1.07
+  ratio ms/step          1.01   1.16   1.19   1.07  (ours / W4A16: still slower per engine step at every c)
+Integration 1           101.1  175.0  264.4  436.7  1152   900   622
+  ms/step                30.5   34.9   46.7   55.7
+  ratio tok/s            1.09   1.10   1.32   1.24  1.08  1.06  1.04
+  ms/step change         -8.5%  -9.5% -23.6% -20.6%
+pre-campaign f6b96bf     88.1  154.3  258.4  432.9     -     -     -
+  ms/step                33.7   38.5   47.2   56.4
+  ratio tok/s            1.25   1.25   1.35   1.25
+Pass 1 (same server): 110.6 / 193.2 / 344.8 / 544.6. MTP acceptance over the run 0.650 (Integration 1
+0.657). Decode clocks: median SM 1740 / 1725 MHz, 342 / 344 W, util 88% (pass 1 / 2); prefill 1680-1800
+MHz, 346-348 W. ms/step = C x 1000 / tok/s x tok/step.
+
+Per-branch attribution (profiled GEMM ms per decode step, same trace method as Integration 1's
+profile-c1-c4.txt and opt-p2's c=8 fin-profile.txt; profiler inflation applies to all equally):
+  c=1  GEMM 21.27 -> 18.40. R1 (packed IQ3 decode kernel, 4 rows): IQ3 10.27 -> 7.78 (-2.48), but
+       the packed kernel writes fp32 where the dp4a kernel wrote bf16: +192 cast launches, casts
+       0.68 -> 0.94 ms. P2: MMVQ incl. IQ1_M 8.26 -> 7.92. K3 and R2 do not run at 4 rows.
+  c=4  GEMM 34.63 -> 23.87. R2 (tiled packed IQ3): IQ3 on MMQ 19.84 (incl. stream-k fixups) -> 10.17
+       (incl. its fixup 1.44), -9.7 ms. K3 (mma_k): Q4_K/IQ4_XS/IQ2_S 10.31 on MMQ -> 9.01 on mma_k
+       + residual MMQ at <= 2048 W rows, -1.3 ms. R2 + K3 write X's dtype: casts 1.05 -> 0.53 ms.
+       P2 (measured on its branch): MMQ tail memset gone (-0.37 ms), IQ1_M -0.27 ms.
+  c=8  GEMM ~42.0 (opt-p2 final) -> 30.37. R2: IQ3 ~23.3 -> 13.11 (-10.2). K3: ~11.9 -> 11.05 (-0.9;
+       IQ4_XS at 17..32 rows stays on MMQ below 12288 x 5120).
+  Bench: ms/step -2.6 / -3.3 / -11.0 / -11.5 at c=1/2/4/8 vs Integration 1.
+
+Profile (torch profiler, 5 complete decode steps, per step):
+          span   busy   Route L GEMM   plugin plumbing   vLLM GPU   idle   launches   bench ms/step
+  c=1    34.52  22.81   18.40          1.41              2.99      11.71   2196       27.9
+  c=4    37.16  29.94   23.87          1.44              4.63       7.22   2325       35.7
+  c=8    46.79  39.48   30.37          1.81              7.30       7.31   2338       44.2
+  plumbing = q8_1 / MMQ-layout quantize + output casts + runs' cat + cuBLAS in_proj_ba + memsets;
+  vLLM = the rest ("other" + memcpy: GDN core, attention, norms, act; GDN gating 0.5 / 2.0 / 3.9 ms).
+  Profiler inflation: span - bench ms/step = 6.6 / 1.5 / 2.6 ms, mostly in idle (phase 3 item 2
+  measured ~4.7 ms/step unprofiled idle at c=1).
+  GEMM by family (c=4): tiled IQ3 10.17 (fixup 1.44), mma_k 8.75 (fixup 0.76), MMQ 3.07, MMVQ 1.23,
+  own 0.65; c=8: tiled IQ3 13.11, mma_k 9.25, MMQ 6.74 (Q6_K 1.86, IQ4_XS 1.49 at 17..32 rows below
+  the 12288 x 5120 cut, IQ2_XS 1.20, Q2_K 1.12). c=1: MMVQ 7.92 (IQ4_XS 4.03, Q6_K 1.31), packed IQ3
+  7.78, own 2.70.
+
+Gap to the floor (the campaign's c=1 floor, opt-p: ~13 ms weight traffic + ~4.7 ms vLLM host idle =
+~17.7 ms/step; above c=1 it is a lower bound, as GEMMs stop being pure weight streaming):
+  c=1 27.9 - 17.7 = 10.2 ms: GEMM efficiency 18.4 - 13 = ~5.4, vLLM GPU ~3.0, plumbing ~1.4, rest ~0.4
+      (idle above 4.7, rounding).
+  c=2 31.6 - 17.7 = 13.9 ms (no profile at c=2).
+  c=4 35.7 - 17.7 = 18.0 ms: GEMM 23.9 - 13 = ~10.9, vLLM ~4.6, plumbing ~1.4, rest ~1.1.
+  c=8 44.2 - 17.7 = 26.5 ms: GEMM 30.4 - 13 = ~17.4, vLLM ~7.3, plumbing ~1.8.
+
+Tests (4cbd091, box):
+  vendored files: sha256 match VENDORED.md.
+  CPU guards + routing table: 246 pass (112 guard tests, 134 routing cases).
+  Kernel parity, Route L on: 3920 pass / 183 skip / 0 fail. Off: 3822 / 281 / 0 (the Route L op tests
+  call the ops directly and run without VLLM_GGUF_LCPP too).
+  Stock path unchanged: the stock-kernel tests (dequantize, mmvq, mmq, routing_whole_tensor,
+  unquantized_small_n) with Route L off give identical per-test outcomes here and on Integration 1's
+  worktree (317 pass / 16 skip each, same session; stockcmp-job.log). Integration 1's full off run in
+  the same session: 1979 / 176 (as recorded for Integration 1).
+  GPU guards (-k "lcpp or first_call"): 228 pass / 72 skip / 0 fail (skips: x_q8 cases on ops that
+  take no x_q8).
+  compute-sanitizer memcheck + initcheck, torch caching allocator off, 168 cases (every owned op incl.
+  packed decode at 1/8/9/32, tiled at 1/8/33/128, packed routing at 1/8/9/33/128, mma_k at 1/9/33/64,
+  x_q8, IQ1_M chunks, MMQ 1..128, fused layers at 8/9/32): 0 memory-access or uninitialized-read
+  errors. In the one-process run, 2 (memcheck) / 14 (initcheck) whole-tensor packed cases failed with
+  CUDA out-of-memory (iq3_pack.pack on the GPU peaks 1.31 GiB above a 38 MB tensor; a failed test's
+  traceback keeps its tensors, so the rest cascade); each of the 16 rerun in its own process: 0 errors
+  under both tools (sanitizer2-job.log).
+
+Logit parity vs the phase-1b llama.cpp CUDA dumps (bf16 KV vLLM side, all 11 prompts):
+seq      tokens  stock (1b)   Route L (p2)  Integration 1  Integration 2  floor     top-1 Int1 / Int2
+seq_000    1024  0.11645      0.13062       0.07832        0.06807        0.22509   0.9570 / 0.9531
+seq_001    2048  0.25106      0.15896       0.15468        0.14089        0.39918   0.9549 / 0.9479
+seq_002    1536  0.00505      0.00735       0.00702        0.00651        0.01449   0.9722 / 0.9826
+seq_003    4096  0.00186      0.00194       0.00142        0.00157        0.00352   0.9861 / 0.9861
+seq_004    8192  0.00238      0.00160       0.00157        0.00171        0.00825   1.0000 / 1.0000
+seq_005    8192  0.06073      0.00841       0.00817        0.04188        0.07194   0.9861 / 0.9826
+seq_006   32768  0.00127      0.00139       0.00096        0.00089        n/a       0.9896 / 0.9931
+seq_007   32768  0.00145      0.00138       0.00094        0.00146        n/a       0.9896 / 0.9896
+seq_008   65536  0.00271      0.00285       0.00278        0.00334        n/a       0.9931 / 0.9965
+seq_009  102400  0.00195      0.00167       0.00191        0.00196        n/a       0.9861 / 0.9826
+seq_010  120000  0.00820      0.00740       0.00902        0.01075        n/a       0.9826 / 0.9826
+overall          0.0404       0.0284        0.0237         0.0249                   0.9818 / 0.9818
+>= 100k          0.0051       0.0045        0.0055         0.0064                   0.9844 / 0.9826
+Absolute gate FAIL (as every build); relative gate (<= floor) PASS on seq_000-005. seq_005's mean is
+one position: pos 4910 KLD 8.89 (top-1 miss); without it 0.0111 (the chat prompts seq_000/001 carry
+single-position spikes of 10-12 in every build). seq_010's largest spike is at pos 119784 (0.467),
+the position Integration 1's order-of-summation variant moved its spike to (parity/variant there).
+INFERRED: the packed/tiled IQ3 and mma_k kernels change the fp32 summation order at >8 rows as MMQ's
+stream-k split did, which moves these near-tie spikes; no per-position Integration 1 file exists for
+seq_005 to confirm the position was quiet there.
+MTP acceptance, k=3, production's 8 real prompts (llama-server readout from phase 1b 0.6732 greedy,
+0.6276 T=1): greedy 0.6684 (-0.49 pt, gate 2 pt: ok; Integration 1 0.6637); T=1 default 0.6613 (+3.4
+pt: FAIL, as every vLLM build: vLLM samples drafts).
+
+Box: 2026-09-30 00:04-03:19 UTC (build 00:04, 7 gpuq jobs 00:06-03:19): ~3.25 GPU-hours
+(tests 1h22 of which GPU guards 1h11, ladder 40 min, parity + MTP 48 min, sanitizer 2.5 + 14 min,
+profile 5 min, stock diff 1.3 min).
