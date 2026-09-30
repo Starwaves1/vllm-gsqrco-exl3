@@ -16,11 +16,13 @@ Output (--out DIR):
   python bench/parity/prompts.py --dry-run     tokenize, print the fingerprint, write nothing
 
 The fingerprint (sha256 over all sequences' ids and positions) is compared with
-prompts.lock.json (keyed by the vLLM version) when present, so a changed venv or tokenizer is caught.
+prompts.lock.json (keyed by seed, tail, spread and the venv's vLLM version) when present, so a
+changed venv or tokenizer is caught.
 """
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import os
 import random
@@ -127,8 +129,8 @@ def main() -> None:
     for name, kind, ids, pos in seqs:
         print(f"{name} {kind:6s} tokens={len(ids):7d} positions={len(pos):4d}")
     print(f"fingerprint {fp}")
-    from importlib.metadata import version  # the corpus is the venv's vLLM source: one lock entry per vLLM
-    key = f"seed={a.seed},tail={a.tail},spread={a.spread},vllm={version('vllm')}"
+    # the corpus is the venv's own vLLM source, so each vLLM version has its own fingerprint
+    key = f"seed={a.seed},tail={a.tail},spread={a.spread},vllm={importlib.metadata.version('vllm')}"
     if LOCK.exists():
         want = json.loads(LOCK.read_text()).get(key)
         if want and want != fp:
