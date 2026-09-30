@@ -106,7 +106,9 @@ def send(url: str, key: str, req: dict) -> dict:
             c = d["choices"][0]
             fin = c.get("finish_reason")
             msg = c.get("message", {})
-            text = c.get("text") or msg.get("content") or ""
+            # a short max_tokens can end inside the reasoning: vLLM's qwen3 parser then returns
+            # content None and the tokens in message.reasoning
+            text = c.get("text") or msg.get("content") or msg.get("reasoning") or msg.get("reasoning_content") or ""
             tool = msg.get("tool_calls") or []
             ok = fin in ("stop", "length", "tool_calls") and (text.strip() or tool)
             rec.update(status="ok" if ok else "bad_output", finish=fin, tool_calls=len(tool),
