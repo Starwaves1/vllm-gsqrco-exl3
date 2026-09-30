@@ -1,6 +1,6 @@
 """Route L's op choice per (activation rows n, type, weight rows[, K]), linear._lcpp_op, at every
-boundary of ROUTE-L.md's routing table. Every op but lcpp_mul_mat_q and lcpp_mul_mat_mma_k reads
-apply()'s shared q8_1 X (_quantize_x_q8_1 asks the same function)."""
+boundary of ROUTE-L.md's routing table. Every op but linear._OWN_QUANTIZE_OPS reads apply()'s
+shared q8_1 X (_quantize_x_q8_1 asks the same function)."""
 
 import pytest
 from gguf import GGMLQuantizationType as T

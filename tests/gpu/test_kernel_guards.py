@@ -56,8 +56,8 @@ def _run_case(case, type_op):
     if not GGUF.exists():
         pytest.skip(f"GGUF not found: {GGUF}")
     name, op = type_op
-    if case.startswith("x_q8") and op not in ("lcpp_mmvq", "lcpp_iq3", "lcpp_iq3_mma", "lcpp_own"):
-        pytest.skip("x_q8 is an argument of the 1..8-row Route L ops only")
+    if case.startswith("x_q8") and op not in ("lcpp_mmvq", "lcpp_iq3", "lcpp_iq3_mma", "lcpp_iq3_mma_packed", "lcpp_own"):
+        pytest.skip("x_q8 is an argument of the q8_1-reading Route L ops only")
     cmd = [sys.executable, str(Path(__file__).with_name("_guard_case.py")), case, name, op]
     san = os.environ.get("GSQ_COMPUTE_SANITIZER")
     if san:

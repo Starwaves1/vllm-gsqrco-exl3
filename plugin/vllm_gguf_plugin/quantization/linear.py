@@ -116,7 +116,7 @@ def _fused_mul_mat_gguf(
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])
-        if x.shape[0] > 8:  # IQ1_M on MMVQ, which takes at most 8 rows per call
+        if name == "lcpp_mul_mat_vec_q" and x.shape[0] > 8:  # IQ1_M: MMVQ takes <= 8 rows per call
             b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
             return torch.cat([
                 op(weight, x[i : i + 8], weight_type, weight.shape[0],

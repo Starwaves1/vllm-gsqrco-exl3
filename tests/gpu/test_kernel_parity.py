@@ -361,6 +361,9 @@ def test_lcpp_x_q8(tensors_by_type, name, n):
     ops_ = [C.lcpp_mul_mat_vec_q] + [getattr(C, op) for t, op in OWNED if t == name]
     for op in ops_:
         assert torch.equal(op(w, x, qt, w.shape[0], q8), op(w, x, qt, w.shape[0]))
+    if name in IQ3_TYPES:  # the packed decode kernel, on W packed
+        p, op = _packed(w, qt), C.lcpp_mul_mat_vec_iq3_mma_packed
+        assert torch.equal(op(p, x, qt, p.shape[0], q8), op(p, x, qt, p.shape[0]))
 
 
 def test_quantize_x_q8_1_mixed_route():

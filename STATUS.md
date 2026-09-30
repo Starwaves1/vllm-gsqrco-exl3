@@ -100,18 +100,20 @@ draft head, 253,906 KV tokens, 22.55 GiB VRAM after load.
   plumbing ~1.8.
 - Tests on the merged build: kernel parity 3920 pass / 183 skip / 0 fail (Route L on), 3822 / 281 /
   0 (off); the stock-kernel tests give per-test identical outcomes to Integration 1's worktree in
-  the same session (317 / 16 each); CPU guards + routing table 246 (112 + 134); GPU guards 228 / 72
-  skip / 0 fail; compute-sanitizer memcheck + initcheck on 168 cases covering every owned op (packed
+  the same session (317 / 16 each); CPU guards + routing table 246 (112 + 134); GPU guards 240 / 60
+  skip / 0 fail (incl. the 12 packed-op x_q8 cases added in review); compute-sanitizer memcheck + initcheck on 168 cases covering every owned op (packed
   at 1/8/9/32/33/128 rows, mma_k at 1/9/33/64): 0 access or init errors. 16 whole-tensor packed
-  cases hit CUDA OOM in the shared sanitizer process (GPU iq3_pack.pack peaks 1.31 GiB; a failed
-  test's traceback pins its tensors) and were clean rerun one per process.
+  cases hit CUDA OOM in the shared sanitizer process (GPU iq3_pack.pack peaks 1.31 GiB plus the
+  tool's overhead; the cascade mechanism is unverified) and were clean rerun one per process.
 - Logit parity vs the phase-1b llama.cpp dumps: KLD 0.0249 / top-1 98.18% overall (Integration 1
   0.0237 / 98.18%), >= 100k 0.0064 / 98.26% (0.0055 / 98.44%). Relative gate PASS on seq_000-005;
   absolute gate FAIL as every build. seq_005 rose 0.0082 -> 0.0419 from one position (4910, KLD
   8.89; 0.0111 without it); seq_010's top spike sits at 119784, where Integration 1's
-  summation-order variant moved it. INFERRED: the new >8-row kernels change fp32 summation order as
-  MMQ's stream-k split did. MTP greedy acceptance 0.6684 vs llama.cpp 0.6732 (-0.5 pt, ok).
-- Box: 2026-09-30 00:04-03:19 UTC, ~3.25 GPU-hours, 7 gpuq jobs (summary.txt).
+  summation-order variant moved it; 4 of the 5 >= 32k prompts rose slightly (deterministic
+  pipeline, so real build deltas). INFERRED: the new >8-row kernels (tiled IQ3 carries every IQ3
+  prefill product) change fp32 summation order as MMQ's stream-k split did; a packing-off rerun
+  would confirm (not run). MTP greedy acceptance 0.6684 vs llama.cpp 0.6732 (-0.5 pt, ok).
+- Box: 2026-09-30 00:04-03:38 UTC, ~3.3 GPU-hours, 8 gpuq jobs (summary.txt).
 
 ## Round 2, P2: plumbing (branch opt-p2, 2026-09-29, same 350 W 3090)
 

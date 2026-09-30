@@ -87,15 +87,19 @@ Tests (4cbd091, box):
   unquantized_small_n) with Route L off give identical per-test outcomes here and on Integration 1's
   worktree (317 pass / 16 skip each, same session; stockcmp-job.log). Integration 1's full off run in
   the same session: 1979 / 176 (as recorded for Integration 1).
-  GPU guards (-k "lcpp or first_call"): 228 pass / 72 skip / 0 fail (skips: x_q8 cases on ops that
-  take no x_q8).
+  GPU guards (-k "lcpp or first_call"): 228 pass / 72 skip / 0 fail on 4cbd091 (skips: x_q8 cases on
+  ops without x_q8, incl. 12 on the packed decode op, which has one: review fix, those 12 then ran and
+  passed, tests/review-job.log; so 240 / 60 / 0).
   compute-sanitizer memcheck + initcheck, torch caching allocator off, 168 cases (every owned op incl.
   packed decode at 1/8/9/32, tiled at 1/8/33/128, packed routing at 1/8/9/33/128, mma_k at 1/9/33/64,
   x_q8, IQ1_M chunks, MMQ 1..128, fused layers at 8/9/32): 0 memory-access or uninitialized-read
   errors. In the one-process run, 2 (memcheck) / 14 (initcheck) whole-tensor packed cases failed with
-  CUDA out-of-memory (iq3_pack.pack on the GPU peaks 1.31 GiB above a 38 MB tensor; a failed test's
-  traceback keeps its tensors, so the rest cascade); each of the 16 rerun in its own process: 0 errors
-  under both tools (sanitizer2-job.log).
+  CUDA out-of-memory (iq3_pack.pack on the GPU peaks 1.31 GiB above a 38 MB tensor, measured without
+  the sanitizer; the tool's own device memory and the raw cudaMalloc per tensor add to it; that a failed
+  test's traceback pins its tensors and makes the rest cascade is plausible but unverified: the OOM
+  errors carry no free-memory numbers); each of the 16 rerun in its own process: 0 errors under both
+  tools (sanitizer2-job.log). Follow-up, out of merge scope: pack's ~35x peak (int64 intermediates,
+  whole tensor at once) is fine at load today but a latent load-time OOM at tighter headroom.
 
 Logit parity vs the phase-1b llama.cpp CUDA dumps (bf16 KV vLLM side, all 11 prompts):
 seq      tokens  stock (1b)   Route L (p2)  Integration 1  Integration 2  floor     top-1 Int1 / Int2
@@ -116,13 +120,21 @@ Absolute gate FAIL (as every build); relative gate (<= floor) PASS on seq_000-00
 one position: pos 4910 KLD 8.89 (top-1 miss); without it 0.0111 (the chat prompts seq_000/001 carry
 single-position spikes of 10-12 in every build). seq_010's largest spike is at pos 119784 (0.467),
 the position Integration 1's order-of-summation variant moved its spike to (parity/variant there).
-INFERRED: the packed/tiled IQ3 and mma_k kernels change the fp32 summation order at >8 rows as MMQ's
-stream-k split did, which moves these near-tie spikes; no per-position Integration 1 file exists for
-seq_005 to confirm the position was quiet there.
+Beyond the spikes, 4 of the 5 >= 32k prompts rose slightly (seq_007 0.00094 -> 0.00146, seq_008
+0.00278 -> 0.00334, seq_010 0.00902 -> 0.01075; >= 100k 0.0055 -> 0.0064, top-1 98.44 -> 98.26%).
+Integration 1's repeats were bit-identical, so these are build deltas, not noise. INFERRED: the
+packed/tiled IQ3 kernel now carries every IQ3 prefill product and mma_k the 9..32-row K-quant ones,
+changing fp32 summation order as MMQ's stream-k split did; no per-position Integration 1 file exists
+for seq_005 to confirm pos 4910 was quiet there. Not confirmed here: a same-build rerun with packing
+off (pack_iq3 = False) would separate the IQ3 kernels' share (follow-up).
 MTP acceptance, k=3, production's 8 real prompts (llama-server readout from phase 1b 0.6732 greedy,
 0.6276 T=1): greedy 0.6684 (-0.49 pt, gate 2 pt: ok; Integration 1 0.6637); T=1 default 0.6613 (+3.4
 pt: FAIL, as every vLLM build: vLLM samples drafts).
 
-Box: 2026-09-30 00:04-03:19 UTC (build 00:04, 7 gpuq jobs 00:06-03:19): ~3.25 GPU-hours
+Review round 1 fixes (IQ1_M chunk condition in linear.py, packed decode op added to the x_q8 parity
+test and x_q8 guards; shim edits comments only, no rebuild): CPU 246 pass, parity subset through
+linear.py / x_q8 295 pass / 24 skip / 0 fail, packed-op x_q8 guards 12 pass (tests/rv-*.log).
+
+Box: 2026-09-30 00:04-03:38 UTC (build 00:04, 8 gpuq jobs 00:06-03:38): ~3.3 GPU-hours
 (tests 1h22 of which GPU guards 1h11, ladder 40 min, parity + MTP 48 min, sanitizer 2.5 + 14 min,
-profile 5 min, stock diff 1.3 min).
+profile 5 min, stock diff 1.3 min, review fixes 4.5 min).

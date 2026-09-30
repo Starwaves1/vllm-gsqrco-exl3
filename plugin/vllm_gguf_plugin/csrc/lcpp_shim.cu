@@ -20,7 +20,7 @@
 //   lcpp_mul_mat_mma_k(W, X, type, row)   owned Q4_K/IQ4_XS/IQ2_S int8 tensor-core
 //                                         kernel, 1..64 rows (lcpp_owned_mma_k.cu)
 // W: uint8 [>=row, row_bytes] GGUF blocks, contiguous rows. X: [n, K]
-// fp32/fp16/bf16, unit inner stride. The 1..8-row ops also take X already
+// fp32/fp16/bf16, unit inner stride. The ops with an x_q8 argument also take X already
 // quantized to q8_1 (x_q8 from lcpp_quantize_q8_1(X, type, false, false)), so
 // several products on one X quantize it once.
 // Returns [n, row] in X's dtype. All guards run before any launch.
@@ -752,7 +752,8 @@ enum class Kernel { mmvq, mmq, iq3, iq3_mma, iq3_mma_packed, iq3_packed, own, mm
 
 static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
                   const std::optional<Tensor>& x_q8 = std::nullopt) {
-  // the 1..8-row owned kernels (and the packed IQ3 one) take MMVQ's q8_1 input
+  // mmvq: the kernel reads MMVQ-layout q8_1 (x_q8 or quantize_x) and writes fp32 dst: MMVQ and
+  // the 1..8-row owned kernels (the packed decode one to 32 rows)
   const bool mmvq = kernel != Kernel::mmq && kernel != Kernel::mma_k && kernel != Kernel::iq3_packed;
   const bool packed = kernel == Kernel::iq3_mma_packed || kernel == Kernel::iq3_packed;
   const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma || packed;

@@ -51,8 +51,8 @@ if _should_build_extension():
     ]
     # Route L: llama.cpp b11211 MMVQ/MMQ (csrc/lcpp, vendored unmodified) plus
     # csrc/lcpp_shim.cu and the owned kernels (csrc/lcpp_owned_*.cu), adding ops
-    # lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_{iq3,iq3_mma,own} /
-    # lcpp_quantize_q8_1.
+    # lcpp_mul_mat_vec_q / lcpp_mul_mat_q / lcpp_mul_mat_vec_{iq3,iq3_mma,iq3_mma_packed,own} /
+    # lcpp_mul_mat_iq3_packed / lcpp_mul_mat_mma_k / lcpp_quantize_q8_1.
     # Opt-in; the default build is unchanged.
     if os.environ.get("VLLM_GGUF_BUILD_LCPP") == "1" and not is_rocm:
         lcpp = pathlib.Path("vllm_gguf_plugin/csrc/lcpp").resolve()
