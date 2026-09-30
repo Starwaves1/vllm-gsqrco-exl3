@@ -2,7 +2,7 @@
 
 A vLLM quantization plugin that serves GSQ-RCO GGUF models on an RTX 3090 at production speed. It is a fork of [vllm-project/vllm-gguf-plugin](https://github.com/vllm-project/vllm-gguf-plugin), plus the build, test, benchmark, parity and soak harnesses used to measure it. vLLM itself is not forked.
 
-Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 support is planned.
+Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 support is in progress (CPU-only so far, see below).
 
 ## What it does
 
@@ -88,6 +88,12 @@ The absolute target of KLD ≤ 0.001 and top-1 ≥ 99% fails, for the stock kern
 
 Stability. A 24 h soak at c=2 with CUDA graphs is in progress. A 1.19 h partial run on the same build served 621 requests with 0 faults and 0 restarts. GPU memory stayed flat after the first minute. Data is in `cloud/results/soak/`.
 
+## EXL3 (in progress, CPU-only so far)
+
+A second package, `plugin-exl3/` (`vllm_exl3_plugin`), serves [exllamav3](https://github.com/turboderp-org/exllamav3) EXL3 checkpoints on unpatched vLLM main. It registers quant method `exl3` and nothing else: an EXL3 checkpoint is a normal HF directory, so vLLM's own detection and safetensors loader do the rest. The dense-linear kernels are vendored byte for byte from exllamav3 v1.5.3 (94 files, MIT) behind one shim, `exl3_shim.cu`, the Route L pattern. First target: [turboderp/Qwen3.8-27B-exl3](https://huggingface.co/turboderp/Qwen3.8-27B-exl3) at 3.50bpw.
+
+Done on the CPU: the package, the shim (compiles and links for sm_86, never run), loading the checkpoint's names and shapes into vLLM's Qwen3.8 model and MTP draft on the meta device (nothing unmapped, nothing missing), the row routing, the pruned draft-head tool, and 153 CPU tests. Nothing numeric is tested yet: kernel parity, logit parity against exllamav3, speed, fit and soak are the GPU phases. Design and plan: [EXL3.md](EXL3.md), [docs/adr/0002-exl3-via-plugin.md](docs/adr/0002-exl3-via-plugin.md), [docs/exl3-feasibility.md](docs/exl3-feasibility.md).
+
 ## Install and build
 
 Requirements: Linux, an sm_86 GPU, a driver that supports CUDA 13, [uv](https://docs.astral.sh/uv/). The CUDA toolkit comes from pip wheels. The build needs no system packages and no sudo.
@@ -165,7 +171,8 @@ The harnesses were written for one setup. Paths and ports are environment overri
 | `plugin/vllm_gguf_plugin/csrc/lcpp/` | vendored llama.cpp b11211 files, unmodified; `VENDORED.md` lists them with sha256 |
 | `plugin/vllm_gguf_plugin/csrc/lcpp_shim.cu`, `lcpp_owned_*.cu` | the shim and the owned kernels |
 | `plugin/vllm_gguf_plugin/quantization/` | routing in `linear.py`, IQ3 repack in `iq3_pack.py` |
-| `hf-config/` | HF config dirs for the tested GGUFs, with `PROVENANCE.json` |
+| `plugin-exl3/` | the EXL3 plugin (in progress); vendored exllamav3 files in `vllm_exl3_plugin/csrc/exl3/` with `VENDORED.md` |
+| `hf-config/` | HF config dirs for the tested GGUFs, and the EXL3 checkpoint's metadata, with `PROVENANCE.json` |
 | `tests/cpu`, `tests/gpu` | test suites |
 | `bench/`, `scripts/`, `cloud/` | harnesses; `cloud/results/` holds every measurement |
 | `tools/` | build helpers, HF config builder, reference dequantizers |
@@ -177,6 +184,7 @@ Docs:
 - [STATUS.md](STATUS.md), the dated engineering log
 - [docs/adr/0001-vendor-llamacpp-kernels-route-l.md](docs/adr/0001-vendor-llamacpp-kernels-route-l.md), why Route L
 - [ROUTE-L.md](ROUTE-L.md), how the shim, routing and repack work
+- [EXL3.md](EXL3.md), the EXL3 plugin: design, vendored files, ops, routing, GPU plan
 - [CONTEXT.md](CONTEXT.md), project glossary
 
 ## Upstream notes

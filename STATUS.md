@@ -4,6 +4,14 @@ Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark repo
 
 ## Current state (2026-09-30)
 
+EXL3, phase 0 (branch `exl3`, CPU only): `plugin-exl3/` (`vllm_exl3_plugin`) registers quant method
+`exl3` with no vLLM patches, vendors exllamav3 d3739fd's dense-linear kernels (94 files, MIT, byte-identical)
+behind `exl3_shim.cu`, and loads `turboderp/Qwen3.8-27B-exl3@3.50bpw`'s names and shapes into vLLM main's
+Qwen3_5ForConditionalGeneration + Qwen3_5MTP on the meta device (2,426 tensors + draft head, 0 unmapped, 0
+missing). The shim compiles and links for sm_86 (450 s clean under the caps) and has never run. 153 CPU
+tests pass. Found while building: exllamav3's int8-activation GEMV is on by default at d3739fd (the shim
+turns it off). Next: GPU phase 1, kernel parity and a serve smoke. Details and plan: `EXL3.md`.
+
 Production moved to vLLM main today (0.30.1rc1.dev285 + overlay 2a0fe5e1e1, k=5 MTP schedule, 16 seqs,
 capture 48; `env/prod-main-*`). The CPU-side preparation is done (`cloud/results/vllm-main-compat-cpu.md`).
 The plugin fix for the MTP draft config source now builds the draft from the HF config dir on both

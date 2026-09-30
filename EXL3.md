@@ -1,0 +1,218 @@
+# EXL3: exllamav3 trellis models on vLLM through a second plugin
+
+Phase 0 (CPU only) on branch `exl3`, 2026-09-30. Design: `docs/adr/0002-exl3-via-plugin.md`
+(proposed) and `docs/exl3-feasibility.md`. First checkpoint: `turboderp/Qwen3.8-27B-exl3@3.50bpw`
+(revision 8351c54e). The package builds, registers, loads the checkpoint's names and shapes on the
+meta device, and passes its CPU tests. No kernel has run: every number the plugin would produce is
+untested. Labels as elsewhere: VERIFIED (checked here), DOCUMENTED, INFERRED.
+
+## What is here
+
+| path | what |
+|---|---|
+| `plugin-exl3/` | package `vllm_exl3_plugin` (Apache-2.0), entry point `vllm.general_plugins: exl3` |
+| `plugin-exl3/vllm_exl3_plugin/plugin.py` | `register()`: `register_quantization_config("exl3")`, nothing else, no monkeypatches |
+| `.../format.py` | torch-free checkpoint facts: tensor suffixes, codebook multipliers, K from the tile width, config block parser |
+| `.../quantization/config.py` | `EXL3Config`: reads `config.json` `quantization_config`, picks the method per layer |
+| `.../quantization/linear.py` | `EXL3LinearMethod`: per-shard parts, loader, warmup, `apply` |
+| `.../ops.py` | loads `_C_exl3`, routing `_exl3_op`, the vLLM custom op `_exl3_linear` + fake impl |
+| `.../weights_adapter/qwen3_5.py` | Qwen3.5/3.8 name mapping notes, the unquantized-module rule, draft head names |
+| `.../csrc/exl3/` | exllamav3 d3739fd (v1.5.3, MIT), 94 files byte-identical, `VENDORED.md` (sha256), `LICENSE` |
+| `.../csrc/exl3_shim.cu` | all adaptation: ops, guards, capture guard, warmup, CPU registration |
+| `tools/exl3_draft_head.py` | writes the pruned MTP draft head as bf16 (GPU, once per checkpoint) |
+| `tools/exl3_meta_dry_run.py` | vLLM's real model + loader on the meta device against the checkpoint's metadata |
+| `bench/parity/exl3_logits.py` | exllamav3-native logit dump for parity (skeleton, not run) |
+| `hf-config/Qwen3.8-27B-exl3-3.50bpw/` | the checkpoint's metadata: `config.json`, tokenizer files, safetensors index, shard headers (`safetensors_headers.json`, read by HTTP range), `PROVENANCE.json` |
+| `tests/cpu/test_exl3_*.py` | CPU tests (below) |
+
+## Vendored files
+
+exllamav3 `d3739fd393337b1ff4d6c2a342b12f0c87a9592f`, `exllamav3/exllamav3_ext/`: the `#include`
+closure of the dense-linear entry points plus every `.cu` needed to link. 94 files, 381 KB,
+60 compiled: `quant/{exl3_gemm, exl3_gemv, exl3_gemv_int8, exl3_kernel_map, exl3_devctx,
+coop_autotune, hadamard, reconstruct, frac}.cu`, `hgemm.cu`, `hgemm_f16acc.cu`, `graph.cu`,
+and 48 instance units in `quant/comp_units/` (K 1..8 x {3inst, mcg, mul1}, half-integer K,
+GEMV and int8-GEMV instances). The list with hashes is `csrc/exl3/VENDORED.md`; `cmp` against a
+checkout shows no differences (VERIFIED).
+
+Three things the feasibility survey did not list (VERIFIED while building):
+
+- `graph.cu` (exllamav3's own CUDA graph recorder) calls `CudaDrv::instance()` from
+  `cuda_drv.cpp`, which dlopens libcuda. It is not vendored. The shim defines a stub that throws,
+  since the shim never passes a `Graph` and the recorder never runs. `graph.cu` is compiled only
+  because `exl3_gemm.cu` references `Graph` members.
+- `quant/reconstruct.cuh` and `quant/hadamard.cuh` are not in the closure (no vendored file
+  includes them). The shim declares the three functions it calls.
+- The int8-activation GEMV (`EXL3_INT8_GEMV`) is **on by default** at d3739fd
+  (`exl3_gemv_int8_mode()` returns 2 when the variable is unset), not opt-in as the survey says.
+  It takes mul1 tensors with K <= 5 on Ampere at 1-2 rows, which is exactly our decode path. It
+  changes the numerics (about 0.9 % of output RMS per its comment), `cudaMalloc`s a 16 MB
+  workspace on first use, and the vendored comment calls it not graph-capturable. The shim sets
+  `EXL3_INT8_GEMV=0` when the library loads (`test_int8_gemv_switched_off`). The parity reference
+  must set it too.
+
+## Ops (`torch.ops._C_exl3`)
+
+| op | what |
+|---|---|
+| `exl3_gemm(x, trellis, suh, svh, mcg, mul1)` | vendored `exl3_gemm`: the QTIP GEMV where its 3090-tuned heuristic picks it, else the cooperative kernel, autotuned per shape. x fp16 or bf16 `[m, k]`; output in x's dtype. bf16 x is cast to fp16 in the shim and the kernel writes fp32 (`c_fp32`), cast to bf16: no fp16 rounding or overflow on the output side. exllamav3 itself defaults to fp16 output |
+| `exl3_dequant(trellis, suh, svh, mcg, mul1, n_start, n_count, had)` | fp16 `W[k, n_count]` (y = x @ W) for 128-aligned columns: `had=True` the original basis (`reconstruct_had_slice`, both Hadamards and suh/svh folded in), `had=False` the rotated basis (`reconstruct_slice`) |
+| `exl3_had_r_128(x, pre_scale?, post_scale?, scale)` | vendored `had_r_128` on fp16 rows, into a new tensor |
+| `exl3_hgemm(a, b)` | vendored `hgemm_recon`: fp16-accumulate MMA where the one-time rate probe enables it (a 3090 should, 2x), else cuBLAS |
+| `exl3_warmup(trellis, suh, svh, mcg, mul1, rows, dtype)` | the one-time host work for one weight shape, see below |
+
+Guards run before any CUDA call: trellis 3-D int16 contiguous 16-byte aligned, tile width 16*K
+(K 1..8) or 16*K+8 (K 1..3, mul1 only), k and n multiples of 128, mcg/mul1 exclusive; x 2-D
+fp16/bf16 contiguous aligned with k columns; suh/svh 1-D fp16 of size k/n, contiguous, aligned;
+dequant ranges 128-aligned and inside n; row counts >= 1. The ops are registered for CPU too,
+where the guards run and the call then fails with "must be CUDA tensors" (the lcpp_shim pattern).
+
+**Warmup and capture.** The vendored code does host work on first use: `DevCtx` `cudaMalloc`s
+its lock buffer and the cuBLAS workspace, `hgemm_f16acc` runs a timed rate probe
+(`cudaEventSynchronize`), and each (shape, row bucket) runs an autotune session that times
+candidates with syncs and writes `~/.cache/exllamav3/autotune/` (`EXLLAMAV3_TUNE_CACHE`
+overrides). None of this may happen inside a CUDA graph capture. `exl3_warmup` does all of it for
+one weight shape at row counts 1..17 (1..16 exactly, because the GEMV choice and the autotune
+bucket depend on them; 17 stands for every count above 16, one bucket) and records the shape.
+It throws if the current stream is capturing. `exl3_gemm` and `exl3_hgemm` throw if the stream is
+capturing and the shape was not warmed. `EXL3LinearMethod.process_weights_after_loading` calls
+`exl3_warmup` once per distinct shape when the weights are on CUDA, which is during model load,
+before vLLM's memory profiling and graph capture.
+
+`EXL3_GEMM_H_ACC` (fp16 MMA accumulation, sm_86 only, "max observed error ~1 % of output RMS at
+k=4096" per the source) is a compile-time vendored choice and stays on.
+
+## Routing (`ops._exl3_op`, pinned by `tests/cpu/test_exl3_routing.py`)
+
+n = activation rows of one product.
+
+| n | route | what |
+|---|---|---|
+| 1..144 | `exl3_gemm` | vendored kernel; above 16 rows it re-streams the weight once per 16 rows |
+| 17..144 | `MULTI_ROW_OP` if set | hook for the multi-row kernel; `None` by default, so these stay on `exl3_gemm` |
+| 145..1023 | `recon_hgemm` | Hadamard x with suh, rotated dequant, `exl3_hgemm`, Hadamard y with svh |
+| >= 1024 | `recon_had_hgemm` | original-basis dequant, `exl3_hgemm` on raw x |
+
+This is exllamav3's own dispatch (`LinearEXL3.forward`, `reconstruct_hgemm`): threshold 144,
+fused reconstruct from 1024 rows, dequant in 32768-column slices. Differences: the shim
+concatenates slices instead of writing into one output (only matters above 32768 outputs,
+i.e. the lm_head at > 144 rows, which vLLM never sends: logits are computed for sampled
+positions only), and the fp32 output above. vLLM's graph capture sizes (up to 48 in production)
+all route to `exl3_gemm` (`test_capture_sizes_stay_on_gemm`), so captured graphs hold no dequant
+buffers.
+
+The hook: set `ops.MULTI_ROW_OP` to the name of a `torch.ops._C_exl3` op with `exl3_gemm`'s
+signature and it takes rows `MULTI_ROW_MIN..MULTI_ROW_MAX` (17..144). That is the MTP verify pass
+at c >= 5 with k=3 (4 rows per sequence). First candidate: trellis-serve's Marlin-EXL3 (MIT,
+m-tiles to 64 rows, flat cost 1..16 rows per its README). It is accepted only after a bit-exact
+decode check against `exl3_dequant`. The range will likely move down to 9 once measured.
+
+## Loading
+
+- Detection: `config.json` has `quantization_config.quant_method: "exl3"`, so vLLM's normal
+  detection picks the registered config. `EXL3Config.from_config` parses bits, head_bits,
+  mtp_bits and the codebook (`mul1` here; absent means 3INST; `mcg`). Per-tensor K comes from
+  each trellis' last dimension at load. `get_min_capability` 80.
+- Methods: every `LinearBase` and the `ParallelLMHead` get `EXL3LinearMethod`, except the modules
+  the checkpoint stores unquantized (`weights_adapter/qwen3_5.is_unquantized_module`): GDN
+  `in_proj_ba` (fp16 `in_proj_a`/`in_proj_b`, 48 outputs, never quantized by exllamav3), the vision
+  tower (bf16 in this checkpoint; exllamav3's "V" variants with a 6-bit tower are not supported)
+  and the pruned `draft_lm_head`. Those get vLLM's unquantized methods. The input embedding stays
+  bf16 on the GPU (2.37 GiB; no host-pinned path in phase 0).
+- Names: exllamav3 writes the HF names with `.weight` replaced by `.trellis/.suh/.svh/.mul1`.
+  vLLM's own mappers do the rest unchanged (`Qwen3_5ForConditionalGeneration`, `Qwen3_5Model`'s
+  stacking, `Qwen3_5MTP`'s `mtp.` remap). The stacked name keeps the suffix
+  (`.q_proj.trellis` -> `.qkv_proj.trellis`), so `EXL3LinearMethod` registers placeholder params
+  `trellis`, `suh`, `svh`, `mul1` with its own `weight_loader`, which stores each checkpoint tensor
+  under the shard id the mapper attached (`None`, `"q"/"k"/"v"`, `0/1`, or the GDN `in_proj_qkv`
+  tuple `(0, 1, 2)`). No vLLM loader is patched (yeasah's `handles_fused_shards` patch is not
+  needed; VERIFIED on the meta device). The codebook tensor's value is checked against the
+  multiplier the kernels are compiled with.
+- Parts: EXL3 tensors of one fused layer cannot be concatenated (K and suh differ per tensor),
+  so `process_weights_after_loading` checks that the parts cover the output shards exactly and
+  match the partition sizes, then replaces the placeholders with `exl3_{trellis,suh,svh}_{i}` in
+  shard order. `apply` runs one routed `_exl3_linear` per part and concatenates: qkv 3 products,
+  gate_up 2, GDN in_proj_qkvz 2: 401 EXL3 products per target pass (exllamav3's `exl3_mgemm`
+  can do one launch per fused layer for equal-K parts, a GPU-phase option).
+- Tensor parallelism: refused (`NotImplementedError`) in phase 0.
+- Meta dry run (VERIFIED, `tools/exl3_meta_dry_run.py`, production's argv with images on):
+  2,426 checkpoint tensors + the draft head. Main model: 2,387 fed (401 EXL3), 0 params missing,
+  257 EXL3 layers with 401 parts, K {3, 4, 5, 6}, 110 vision + 48 in_proj_ba + 48 conv1d +
+  embedding unquantized. MTP draft: 45 fed (9 EXL3), 0 missing, 6 EXL3 layers with 9 parts, K
+  {4, 6}, `draft_lm_head` [40960, 5120] bf16 unquantized. Shared between the two: `lm_head.*`
+  and the embedding. Unmapped: 0. Peak RSS 1.07 GB.
+- The MTP draft loads its own copy of `lm_head` (0.89 GiB) and the embedding (2.37 GiB) from the
+  checkpoint before vLLM shares the target's and drops them, as with production's W4A16. Check
+  the load peak on the GPU.
+
+## Draft head (`tools/exl3_draft_head.py`)
+
+Production's overlay builds `mtp.draft_lm_head` over the ids in `mtp_draft_vocab_ids.pt` (40,960)
+and loads `mtp.draft_lm_head.weight` from the checkpoint. An EXL3 lm_head cannot be row-sliced:
+the output Hadamard mixes each block of 128 rows. Chosen design: pre-write the rows once. The
+tool dequantizes the lm_head to its original basis with `exl3_dequant(had=True)` in 32768-column
+slices (skipping slices without ids), keeps the id rows, and writes `mtp_draft_head.safetensors`
+(`mtp.draft_lm_head.weight`, bf16, 0.39 GiB), adds it to the safetensors index (vLLM's default
+loader reads only indexed files; the index is replaced, never written through a symlink, the
+original kept as `.orig`), and saves the sorted ids. At serve time the draft head is a plain
+unquantized `ParallelLMHead`: no runtime dequant, no load-order dependency on the target's head.
+The rejected alternative (dequantize inside vLLM at load) needs the target's lm_head loaded
+first and a custom loader path for no gain. Rows are the fp16 dequant rounded to bf16; they only
+change what the drafter proposes. Tested on a synthetic checkpoint with a CPU stand-in for the
+dequant op; the real run is GPU phase 1.
+
+    python tools/exl3_draft_head.py MODEL_DIR --ids ~/qwen38-27b-rtx3090/prepare/draft_vocab_ids.json
+
+## Build
+
+    source tools/cuda-env.sh; export PATH=.venv-main/bin:$PATH MAX_JOBS=2
+    cd plugin-exl3 && VLLM_EXL3_BUILD=1 python setup.py build_ext --inplace       # from a worktree
+    GSQ_VENV=.venv-main GSQ_PLUGIN=plugin-exl3 tools/capped tools/build-plugin.sh  # editable install, main checkout only
+
+Without `VLLM_EXL3_BUILD=1` the package is pure Python (config, loading, routing and most CPU
+tests work; the ops are needed at runtime). Measured here (VERIFIED), clean build, CUDA 13.0,
+torch 2.13 cu130, `TORCH_CUDA_ARCH_LIST=8.6`, under MemoryMax=6G, CPUQuota=200 %, nice 19,
+MAX_JOBS=2: **450 s wall**, 891 s summed over 61 translation units, slowest `reconstruct.cu` 53 s,
+the shim 47 s, `exl3_gemv.cu` 43 s, each instance unit 7-21 s. `.so` 42.7 MB, sm_86 only,
+compiled and linked, never run. All 60 vendored `.cu` are built; compiling only the K/codebook
+instances the checkpoint uses would need a shim-owned kernel map and is not worth it at this
+build time.
+
+## Tests (CPU, `GSQ_LIGHT=1 GSQ_VENV=.venv-main tools/capped tools/pytest tests/cpu -k exl3`: 153 passed)
+
+| file | what | count |
+|---|---|---|
+| `test_exl3_guards.py` | ops registered under `no_gpu` without CUDA init; int8 GEMV off; every guard, in a subprocess | 58 |
+| `test_exl3_config.py` | the fetched `config.json`, codebooks, K from tile width, the entry point, method per layer | 38 |
+| `test_exl3_mapping.py` | format facts on the index/headers (409 EXL3 modules; K 3/4/5 decoder, 6 head, 4 MTP), the unquantized split, the meta dry run | 3 |
+| `test_exl3_routing.py` | the routing table at every boundary, the hook, both dequant paths reproducing x @ W against CPU stand-ins | 25 |
+| `test_exl3_linear.py` | loader and parts: q/k/v out of order, GDN tuple shard, gate_up, missing shards/scales, bad shapes, codebook check, copy semantics, TP refusal, apply's concatenation | 16 |
+| `test_exl3_draft_head.py` | the draft head tool on a synthetic checkpoint | 7 |
+| `test_exl3_parity_skeleton.py` | the parity script's chunk plan | 6 |
+
+## Untested (everything numeric)
+
+No op has run on a GPU. Not known: whether the vendored kernels are correct under the shim
+(argument order, the fp32 output mode on bf16 input, the dequant slices), whether warmup covers
+every first-use path (the capture guard should catch a miss), graph capture and replay, logit
+parity, speed, VRAM fit, MTP acceptance with the uncalibrated 4-bit MTP layer, fp16 activation
+overflow (bf16 values above 65504 become inf), the draft head tool on the real lm_head, and
+load time. The name mapping and shapes are checked; the values are not.
+
+## GPU phase plan
+
+Harnesses as for GGUF: jobs go through the rented box's `gpuq` queue (`dash/`); `bench/speed/run.sh`,
+`bench/parity/`, `bench/soak.sh`; `tests/gpu` with `GSQ_ALLOW_GPU=1`. Judge on ms/step at c=1/2/4/8.
+
+| phase | work | how | GPU-h |
+|---|---|---|---|
+| 1 | kernel parity and plumbing | new `tests/gpu/test_exl3_kernels.py`: for each (K, codebook) in the checkpoint and m in 1..17, 48, 145, 1024: `exl3_dequant(had=True)` vs exllamav3's own `reconstruct_had_slice` bit-exact (reference venv), `exl3_gemm` vs x @ dequant in fp64 (tolerance from exllamav3's spread), both dequant routes vs the gemm route; capture/replay of `exl3_gemm` after warmup, and the guard firing without it; compute-sanitizer memcheck/initcheck on each op; then `tools/exl3_draft_head.py` on the real checkpoint and a serve smoke with MTP (new `scripts/serve-exl3.sh` on production's argv) | 3 |
+| 2 | logit parity | exllamav3 reference venv; `bench/parity/exl3_logits.py` (finish the skeleton) at `EXL3_HGEMM_F16ACC=0` and `1` to measure exllamav3's own spread; `vllm_logprobs.py` taught an EXL3 model dir; `compare.py` with a relative gate (inside the spread), as Route L; log per-linear max abs activation for the fp16 overflow risk; MTP acceptance (`bench/speed/mtp_acceptance.py`); `tests/gpu/test_fit_200k.py` | 4 |
+| 3 | speed ladder | `bench/speed/run.sh` against production W4A16 and GGUF Route L, both on the main argv; per-op ms/step profile; decide int8 GEMV (probably stays off) and `exl3_mgemm` for fused layers | 4 |
+| 4 | multi-row kernel | vendor trellis-serve's Marlin-EXL3 as a second source behind `MULTI_ROW_OP`; bit-exact decode vs `exl3_dequant`; route 9..64 rows where it wins; optimization loop on Opus | 6-12 |
+| 5 | optional Swift quant | exllamav3 convert at about 3.3-3.5 bpw, plain then SC | 2-6 |
+| 6 | soak | `bench/soak.sh` 24 h at c=2 with graphs | 24 |
+
+Before phase 1: build `_C_exl3` on the box (`GSQ_PLUGIN=plugin-exl3 tools/build-plugin.sh`,
+about 8 min at 2 jobs), download the 15.3 GB checkpoint, set `EXLLAMAV3_TUNE_CACHE` under the run
+dir.
