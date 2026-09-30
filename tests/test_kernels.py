@@ -74,6 +74,17 @@ def _silu_and_mul(inp: torch.Tensor) -> torch.Tensor:
     return out
 
 
+def _poison_cuda_allocator() -> None:
+    """Fill the caching allocator's free blocks with 0xFF (NaN in every float
+    dtype), so an output element a kernel leaves unwritten fails the test."""
+    blocks = [
+        torch.full((1 << p,), 0xFF, dtype=torch.uint8, device="cuda")
+        for p in range(9, 28)
+        for _ in range(2)
+    ]
+    del blocks
+
+
 @pytest.mark.parametrize("hidden_size", HIDDEN_SIZES)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("quant_type", QUANT_TYPES)
@@ -89,6 +100,7 @@ def test_dequantize(
         ref_output = torch.tensor(
             dequantize(tensor.data, quant_type), device="cuda"
         ).to(dtype)
+        _poison_cuda_allocator()  # the output is allocated uninitialised
         output = ops.ggml_dequantize(
             torch.tensor(tensor.data, device="cuda"),
             quant_type,
