@@ -240,10 +240,10 @@ def test_embed_host_gather(ops, rows):
                                       requires_grad=False)
     ref_w = layer.weight.data.clone()
     m = EXL3HostEmbeddingMethod()
-    free0 = torch.cuda.mem_get_info()[0]
+    alloc0 = torch.cuda.memory_allocated()  # freed blocks go to torch's cache, not the driver
     m.process_weights_after_loading(layer)
     assert m.host.is_pinned() and layer.weight.shape == (0, 5120)
-    assert torch.cuda.mem_get_info()[0] - free0 >= 2 * 2**30, "GPU copy not freed"
+    assert alloc0 - torch.cuda.memory_allocated() >= 2 * 2**30, "GPU copy not freed"
     ids = torch.randint(0, 248320, (rows,), generator=g).cuda()
     assert torch.equal(m.embedding(layer, ids), torch.nn.functional.embedding(ids, ref_w))
     bad = torch.tensor([-1, 248320, 7], device="cuda")
