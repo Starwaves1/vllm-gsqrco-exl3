@@ -241,7 +241,8 @@ def test_lm_head_prompt_rows(gguf_reader, n):
     y = linear._fused_mul_mat_gguf(x, w, qt)
     torch.cuda.synchronize()
     extra = torch.cuda.max_memory_allocated() - base
-    # the output, plus one fp32 dst (whole, or one chunk and its 16-bit copy), plus q8_1 scratch
+    # the output, plus one fp32 dst (whole, or one chunk and its 16-bit copy), plus 64 MiB for
+    # q8_1 scratch and allocator rounding (it also absorbs a 128-row chunk's few MiB over cap)
     fp32 = n * rows * 4
     cap = getattr(linear, "_FP32_DST_BUDGET", 256 << 20)  # absent before the fix: the old build fails the bound
     budget = n * rows * 2 + (fp32 if fp32 <= cap else cap * 3 // 2) + (64 << 20)

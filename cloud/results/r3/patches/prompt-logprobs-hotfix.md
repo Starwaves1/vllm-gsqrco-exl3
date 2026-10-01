@@ -22,7 +22,8 @@ Fixes:
   counts hits it. Peak drops to 1,334 / 2,228 MiB. Outputs are finite and match the dequantized
   product at 1..3,936 rows. Kernel parity: 3,932 passed / 0 failed (51).
 - vLLM (proposal for the qwen38/main overlay, `prompt-logprobs-chunked.patch`): prompt logprobs in
-  passes of at most 64 MiB of fp32. With the plugin fix alone GSQ still dies at 512 tokens (vLLM's
+  passes of at most 64 MiB of fp32. A stopgap sized to the headroom seen here; the real upstream fix
+  is for `profile_run` to reserve a prompt-logprobs logits buffer. With the plugin fix alone GSQ still dies at 512 tokens (vLLM's
   scores buffer). With 256 MiB passes GSQ survives 512..3,936 tokens, but W4A16 (only 237 MiB free)
   still died, hence 64 MiB.
 
@@ -30,7 +31,7 @@ Fixes:
 
 - MEASURED (50/52/54): on GSQ the final hidden states hold NaN at some prompt positions when the prompt
   is short enough to run in a CUDA graph (5 and 40 tokens fail, 200 is fine, max capture is 48). The
-  NaN count varies between runs. The lm_head is finite on the same rows (51). There is no NaN with
+  NaN count varies between runs. The lm_head kernel is finite at these row counts (51, unit test on random input). There is no NaN with
   `--enforce-eager` (52), with `cudagraph_mode NONE` (54), or with max capture 4 (54). The KV
   connector is irrelevant (54 `noconn` fails the same way). W4A16 does not show it. `logprobs` without
   `echo` is fine.
