@@ -195,7 +195,12 @@ def test_routing_repacked(ops, monkeypatch, tid, m):
         want = torch.ops._C_exl3.exl3_gemm_mr(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
     else:
         want = ops.exl3_linear(x, w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
-    assert torch.equal(y, want)
+    if m > ops.WIDE_CHUNK_ROWS and C.TENSORS[tid][3] > ops.RECON_SLICE_N:
+        # the lm_head above 256 rows runs in row chunks: another k-split, fp32 sums in another order
+        d = C.err_stats(torch, y, want.double())
+        assert d["finite"] and d["rel_rms"] <= 1e-3, d
+    else:
+        assert torch.equal(y, want)
 
 
 @pytest.mark.parametrize("m", [1, 4, 17, 24, 48])
@@ -259,6 +264,31 @@ def test_embed_host_gather(ops, rows):
     gr.replay()
     torch.cuda.synchronize()
     assert torch.equal(y, ref_w[new])
+
+
+@pytest.mark.parametrize("mr", [0, 2])
+def test_lm_head_many_rows_bounded(ops, monkeypatch, mr):
+    """prompt_logprobs regression (job 18: EXL3_MR=0 OOMed inside the lm_head on a 4k-token prompt): the
+    lm_head on 2048 rows in bf16 returns bf16 with scratch bounded by one 256-row chunk (peak minus the
+    output <= 1.2 GiB), rows equal to a 256-row call on the same rows."""
+    import torch
+
+    monkeypatch.setattr(ops, "MR_MODE", mr)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP if mr else None)
+    w = C.load(torch, C.HEAD)
+    t = ops.repack_k4_(w["trellis"]) if mr == 2 and w["trellis"].shape[2] == 64 else w["trellis"]
+    x = C.make_x(torch, C.HEAD, 2048).to(torch.bfloat16)
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    base = torch.cuda.memory_allocated()
+    y = ops.exl3_linear(x, t, w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    torch.cuda.synchronize()
+    extra = torch.cuda.max_memory_allocated() - base - y.nbytes
+    print(f"\nlm_head 2048 rows mr={mr}: output {y.nbytes / 2**30:.2f} GiB, scratch peak {extra / 2**30:.2f} GiB")
+    assert y.dtype == torch.bfloat16 and bool(torch.isfinite(y).all()) and extra <= 1.2 * 2**30
+    ref = ops.exl3_linear(x[256:512], t, w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    assert torch.equal(y[256:512], ref)
 
 
 _UNWARMED = r"""
