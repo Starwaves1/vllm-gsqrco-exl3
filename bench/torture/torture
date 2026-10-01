@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""torture: hours of deliberately abusive, seeded traffic against an OpenAI-compatible vLLM server
+("Abuse it in every way possible for at least ~12 hours"). Standard library only.
+
+  torture --base-url http://127.0.0.1:18081/v1 [--hours 12 | --minutes 20] [options]
+  torture serve --cmd SCRIPT --port N [options]     start SCRIPT (own session), torture it, stop it
+  torture switch --a SCRIPT --b SCRIPT --port N [--rounds 3] [--minutes 10] [--tier-root DIR] [options]
+  torture report DIR                                 (re)write report.json + REPORT.md
+  torture --plan [--hours 12 | --minutes 20] [--seed N]
+
+Polite by default, for shared production servers: every request carries priority P..P+20
+(--priority, default 100000; vLLM serves lower numbers first, but only under
+--scheduling-policy priority), at most --max-conc requests and --token-budget tokens
+(prompt + max_tokens) are in flight. --brutal drops the throttles; against ports 18080/18081 it also
+needs --i-know. Only the given host:port is ever contacted. --server-pid / --server-log add the
+server-side monitor (GPU MiB, RSS, process death, fault grep); without them it watches /health and
+/metrics only. A dead or restarted server stops the run; nothing is ever restarted.
+Exit code: 0 if the verdict passes. Details: TORTURE.md.
+"""
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.parse
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import load  # noqa: E402
+import monitor  # noqa: E402
+import report  # noqa: E402
+
+PROD_PORTS = (18080, 18081)
+
+
+def options(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--hours", type=float, default=12)
+    p.add_argument("--minutes", type=float, help="run length in minutes (overrides --hours; a 20-minute smoke covers every phase)")
+    p.add_argument("--seed", type=int, default=20261001)
+    p.add_argument("--api-key", default=os.environ.get("TORTURE_API_KEY") or os.environ.get("VLLM_API_KEY") or os.environ.get("OPENAI_API_KEY", ""))
+    p.add_argument("--model", help="served model name (default: the first of /v1/models)")
+    p.add_argument("--out", type=Path, help="run dir (default ./torture-runs/<ts>-<mode>)")
+    p.add_argument("--priority", type=int, default=100000, help="vLLM priority of every request (+0..20); higher = served later")
+    p.add_argument("--max-conc", type=int, default=16, help="requests in flight at most (polite mode)")
+    p.add_argument("--token-budget", type=int, default=262144, help="prompt + max_tokens in flight at most (polite mode)")
+    p.add_argument("--brutal", action="store_true", help="no concurrency or token throttles")
+    p.add_argument("--i-know", action="store_true", help="allow --brutal against production ports 18080/18081")
+    p.add_argument("--server-pid", type=int, help="server pid: GPU MiB, RSS and death of its process tree")
+    p.add_argument("--server-log", help="server log file: fault grep of new lines")
+
+
+def guard(a, port: int) -> None:
+    if a.brutal and port in PROD_PORTS and not a.i_know:
+        raise SystemExit(f"--brutal against port {port} (production) needs --i-know")
+
+
+def leg(a, base: str, out: Path, seed: int, pid=None, log=None) -> None:
+    api = load.Api(base, a.api_key, a.model)
+    mon = monitor.Monitor(api, out, pid, log)
+    mon.start()
+    try:
+        load.run(api, out, a.minutes * 60 if a.minutes else a.hours * 3600, seed, a.priority, a.max_conc,
+                 a.token_budget, a.brutal, stop=mon.dead)
+    finally:
+        mon.stop()
+
+
+def served_leg(a, cmd: str, out: Path, seed: int) -> dict:
+    """Start cmd, torture it, stop it. Returns the lifecycle facts for switch.jsonl."""
+    out.mkdir(parents=True, exist_ok=True)
+    base = f"http://127.0.0.1:{a.port}/v1"
+    if monitor.port_listening(a.port):
+        raise SystemExit(f"port {a.port} is already in use")
+    probe = load.Api(base, a.api_key, model="-")  # /health only, before the server is up
+    p, healthy = monitor.start_server(cmd, out / "server.log", probe)
+    try:
+        if healthy is None:
+            (out / "faults.log").open("a").write(f"{time.strftime('%FT%TZ', time.gmtime())} server did not come up\n")
+        else:
+            leg(a, base, out, seed, p.pid, str(out / "server.log"))
+    finally:
+        killed, left = monitor.stop_server(p)
+    for _ in range(30):
+        if not monitor.port_listening(a.port):
+            break
+        time.sleep(1)
+    return {"serve": cmd, "healthy_s": healthy, "killed": int(killed), "leftover_procs": left,
+            "port_free": int(not monitor.port_listening(a.port))}
+
+
+def main() -> None:
+    argv = sys.argv[1:]
+    if not argv or argv[0] not in ("run", "serve", "switch", "report", "-h", "--help"):
+        argv = ["run", *argv]
+    ap = argparse.ArgumentParser(prog="torture", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="mode", required=True)
+    r = sub.add_parser("run", help="torture a running server")
+    r.add_argument("--base-url", help="the server's OpenAI API base, e.g. http://127.0.0.1:8000/v1")
+    r.add_argument("--plan", action="store_true", help="print the schedule and exit")
+    s = sub.add_parser("serve", help="start a serve script, torture it, stop it")
+    s.add_argument("--cmd", required=True)
+    w = sub.add_parser("switch", help="alternate two serve scripts, checking for leftovers")
+    w.add_argument("--a", required=True)
+    w.add_argument("--b", required=True)
+    w.add_argument("--rounds", type=int, default=3)
+    w.add_argument("--tier-root", help="KV fs-tier root: which namespace dirs each leg changed")
+    for p in (r, s, w):
+        options(p)
+    for p in (s, w):
+        p.add_argument("--port", type=int, required=True)
+    sub.add_parser("report").add_argument("dir", type=Path)
+    a = ap.parse_args(argv)
+
+    if a.mode == "report":
+        sys.exit(0 if report.write(a.dir)["pass"] else 1)
+    if a.mode == "run" and a.plan:
+        print(load.plan_text(a.minutes * 60 if a.minutes else a.hours * 3600, a.seed))
+        return
+    if a.mode == "switch" and a.minutes is None:
+        a.minutes = 10
+    out = a.out or Path("torture-runs") / f"{time.strftime('%Y%m%d-%H%M%S')}-{a.mode}"
+    out.mkdir(parents=True, exist_ok=True)
+    print(f"torture {a.mode}: out {out}", flush=True)
+
+    if a.mode == "run":
+        if not a.base_url:
+            ap.error("--base-url is required")
+        guard(a, urllib.parse.urlsplit(a.base_url).port or 80)
+        leg(a, a.base_url, out, a.seed, a.server_pid, a.server_log)
+    elif a.mode == "serve":
+        guard(a, a.port)
+        (out / "serve.json").write_text(json.dumps(served_leg(a, a.cmd, out, a.seed)))
+    else:
+        guard(a, a.port)
+        idle = monitor.gpu_mib()
+        for rnd in range(1, a.rounds + 1):
+            for side, cmd in (("a", a.a), ("b", a.b)):
+                d = out / f"r{rnd}-{side}"
+                shm0, tier0 = set(os.listdir("/dev/shm")), monitor.tier_snapshot(a.tier_root)
+                facts = served_leg(a, cmd, d, a.seed + 10 * rnd + (side == "b"))
+                after = monitor.gpu_mib()
+                for _ in range(60):
+                    if idle is None or after is None or after <= idle + report.LIMITS["gpu_idle_slack_mib"]:
+                        break
+                    time.sleep(1)
+                    after = monitor.gpu_mib()
+                tier1 = monitor.tier_snapshot(a.tier_root)
+                facts.update(round=rnd, side=side, dir=d.name, gpu_idle_mib=idle, gpu_mib_after=after,
+                             shm_left=sorted(set(os.listdir("/dev/shm")) - shm0),
+                             tier_dirs_touched=sorted(k for k in tier1 if tier1[k] != tier0.get(k)))
+                with open(out / "switch.jsonl", "a") as f:
+                    f.write(json.dumps(facts) + "\n")
+                if (d / "faults.log").exists() and (d / "faults.log").read_text().strip():
+                    break  # a leg whose server died or never came up ends the switch run
+            else:
+                continue
+            break
+    sys.exit(0 if report.write(out)["pass"] else 1)
+
+
+if __name__ == "__main__":
+    main()

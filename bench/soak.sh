@@ -61,11 +61,11 @@ LOGPOS=0
 while [ "$(date +%s)" -lt "$END" ] && kill -0 "$LPID" 2>/dev/null; do
   alive=1; kill -0 "$SPID" 2>/dev/null || alive=0
   health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$GSQ_URL/health" || true)
-  pids=$(ps -o pid= -s "$SPID" 2>/dev/null | tr -d ' ' | paste -sd'|' -)
+  pids=$(ps -o pid= -s "$SPID" 2>/dev/null | tr -d ' ' | paste -sd'|' - || true)  # || true: an empty session (dead server) must not end the soak here
   gpu=0
   [ -n "$pids" ] && gpu=$(nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits 2>/dev/null \
-    | awk -F', *' -v p="^($pids)\$" '$1 ~ p {s+=$2} END {print s+0}')
-  rss=$(ps -o rss= -s "$SPID" 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    | awk -F', *' -v p="^($pids)\$" '$1 ~ p {s+=$2} END {print s+0}' || true)
+  rss=$(ps -o rss= -s "$SPID" 2>/dev/null | awk '{s+=$1} END {print s+0}' || true)
   met=$(curl -s --max-time 10 "$GSQ_URL/metrics" -H "Authorization: Bearer $GSQ_API_KEY" || true)
   g() { printf '%s\n' "$met" | awk -v k="$1" 'index($1, k) == 1 {s+=$NF} END {print s+0}'; }
   echo "$(date +%s),$alive,$health,$gpu,$rss,$(g 'vllm:num_requests_running'),$(g 'vllm:num_requests_waiting'),$(g 'vllm:kv_cache_usage_perc'),$(g 'vllm:num_preemptions_total'),$RESTARTS" >> "$OUT/monitor.csv"
