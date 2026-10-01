@@ -161,19 +161,19 @@ def main():
         torch.cuda.empty_cache()
     (out / "shapes.tsv").write_text("\n".join(lines) + "\n")
 
-    def route(K, m, mode):
+    def route(K, m, mode):  # mode 0, 1, 2 or "2a" (EXL3_MR=2 with EXL3_MR_MIN=1)
         if m > ops.GEMM_MAX_ROWS:
             return "dequant"
-        if mode == 2 and K == 4:
+        if mode in (2, "2a") and K == 4:
             return "mr"
-        if mode >= 1 and K in (3, 5) and m >= ops.MULTI_ROW_MIN:
+        if mode != 0 and K in (3, 5) and (m >= 17 or mode == "2a"):
             return "mr"
         return "gemm"
 
-    mlines = ["rows\tpass\tmr0_ms\tmr1_ms\tmr2_ms\tbest_ms\tfloor_ms\tbest_routes"]
+    mlines = ["rows\tpass\tmr0_ms\tmr1_ms\tmr2_ms\tmr2a_ms\tbest_ms\tfloor_ms\tbest_routes"]
     summary = [f"model-level sum of per-shape GEMM time ({C.MODEL.name}); target = main model + lm_head "
                f"per verify pass, draft = mtp.* per draft step; floor = trellis bytes at {DRAM_GBPS:.0f} GB/s",
-               f"{'rows':>4} {'pass':6} {'MR=0':>8} {'MR=1':>8} {'MR=2':>8} {'best':>8} {'floor':>7}  best route mix"]
+               f"{'rows':>4} {'pass':6} {'MR=0':>8} {'MR=1':>8} {'MR=2':>8} {'MR=2a':>8} {'best':>8} {'floor':>7}  best route mix"]
     for m in rows:
         for which, idx in (("target", 1), ("draft", 2)):
             tot = Counter()
@@ -183,7 +183,7 @@ def main():
                 if not cnt:
                     continue
                 t = res[((k, n, K), m)]
-                for mode in (0, 1, 2):
+                for mode in (0, 1, 2, "2a"):
                     tot[f"mr{mode}"] += cnt * t[route(K, m, mode)]
                 b = min(t, key=t.get)
                 tot["best"] += cnt * t[b]
@@ -193,9 +193,9 @@ def main():
                 continue
             ms = {key: val / 1e3 for key, val in tot.items()}
             mixs = ",".join(f"{r}:{c}" for r, c in sorted(mix.items()))
-            mlines.append(f"{m}\t{which}\t{ms['mr0']:.3f}\t{ms['mr1']:.3f}\t{ms['mr2']:.3f}\t{ms['best']:.3f}\t"
+            mlines.append(f"{m}\t{which}\t{ms['mr0']:.3f}\t{ms['mr1']:.3f}\t{ms['mr2']:.3f}\t{ms['mr2a']:.3f}\t{ms['best']:.3f}\t"
                           f"{ms['floor']:.3f}\t{mixs}")
-            summary.append(f"{m:4d} {which:6} {ms['mr0']:8.3f} {ms['mr1']:8.3f} {ms['mr2']:8.3f} {ms['best']:8.3f} "
+            summary.append(f"{m:4d} {which:6} {ms['mr0']:8.3f} {ms['mr1']:8.3f} {ms['mr2']:8.3f} {ms['mr2a']:8.3f} {ms['best']:8.3f} "
                            f"{ms['floor']:7.3f}  {mixs}")
     (out / "model.tsv").write_text("\n".join(mlines) + "\n")
     (out / "summary.txt").write_text("\n".join(summary) + "\n")

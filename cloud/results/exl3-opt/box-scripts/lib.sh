@@ -32,11 +32,12 @@ import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS
   [[ $got == "$WT/plugin-exl3/vllm_exl3_plugin/__init__.py True True" ]] || die "plugin not from $WT or not built: $got"
 }
 # serve_mr <mode> <run dir> [extra vLLM args]: scripts/serve-exl3.sh (production's argv) in the
-# background with EXL3_MR=<mode's digit> and, for a "g" suffix (2g), EXL3_MR_GLUE=1; wait for
-# health; load summary in <run dir>/load.txt
+# background with EXL3_MR=<mode's digit>; suffix g: EXL3_MR_GLUE=1, suffix a: EXL3_MR_MIN=1 (K3/K5
+# on exl3_gemm_mr at every row count), e.g. 2ga; wait for health; load summary in <run dir>/load.txt
 serve_mr() {
-  local mr=${1%g} glue=0 out=$2 t0; [ "$1" != "$mr" ] && glue=1; shift 2; mkdir -p "$out"
-  export EXL3_MR=$mr EXL3_MR_GLUE=$glue
+  local mode=$1 mr=${1:0:1} glue=0 mrmin=17 out=$2 t0; shift 2; mkdir -p "$out"
+  [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1
+  export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)
@@ -44,7 +45,7 @@ serve_mr() {
   SPID=$!
   trap stopall EXIT
   gsq_wait_health 2400 "$SPID" || { echo SERVER_FAILED; tail -80 "$out/server.log"; return 1; }
-  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue healthy after $(( $(date +%s) - t0 )) s"
+  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin healthy after $(( $(date +%s) - t0 )) s"
     grep -E "Loading weights took|Model loading took|model weights|GPU KV cache size|Maximum concurrency|CUDA graph|init engine|exl3|EXL3" "$out/server.log" | cut -c1-260 | head -30
     echo "VRAM after load: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"; } | tee "$out/load.txt"
 }

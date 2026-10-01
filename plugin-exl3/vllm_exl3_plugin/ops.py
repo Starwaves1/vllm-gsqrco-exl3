@@ -73,7 +73,8 @@ MR_OP = "exl3_gemm_mr"
 # fp32 round trip out. Same bits.
 MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "0") == "1"
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
-MULTI_ROW_MIN, MULTI_ROW_MAX = 17, GEMM_MAX_ROWS
+# EXL3_MR_MIN (A/B while measured): the first row count K3/K5 take exl3_gemm_mr at (default 17)
+MULTI_ROW_MIN, MULTI_ROW_MAX = int(os.environ.get("EXL3_MR_MIN", "17")), GEMM_MAX_ROWS
 MR_TILE_WIDTHS = (48, 80)  # K3, K5: exl3_gemm_mr reads the stored trellis
 MR_REPACK_TILE_WIDTH = 64  # K4: exl3_mr_repack first (EXL3_MR=2)
 
