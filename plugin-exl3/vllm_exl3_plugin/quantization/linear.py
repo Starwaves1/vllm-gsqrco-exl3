@@ -13,7 +13,9 @@ the config implies, mul1 or mcg) whose weight_loader stores each loaded tensor u
 id; no vLLM loader is patched. process_weights_after_loading checks the parts against the
 layer's partition sizes and replaces the placeholders with per-part params
 exl3_{trellis,suh,svh}_{i}. On CUDA it then runs exl3_warmup for each new shape (outside any
-graph capture: model loading precedes vLLM's profiling and capture).
+graph capture: model loading precedes vLLM's profiling and capture). With EXL3_MR set
+(ops.py) it then repacks the K4 trellises (EXL3_MR=2) and warms exl3_gemm_mr for every part
+the multi-row kernel takes, at every row count routed to it.
 """
 
 from __future__ import annotations
@@ -143,6 +145,8 @@ class EXL3LinearMethod(LinearMethodBase):
 
         if parts[0][0].device.type == "cuda":
             self._warmup(layer, parts, quant)
+        if ops.MR_MODE:
+            self._mr_prepare(layer, quant)
 
     def _warmup(self, layer, parts, quant) -> None:
         if not ops.OPS_AVAILABLE:
@@ -153,6 +157,32 @@ class EXL3LinearMethod(LinearMethodBase):
             if key in _WARMED:
                 continue
             torch.ops._C_exl3.exl3_warmup(trellis, suh, svh, quant.mcg, quant.mul1, WARMUP_ROWS, out_fp32)
+            _WARMED.add(key)
+
+    def _mr_prepare(self, layer, quant) -> None:
+        """EXL3_MR: under 2, K4 trellises become exl3_mr_repack's layout (after exl3_warmup,
+        which reads the stored one; the repack is the only copy kept). Then exl3_mr_warmup
+        for every part exl3_gemm_mr takes, at each routed row count (the capture guard is
+        per row count)."""
+        if not ops.MR_AVAILABLE:
+            raise RuntimeError(f"EXL3_MR={ops.MR_MODE} but _C_exl3_mr is not built (VLLM_EXL3_BUILD=1)")
+        mr = torch.ops._C_exl3
+        out_fp32 = layer.exl3_dtype != torch.half
+        for i in range(layer.exl3_num_parts):
+            trellis = getattr(layer, f"exl3_trellis_{i}")
+            if ops.mr_repacks(trellis.shape[2], quant.mul1):
+                trellis = mr.exl3_mr_repack(trellis)
+                setattr(layer, f"exl3_trellis_{i}", Parameter(trellis, requires_grad=False))
+                rows = range(1, ops.GEMM_MAX_ROWS + 1)
+            elif ops.mr_takes(trellis.shape[2], quant.mul1):
+                rows = range(ops.MULTI_ROW_MIN, ops.MULTI_ROW_MAX + 1)
+            else:
+                continue
+            key = ("mr", trellis.device.index, tuple(trellis.shape), trellis.dtype, out_fp32)
+            if trellis.device.type != "cuda" or key in _WARMED:
+                continue
+            mr.exl3_mr_warmup(trellis, getattr(layer, f"exl3_suh_{i}"), getattr(layer, f"exl3_svh_{i}"),
+                              quant.mcg, quant.mul1, list(rows), out_fp32)
             _WARMED.add(key)
 
     def apply(

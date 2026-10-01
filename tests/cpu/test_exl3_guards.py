@@ -173,7 +173,7 @@ CASES = {
 
 
 def _so():
-    found = glob.glob(os.path.join(PKG, "_C_exl3*.so"))
+    found = glob.glob(os.path.join(PKG, "_C_exl3.*.so"))
     return found[0] if found else None
 
 
@@ -181,7 +181,7 @@ def _so():
 def child():
     so = _so()
     if so is None:
-        pytest.skip(f"not built: {PKG}/_C_exl3*.so (VLLM_EXL3_BUILD=1)")
+        pytest.skip(f"not built: {PKG}/_C_exl3.*.so (VLLM_EXL3_BUILD=1)")
     p = subprocess.run(
         [sys.executable, "-c", _CHILD, so, os.path.join(ROOT, "tools"),
          json.dumps({k: v[0] for k, v in CASES.items()}), json.dumps(OPS)],

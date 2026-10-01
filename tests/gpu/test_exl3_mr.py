@@ -1,0 +1,240 @@
+"""EXL3 multi-row kernel parity on the GPU (EXL3-OPT.md; job 10-mr-parity): trellis-serve's
+Marlin-EXL3 behind torch.ops._C_exl3.exl3_gemm_mr (plugin-exl3/vllm_exl3_plugin/csrc/
+exl3_mr_shim.cu, _C_exl3_mr) on the checkpoint's real tensors (tests/gpu/exl3_cases.py: K2,
+K3, K4, K5 and the K4 lm_head for erlidev's).
+
+  decode      level 1: the kernel's decoded weight equals exl3_dequant(had=False) (itself
+              bit-exact with exllamav3's reconstruct in job 01) for every row and column:
+              identity blocks through the rotated-basis GEMM (upstream exl3_gemm_marlin; an
+              fp32 sum of one product and zeros is exact). K3/K5 read in place, K4 repacked.
+  gemm        exl3_gemm_mr at 17/24/32/48/64/96/144 rows (and 1/8/16 for repacked K4) vs fp64
+              (x @ exl3_dequant(had=True)), compared in the dtype the model keeps (bf16 for a
+              bf16 model, fp16 otherwise) with exl3_gemm, the route it replaces: inside
+              exl3_gemm's error x1.5 (floor 0.2 % of RMS, 2 % max), as job 01 holds exl3_gemm
+              to exllamav3. The dequant + fp16 cuBLAS GEMM (exllamav3's >144-row path) is
+              printed as a third reference.
+  routing     exl3_linear with EXL3_MR 1 / 2 (monkeypatched): K2 stays on exl3_gemm, bit for
+              bit; a repacked K4 above 144 rows (unpack + dequant) equals the stored one.
+  determinism two calls give identical bits.
+  graphs      after exl3_mr_warmup: captured exl3_gemm_mr replays == eager on new inputs; in a
+              fresh process, a capture before warmup is refused without a device fault.
+
+Environment as tests/gpu/test_exl3_kernels.py. Skips without the checkpoint or _C_exl3_mr.
+"""
+
+import os
+import subprocess
+import sys
+
+import pytest
+
+from gsq_gpu import ROOT
+import exl3_cases as C
+
+sys.path.insert(0, str(ROOT / "plugin-exl3"))
+
+SLACK, FLOOR_RMS, FLOOR_MAX = 1.5, 2e-3, 2e-2
+MR_ROWS = [17, 24, 32, 48, 64, 96, 144]
+K4_SMALL_ROWS = [1, 8, 16]  # repacked K4 takes every row count
+BITS = {tid: v[1] for tid, v in C.TENSORS.items()}
+MR_TIDS = [t for t in C.TENSORS if BITS[t] in (3, 4, 5)]
+
+
+@pytest.fixture(scope="session")
+def ops():
+    if not C.MODEL.exists():
+        pytest.skip(f"EXL3 checkpoint not found: {C.MODEL} (EXL3_MODEL)")
+    from vllm_exl3_plugin import ops as o
+
+    if not (o.OPS_AVAILABLE and o.MR_AVAILABLE):
+        pytest.skip("_C_exl3 / _C_exl3_mr not built (VLLM_EXL3_BUILD=1)")
+    return o
+
+
+_W = {}
+
+
+def weights(tid):
+    """trellis/suh/svh/flags plus `b`, the tensor exl3_gemm_mr takes (stored or K4 repack)."""
+    import torch
+
+    if tid not in _W:
+        _W.clear()
+        torch.cuda.empty_cache()
+        w = C.load(torch, tid)
+        w["b"] = torch.ops._C_exl3.exl3_mr_repack(w["trellis"]) if BITS[tid] == 4 else w["trellis"]
+        _W[tid] = w
+    return _W[tid]
+
+
+def dequant_fn(w, had):
+    import torch
+
+    return lambda s, c: torch.ops._C_exl3.exl3_dequant(w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"],
+                                                       s, c, had)
+
+
+@pytest.mark.parametrize("tid", MR_TIDS)
+def test_decode_exact(ops, tid):
+    import torch
+    from vllm_exl3_plugin import _C_exl3_mr as M
+
+    w = weights(tid)
+    _, K, k, n = C.TENSORS[tid]
+    b = w["b"] if K == 4 else w["b"].view(torch.int32).view(k // 16, n // 64, 4, 8 * K)
+    if K == 4:
+        assert torch.equal(torch.ops._C_exl3.exl3_mr_unpack(b), w["trellis"]), "repack does not invert"
+    eye = torch.eye(64, dtype=torch.half, device="cuda")
+    bad = 0
+    for s, cnt in C.slices(n):
+        wd = dequant_fn(w, False)(s, cnt)  # rotated basis, fp16 [k, cnt]
+        for r in range(0, k, 64):
+            a = torch.zeros(64, k, dtype=torch.half, device="cuda")
+            a[:, r:r + 64] = eye
+            c = torch.empty(64, n, dtype=torch.half, device="cuda")
+            M.exl3_gemm_marlin(a, b, c, 2)
+            bad += int((c[:, s:s + cnt] != wd[r:r + 64]).sum().item())
+        del wd
+    assert bad == 0, f"{tid}: {bad} decoded weights differ from exl3_dequant"
+
+
+def _bf16_or_half(y, out_fp32):
+    import torch
+
+    return y.to(torch.bfloat16) if out_fp32 else y
+
+
+@pytest.mark.parametrize("out_fp32", [True, False], ids=["bf16model", "fp16model"])
+@pytest.mark.parametrize("m", MR_ROWS + K4_SMALL_ROWS)
+@pytest.mark.parametrize("tid", MR_TIDS)
+def test_gemm_vs_fp64(ops, tid, m, out_fp32):
+    import torch
+
+    K, n = BITS[tid], C.TENSORS[tid][3]
+    if m in K4_SMALL_ROWS and K != 4:
+        pytest.skip("K3/K5 take exl3_gemm_mr from 17 rows only")
+    w = weights(tid)
+    x = C.make_x(torch, tid, m)
+    args = (w["suh"], w["svh"], w["mcg"], w["mul1"], out_fp32)
+    y = torch.ops._C_exl3.exl3_gemm_mr(x, w["b"], *args)
+    assert y.shape == (m, n) and y.dtype == (torch.float if out_fp32 else torch.half)
+    ref = C.fp64_ref(torch, x, dequant_fn(w, True), n)
+    s = C.err_stats(torch, _bf16_or_half(y, out_fp32), ref)
+    g = C.err_stats(torch, _bf16_or_half(torch.ops._C_exl3.exl3_gemm(x, w["trellis"], *args), out_fp32), ref)
+    h = C.err_stats(torch, torch.cat([x @ dequant_fn(w, True)(s0, c0) for s0, c0 in C.slices(n)], dim=1), ref)
+    print(f"\n{tid} m={m} {'bf16' if out_fp32 else 'fp16'} mr {s} | exl3_gemm {g} | dequant+fp16 GEMM {h}")
+    assert s["finite"], "non-finite output"
+    assert s["rel_rms"] <= max(SLACK * g["rel_rms"], FLOOR_RMS), (s, g)
+    assert s["max_rel"] <= max(SLACK * g["max_rel"], FLOOR_MAX), (s, g)
+
+
+@pytest.mark.parametrize("tid", MR_TIDS)
+def test_deterministic(ops, tid):
+    import torch
+
+    w = weights(tid)
+    x = C.make_x(torch, tid, 48)
+    args = (w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    assert torch.equal(torch.ops._C_exl3.exl3_gemm_mr(x, *args), torch.ops._C_exl3.exl3_gemm_mr(x, *args))
+
+
+@pytest.mark.parametrize("m", [16, 17, 48, 144])
+@pytest.mark.parametrize("tid", list(C.TENSORS))
+def test_routing_mr1(ops, monkeypatch, tid, m):
+    """EXL3_MR=1: K3/K5 at 17..144 rows on exl3_gemm_mr, everything else bit-identical to the
+    phase-1 route (K2 and K4 stay on exl3_gemm)."""
+    import torch
+
+    monkeypatch.setattr(ops, "MR_MODE", 1)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP)
+    w = weights(tid)
+    x = C.make_x(torch, tid, m)
+    args = (w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    y = ops.exl3_linear(x, *args)
+    if BITS[tid] in (3, 5) and m >= 17:
+        assert torch.equal(y, torch.ops._C_exl3.exl3_gemm_mr(x, *args))
+    else:
+        assert torch.equal(y, torch.ops._C_exl3.exl3_gemm(x, *args))
+
+
+@pytest.mark.parametrize("m", [1, 48, 145, 1024])
+@pytest.mark.parametrize("tid", [t for t in MR_TIDS if BITS[t] == 4])
+def test_routing_repacked(ops, monkeypatch, tid, m):
+    """EXL3_MR=2: a repacked K4 runs exl3_gemm_mr to 144 rows; above, unpack + dequant gives
+    the stored tensor's route bit for bit."""
+    import torch
+
+    monkeypatch.setattr(ops, "MR_MODE", 2)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP)
+    w = weights(tid)
+    x = C.make_x(torch, tid, m)
+    y = ops.exl3_linear(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    if m <= ops.GEMM_MAX_ROWS:
+        want = torch.ops._C_exl3.exl3_gemm_mr(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    else:
+        want = ops.exl3_linear(x, w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    assert torch.equal(y, want)
+
+
+@pytest.mark.parametrize("m", [1, 4, 17, 24, 48])
+@pytest.mark.parametrize("tid", ["K3-down", "K4-kproj", "K5-kproj", C.HEAD])
+def test_graph_replay(ops, tid, m):
+    import torch
+
+    if tid not in MR_TIDS or (BITS[tid] != 4 and m < 17):
+        pytest.skip("not routed to exl3_gemm_mr")
+    w = weights(tid)
+    args = (w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    torch.ops._C_exl3.exl3_mr_warmup(*args[:5], [m], True)
+    x_static = C.make_x(torch, tid, m)
+    s = torch.cuda.Stream()
+    s.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(s):
+        torch.ops._C_exl3.exl3_gemm_mr(x_static, *args)
+    torch.cuda.current_stream().wait_stream(s)
+    g = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(g):
+        y_static = torch.ops._C_exl3.exl3_gemm_mr(x_static, *args)
+    for i in range(3):
+        x_new = torch.randn(m, x_static.shape[1], generator=torch.Generator().manual_seed(i + 7)).half().cuda()
+        x_static.copy_(x_new)
+        g.replay()
+        torch.cuda.synchronize()
+        assert torch.equal(y_static, torch.ops._C_exl3.exl3_gemm_mr(x_new, *args)), f"replay {i} differs"
+    del g
+
+
+_UNWARMED = r"""
+import json, sys, torch
+sys.path.insert(0, sys.argv[1])
+import exl3_cases as C
+from vllm_exl3_plugin import _C_exl3_mr  # noqa: F401
+w = C.load(torch, "K3-down")
+x = C.make_x(torch, "K3-down", 32)
+out = {"status": "ok"}
+try:
+    g = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(g):
+        torch.ops._C_exl3.exl3_gemm_mr(x, w["trellis"], w["suh"], w["svh"], False, True, True)
+except RuntimeError as e:
+    out = {"status": "rejected", "error": str(e).splitlines()[0][:300]}
+torch.cuda.synchronize()
+torch.ops._C_exl3.exl3_mr_warmup(w["trellis"], w["suh"], w["svh"], False, True, [32], True)
+y = torch.ops._C_exl3.exl3_gemm_mr(x, w["trellis"], w["suh"], w["svh"], False, True, True)
+torch.cuda.synchronize()
+out["healthy_after"] = bool(torch.isfinite(y).all().item())
+print(json.dumps(out))
+"""
+
+
+def test_unwarmed_capture_refused(ops):
+    import json
+
+    env = dict(os.environ, CUDA_LAUNCH_BLOCKING="1",
+               PYTHONPATH=os.pathsep.join([str(ROOT / "tools"), str(ROOT / "plugin-exl3"), os.environ.get("PYTHONPATH", "")]))
+    p = subprocess.run([sys.executable, "-c", _UNWARMED, str(ROOT / "tests/gpu")], capture_output=True, text=True,
+                       timeout=600, env=env)
+    assert p.returncode == 0, (p.stdout + p.stderr)[-3000:]
+    res = json.loads(p.stdout.strip().splitlines()[-1])
+    assert res["status"] == "rejected" and "was not warmed up" in res["error"], res
+    assert res["healthy_after"], res

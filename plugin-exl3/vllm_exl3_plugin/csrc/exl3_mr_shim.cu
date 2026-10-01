@@ -1,0 +1,239 @@
+// SPDX-License-Identifier: Apache-2.0
+// EXL3 multi-row shim: run trellis-serve's Marlin-template EXL3 kernels (vendored unmodified
+// under csrc/trellis_serve, see csrc/trellis_serve/VENDORED.md) as torch ops in the _C_exl3
+// namespace. Built into its own extension, vllm_exl3_plugin._C_exl3_mr, so _C_exl3 (the
+// phase-1 library) is unchanged; the extension's Python module init is the vendored
+// PYBIND11_MODULE.
+//
+// Ops (x: fp16 activations [m, k]; suh fp16 [k]; svh fp16 [n]; mcg/mul1 the checkpoint's
+// codebook flags):
+//   exl3_gemm_mr(x, trellis, suh, svh, mcg, mul1, out_fp32) -> [m, n] fp32 or fp16
+//       x @ W through the vendored exl3_linear_marlin_out: one input-Hadamard launch, one GEMM
+//       launch with the output Hadamard in its epilogue. exl3_gemm's signature and output
+//       dtypes. The kernel writes fp16 or bf16 (its MMA accumulates in fp32); with out_fp32
+//       it writes bf16 and the result is widened, so a bf16 model sees one rounding of the
+//       fp32 epilogue value, as with exl3_gemm's fp32 output. Up to 64 rows per weight pass
+//       (thread_m_blocks 4), so 17..64 rows cost one pass, 65..128 two, 129..144 three.
+//       trellis: exllamav3's int16 [k/16, n/16, 48 | 80] for K3 / K5 (read in place as int32
+//       [k/16, n/64, 4, 24 | 40], no copy), or exl3_mr_repack's int32 [k/16, n/64, 32, 4]
+//       for K4. mul1 only (the one codebook compiled).
+//   exl3_mr_repack(trellis) -> int32 [k/16, n/64, 32, 4]: K4 int16 trellis to the kernel's
+//       layout (vendored repack_trellis: 32-bit word l of tile (i, 4g + j) moves to
+//       [i, g, l, j]; a permutation, lossless, same size). CPU or CUDA.
+//   exl3_mr_unpack(b) -> int16 [k/16, n/16, 64]: the inverse (vendored unpack_trellis), for
+//       the dequant routes above 144 rows. CPU or CUDA.
+//   exl3_mr_warmup(trellis, suh, svh, mcg, mul1, rows, out_fp32): the vendored per-device
+//       state (locks zeroed, fp32 reduce scratch: at::zeros / at::empty on first use) and one
+//       call per row count, which loads every kernel instance those rows select. Must run
+//       outside CUDA graph capture; throws if the stream is capturing.
+//
+// Capture safety: exl3_gemm_mr refuses to run while the current stream is capturing unless
+// exl3_mr_warmup ran that (device, k, n, K, rows) first. Keyed per row count, not per bucket:
+// the vendored launcher picks the thread config from m (narrow config, row family, 64-row
+// splits), so every routed m is warmed (the plugin passes 17..144, or 1..144 for a repack).
+//
+// Guards (shapes, dtypes, strides, 16-byte alignment, bit width, codebook) run before any
+// CUDA call. exl3_gemm_mr and exl3_mr_warmup are registered for CPU too, where the guards run
+// and the call then fails with "must be CUDA tensors"; repack and unpack run on CPU for real.
+
+#include <ATen/ATen.h>
+#include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDAException.h>
+#include <c10/cuda/CUDAGuard.h>
+#include <torch/library.h>
+
+#include <algorithm>
+#include <climits>
+#include <mutex>
+#include <set>
+#include <tuple>
+
+// Defined in the vendored trellis_serve/exl3_marlin.cu (no header declares them).
+void exl3_linear_marlin_out(const at::Tensor& x, const at::Tensor& b, const at::Tensor& suh, const at::Tensor& svh,
+                            int64_t cb, at::Tensor& xh, at::Tensor& y);
+at::Tensor repack_trellis(const at::Tensor& trellis);
+at::Tensor unpack_trellis(const at::Tensor& b);
+void init_device(int64_t device);
+
+namespace {
+
+constexpr int64_t kCbMul1 = 2;  // trellis-serve codebook id: 0 = 3INST, 1 = MCG, 2 = MUL1
+
+// ---------------------------------------------------------------------------
+// Guards (same rules and messages as exl3_shim.cu's)
+
+bool aligned16(const at::Tensor& t) { return reinterpret_cast<uintptr_t>(t.data_ptr()) % 16 == 0; }
+
+void check_scale(const at::Tensor& s, int64_t size, const char* name, const char* op) {
+  TORCH_CHECK(s.dim() == 1 && s.size(0) == size, op, ": ", name, " must be 1-D of size ", size,
+              ", got ", s.sizes());
+  TORCH_CHECK(s.scalar_type() == at::kHalf, op, ": ", name, " must be fp16");
+  TORCH_CHECK(s.is_contiguous(), op, ": ", name, " must be contiguous");
+  TORCH_CHECK(aligned16(s), op, ": ", name, " must be 16-byte aligned");
+}
+
+void check_cuda(std::initializer_list<const at::Tensor*> ts, const char* op) {
+  const at::Tensor* first = *ts.begin();
+  for (const at::Tensor* t : ts) {
+    TORCH_CHECK(t->is_cuda(), op, ": inputs must be CUDA tensors");
+    TORCH_CHECK(t->get_device() == first->get_device(), op, ": inputs must be on one device");
+  }
+}
+
+int64_t check_x(const at::Tensor& x, int64_t k, const char* op) {
+  TORCH_CHECK(x.dim() == 2, op, ": x must be 2-D");
+  TORCH_CHECK(x.scalar_type() == at::kHalf, op, ": x must be fp16");
+  TORCH_CHECK(x.size(1) == k, op, ": x has ", x.size(1), " columns, the weight has k=", k);
+  TORCH_CHECK(x.is_contiguous(), op, ": x must be contiguous");
+  TORCH_CHECK(aligned16(x), op, ": x must be 16-byte aligned");
+  TORCH_CHECK(x.size(0) <= INT_MAX, op, ": x too large");
+  return x.size(0);
+}
+
+void check_k_n(int64_t k, int64_t n, const char* op) {
+  TORCH_CHECK(k > 0 && n > 0 && k % 128 == 0 && n % 128 == 0, op,
+              ": k and n must be multiples of 128 (128-wide Hadamard), got k=", k, " n=", n);
+  TORCH_CHECK(k <= INT_MAX && n <= INT_MAX, op, ": weight too large");
+}
+
+// The kernel's view of a trellis: int32, plus K, k and n.
+struct Weight {
+  at::Tensor b;
+  int64_t bits, k, n;
+};
+
+Weight check_weight(const at::Tensor& trellis, bool mcg, bool mul1, const char* op) {
+  TORCH_CHECK(!(mcg && mul1), op, ": mcg and mul1 are exclusive");
+  TORCH_CHECK(mul1, op, ": only the mul1 codebook is built");
+  TORCH_CHECK(trellis.is_contiguous(), op, ": trellis must be contiguous");
+  TORCH_CHECK(aligned16(trellis), op, ": trellis must be 16-byte aligned");
+  if (trellis.scalar_type() == at::kShort) {
+    TORCH_CHECK(trellis.dim() == 3 && (trellis.size(2) == 48 || trellis.size(2) == 80), op,
+                ": an int16 trellis must be K3 or K5 [k/16, n/16, 48 | 80]; K4 needs exl3_mr_repack, got ",
+                trellis.sizes());
+    const int64_t kt = trellis.size(0), nt = trellis.size(1), words = trellis.size(2) / 2;
+    check_k_n(kt * 16, nt * 16, op);
+    return {trellis.view(at::kInt).view({kt, nt / 4, 4, words}), trellis.size(2) / 16, kt * 16, nt * 16};
+  }
+  TORCH_CHECK(trellis.scalar_type() == at::kInt && trellis.dim() == 4 && trellis.size(2) == 32 &&
+                  trellis.size(3) == 4,
+              op, ": trellis must be int16 K3/K5 or exl3_mr_repack's int32 K4 [k/16, n/64, 32, 4], got ",
+              trellis.scalar_type(), " ", trellis.sizes());
+  check_k_n(trellis.size(0) * 16, trellis.size(1) * 64, op);
+  return {trellis, 4, trellis.size(0) * 16, trellis.size(1) * 64};
+}
+
+// ---------------------------------------------------------------------------
+// Warmup registry and the capture guard
+
+using Key = std::tuple<int, int64_t, int64_t, int64_t, int64_t>;  // device, k, n, K, rows
+std::mutex g_mutex;
+std::set<Key> g_warmed;
+
+bool capturing(cudaStream_t stream) {
+  cudaStreamCaptureStatus status = cudaStreamCaptureStatusNone;
+  C10_CUDA_CHECK(cudaStreamIsCapturing(stream, &status));
+  return status != cudaStreamCaptureStatusNone;
+}
+
+// ---------------------------------------------------------------------------
+// Ops
+
+at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh,
+                        bool mcg, bool mul1, bool out_fp32, bool warming) {
+  const char* op = "exl3_gemm_mr";
+  const Weight w = check_weight(trellis, mcg, mul1, op);
+  const int64_t m = check_x(x, w.k, op);
+  check_scale(suh, w.k, "suh", op);
+  check_scale(svh, w.n, "svh", op);
+  check_cuda({&x, &trellis, &suh, &svh}, op);
+
+  const at::ScalarType out_dtype = out_fp32 ? at::kFloat : at::kHalf;
+  if (m == 0) return at::empty({0, w.n}, x.options().dtype(out_dtype));
+  const c10::cuda::CUDAGuard guard(x.device());
+  if (!warming && capturing(at::cuda::getCurrentCUDAStream().stream())) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    TORCH_CHECK(g_warmed.count({x.get_device(), w.k, w.n, w.bits, m}), op, ": shape k=", w.k, " n=", w.n,
+                " K=", w.bits, " rows=", m, " was not warmed up (exl3_mr_warmup) before CUDA graph capture");
+  }
+  at::Tensor xh = at::empty_like(x);
+  at::Tensor y = at::empty({m, w.n}, x.options().dtype(out_fp32 ? at::kBFloat16 : at::kHalf));
+  exl3_linear_marlin_out(x, w.b, suh, svh, kCbMul1, xh, y);
+  return out_fp32 ? y.to(at::kFloat) : y;
+}
+
+at::Tensor exl3_gemm_mr_op(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh,
+                           const at::Tensor& svh, bool mcg, bool mul1, bool out_fp32) {
+  return gemm_mr_impl(x, trellis, suh, svh, mcg, mul1, out_fp32, false);
+}
+
+at::Tensor exl3_mr_repack_op(const at::Tensor& trellis) {
+  const char* op = "exl3_mr_repack";
+  TORCH_CHECK(trellis.dim() == 3 && trellis.scalar_type() == at::kShort && trellis.size(2) == 64, op,
+              ": only a K4 int16 trellis [k/16, n/16, 64] is repacked (K3/K5 are read as stored), got ",
+              trellis.scalar_type(), " ", trellis.sizes());
+  TORCH_CHECK(trellis.is_contiguous(), op, ": trellis must be contiguous");
+  check_k_n(trellis.size(0) * 16, trellis.size(1) * 16, op);
+  const c10::OptionalDeviceGuard guard(trellis.device());
+  return repack_trellis(trellis);
+}
+
+at::Tensor exl3_mr_unpack_op(const at::Tensor& b) {
+  const char* op = "exl3_mr_unpack";
+  TORCH_CHECK(b.dim() == 4 && b.scalar_type() == at::kInt && b.size(2) == 32 && b.size(3) == 4, op,
+              ": b must be exl3_mr_repack's int32 [k/16, n/64, 32, 4], got ", b.scalar_type(), " ", b.sizes());
+  check_k_n(b.size(0) * 16, b.size(1) * 64, op);
+  const c10::OptionalDeviceGuard guard(b.device());
+  return unpack_trellis(b);
+}
+
+void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg, bool mul1,
+                       at::IntArrayRef rows, bool out_fp32) {
+  const char* op = "exl3_mr_warmup";
+  const Weight w = check_weight(trellis, mcg, mul1, op);
+  check_scale(suh, w.k, "suh", op);
+  check_scale(svh, w.n, "svh", op);
+  for (int64_t m : rows) TORCH_CHECK(m >= 1 && m <= INT_MAX, op, ": row counts must be >= 1, got ", m);
+  check_cuda({&trellis, &suh, &svh}, op);
+
+  const int device = trellis.get_device();
+  const c10::cuda::CUDAGuard guard(trellis.device());
+  const cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
+  TORCH_CHECK(!capturing(stream), op, ": must run outside CUDA graph capture");
+  init_device(device);  // vendored dev_state: SM count, smem limit, locks (zeroed), fp32 reduce scratch
+  int64_t max_m = 0;
+  for (int64_t m : rows) max_m = std::max(max_m, m);
+  if (max_m > 0) {
+    at::Tensor x = at::zeros({max_m, w.k}, trellis.options().dtype(at::kHalf));
+    for (int64_t m : rows) gemm_mr_impl(x.narrow(0, 0, m), trellis, suh, svh, mcg, mul1, out_fp32, true);
+  }
+  C10_CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  std::lock_guard<std::mutex> lock(g_mutex);
+  for (int64_t m : rows) g_warmed.insert({device, w.k, w.n, w.bits, m});
+}
+
+}  // namespace
+
+TORCH_LIBRARY_FRAGMENT(_C_exl3, m) {
+  m.def("exl3_gemm_mr(Tensor x, Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, bool out_fp32) -> Tensor");
+  m.def("exl3_mr_repack(Tensor trellis) -> Tensor");
+  m.def("exl3_mr_unpack(Tensor b) -> Tensor");
+  m.def("exl3_mr_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, bool out_fp32) -> ()");
+}
+
+TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
+  m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
+  m.impl("exl3_mr_repack", &exl3_mr_repack_op);
+  m.impl("exl3_mr_unpack", &exl3_mr_unpack_op);
+  m.impl("exl3_mr_warmup", &exl3_mr_warmup_op);
+}
+
+// CPU: exl3_gemm_mr and exl3_mr_warmup run their guards and stop at "must be CUDA tensors";
+// repack and unpack are plain tensor ops and run.
+TORCH_LIBRARY_IMPL(_C_exl3, CPU, m) {
+  m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
+  m.impl("exl3_mr_repack", &exl3_mr_repack_op);
+  m.impl("exl3_mr_unpack", &exl3_mr_unpack_op);
+  m.impl("exl3_mr_warmup", &exl3_mr_warmup_op);
+}
