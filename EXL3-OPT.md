@@ -194,7 +194,16 @@ reference error from a plugin error at a position the reference finds surprising
 fp8 KV against the same reference, so 7 of those are the plugin's), and the vLLM dumps were deleted
 after scoring (rerun 05 with KEEP=1 to check the plugin's p(actual) there). So no fp8 exclusion is
 claimed. Even without the 4 positions the chat sequences stay 3-10x worse than code/prose at bf16 KV
-(3.1e-3 / 1.7e-3 vs <= 7e-4): flagged, not explained. Long prompts are not worse than short ones (102k
+(3.1e-3 / 1.7e-3 vs <= 7e-4), and not because they are higher-entropy: within matched reference-
+entropy bins chat KLD is still 2-17x the rest (0.05-0.3 nats 1.2e-3 vs 2.2e-4; 1-2 nats 8.3e-3 vs
+9.9e-4), with tiny medians (4e-5 / 3e-4) and the excess in a few near-tied positions inside the user
+turn, 100+ tokens from any template token. Attribution (bounded attempt, INFERRED): a property of
+these two prompts, not of the plugin. GSQ phase 1b measured llama.cpp's own CUDA and CPU backends on
+the same ids: they differ by KLD 0.225 / 0.399 on seq_000 / seq_001, more than vLLM differs from
+llama.cpp there (0.116 / 0.251) and 15-100x their code/prose difference
+(`cloud/results/phase1b/parity/diag/noise-floor.txt`, REPORT.md section 5): any two correct
+implementations diverge most on these prompts. Remaining check, queued: the chat sequences at
+EXL3_MR=0 vs the defaults (job 19, KEEP=1), which shows whether the multi-row kernel adds to it. Long prompts are not worse than short ones (102k
 1.9e-4, 120k 7.1e-4 at bf16 KV, inside the 1.7e-4-6.8e-4 of the 1.5k-65k code/mixed sequences): no
 case for an fp32 prefill path from these data. fp8 KV costs 2-5x KLD on every sequence.
 
