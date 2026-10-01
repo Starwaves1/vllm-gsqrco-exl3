@@ -48,6 +48,14 @@ _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
 PACKED_VEC_MAX_ROWS = 8
 # Route L ops that quantize X themselves (MMQ's layout): the rest read apply()'s shared x_q8.
 _OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed")
+# Route L ops that write X's dtype directly; the others (MMQ, MMVQ, the owned 1..8-row kernels)
+# write an fp32 [n, W rows] dst that the shim then casts.
+_X_DTYPE_OPS = ("lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_vec_iq3")
+# Most fp32 dst bytes one Route L call may allocate. Only the lm_head (248,320 rows) at
+# prompt-logprobs / echo row counts goes over it (2,048 rows: 1.9 GiB of fp32 plus the
+# 16-bit copy); it then runs in row chunks into one X-dtype output. Every other product
+# stays one call: the largest layer, 17,408 rows x 2,048 tokens, is 136 MiB.
+_FP32_DST_BUDGET = 256 << 20
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -92,6 +100,30 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) 
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
 
+def _fused_mul_mat_gguf_chunked(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    weight_type: int,
+    x_q8: torch.Tensor | None,
+    packed: bool,
+) -> torch.Tensor:
+    """_fused_mul_mat_gguf in activation-row chunks whose fp32 dst fits _FP32_DST_BUDGET
+    (multiples of 128 rows, MMQ's widest tile), written into one X-dtype output. Each
+    chunk is routed for its own row count."""
+    n, rows = x.shape[0], weight.shape[0]
+    step = max(1, _FP32_DST_BUDGET // (rows * 4))
+    if step >= 128:
+        step -= step % 128
+    out = torch.empty(n, rows, dtype=x.dtype, device=x.device)
+    b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
+    for i in range(0, n, step):
+        j = min(n, i + step)
+        out[i:j] = _fused_mul_mat_gguf(
+            x[i:j], weight, weight_type, None if x_q8 is None else x_q8[i * b : j * b], packed
+        )
+    return out
+
+
 def _fused_mul_mat_gguf(
     x: torch.Tensor,
     weight: torch.Tensor,
@@ -113,6 +145,9 @@ def _fused_mul_mat_gguf(
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
         name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
     if name is not None:
+        n, rows = x.shape[0], weight.shape[0]
+        if name not in _X_DTYPE_OPS and x.dtype != torch.float32 and n * rows * 4 > _FP32_DST_BUDGET:
+            return _fused_mul_mat_gguf_chunked(x, weight, weight_type, x_q8, packed)
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])

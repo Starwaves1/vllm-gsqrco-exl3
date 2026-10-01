@@ -210,6 +210,59 @@ def test_routing_whole_tensor(tensors_by_type, name, n, big):
     assert e <= (LOOSE_XSUM if min_term else LOOSE)
 
 
+# The lm_head (output.weight, Q4_K, 248,320 rows) at prompt-logprobs / echo row counts. Torture
+# smoke 2026-10-01 on vLLM main: prompt_logprobs on a 3,936-token prompt ran the engine out of
+# memory allocating MMQ's fp32 dst (1.57 GiB, plus the 16-bit copy); the product now runs in row
+# chunks above linear._FP32_DST_BUDGET. 1..8 rows: echo's prompt rows (owned / MMVQ kernels).
+LM_HEAD_TOKENS = [1, 2, 4, 5, 8, 9, 33, 300, 2048, 3936]
+
+
+@pytest.mark.parametrize("n", LM_HEAD_TOKENS)
+def test_lm_head_prompt_rows(gguf_reader, n):
+    import numpy as np
+    import torch
+
+    from vllm_gguf_plugin import ops
+    from vllm_gguf_plugin.quantization import linear
+
+    _lcpp()
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    t = next((t for t in gguf_reader.tensors if t.name == "output.weight"), None)
+    if t is None:
+        pytest.skip("no output.weight in this GGUF")
+    qt, rows, k = int(t.tensor_type), int(t.shape[1]), int(t.shape[0])
+    w = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+    x = _x(n, k, "bfloat16", seed=1300 + n).cuda()
+    torch.cuda.synchronize()
+    _poison_allocator()
+    base = torch.cuda.memory_allocated()
+    torch.cuda.reset_peak_memory_stats()
+    y = linear._fused_mul_mat_gguf(x, w, qt)
+    torch.cuda.synchronize()
+    extra = torch.cuda.max_memory_allocated() - base
+    # the output, plus one fp32 dst (whole, or one chunk and its 16-bit copy), plus q8_1 scratch
+    fp32 = n * rows * 4
+    cap = getattr(linear, "_FP32_DST_BUDGET", 256 << 20)  # absent before the fix: the old build fails the bound
+    budget = n * rows * 2 + (fp32 if fp32 <= cap else cap * 3 // 2) + (64 << 20)
+    assert y.shape == (n, rows) and y.dtype == torch.bfloat16
+    bad = (~torch.isfinite(y)).sum().item()
+    assert bad == 0, f"{bad} non-finite logits at n={n}"
+    num = torch.zeros(n, dtype=torch.float64, device="cuda")
+    den = torch.zeros(n, dtype=torch.float64, device="cuda")
+    for r0 in range(0, rows, 16384):  # reference: the kernel's own dequantize in fp32, by row block
+        r1 = min(rows, r0 + 16384)
+        wb = ops.ggml_dequantize(w[r0:r1], qt, r1 - r0, k, torch.float32)
+        ref = x.float() @ wb.T
+        num += (y[:, r0:r1].float() - ref).double().pow(2).sum(-1)
+        den += ref.double().pow(2).sum(-1)
+    e = float((num.sqrt() / den.sqrt().clamp_min(1e-30)).max())
+    print(f"\nlm_head {rows}x{k} n={n}: rel err vs full {e:.2e}, peak extra {extra / 2**20:.0f} MiB "
+          f"(bound {budget / 2**20:.0f} MiB), route {linear._lcpp_op(n, qt, rows, k)}")
+    assert e <= LOOSE_XSUM
+    assert extra <= budget, f"peak {extra / 2**20:.0f} MiB > {budget / 2**20:.0f} MiB"
+
+
 # ---------------------------------------------------------------------------- Route L
 
 
