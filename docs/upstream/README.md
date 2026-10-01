@@ -97,3 +97,11 @@ One-line rationale per PR:
 - `llamacpp-mmq-tail-issue.md`: a ready-to-file llama.cpp issue on MMQ's q8_1 read tail below 8
   columns (file:line at b11211 / d7fb90e8, proposed fix).
 - The RFC issue text for the lcpp backend is at the end of `05-lcpp-vendored-mmvq-mmq.md`.
+
+## vLLM issues (not plugin PRs)
+
+Ready-to-file issue texts for bugs found on vLLM main while running the plugin, each with its patch
+in `cloud/results/r3/patches/` (overlay-style, against the installed tree):
+
+- `vllm-issue-prompt-logprobs-oom.md`: prompt_logprobs allocates full-vocab logits for a whole chunk.
+- `vllm-issue-prompt-logprobs-after-drafter.md`: prompt logprobs read after the MTP drafter, NaN under CUDA graphs.
