@@ -90,7 +90,8 @@ PROBE = {"messages": [{"role": "user", "content": SHORT[1]}], "max_tokens": 256,
 LONG_TIMEOUT = 3600.0  # a request that takes longer is "stalled" (196k prefill under load is ~10 min)
 
 # Response classes. OK ones are expected outcomes; anything else fails the run.
-OK_CLASSES = {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "cancelled", "client_timeout"}
+OK_CLASSES = {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call", "cancelled",
+              "client_timeout"}
 
 
 def make_plan(total_s: float, seed: int) -> list[dict]:
@@ -152,6 +153,11 @@ def classify(req: dict, res: dict) -> str:
             except (TypeError, ValueError):
                 return "bad_tool_json"
     choice = req["body"].get("tool_choice")
+    if not any(c["text"].strip() or c["tools"] for c in ch):
+        if any(c["reasoning"].strip() for c in ch):
+            return "reasoning_only"  # incl. EOS inside the thinking, before a structured output began
+        if choice == "none" and ch[0]["finish"] == "stop" and ct // n >= 8:
+            return "dropped_tool_call"  # vLLM parses the call out of the content, then drops it under "none"
     if choice is not None and choice not in ("auto", "none") and not ch[0]["tools"] and ch[0]["finish"] != "length":
         return "no_tool_call"
     if choice == "none" and ch[0]["tools"]:
@@ -271,8 +277,9 @@ class Corpus:
 class Gen:
     """Seeded request factory (one rng per phase)."""
 
-    def __init__(self, corpus: Corpus, seed: int, model: str, max_model_len: int, priority: int):
+    def __init__(self, corpus: Corpus, seed: int, model: str, max_model_len: int, priority: int, skip=()):
         self.corpus, self.seed, self.model, self.mml, self.priority = corpus, seed, model, max_model_len, priority
+        self.skip = set(skip)  # request kinds or api variants not to send (a known server bug being worked on)
         self.history: dict[int, list[str]] = {}  # length -> salts sent so far
         self.lock = threading.Lock()
         self.set_phase(0, PHASES["idle"])
@@ -287,7 +294,8 @@ class Gen:
         n = min(n, self.mml - 64)
         if hit and past:
             salt = r.choice(past[-4:] if r.random() < 0.5 else past)  # recent (GPU) or old (CPU/fs tier)
-            return self.corpus.prompt(n, salt) + self.corpus.tail(f"{r.getrandbits(32):08x}"), {"len": n, "hit": True, "salt": salt}
+            tail = f"{r.getrandbits(32):08x}"
+            return self.corpus.prompt(n, salt) + self.corpus.tail(tail), {"len": n, "hit": True, "salt": salt, "tail": tail}
         salt = f"{r.getrandbits(64):016x}"
         past.append(salt)
         return self.corpus.prompt(n, salt), {"len": n, "hit": False, "salt": salt}
@@ -296,6 +304,7 @@ class Gen:
         with self.lock:
             r = self.rng
             kind = mix if mix != "mixed" else r.choices(list(MIXED), list(MIXED.values()))[0]
+            kind = "chat" if kind in self.skip else kind
             if kind == "repeat":
                 if self.repeat_pool is None:
                     self.repeat_pool = [self._make(k) for k in ("chat", "long", "tool")]
@@ -339,7 +348,7 @@ class Gen:
                 q["stream"] = False
                 q["body"].update(prompt_logprobs=1, max_tokens=1, temperature=0.0)
         elif kind == "api":
-            v = r.choice(["n2", "stop", "seed", "logprobs", "min_tokens", "echo"])
+            v = r.choice([v for v in ("n2", "stop", "seed", "logprobs", "min_tokens", "echo") if v not in self.skip])
             q["meta"]["variant"] = v
             msgs = [{"role": "user", "content": r.choice(SHORT) + f" (variant {r.getrandbits(32):08x})"}]
             q["body"] = {**chat, "messages": msgs, "max_tokens": r.choice([16, 64, 256])}
@@ -553,6 +562,8 @@ def record(req: dict, res: dict, phase: dict) -> dict:
     rec["finish"] = [c["finish"] for c in ch]
     rec["tool_calls"] = [t for c in ch for t in c["tools"]]
     keep = 300 if cls in OK_CLASSES else 8000  # keep whole text of anything suspicious
+    if cls not in OK_CLASSES:  # enough to resend it: the body, long prompts as salt/len/tail (in meta)
+        rec["request"] = {k: v for k, v in b.items() if not (k == "prompt" and isinstance(v, list))}
     rec["text"] = [c["text"][:keep] for c in ch]
     rec["reasoning"] = [c["reasoning"][:keep] for c in ch]
     if b.get("temperature") == 0 and ch:  # T=0 repeatability: same body, same output?
@@ -578,7 +589,7 @@ def snapshot(api: Api) -> dict:
 
 
 def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, max_conc: int = 12,
-        budget: int | None = None, brutal: bool = False, stop: threading.Event | None = None) -> None:
+        budget: int | None = None, brutal: bool = False, stop: threading.Event | None = None, skip=()) -> None:
     """The whole schedule against api. stop (server death, Ctrl-C) ends it early and cuts what is in
     flight. budget None = half the server's KV cache (vllm:cache_config_info), else 65,536."""
     stop = stop or threading.Event()
@@ -589,9 +600,9 @@ def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, 
     lengths = max(n for s in PHASES.values() for n in s.get("lengths", DEFAULTS["lengths"]))
     corpus = Corpus(api, seed, min(lengths + 64, api.mml))
     (out / "plan.json").write_text(json.dumps({"seed": seed, "total_s": total_s, "model": api.model, "max_model_len": api.mml,
-                                               "priority": priority, "max_conc": max_conc, "kv_tokens": kv, "token_budget": budget, "brutal": brutal,
+                                               "priority": priority, "max_conc": max_conc, "kv_tokens": kv, "token_budget": budget, "brutal": brutal, "skip": sorted(skip),
                                                "corpus_sha": corpus.sha, "python": platform.python_version(), "phases": plan}, indent=1))
-    gen = Gen(corpus, seed, api.model, api.mml, priority)
+    gen = Gen(corpus, seed, api.model, api.mml, priority, skip)
     throttle = Throttle(max_conc, budget, brutal)
     f_load, f_phase = open(out / "load.jsonl", "a", buffering=1), open(out / "phases.jsonl", "a", buffering=1)
     wlock, cur, done = threading.Lock(), {"p": {"i": -1, "type": "start"}}, threading.Event()
@@ -613,7 +624,10 @@ def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, 
                 res = send(api, req)
             finally:
                 throttle.release(c)
-            emit(record(req, res, ph))
+            rec = record(req, res, ph)
+            emit(rec)
+            if rec["class"] == "conn_error":
+                stop.wait(5)  # the server is gone or refusing: don't spin (the monitor decides about death)
         except Exception as e:  # noqa: BLE001
             harness_error(e, ph, req["kind"])
 
@@ -624,12 +638,12 @@ def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, 
         st, body = api.call("POST", api.root + "/tokenize", {"model": api.model, "prompt": text, "add_special_tokens": False})
         if st == 200:
             st, body = api.call("POST", api.root + "/detokenize", {"model": api.model, "tokens": json.loads(body)["tokens"]})
-        cls = f"http_{st // 100}xx" if st != 200 else "ok" if json.loads(body).get("prompt") == text else "tokenize_mismatch"
+        cls = "conn_error" if st == 0 else f"http_{st // 100}xx" if st != 200 else "ok" if json.loads(body).get("prompt") == text else "tokenize_mismatch"
         emit({"t": t, "phase": ph["i"], "ptype": ph["type"], "kind": "tokenize", "class": cls, "http": st,
               **({} if cls == "ok" else {"body": body[:500]})})
         t = time.time()
         st, body = api.call("GET", api.root + "/metrics")
-        cls = f"http_{st // 100}xx" if st != 200 else "ok" if "vllm:num_requests_running" in body else "metrics_error"
+        cls = "conn_error" if st == 0 else f"http_{st // 100}xx" if st != 200 else "ok" if "vllm:num_requests_running" in body else "metrics_error"
         emit({"t": t, "phase": ph["i"], "ptype": ph["type"], "kind": "metrics", "class": cls, "http": st})
 
     def poller():

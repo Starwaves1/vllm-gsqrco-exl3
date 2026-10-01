@@ -48,6 +48,8 @@ def options(p: argparse.ArgumentParser) -> None:
     p.add_argument("--i-know", action="store_true", help="allow --brutal against production ports 18080/18081")
     p.add_argument("--server-pid", type=int, help="server pid: GPU MiB, RSS and death of its process tree")
     p.add_argument("--server-log", help="server log file: fault grep of new lines")
+    p.add_argument("--skip", default="", help="comma list of request kinds (plog, long, tool, json, api, repeat) or api "
+                   "variants (echo, logprobs, n2, ...) not to send, e.g. while a known server bug is open")
 
 
 def guard(a, port: int) -> None:
@@ -61,7 +63,7 @@ def leg(a, base: str, out: Path, seed: int, pid=None, log=None) -> None:
     mon.start()
     try:
         load.run(api, out, a.minutes * 60 if a.minutes else a.hours * 3600, seed, a.priority, a.max_conc,
-                 a.token_budget, a.brutal, stop=mon.dead)
+                 a.token_budget, a.brutal, stop=mon.dead, skip=[k for k in a.skip.split(",") if k])
     except KeyboardInterrupt:  # stop now: cut what is in flight, still write the report
         print("interrupted: stopping and reporting", flush=True)
         load.cut_all()

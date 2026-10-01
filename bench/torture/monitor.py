@@ -123,7 +123,7 @@ class Monitor(threading.Thread):
                     except ValueError:
                         pass
         r = {"t": int(time.time()), "server_alive": alive, "health": health, **{c: g.get(c, "") for c in GAUGES}}
-        if self.pid:
+        if alive:  # a dead server's tree reads as zeros: leave the cells blank
             pids = tree(self.pid)
             r["rss_kib"], r["rss_anon_kib"], r["shmem_kib"] = memory(pids)
             r["gpu_mib"] = gpu_mib(pids)

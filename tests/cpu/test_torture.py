@@ -82,6 +82,12 @@ SCHEMA_RF = {"type": "json_schema", "json_schema": {"name": "city", "schema": tl
     (req(response_format={"type": "json_object"}), res(text="not json"), "bad_json"),
     (req(response_format=SCHEMA_RF), res(finish="length", text='{"ci', ct=256), "truncated_json"),
     (req(n=2), res(n=2, ct=20), "ok"),
+    # seen on the first real smoke: EOS inside the thinking before the grammar or the tool call began
+    (req(response_format=SCHEMA_RF), res(text="", reasoning="Let me just give the JSON directly.", ct=127), "reasoning_only"),
+    (req(tool_choice="required"), res(text="", reasoning="I should run the tests.", ct=40), "reasoning_only"),
+    # vLLM main parses a tool call out of the content and then drops it under tool_choice "none"
+    (req(tool_choice="none"), res(text="", ct=26), "dropped_tool_call"),
+    (req(tool_choice="none"), res(finish="length", text="", ct=256), "empty_output"),
     (req(n=2), res(n=1), "bad_response"),
 ])
 def test_classify(q, r, want):
@@ -89,7 +95,8 @@ def test_classify(q, r, want):
 
 
 def test_ok_classes_are_client_or_model_outcomes():
-    assert tl.OK_CLASSES == {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "cancelled", "client_timeout"}
+    assert tl.OK_CLASSES == {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call", "cancelled",
+                             "client_timeout"}
 
 
 # ---------------------------------------------------------------- report on a synthetic 12 h run
@@ -317,3 +324,23 @@ def test_cli_switch_with_mock_servers(tmp_path):
     rep = json.loads((tmp_path / "run" / "report.json").read_text())
     assert rep["criteria"]["namespaces_disjoint"]["pass"] and all(x["checks"]["run"] for x in rep["legs"]), r.stdout
     assert r.returncode == 0 and rep["pass"]
+
+
+def test_skip_never_sends_the_skipped_kinds():
+    class Corpus:  # ids only matter for length here
+        def prompt(self, n, salt):
+            return [1] * n
+
+        def tail(self, h):
+            return [2] * 8
+
+    gen = tl.Gen(Corpus(), 1, "m", 200000, 100000, skip={"plog", "echo"})
+    seen = set()
+    for i, ty in enumerate(tl.TYPES):
+        gen.set_phase(i, tl.PHASES[ty])
+        for mix, _ in tl.PHASES[ty]["lanes"]:
+            for _ in range(200):
+                q = gen.next(mix)
+                seen.add(q["kind"])
+                assert not q["body"].get("prompt_logprobs") and not q["body"].get("echo")
+    assert "plog" not in seen and {"chat", "long", "api"} <= seen
