@@ -31,18 +31,20 @@ require_mr_build() {  # the plugin under test is this worktree's, with both exte
 import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS_AVAILABLE, o.MR_AVAILABLE)' 2>&1 | tail -1)
   [[ $got == "$WT/plugin-exl3/vllm_exl3_plugin/__init__.py True True" ]] || die "plugin not from $WT or not built: $got"
 }
-# serve_mr <EXL3_MR> <run dir> [extra vLLM args]: scripts/serve-exl3.sh (production's argv) with
-# EXL3_MR set, in the background; wait for health; load summary in <run dir>/load.txt
+# serve_mr <mode> <run dir> [extra vLLM args]: scripts/serve-exl3.sh (production's argv) in the
+# background with EXL3_MR=<mode's digit> and, for a "g" suffix (2g), EXL3_MR_GLUE=1; wait for
+# health; load summary in <run dir>/load.txt
 serve_mr() {
-  local mr=$1 out=$2 t0; shift 2; mkdir -p "$out"
-  EXL3_MR=$mr scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
+  local mr=${1%g} glue=0 out=$2 t0; [ "$1" != "$mr" ] && glue=1; shift 2; mkdir -p "$out"
+  export EXL3_MR=$mr EXL3_MR_GLUE=$glue
+  scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)
-  EXL3_MR=$mr GSQ_LOG=$out/server.log setsid scripts/serve-exl3.sh "$@" > /dev/null 2>&1 < /dev/null &
+  GSQ_LOG=$out/server.log setsid scripts/serve-exl3.sh "$@" > /dev/null 2>&1 < /dev/null &
   SPID=$!
   trap stopall EXIT
   gsq_wait_health 2400 "$SPID" || { echo SERVER_FAILED; tail -80 "$out/server.log"; return 1; }
-  { echo "EXL3_MR=$mr healthy after $(( $(date +%s) - t0 )) s"
+  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue healthy after $(( $(date +%s) - t0 )) s"
     grep -E "Loading weights took|Model loading took|model weights|GPU KV cache size|Maximum concurrency|CUDA graph|init engine|exl3|EXL3" "$out/server.log" | cut -c1-260 | head -30
     echo "VRAM after load: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"; } | tee "$out/load.txt"
 }

@@ -16,6 +16,7 @@ K3, K4, K5 and the K4 lm_head for erlidev's).
   routing     exl3_linear with EXL3_MR 1 / 2 (monkeypatched): K2 stays on exl3_gemm, bit for
               bit; a repacked K4 above 144 rows (unpack + dequant) equals the stored one.
   determinism two calls give identical bits.
+  bf16 io     bf16 x in, bf16 out (EXL3_MR_GLUE) == fp16 x, fp32 out, .to(bf16), bit for bit.
   graphs      after exl3_mr_warmup: captured exl3_gemm_mr replays == eager on new inputs; in a
               fresh process, a capture before warmup is refused without a device fault.
 
@@ -126,6 +127,22 @@ def test_gemm_vs_fp64(ops, tid, m, out_fp32):
     assert s["finite"], "non-finite output"
     assert s["rel_rms"] <= max(SLACK * g["rel_rms"], FLOOR_RMS), (s, g)
     assert s["max_rel"] <= max(SLACK * g["max_rel"], FLOOR_MAX), (s, g)
+
+
+@pytest.mark.parametrize("m", [1, 8, 17, 48, 144])
+@pytest.mark.parametrize("tid", MR_TIDS)
+def test_bf16_io_same_bits(ops, tid, m):
+    """EXL3_MR_GLUE: bf16 x straight into exl3_gemm_mr == x.half() + fp32 out + .to(bf16), bit for bit."""
+    import torch
+
+    if m < 17 and BITS[tid] != 4:
+        pytest.skip("K3/K5 take exl3_gemm_mr from 17 rows only")
+    w = weights(tid)
+    xb = C.make_x(torch, tid, m).to(torch.bfloat16)
+    args = (w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    y = torch.ops._C_exl3.exl3_gemm_mr(xb, *args)
+    assert y.dtype == torch.bfloat16
+    assert torch.equal(y, torch.ops._C_exl3.exl3_gemm_mr(xb.half(), *args).to(torch.bfloat16))
 
 
 @pytest.mark.parametrize("tid", MR_TIDS)

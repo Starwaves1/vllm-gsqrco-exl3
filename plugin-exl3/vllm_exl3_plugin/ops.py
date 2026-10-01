@@ -3,7 +3,8 @@
 
 `exl3_linear(x, trellis, suh, svh, mcg, mul1, out_fp32)` is x @ W for one EXL3 tensor W,
 x [n, k] fp16 (the kernels' activation dtype; the linear method casts once per layer), result
-fp32 or fp16. It is registered as the vLLM custom op
+fp32 or fp16; or x bf16 and the result bf16 (EXL3_MR_GLUE: exl3_gemm_mr converts inside its
+launches, the other routes cast). It is registered as the vLLM custom op
 `torch.ops.vllm._exl3_linear` (with a fake impl), so torch.compile sees one opaque node per
 EXL3 tensor and the row-count choice below is made per call, not when the graph is traced.
 
@@ -67,6 +68,10 @@ MR_MODE = int(os.environ.get("EXL3_MR", "0"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
+# EXL3_MR_GLUE=1 (with EXL3_MR=2, A/B while measured): a bf16 model passes bf16 activations and
+# gets bf16 back (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and the
+# fp32 round trip out. Same bits.
+MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "0") == "1"
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
 MULTI_ROW_MIN, MULTI_ROW_MAX = 17, GEMM_MAX_ROWS
 MR_TILE_WIDTHS = (48, 80)  # K3, K5: exl3_gemm_mr reads the stored trellis
@@ -80,11 +85,11 @@ RECON_HAD_HGEMM = "recon_had_hgemm"
 def _exl3_op(n: int, mr_ok: bool = True, repacked: bool = False) -> str:
     """The route for n activation rows (tables in the module docstring). mr_ok: the multi-row
     kernel takes this tensor as stored; repacked: the trellis is in its layout (int32)."""
+    if repacked and n <= MULTI_ROW_MAX:
+        return MR_OP
+    if MULTI_ROW_OP is not None and mr_ok and MULTI_ROW_MIN <= n <= MULTI_ROW_MAX:
+        return MULTI_ROW_OP
     if n <= GEMM_MAX_ROWS:
-        if repacked:
-            return MR_OP
-        if MULTI_ROW_OP is not None and mr_ok and MULTI_ROW_MIN <= n <= MULTI_ROW_MAX:
-            return MULTI_ROW_OP
         return EXL3_GEMM
     return RECON_HAD_HGEMM if n >= FUSED_RECON_MIN_ROWS else RECON_HGEMM
 
@@ -133,11 +138,14 @@ def exl3_linear(
 ) -> torch.Tensor:
     repacked = trellis.dtype == torch.int32
     name = _exl3_op(x.shape[0], not repacked and mr_takes(trellis.shape[2], mul1), repacked)
+    bf16 = x.dtype == torch.bfloat16  # bf16 in, bf16 out; only exl3_gemm_mr takes it directly
     if name == RECON_HGEMM or name == RECON_HAD_HGEMM:
         if repacked:  # the dequant reads exllamav3's layout: one transient copy per call
             trellis = torch.ops._C_exl3.exl3_mr_unpack(trellis)
-        y = _recon_hgemm(x, trellis, suh, svh, mcg, mul1, name == RECON_HAD_HGEMM)
-        return y.float() if out_fp32 else y
+        y = _recon_hgemm(x.half() if bf16 else x, trellis, suh, svh, mcg, mul1, name == RECON_HAD_HGEMM)
+        return y.to(torch.bfloat16) if bf16 else y.float() if out_fp32 else y
+    if bf16 and name != MR_OP:
+        return getattr(torch.ops._C_exl3, name)(x.half(), trellis, suh, svh, mcg, mul1, True).to(torch.bfloat16)
     return getattr(torch.ops._C_exl3, name)(x.contiguous(), trellis, suh, svh, mcg, mul1, out_fp32)
 
 
@@ -150,7 +158,8 @@ def exl3_linear_fake(
     mul1: bool,
     out_fp32: bool,
 ) -> torch.Tensor:
-    return x.new_empty(x.shape[0], out_features(trellis), dtype=torch.float if out_fp32 else torch.half)
+    dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+    return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
 def _register() -> None:

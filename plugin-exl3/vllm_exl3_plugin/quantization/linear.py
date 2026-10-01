@@ -194,7 +194,9 @@ class EXL3LinearMethod(LinearMethodBase):
         quant = self.quant_config.quant
         # the kernels take fp16: cast once per layer, not per part; with a bf16 model the
         # kernels write fp32 (no second fp16 rounding) and the result is cast once
-        xh = x.reshape(-1, x.shape[-1]).to(torch.half)
+        xh = x.reshape(-1, x.shape[-1])
+        if not (ops.MR_GLUE and x.dtype == torch.bfloat16):  # glue: bf16 through (ops.MR_GLUE)
+            xh = xh.to(torch.half)
         out_fp32 = x.dtype != torch.half
         outs = [
             torch.ops.vllm._exl3_linear(

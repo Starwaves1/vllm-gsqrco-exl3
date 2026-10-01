@@ -8,11 +8,10 @@ import sys
 
 rows = {}
 for d in sys.argv[1:]:
-    name = d.rstrip("/").split("/")[-1]
+    name = d.rstrip("/").split("/")[-1].replace("06-ladder", "mr0(06)")
     try:
         text = open(f"{d}/summary.txt").read()
     except OSError:
-        print(f"{name}: no summary.txt")
         continue
     cur, r = None, {}
     for line in text.splitlines():
@@ -34,4 +33,4 @@ for name, (r, acc) in rows.items():
         delta = f" {ms[c] - base[c]:+5.2f}" if base else ""
         cells.append(f"c={c} {t2:6.1f} tok/s ({t1:6.1f}) {s2:.2f} tok/step {ms[c]:5.2f} ms{delta}")
     base = base or ms
-    print(f"{name:6} " + " | ".join(cells) + f" | acc {acc}")
+    print(f"{name:8} " + " | ".join(cells) + f" | acc {acc}")

@@ -128,7 +128,8 @@ class FakeShim:
         self.n_out, self.calls = n_out, []
 
     def _y(self, x, out_fp32):
-        return torch.zeros(x.shape[0], self.n_out, dtype=torch.float if out_fp32 else torch.half)
+        dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+        return torch.zeros(x.shape[0], self.n_out, dtype=dtype)
 
     def exl3_gemm(self, x, trellis, suh, svh, mcg, mul1, out_fp32):
         assert trellis.dtype == torch.int16
@@ -194,6 +195,36 @@ def test_linear_dispatch_repacked(mr_mode, fake, rows, want):
     y = ops.exl3_linear(x, b, s, torch.zeros(fake.n_out, dtype=torch.half), False, True, False)
     assert y.shape == (rows, fake.n_out) and y.dtype == torch.half
     assert fake.calls == want
+
+
+@pytest.mark.parametrize("bits,rows,want", [
+    (3, 32, [("mr", 32, torch.int16)]), (2, 32, [("gemm", 32)]), (3, 8, [("gemm", 8)]),
+    (3, 145, [("dequant", False)]),
+])
+def test_linear_bf16_contract(mr_mode, fake, bits, rows, want):
+    """bf16 x (EXL3_MR_GLUE): bf16 out on every route; only exl3_gemm_mr sees bf16 x."""
+    ops = mr_mode(2)
+    seen = []
+    orig = fake.exl3_gemm
+
+    def gemm(x, *a):
+        seen.append(x.dtype)
+        return orig(x, *a)
+    fake.exl3_gemm = gemm
+    torch.ops._C_exl3.exl3_gemm = gemm
+    k = 128
+    trellis = torch.zeros(k // 16, fake.n_out // 16, WIDTH[bits], dtype=torch.int16)
+    x, s = torch.zeros(rows, k, dtype=torch.bfloat16), torch.zeros(k, dtype=torch.half)
+    y = ops.exl3_linear(x, trellis, s, torch.zeros(fake.n_out, dtype=torch.half), False, True, True)
+    assert y.dtype == torch.bfloat16 and y.shape == (rows, fake.n_out)
+    assert fake.calls == want and all(d == torch.half for d in seen)
+    assert ops.exl3_linear_fake(x, trellis, s, s, False, True, True).dtype == torch.bfloat16
+
+
+def test_glue_needs_mode_2():
+    from vllm_exl3_plugin import ops
+
+    assert ops.MR_GLUE is False  # default environment
 
 
 def test_fake_impl_repacked():
@@ -361,7 +392,8 @@ CASES = {
     "gemm-k-not-128": (gemm(x=T(4, 5104), trellis=tr(k=5104), suh=T(5104)), "multiples of 128"),
     "gemm-repacked-k-not-128": (gemm(x=T(4, 5104), trellis=rp(k=5104), suh=T(5104)), "multiples of 128"),
     "gemm-x-k-mismatch": (gemm(x=T(4, 4096)), "columns, the weight has k=5120"),
-    "gemm-x-bf16": (gemm(x=T(4, K_IN, dtype="bfloat16")), "x must be fp16"),
+    "gemm-valid-x-bf16": (gemm(x=T(4, K_IN, dtype="bfloat16")), CUDA),
+    "gemm-x-fp32": (gemm(x=T(4, K_IN, dtype="float32")), "x must be fp16 or bf16"),
     "gemm-x-1d": (gemm(x=T(K_IN)), "x must be 2-D"),
     "gemm-x-noncontig": (gemm(x=T(4, K_IN, t=True)), "x must be contiguous"),
     "gemm-x-misaligned": (gemm(x=T(4, K_IN, offset=1)), "x must be 16-byte aligned"),

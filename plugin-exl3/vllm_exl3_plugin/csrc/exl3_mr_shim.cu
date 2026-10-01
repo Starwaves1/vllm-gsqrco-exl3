@@ -7,12 +7,15 @@
 //
 // Ops (x: fp16 activations [m, k]; suh fp16 [k]; svh fp16 [n]; mcg/mul1 the checkpoint's
 // codebook flags):
-//   exl3_gemm_mr(x, trellis, suh, svh, mcg, mul1, out_fp32) -> [m, n] fp32 or fp16
+//   exl3_gemm_mr(x, trellis, suh, svh, mcg, mul1, out_fp32) -> [m, n] fp32 or fp16; bf16 x -> bf16
 //       x @ W through the vendored exl3_linear_marlin_out: one input-Hadamard launch, one GEMM
 //       launch with the output Hadamard in its epilogue. exl3_gemm's signature and output
 //       dtypes. The kernel writes fp16 or bf16 (its MMA accumulates in fp32); with out_fp32
 //       it writes bf16 and the result is widened, so a bf16 model sees one rounding of the
-//       fp32 epilogue value, as with exl3_gemm's fp32 output. Up to 64 rows per weight pass
+//       fp32 epilogue value, as with exl3_gemm's fp32 output. bf16 x (a bf16 model, EXL3_MR_GLUE)
+//       goes in as is (the input Hadamard converts it to fp16, the value conversion .to(fp16)
+//       does) and the bf16 result comes out as is: the same bits as fp16 x + out_fp32 + .to(bf16),
+//       without the two cast launches. Up to 64 rows per weight pass
 //       (thread_m_blocks 4), so 17..64 rows cost one pass, 65..128 two, 129..144 three.
 //       trellis: exllamav3's int16 [k/16, n/16, 48 | 80] for K3 / K5 (read in place as int32
 //       [k/16, n/64, 4, 24 | 40], no copy), or exl3_mr_repack's int32 [k/16, n/64, 32, 4]
@@ -82,7 +85,7 @@ void check_cuda(std::initializer_list<const at::Tensor*> ts, const char* op) {
 
 int64_t check_x(const at::Tensor& x, int64_t k, const char* op) {
   TORCH_CHECK(x.dim() == 2, op, ": x must be 2-D");
-  TORCH_CHECK(x.scalar_type() == at::kHalf, op, ": x must be fp16");
+  TORCH_CHECK(x.scalar_type() == at::kHalf || x.scalar_type() == at::kBFloat16, op, ": x must be fp16 or bf16");
   TORCH_CHECK(x.size(1) == k, op, ": x has ", x.size(1), " columns, the weight has k=", k);
   TORCH_CHECK(x.is_contiguous(), op, ": x must be contiguous");
   TORCH_CHECK(aligned16(x), op, ": x must be 16-byte aligned");
@@ -148,7 +151,8 @@ at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at
   check_scale(svh, w.n, "svh", op);
   check_cuda({&x, &trellis, &suh, &svh}, op);
 
-  const at::ScalarType out_dtype = out_fp32 ? at::kFloat : at::kHalf;
+  const bool bf16_io = x.scalar_type() == at::kBFloat16;
+  const at::ScalarType out_dtype = bf16_io ? at::kBFloat16 : out_fp32 ? at::kFloat : at::kHalf;
   if (m == 0) return at::empty({0, w.n}, x.options().dtype(out_dtype));
   const c10::cuda::CUDAGuard guard(x.device());
   if (!warming && capturing(at::cuda::getCurrentCUDAStream().stream())) {
@@ -156,10 +160,10 @@ at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at
     TORCH_CHECK(g_warmed.count({x.get_device(), w.k, w.n, w.bits, m}), op, ": shape k=", w.k, " n=", w.n,
                 " K=", w.bits, " rows=", m, " was not warmed up (exl3_mr_warmup) before CUDA graph capture");
   }
-  at::Tensor xh = at::empty_like(x);
-  at::Tensor y = at::empty({m, w.n}, x.options().dtype(out_fp32 ? at::kBFloat16 : at::kHalf));
+  at::Tensor xh = at::empty({m, w.k}, x.options().dtype(at::kHalf));
+  at::Tensor y = at::empty({m, w.n}, x.options().dtype(bf16_io || out_fp32 ? at::kBFloat16 : at::kHalf));
   exl3_linear_marlin_out(x, w.b, suh, svh, kCbMul1, xh, y);
-  return out_fp32 ? y.to(at::kFloat) : y;
+  return out_fp32 && !bf16_io ? y.to(at::kFloat) : y;
 }
 
 at::Tensor exl3_gemm_mr_op(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh,
@@ -204,8 +208,10 @@ void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const a
   int64_t max_m = 0;
   for (int64_t m : rows) max_m = std::max(max_m, m);
   if (max_m > 0) {
-    at::Tensor x = at::zeros({max_m, w.k}, trellis.options().dtype(at::kHalf));
-    for (int64_t m : rows) gemm_mr_impl(x.narrow(0, 0, m), trellis, suh, svh, mcg, mul1, out_fp32, true);
+    for (at::ScalarType dt : {at::kHalf, at::kBFloat16}) {  // the input Hadamard has an instance per dtype
+      at::Tensor x = at::zeros({max_m, w.k}, trellis.options().dtype(dt));
+      for (int64_t m : rows) gemm_mr_impl(x.narrow(0, 0, m), trellis, suh, svh, mcg, mul1, out_fp32, true);
+    }
   }
   C10_CUDA_CHECK(cudaStreamSynchronize(stream));
 
