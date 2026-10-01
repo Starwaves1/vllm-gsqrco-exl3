@@ -36,7 +36,7 @@ from vllm_gguf_plugin import ops  # noqa: E402, F401  (loads _C_gguf)
 ROWS = 256
 # activation rows per op (4 otherwise); lcpp MMQ at 5 rows is below upstream's
 # J_max read tail, where only the shim's zeroed tail keeps the reads defined
-N = {"ggml_mul_mat_a8": 64, "lcpp_mul_mat_q": 5}
+N = {"ggml_mul_mat_a8": 64, "lcpp_mul_mat_q": 5, "lcpp_mul_mat_mma_k": 16}
 
 
 def main() -> None:

@@ -11,6 +11,10 @@ Weights are blocks of the sample GGUFs (kernel_refs.sample_weight) in the
 shapes each kernel needs; K = 5120 unless noted.
 """
 
+import os
+import subprocess
+import sys
+
 import gguf
 import pytest
 import torch
@@ -49,6 +53,9 @@ OWN_TYPES = ["Q4_K", "IQ2_S"]
 OWNED = [(t, op) for op in IQ3_OPS for t in IQ3_TYPES] + [
     (t, "lcpp_mul_mat_vec_own") for t in OWN_TYPES
 ]
+MMA_K_TYPES = ["Q4_K", "IQ4_XS", "IQ2_S"]
+# 2 / 4 / 8 column tiles, full and part-filled; 1: the op's lower bound
+MMA_K_TOKENS = [1, 9, 16, 17, 32, 33, 64]
 
 
 def _qt(name: str) -> int:
@@ -249,14 +256,18 @@ def test_lcpp_same_type_run(n, types, monkeypatch):
     whole = torch.cat([_routed(qkv, x, qts[0]), _routed(z, x, qts[3])], dim=1)
     assert torch.equal(y, whole)
     per_shard = torch.cat([_routed(s, x, q) for s, q in zip(shards, qts)], dim=1)
+    k = x.shape[1]
     run_rows = [qkv.shape[0]] * 3 + [z.shape[0]]
     pairs = [
-        (_lcpp_op(n, q, s.shape[0]), _lcpp_op(n, q, r))
+        (_lcpp_op(n, q, s.shape[0], k), _lcpp_op(n, q, r, k))
         for s, q, r in zip(shards, qts, run_rows)
     ]
     if n <= 8 and all(a == b for a, b in pairs):
         assert torch.equal(y, per_shard)
-    elif any(a != b and "lcpp_mul_mat_q" in (a, b) for a, b in pairs):
+    elif any(
+        a != b and "lcpp_mul_mat_q" in (a, b) and "lcpp_mul_mat_mma_k" not in (a, b)
+        for a, b in pairs
+    ):
         assert rel_err(y, per_shard.double().cpu()) <= LOOSE_XSUM
     else:
         assert rel_err(y, per_shard.double().cpu()) <= 1e-3
@@ -344,3 +355,129 @@ def test_lcpp_owned_vec_graph_replay(op, name, n):
     if not hasattr(C, op):
         pytest.skip(f"{op} not built")
     _graph_replay(name, n, getattr(C, op))
+
+
+# ------------------------------------------------ owned 9..64-row mma_k
+
+
+def _within_1ulp(y, ref):
+    """16-bit y vs vendored MMQ's output in the same dtype: both round an fp32
+    sum that differs only in the order of its terms, so they may be 1 ulp
+    apart, never more, except where the sum cancels to near zero relative to
+    the output's rms."""
+    a, b = y.float(), ref.float()
+    ulp = torch.where(
+        b == 0, torch.zeros_like(b), (b.abs().frexp().exponent - 1).float().exp2()
+    )
+    ulp = ulp * (2.0**-7 if y.dtype == torch.bfloat16 else 2.0**-10)
+    cancel = b.abs() < 1e-3 * b.pow(2).mean().sqrt()
+    assert not (((a - b).abs() > ulp) & ~cancel).any()
+
+
+@pytest.mark.parametrize(
+    "shape", ["real", "row_tail", "k_tail", "down", "no_pieces", "big_tail"]
+)
+@pytest.mark.parametrize(
+    "dtype", [torch.bfloat16, torch.float16, torch.float32], ids=str
+)
+@pytest.mark.parametrize("n", MMA_K_TOKENS)
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k(name, n, dtype, shape):
+    """lcpp_mul_mat_mma_k takes MMQ's q8_1 layout and computes each slice's
+    term with the vendored MMQ vec_dot's expression; only the fp32 order of the
+    K sum differs. 16-bit X: the CPU reference models, and within 1 ulp of MMQ.
+    fp32 X: within 1e-5 of MMQ. Shapes (512 rows, K 5120 unless noted):
+    row_tail 202 rows (the last tile part-filled); k_tail K 4608; down K 17408;
+    no_pieces 10496 rows at 9..16 columns (on an 82-SM GPU every CTA covers
+    whole tiles: no fixup); big_tail 17398 rows (a part-filled last tile the
+    last CTA covers whole there)."""
+    C = _lcpp()
+    if shape == "no_pieces" and not 9 <= n <= 16:
+        pytest.skip("the no-fixup layout is for 2 column tiles")
+    rows = {"row_tail": 202, "no_pieces": 10496, "big_tail": 17398}.get(shape, ROWS)
+    blocks = {"k_tail": 18, "down": 68}.get(shape, BLOCKS)
+    raw, x, w, qt = _case(name, n, dtype, 1100 + n, rows, blocks)
+    poison_cuda_allocator()
+    y = C.lcpp_mul_mat_mma_k(w, x.cuda(), qt, w.shape[0])
+    ref = C.lcpp_mul_mat_q(w, x.cuda(), qt, w.shape[0])
+    assert y.shape == (n, rows) and y.dtype == dtype
+    if dtype == torch.float32:
+        assert rel_err(y, ref.double().cpu()) <= 1e-5
+    else:
+        if rows <= ROWS:
+            check(y, raw, name, x, mmq=True, lcpp=True)
+        _within_1ulp(y, ref)
+
+
+@pytest.mark.parametrize("n", [16, 32, 64])
+@pytest.mark.parametrize(
+    "shape", [(17408, 20), (5120, 68)], ids=lambda p: f"{p[0]}x{p[1] * 256}"
+)
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k_whole_tensor(name, shape, n):
+    """Whole 17408 x 5120 and 5120 x 17408 weights (272 / 80 tiles, 20 / 68 K
+    steps, shared by the resident CTAs), fp32 X: within 2e-6 of MMQ."""
+    C = _lcpp()
+    rows, blocks = shape
+    _, x, w, qt = _case(name, n, torch.float32, 1200 + n, rows, blocks)
+    x = x.cuda()
+    poison_cuda_allocator()
+    y = C.lcpp_mul_mat_mma_k(w, x, qt, rows)
+    ref = C.lcpp_mul_mat_q(w, x, qt, rows)
+    assert rel_err(y, ref.double().cpu()) <= 2e-6
+
+
+@pytest.mark.parametrize("rows", [ROWS, 10496, 17408])
+@pytest.mark.parametrize("n", [16, 33, 64])
+@pytest.mark.parametrize("name", MMA_K_TYPES)
+def test_lcpp_mma_k_graph_replay(name, n, rows):
+    """512 rows (every tile shared by CTAs), 10496 (at 16 columns every CTA
+    covers whole tiles), 17408."""
+    _graph_replay(name, n, _lcpp().lcpp_mul_mat_mma_k, rows=rows)
+
+
+_FIRST_CALL_IN_CAPTURE = r"""
+import torch
+from tests.kernel_refs import sample_weight
+from vllm_gguf_plugin import ops  # noqa: F401  (loads _C_gguf, no CUDA call)
+C = torch.ops._C_gguf
+torch.zeros(1, device="cuda")  # a CUDA context, but no _C_gguf call before capture
+fails = []
+for name, qt in (("Q4_K", 12), ("IQ4_XS", 23), ("IQ2_S", 22)):
+    for rows, n in ((17408, 16), (512, 17), (17408, 64)):
+        w = torch.from_numpy(sample_weight(name, rows, 20)).cuda()
+        g = torch.Generator().manual_seed(n)
+        x1 = torch.randn(n, 5120, generator=g).bfloat16().cuda()
+        x2 = torch.randn(n, 5120, generator=g).bfloat16().cuda()
+        static_x = x1.clone()
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            static_y = C.lcpp_mul_mat_mma_k(w, static_x, qt, rows)
+        static_x.copy_(x2)
+        graph.replay()
+        torch.cuda.synchronize()
+        if not torch.equal(static_y, C.lcpp_mul_mat_mma_k(w, x2, qt, rows)):
+            fails.append(f"{name} rows={rows} n={n}")
+print("FAILS", fails)
+"""
+
+
+def test_lcpp_mma_k_first_call_in_capture():
+    """Each kernel instance's first call (its one-time cudaFuncSetAttribute,
+    the shim's first device query) inside a CUDA-graph capture, in a fresh
+    process: the capture must succeed and its replay equal an eager call."""
+    _lcpp()
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env = dict(
+        os.environ, PYTHONPATH=os.pathsep.join([root, os.environ.get("PYTHONPATH", "")])
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", _FIRST_CALL_IN_CAPTURE],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=600,
+        cwd=root,
+    )
+    assert out.returncode == 0, out.stderr[-3000:]
+    assert "FAILS []" in out.stdout, out.stdout[-2000:]
