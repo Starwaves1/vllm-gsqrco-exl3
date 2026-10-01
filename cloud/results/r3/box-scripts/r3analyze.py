@@ -384,6 +384,55 @@ def cmd_pyspy(a):
                   open(a.json, "w"), indent=1)
 
 
+SEGMENTS = [  # (name, test on the ';'-joined stack), first match wins; mirrors prod-sample-20261001.md 3b
+    ("drain wait: seq_lens.cpu() at the first draft pass", lambda st: "flashinfer.py:1527" in st and "llm_base_proposer.py:568" in st),
+    ("draft-loop seq_lens.cpu() waits (passes 2..k)", lambda st: "flashinfer.py:1527" in st and "llm_base_proposer.py:714" in st),
+    ("seq_lens.cpu() wait elsewhere (target metadata)", lambda st: "flashinfer.py:1527" in st),
+    ("target forward: eager GDN op", lambda st: "_model_forward" in st and "qwen_gdn_attention_core" in st),
+    ("target forward: graph-piece replays", lambda st: "_model_forward" in st and "cuda_graph.py:256" in st),
+    ("target forward: stitching + other eager ops", lambda st: "_model_forward" in st),
+    ("drafter host work (outside waits)", lambda st: "llm_base_proposer.py" in st or "propose_draft_token_ids" in st
+     or "_copy_draft_token_ids_to_cpu" in st),
+    ("sampler + rejection sampler", lambda st: "_sample (" in st or "rejection_sampler" in st or "topk_topp" in st),
+    ("runner prep (metadata, inputs, execute_model own)", lambda st: "execute_model (" in st or "_prepare_inputs" in st
+     or "_build_attention_metadata" in st or "_update_states" in st),
+    ("scheduler / update_from_output / post_step / loop", lambda st: "sched/scheduler.py" in st or "post_step" in st
+     or "engine/core.py" in st),
+]
+
+
+def cmd_segments(a):
+    """py-spy raw (--threads): the busiest thread's samples by step segment, in ms/step given the
+    measured ms/step, plus the off-CPU share (samples / (rate x duration) without --idle)."""
+    per_thread = defaultdict(lambda: defaultdict(int))
+    for line in open(a.file):
+        line = line.rstrip("\n")
+        if not line or " " not in line:
+            continue
+        stack, cnt = line.rsplit(" ", 1)
+        try:
+            cnt = int(cnt)
+        except ValueError:
+            continue
+        th = stack.split(";", 1)[0]
+        name = next((n for n, f in SEGMENTS if f(stack)), "other")
+        per_thread[th][name] += cnt
+    th, segs = max(per_thread.items(), key=lambda kv: sum(kv[1].values()))
+    tot = sum(segs.values())
+    ticks = a.rate * a.seconds
+    out = {"thread": th, "samples": tot, "ticks": ticks, "on_cpu_share": tot / ticks if ticks else None,
+           "ms_per_step": a.ms_per_step, "segments": {}}
+    print(f"{a.file}: main thread {th}: {tot} samples of {ticks:.0f} ticks "
+          f"({100 * tot / ticks:.0f} % on-CPU / sampled), ms/step {a.ms_per_step}")
+    for n in [n for n, _ in SEGMENTS] + ["other"]:
+        c = segs.get(n, 0)
+        ms = a.ms_per_step * c / tot if tot else 0.0
+        out["segments"][n] = {"samples": c, "pct": 100.0 * c / tot if tot else 0.0, "ms_per_step": ms}
+        print(f"  {n:58s} {c:6d}  {100.0 * c / tot if tot else 0:5.1f} %  {ms:6.2f} ms/step")
+    if a.json:
+        json.dump(out, open(a.json, "w"), indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -405,8 +454,14 @@ def main():
     p.add_argument("file")
     p.add_argument("--thread-match", default="")
     p.add_argument("--json")
+    p = sub.add_parser("segments")
+    p.add_argument("file")
+    p.add_argument("--ms-per-step", type=float, required=True)
+    p.add_argument("--rate", type=float, default=250)
+    p.add_argument("--seconds", type=float, default=30)
+    p.add_argument("--json")
     a = ap.parse_args()
-    {"instr": cmd_instr, "trace": cmd_trace, "attn": cmd_attn, "pyspy": cmd_pyspy}[a.cmd](a)
+    {"instr": cmd_instr, "trace": cmd_trace, "attn": cmd_attn, "pyspy": cmd_pyspy, "segments": cmd_segments}[a.cmd](a)
 
 
 if __name__ == "__main__":
