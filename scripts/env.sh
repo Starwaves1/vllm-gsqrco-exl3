@@ -45,7 +45,7 @@ export GSQ_GGUF
 export GSQ_HF_CONFIG=${GSQ_HF_CONFIG:-$GSQ_ROOT/hf-config/$GSQ_MODEL_NAME}
 
 # EXL3 checkpoint for the EXL3 plugin (plugin-exl3; scripts/serve-exl3.sh), a plain HF dir.
-export GSQ_EXL3_MODEL=${GSQ_EXL3_MODEL:-$GSQ_ROOT/models/Qwen3.8-27B-exl3-3.50bpw}
+export GSQ_EXL3_MODEL=${GSQ_EXL3_MODEL:-$GSQ_ROOT/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6}
 
 # Baseline (W4A16) for A/B runs: production's model by default.
 export GSQ_BASELINE_MODEL=${GSQ_BASELINE_MODEL:-$GSQ_PROD_MODEL_DIR}

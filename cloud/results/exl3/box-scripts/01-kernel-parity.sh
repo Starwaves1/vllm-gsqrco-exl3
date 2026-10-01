@@ -18,7 +18,7 @@ T=tests/gpu/test_exl3_kernels.py
 tools/pytest $T -q -rsX --junitxml="$O/kernels.xml" > "$O/kernels.log" 2>&1 || rc=1
 echo "kernels: $(junit_line "$O/kernels.xml")"; tail -3 "$O/kernels.log"
 grep -E "^(FAILED|ERROR)" "$O/kernels.log" | head -40 || true
-RE="^$T::(test_dequant_bitexact\[(K3-down|K4-kproj|K5-oproj)-(had|rot)\]|test_gemm_vs_fp64\[(K3-down|K4-kproj|K5-oproj|K4-mtp-up)-(1|2|3|8|9|16|17|48|145|1024)-fp32\]|test_routes_agree\[.*\]|test_fp32_fp16_outputs_agree\[(K3-down|K4-kproj)-.*\]|test_subprocess_case\[.*\])$"
+RE="^$T::(test_dequant_bitexact\[(K2-up|K3-down|K4-kproj|K5-kproj|K5-oproj)-(had|rot)\]|test_gemm_vs_fp64\[(K2-up|K3-down|K4-kproj|K5-kproj|K5-oproj|K4-mtp-up)-(1|2|3|8|9|16|17|48|145|1024)-fp32\]|test_routes_agree\[.*\]|test_fp32_fp16_outputs_agree\[(K3-down|K4-kproj)-.*\]|test_subprocess_case\[.*\])$"
 ids=$(tools/pytest $T --collect-only -q 2>/dev/null | grep -E "$RE" || true)
 printf '%s\n' "$ids" > "$O/sanitizer-ids.txt"; echo "sanitizer cases: $(printf '%s\n' "$ids" | grep -c .)"
 for tool in memcheck initcheck; do

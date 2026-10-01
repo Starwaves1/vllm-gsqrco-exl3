@@ -1,9 +1,10 @@
 # EXL3: exllamav3 trellis models on vLLM through a second plugin
 
 Phase 0 (CPU only) on branch `exl3`, 2026-09-30. Design: `docs/adr/0002-exl3-via-plugin.md`
-(proposed) and `docs/exl3-feasibility.md`. First checkpoint: `turboderp/Qwen3.8-27B-exl3@3.50bpw`
-(revision 8351c54e). The package builds, registers, loads the checkpoint's names and shapes on the
-meta device, and passes its CPU tests. No kernel has run: every number the plugin would produce is
+(proposed) and `docs/exl3-feasibility.md`. Model: `erlidev/Swift-1.5-Qwen3.8-27B-EXL3@SC_3.50bpw_H4_V6`
+(revision 041dc382), with `turboderp/Qwen3.8-27B-exl3@3.50bpw` (8351c54e, phase 0's first
+checkpoint) as the A/B; see "Model" below. The package builds, registers, loads both checkpoints'
+names and shapes on the meta device, and passes its CPU tests. No kernel has run: every number the plugin would produce is
 untested. Labels as elsewhere: VERIFIED (checked here), DOCUMENTED, INFERRED.
 
 ## What is here
@@ -22,8 +23,46 @@ untested. Labels as elsewhere: VERIFIED (checked here), DOCUMENTED, INFERRED.
 | `tools/exl3_draft_head.py` | writes the pruned MTP draft head as bf16 (GPU, once per checkpoint) |
 | `tools/exl3_meta_dry_run.py` | vLLM's real model + loader on the meta device against the checkpoint's metadata |
 | `bench/parity/exl3_logits.py` | exllamav3-native logit dump for parity (not run yet) |
-| `hf-config/Qwen3.8-27B-exl3-3.50bpw/` | the checkpoint's metadata: `config.json`, tokenizer files, safetensors index, shard headers (`safetensors_headers.json`, read by HTTP range), `PROVENANCE.json` |
+| `hf-config/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/`, `hf-config/Qwen3.8-27B-exl3-3.50bpw/` | each checkpoint's metadata: `config.json`, tokenizer files, safetensors index, shard headers (`safetensors_headers.json`, read by HTTP range), `PROVENANCE.json`; erlidev's also `quantization_config.json` (per-tensor bits) |
 | `tests/cpu/test_exl3_*.py` | CPU tests (below) |
+
+## Model
+
+`erlidev/Swift-1.5-Qwen3.8-27B-EXL3@SC_3.50bpw_H4_V6` (041dc382, 14.67 GB): Swift 1.5 (the
+GGUF route's finetune), self-calibrated, `sc_optimize` per-tensor recipe, `Qwen3_5ForConditionalGeneration`,
+`mtp_num_hidden_layers` 1, codebook mul1. A/B: `turboderp/Qwen3.8-27B-exl3@3.50bpw` (base model).
+Box jobs and `scripts/env.sh` default to erlidev's; `--alt` on a job (and `00-prep.sh model --alt`)
+uses turboderp's, with `-alt` run/result dirs. VERIFIED on the fetched metadata:
+
+- Tensors: 3,080 vs 2,426, all of it the vision tower (987 vs 333). The 2,093 text tensors
+  (2,054 + 39 `mtp.*`) have the same names, dtypes and shapes; only trellis widths (bits) differ
+  (216 of 409). erlidev's tower: q/k/v_proj, proj, fc1, fc2 and the merger's two linears as EXL3
+  K6 (164 modules, fp16 biases and norms), fc1 padded 4304 -> 4352, plus the bf16 fused
+  `attn.qkv` still stored. vLLM's tower wants fused bf16 qkv and 4304 rows: not loadable, not
+  needed (text-only, Loading above).
+- Bits (`quantization_config.json`, 401 text modules, matches the headers): decoder K2 x4 (layers
+  0-1 gate/up), K3 x171, K4 x193, K5 x32 (k/v_proj); lm_head K4 (`head_bits` 4); MTP K4 x8
+  (`mtp_bits` 4); vision K6 (`vision_bits` 6, skipped). No half-integer K. All integer K 1..8 are
+  compiled; K2 and the K4 head are new against turboderp (K3-6), so `tests/gpu/exl3_cases.py`'s
+  erlidev table has K2-up, K5-kproj and K4-lmhead cases.
+- Format version: erlidev wrote it with exllamav3 1.5.0, turboderp with 1.4.2, the kernels are
+  1.5.3 (d3739fd). `LinearEXL3`'s storage did not change from 1.4.2 to 1.5.3 for integer K
+  (trellis int16 [k/16, n/16, 16K], fp16 suh/svh, int32 mul1, multiplier 0x83DCD12D in every
+  entry); 1.5.1 only added half-integer K (16K+8 tiles), which neither uses. Same
+  `calibration`/`out_scales`/`tensor_storage` fields. No shim needed.
+- Size (text-only, what loads): 14.10 GB (13.13 GiB: embedding bf16 2.54 GB, lm_head 0.64,
+  MTP 0.21, decoder 10.71) + the 0.42 GB draft head = 14.52 GB, 0.94 GB under the 15.46 GB weight
+  budget for 200k at gpu-util 0.94. turboderp: 14.42 + 0.42 = 14.84 GB (0.62 under; its head is
+  K6). The MTP draft's transient own copy of lm_head + embedding at load still needs checking.
+- Chat template: erlidev's `chat_template.jinja` is byte-identical to turboderp's and to Swift
+  1.5's stock one (c3cf9e34), tokenizer files too. It is never served: `serve-exl3.sh` passes
+  production's template (qwen-sharp froggeric v22.1, d1f22a89, sha asserted), as the GGUF route
+  does. Stock vs production: stock defaults to effort xhigh and injects the xhigh instruction;
+  production defaults to medium, adds a terse-answer system block, `<|think_*|>` toggles, the
+  developer role, a brief-`<think>` tool-call example, an optional JSON tool format, tool-error
+  nudges, and tolerates a missing user turn. Both emit XML tool calls (`<tool_call><function=..>
+  <parameter=..>`, `qwen3_coder`) and open the generation with `<think>\n` (`qwen3`): no parser
+  change.
 
 ## Vendored files
 
@@ -120,9 +159,10 @@ decode check against `exl3_dequant`. The range will likely move down to 9 once m
   each trellis' last dimension at load. `get_min_capability` 80.
 - Methods: every `LinearBase` and the `ParallelLMHead` get `EXL3LinearMethod`, except the modules
   the checkpoint stores unquantized (`weights_adapter/qwen3_5.is_unquantized_module`): GDN
-  `in_proj_ba` (fp16 `in_proj_a`/`in_proj_b`, 48 outputs, never quantized by exllamav3), the vision
-  tower (bf16 in this checkpoint; exllamav3's "V" variants with a 6-bit tower are not supported)
-  and the pruned `draft_lm_head`. Those get vLLM's unquantized methods. The input embedding stays
+  `in_proj_ba` (fp16 `in_proj_a`/`in_proj_b`, 48 outputs, never quantized by exllamav3), a bf16
+  vision tower (turboderp's) and the pruned `draft_lm_head`. An EXL3 vision tower (`vision_bits`
+  in the config, erlidev's V6) is refused at construction (`NotImplementedError` naming the
+  text-only flag) unless every image/video limit is 0, when vLLM does not build the tower. Those get vLLM's unquantized methods. The input embedding stays
   bf16 on the GPU (2.37 GiB; no host-pinned path in phase 0).
 - Names: exllamav3 writes the HF names with `.weight` replaced by `.trellis/.suh/.svh/.mul1`.
   vLLM's own mappers do the rest unchanged (`Qwen3_5ForConditionalGeneration`, `Qwen3_5Model`'s
@@ -140,12 +180,20 @@ decode check against `exl3_dequant`. The range will likely move down to 9 once m
   gate_up 2, GDN in_proj_qkvz 2: 401 EXL3 products per target pass (exllamav3's `exl3_mgemm`
   can do one launch per fused layer for equal-K parts, a GPU-phase option).
 - Tensor parallelism: refused (`NotImplementedError`) in phase 0.
-- Meta dry run (VERIFIED, `tools/exl3_meta_dry_run.py`, production's argv with images on):
-  2,426 checkpoint tensors + the draft head. Main model: 2,387 fed (401 EXL3), 0 params missing,
-  257 EXL3 layers with 401 parts, K {3, 4, 5, 6}, 110 vision + 48 in_proj_ba + 48 conv1d +
-  embedding unquantized. MTP draft: 45 fed (9 EXL3), 0 missing, 6 EXL3 layers with 9 parts, K
-  {4, 6}, `draft_lm_head` [40960, 5120] bf16 unquantized. Shared between the two: `lm_head.*`
-  and the embedding. Unmapped: 0. Peak RSS 1.07 GB.
+- Vision: production is text-only. Its argv passes `--limit-mm-per-prompt` twice; the last,
+  `{"image":0,"video":0}`, wins, with `--enable-mm-embeds` (VERIFIED with vLLM's own parser; phase
+  0's dry run had read the first, image 4). With every limit 0, vLLM main's `_mark_tower_model`
+  puts a `StageMissingLayer` in place of `visual` and `AutoWeightsLoader` skips `visual.*`, so a
+  checkpoint's vision tensors load nowhere and raise nothing (the GGUF plugin's dry run does the
+  same). Precomputed image embeddings still work through `--enable-mm-embeds`.
+- Meta dry run (VERIFIED, `tools/exl3_meta_dry_run.py [--alt]`, production's text-only argv), both
+  checkpoints the same apart from the vision count: main model 2,054 tensors fed (401 EXL3), 0
+  params missing, 257 EXL3 layers with 401 parts, 48 in_proj_ba + 48 conv1d + embedding
+  unquantized; MTP draft 45 fed (9 EXL3), 0 missing, 6 EXL3 layers with 9 parts,
+  `draft_lm_head` [40960, 5120] bf16 unquantized; shared `lm_head.*` and the embedding; vision
+  skipped 987 (erlidev) / 333 (turboderp); unmapped 0. K: erlidev {2, 3, 4, 5} main, {4} MTP;
+  turboderp {3, 4, 5, 6} and {4, 6}. Peak RSS 1.07 GB. `MM_IMAGES=4` builds the tower:
+  turboderp's bf16 tower loads (2,387 fed, 110 vision modules unquantized), erlidev's is refused.
 - The MTP draft loads its own copy of `lm_head` (0.89 GiB) and the embedding (2.37 GiB) from the
   checkpoint before vLLM shares the target's and drops them, as with production's W4A16. Check
   the load peak on the GPU.
@@ -183,18 +231,18 @@ compiled and linked, never run. All 60 vendored `.cu` are built; compiling only 
 instances the checkpoint uses would need a shim-owned kernel map and is not worth it at this
 build time.
 
-## Tests (CPU, `GSQ_LIGHT=1 GSQ_VENV=.venv-main tools/capped tools/pytest tests/cpu -k exl3`: 157 passed)
+## Tests (CPU, `GSQ_LIGHT=1 GSQ_VENV=.venv-main tools/capped tools/pytest tests/cpu -k exl3`: 167 passed)
 
 | file | what | count |
 |---|---|---|
 | `test_exl3_guards.py` | ops registered under `no_gpu` without CUDA init; int8 GEMV off; every guard, in a subprocess | 58 |
-| `test_exl3_config.py` | the fetched `config.json`, codebooks, K from tile width, the entry point, method per layer | 38 |
-| `test_exl3_mapping.py` | format facts on the index/headers (409 EXL3 modules; K 3/4/5 decoder, 6 head, 4 MTP), the unquantized split, the meta dry run | 3 |
+| `test_exl3_config.py` | both fetched `config.json`s, codebooks, K from tile width, the entry point, method per layer, the EXL3 vision tower refused unless skipped | 42 |
+| `test_exl3_mapping.py` | per checkpoint: format facts on the index/headers (409 text EXL3 modules; K per role), the unquantized split, the meta dry run; the two differ only in vision and bits; erlidev's `quantization_config.json` vs the headers | 8 |
 | `test_exl3_routing.py` | the routing table at every boundary, the hook, both dequant paths reproducing x @ W against CPU stand-ins | 25 |
 | `test_exl3_linear.py` | loader and parts: q/k/v out of order, GDN tuple shard, gate_up, missing shards/scales, bad shapes, codebook check, copy semantics, TP refusal, apply's concatenation | 16 |
 | `test_exl3_draft_head.py` | the draft head tool on a synthetic checkpoint | 7 |
 | `test_exl3_parity_skeleton.py` | the parity script's chunk plan | 8 |
-| `test_exl3_gpu_cases.py` | the GPU kernel cases (`tests/gpu/exl3_cases.py`) against the checkpoint's headers | 2 |
+| `test_exl3_gpu_cases.py` | the GPU kernel cases (`tests/gpu/exl3_cases.py`, one table per checkpoint, picked by `EXL3_MODEL`'s dir name) against each checkpoint's headers, every text K covered | 3 |
 
 ## Untested (everything numeric)
 
@@ -242,7 +290,7 @@ VERIFIED on the box:
 - `bench/parity/prompts.lock.json` is keyed by vLLM version: the corpus is the venv's vLLM source,
   so main has its own fingerprint (`20d770b6...`, identical on ms4 and the box). Without this,
   `prompts.py` refused to write on main.
-- Not done: the checkpoint download (14.31 GiB). The disk had 8 GB free (151 GB: 56 GB models,
+- Not done: the checkpoint download (14.31 GiB for turboderp's; erlidev's is 13.66 GiB). The disk had 8 GB free (151 GB: 56 GB models,
   28 GB the soak's fs KV tier, 18 GB old runs, 16 GB torch compile cache). `00-prep.sh postsoak`
   deletes the soak's leftover KV state once the soak job has finished, with
   `CONFIRM_DELETE_SOAK_KV=1`; then `00-prep.sh model` (about 3 min at 96 MiB/s).

@@ -1,10 +1,10 @@
 """EXL3 tensor-mapping dry run on the meta device (CPU only, no GPU, no weights).
 
 Builds vLLM's real Qwen3_5ForConditionalGeneration and its Qwen3_5MTP draft for
-turboderp/Qwen3.8-27B-exl3@3.50bpw on device=meta, with the EXL3 plugin's quant config
-detected from config.json, and runs vLLM's real DefaultModelLoader.load_model on both. Only
-metadata is read (hf-config/Qwen3.8-27B-exl3-3.50bpw: config.json, the safetensors index and
-the shard headers fetched by HTTP range): the weights iterator yields meta tensors of each
+erlidev/Swift-1.5-Qwen3.8-27B-EXL3@SC_3.50bpw_H4_V6 (--alt: turboderp/Qwen3.8-27B-exl3@3.50bpw)
+on device=meta, with the EXL3 plugin's quant config detected from config.json, and runs vLLM's
+real DefaultModelLoader.load_model on both. Only metadata is read (hf-config/<checkpoint>:
+config.json, the safetensors index and the shard headers fetched by HTTP range): the weights iterator yields meta tensors of each
 stored name/shape/dtype, except the 0-dim codebook tensors (the kernels' mul1 multiplier,
 which the plugin checks at load).
 
@@ -12,8 +12,11 @@ Checks:
   * every checkpoint tensor is consumed: both models get every tensor, as vLLM's loader does;
     the main model keeps what its mapper keeps, the MTP draft what its remap passes on (counted
     where it enters its loader, so a change in the overlay's filter fails here); unknown names
-    raise in vLLM's loader; the vision tower is built (production serves images), so
-    model.visual.* counts too;
+    raise in vLLM's loader; production's effective argv is text-only (its last
+    --limit-mm-per-prompt is image 0 / video 0, with --enable-mm-embeds), so vLLM does not
+    build the vision tower and its loader skips model.visual.*: counted as skipped, not
+    consumed. MM_IMAGES=4 builds the tower (only a bf16 tower loads: turboderp's, not
+    erlidev's 6-bit one);
   * every model parameter is reported loaded by load_weights (strict, as vLLM does for
     unquantized checkpoints; MTP: embed_tokens and lm_head are shared from the target later
     but load here too, since the checkpoint has them);
@@ -25,10 +28,10 @@ Checks:
 
 Guards as tools/meta_dry_run.py: no_gpu first, torch CUDA init blocked, a platform stub
 reporting sm86, gloo world size 1. Engine args follow production's argv
-(env/prod-main-serve-argv.txt: MTP k=5 schedule, 16 seqs, capture 48, images 4) except
-max_model_len 4096. MTP_DRAFT_VOCAB=0 turns the draft head off.
+(env/prod-main-serve-argv.txt: MTP k=5 schedule, 16 seqs, capture 48, images 0 + mm embeds)
+except max_model_len 4096. MTP_DRAFT_VOCAB=0 turns the draft head off.
 
-Run (light: about 2 GB): GSQ_LIGHT=1 tools/capped .venv-main/bin/python tools/exl3_meta_dry_run.py
+Run (light: about 2 GB): GSQ_LIGHT=1 tools/capped .venv-main/bin/python tools/exl3_meta_dry_run.py [--alt]
 """
 
 import json
@@ -59,7 +62,9 @@ torch.cuda._lazy_init = _blocked
 torch._C._cuda_getDeviceCount = lambda: 0
 torch.cuda.is_available = lambda: False
 
-HF_DIR = os.path.join(ROOT, "hf-config/Qwen3.8-27B-exl3-3.50bpw")
+HF_DIR = os.path.join(ROOT, "hf-config", "Qwen3.8-27B-exl3-3.50bpw" if "--alt" in sys.argv[1:]
+                      else "Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6")
+MM_IMAGES = int(os.environ.get("MM_IMAGES", "0"))
 DTYPES = {"BF16": torch.bfloat16, "F16": torch.float16, "F32": torch.float32,
           "I16": torch.int16, "I32": torch.int32}
 
@@ -175,6 +180,8 @@ def main():
     with open(os.path.join(HF_DIR, "config.json")) as f:
         qcfg = EXL3QuantConfig.from_dict(json.load(f)["quantization_config"])
     tensors = checkpoint_tensors(DRAFT_HEAD)
+    vision = {n for n in tensors if n.startswith("model.visual.")}
+    skipped = set() if MM_IMAGES else vision  # the tower is not built; the loader skips these
     orig_awl = AutoWeightsLoader.load_weights
 
     tmp = tempfile.mkdtemp(prefix="gsq-exl3-dryrun-")
@@ -189,7 +196,8 @@ def main():
 
         args = EngineArgs(
             model=model_dir, tokenizer=model_dir, skip_tokenizer_init=True,
-            limit_mm_per_prompt={"image": 4, "video": 0}, max_model_len=4096,
+            limit_mm_per_prompt={"image": MM_IMAGES, "video": 0}, enable_mm_embeds=True,
+            max_model_len=4096,
             max_num_seqs=16, max_num_batched_tokens=2048, kv_cache_dtype="fp8",
             mamba_ssm_cache_dtype="float16", async_scheduling=False,
             enable_prefix_caching=True, mamba_cache_mode="align",
@@ -216,7 +224,7 @@ def main():
         for label, model_config in [("main", vllm_config.model_config),
                                     ("mtp", vllm_config.speculative_config.draft_model_config)]:
             # both models get every tensor, as vLLM's loader does; each keeps its own
-            fed = {n: t for n, t in tensors.items() if kept_by(label, n)}
+            fed = {n: t for n, t in tensors.items() if kept_by(label, n) and n not in skipped}
             captured = {}
 
             def weights(self, mc, model):
@@ -286,10 +294,11 @@ def main():
 
         names = set(tensors)
         consumed = results["main"]["fed"] | results["mtp"]["fed"]
-        unmapped = sorted(names - consumed)
+        unmapped = sorted(names - consumed - skipped)
         overlap = sorted(results["main"]["fed"] & results["mtp"]["fed"])
         print(f"checkpoint tensors {len(names)} (+draft head {int(DRAFT_HEAD)}): main {len(results['main']['fed'])}"
-              f" + mtp {len(results['mtp']['fed'])}; shared {overlap}; unmapped {len(unmapped)} {unmapped[:8]}")
+              f" + mtp {len(results['mtp']['fed'])}; shared {overlap}; vision skipped {len(skipped)}"
+              f" of {len(vision)}; unmapped {len(unmapped)} {unmapped[:8]}")
         ok = (not unmapped
               and set(overlap) == {"lm_head.trellis", "lm_head.suh", "lm_head.svh", "lm_head.mul1",
                                    "model.language_model.embed_tokens.weight"}

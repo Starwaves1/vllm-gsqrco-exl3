@@ -57,6 +57,8 @@ class EXL3Config(QuantizationConfig):
         from .linear import EXL3LinearMethod
 
         if isinstance(layer, LinearBase):
+            if "visual" in prefix.split(".") and self.quant.vision_bits is not None:
+                _refuse_quantized_vision_tower(prefix, self.quant.vision_bits)
             if is_unquantized_module(prefix):
                 return UnquantizedLinearMethod()
             return EXL3LinearMethod(self)
@@ -65,3 +67,20 @@ class EXL3Config(QuantizationConfig):
                 return None  # vLLM's UnquantizedEmbeddingMethod
             return EXL3LinearMethod(self)
         return None  # VocabParallelEmbedding: bf16 in the checkpoint
+
+
+def _refuse_quantized_vision_tower(prefix: str, bits: float) -> None:
+    """An EXL3 vision tower (erlidev's "V6" quants) is not loadable here: vLLM's tower wants a
+    fused bf16 qkv and 4304 MLP rows, the checkpoint has EXL3 q/k/v and 4352 padded rows. Text-only
+    serving (image and video limits 0, as production's argv) never builds the tower, and vLLM's
+    loader skips its tensors, so only refuse when the tower is being built."""
+    from vllm.config import get_current_vllm_config_or_none
+
+    vc = get_current_vllm_config_or_none()
+    mm = vc.model_config.multimodal_config if vc is not None and vc.model_config else None
+    if mm is not None and all(mm.get_limit_per_prompt(m) == 0 for m in ("image", "video")):
+        return
+    raise NotImplementedError(
+        f"{prefix}: this checkpoint's vision tower is EXL3-quantized (vision_bits {bits:g}), which "
+        "the EXL3 plugin cannot load; serve text-only with --limit-mm-per-prompt "
+        "'{\"image\": 0, \"video\": 0}' (--enable-mm-embeds still takes precomputed embeddings)")

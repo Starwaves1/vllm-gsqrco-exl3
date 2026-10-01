@@ -1,7 +1,8 @@
 """EXL3 plugin registration and config (plugin-exl3/vllm_exl3_plugin), CPU only.
 
-Config parsing on turboderp/Qwen3.8-27B-exl3@3.50bpw's config.json (hf-config/, fetched
-metadata), the vllm.general_plugins entry point, and which quant method each layer gets.
+Config parsing on turboderp/Qwen3.8-27B-exl3@3.50bpw's and erlidev's Swift SC_3.50bpw_H4_V6
+config.json (hf-config/, fetched metadata), the vllm.general_plugins entry point, which quant
+method each layer gets, and the refusal of an EXL3 vision tower that is being built.
 """
 
 import json
@@ -14,18 +15,23 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "plugin-exl3"))
 HF_DIR = os.path.join(ROOT, "hf-config/Qwen3.8-27B-exl3-3.50bpw")
+SWIFT_DIR = os.path.join(ROOT, "hf-config/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6")
 
 
-def _qcfg():
-    with open(os.path.join(HF_DIR, "config.json")) as f:
+def _qcfg(hf_dir=HF_DIR):
+    with open(os.path.join(hf_dir, "config.json")) as f:
         return json.load(f)["quantization_config"]
 
 
-def test_fetched_config_parses():
+@pytest.mark.parametrize("hf_dir,want", [
+    (HF_DIR, (3.5, 6.0, 4.0, "mul1", "1.4.2", None)),
+    (SWIFT_DIR, (3.5, 4.0, 4.0, "mul1", "1.5.0", 6.0)),
+], ids=["turboderp", "swift"])
+def test_fetched_config_parses(hf_dir, want):
     from vllm_exl3_plugin.format import MUL1_MULT, EXL3QuantConfig
 
-    q = EXL3QuantConfig.from_dict(_qcfg())
-    assert (q.bits, q.head_bits, q.mtp_bits, q.codebook) == (3.5, 6.0, 4.0, "mul1")
+    q = EXL3QuantConfig.from_dict(_qcfg(hf_dir))
+    assert (q.bits, q.head_bits, q.mtp_bits, q.codebook, q.version, q.vision_bits) == want
     assert (q.codebook_param, q.codebook_mult, q.mul1, q.mcg) == ("mul1", MUL1_MULT, True, False)
 
 
@@ -126,3 +132,37 @@ def test_quant_method_per_layer(cls, prefix, want):
     layer_cls = getattr(L, cls, None) or getattr(E, cls)
     method = EXL3Config.from_config(_qcfg()).get_quant_method(_layer(layer_cls), prefix)
     assert (type(method).__name__ if method is not None else None) == want
+
+
+@pytest.mark.parametrize("limits,refused", [
+    ({"image": 0, "video": 0}, False),  # production's text-only argv: the tower is not built
+    ({"image": 4, "video": 0}, True),
+    (None, True),  # no current vLLM config: assume the tower is built
+])
+def test_quantized_vision_tower_refused_unless_skipped(monkeypatch, limits, refused):
+    """erlidev's 6-bit vision tower (vision_bits) cannot load into vLLM's bf16 tower; the plugin
+    refuses it at construction when the tower is built, and lets vLLM skip it otherwise. Text
+    layers are unaffected either way."""
+    import types
+
+    import vllm.config
+    import vllm.model_executor.layers.linear as L
+
+    from vllm_exl3_plugin.quantization import EXL3Config
+
+    cfg = None
+    if limits is not None:
+        mm = types.SimpleNamespace(get_limit_per_prompt=limits.__getitem__)
+        cfg = types.SimpleNamespace(model_config=types.SimpleNamespace(multimodal_config=mm))
+    monkeypatch.setattr(vllm.config, "get_current_vllm_config_or_none", lambda: cfg)
+    swift = EXL3Config.from_config(_qcfg(SWIFT_DIR))
+    text = swift.get_quant_method(_layer(L.QKVParallelLinear), "language_model.model.layers.3.self_attn.qkv_proj")
+    assert type(text).__name__ == "EXL3LinearMethod"
+    vis = _layer(L.QKVParallelLinear), "visual.blocks.0.attn.qkv"
+    if refused:
+        with pytest.raises(NotImplementedError, match="vision_bits 6.*limit-mm-per-prompt"):
+            swift.get_quant_method(*vis)
+    else:
+        assert type(swift.get_quant_method(*vis)).__name__ == "UnquantizedLinearMethod"
+    # turboderp's bf16 tower loads unquantized whatever the limits
+    assert type(EXL3Config.from_config(_qcfg()).get_quant_method(*vis)).__name__ == "UnquantizedLinearMethod"

@@ -1,9 +1,10 @@
 #!/bin/bash
-# EXL3 phase 1, job 03 (~15-20 min): serve the EXL3 checkpoint on production's main argv
+# EXL3 phase 1, job 03 (~15-20 min): serve the EXL3 checkpoint (erlidev's Swift SC_3.50bpw_H4_V6;
+# --alt: turboderp's 3.50bpw, see lib.sh) on production's main argv
 # (scripts/serve-exl3.sh: MTP k=5 schedule, fp8 KV, 200k, 16 seqs, graphs to 48, prefix caching,
 # KV offload; quantization auto-detected; port 18090), then chat / reasoning / tool-call smoke,
 # the draft head row count, MTP drafts and acceptance counters, VRAM after load, KV tokens.
-# Needs job 02 (draft head) first.
+# Needs job 02 (draft head) first, on the same model (02-draft-head.sh [--alt]).
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 03-smoke
 require_idle_gpu

@@ -10,8 +10,9 @@
 #   00-prep.sh ref      exllamav3 d3739fd in /workspace/ref/exllamav3, /workspace/venv-exl3ref
 #                       (the parity reference: same torch 2.13.0 cu130, exllamav3_ext built for
 #                       sm86, EXL3_INT8_GEMV forced to 0 at interpreter start as the shim does)
-#   00-prep.sh model    turboderp/Qwen3.8-27B-exl3 @ 3.50bpw (pins.sh EXL3_REV) into
-#                       $EXL3_MODEL, parallel ranges, every file checked against the Hub
+#   00-prep.sh model    erlidev/Swift-1.5-Qwen3.8-27B-EXL3 @ SC_3.50bpw_H4_V6 (pins.sh EXL3_REV)
+#                       into $EXL3_MODEL, parallel ranges, every file checked against the Hub;
+#                       `model --alt`: turboderp/Qwen3.8-27B-exl3 @ 3.50bpw (the A/B)
 #   00-prep.sh check    import checks for both venvs, ops listed, tests collected (no GPU)
 #   00-prep.sh postsoak after the 24 h soak job has finished: delete the soak's leftover KV
 #                       state (fs tier /workspace/kvtier, 28 GB; /dev/shm CPU-tier mmap), which
@@ -24,7 +25,10 @@ source "$S/pins.sh"
 WT=${WT:-/workspace/wt-exl3}
 V=${GSQ_VENV_MAIN:-/workspace/venv-main}
 R=${EXL3_REF_VENV:-/workspace/venv-exl3ref}
-M=${EXL3_MODEL:-/workspace/models/Qwen3.8-27B-exl3-3.50bpw}
+M=${EXL3_MODEL:-/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6}
+if [ "${2:-}" = --alt ]; then
+  EXL3_REPO=$EXL3_ALT_REPO EXL3_REV=$EXL3_ALT_REV M=/workspace/models/Qwen3.8-27B-exl3-3.50bpw
+fi
 OLD=/workspace/gsq-vllm/.venv                     # 0.27.1 venv (read-only here: hard-link source)
 L=/workspace/logs/exl3; mkdir -p "$L"
 export UV_CACHE_DIR=${UV_CACHE_DIR:-/workspace/uv-cache} CUDA_VISIBLE_DEVICES=""
@@ -126,7 +130,7 @@ model)
   have=$(du -sb "$M" 2>/dev/null | cut -f1 || echo 0); have=${have:-0}
   need_free $(( (size - have) / 1073741824 + 1 ))
   DL_REV=$EXL3_REV DL_CHUNKS=${DL_CHUNKS:-16} "$S/dl.sh" repo "$EXL3_REPO" "$M"
-  { echo "$EXL3_REPO @ $EXL3_REV (branch 3.50bpw) -> $M"
+  { echo "$EXL3_REPO @ $EXL3_REV -> $M"
     (cd "$M" && for f in $(find . -type f ! -name '*.ok' | sort); do printf '%s\t%s\t%s\n' "${f#./}" "$(stat -c %s "$f")" "$(cat "$f.ok")"; done)
     echo "total $(du -sb --exclude='*.ok' "$M" | cut -f1) bytes"; } | tee "$L/model-files.txt" ;;
 check)

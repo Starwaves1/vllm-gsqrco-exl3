@@ -5,9 +5,9 @@
   tests/gpu/test_exl3_kernels.py the plugin's torch.ops._C_exl3 (vLLM's venv), compared with them
 
 Torch-free at import (both venvs import it, and collection must not touch the GPU). Tensors
-are real checkpoint tensors, one or two per bit width the 3.50bpw checkpoint uses (all mul1):
-names and shapes are pinned against hf-config/.../safetensors_headers.json by
-tests/cpu/test_exl3_gpu_cases.py. Activations are seeded randn on the CPU (same torch, same
+are real checkpoint tensors, one or two per bit width the checkpoint (EXL3_MODEL's directory
+name picks the table) uses in its text model (all mul1): names and shapes are pinned against
+hf-config/<checkpoint>/safetensors_headers.json by tests/cpu/test_exl3_gpu_cases.py. Activations are seeded randn on the CPU (same torch, same
 numbers in both venvs), cast to fp16.
 
 Error statistics are against an fp64 product of the same activations with the original-basis
@@ -21,18 +21,34 @@ import hashlib
 import os
 from pathlib import Path
 
-MODEL = Path(os.environ.get("EXL3_MODEL", "/workspace/models/Qwen3.8-27B-exl3-3.50bpw"))
+MODEL = Path(os.environ.get("EXL3_MODEL", "/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6"))
 REF_DIR = Path(os.environ.get("EXL3_REF_DIR", "/workspace/runs/exl3/kernel-ref"))
 
-# id -> (checkpoint prefix, K, k = in_features, n = out_features); codebook mul1 throughout
-TENSORS = {
-    "K3-down": ("model.language_model.layers.10.mlp.down_proj", 3, 17408, 5120),
-    "K3-up": ("model.language_model.layers.9.mlp.up_proj", 3, 5120, 17408),
-    "K4-kproj": ("model.language_model.layers.11.self_attn.k_proj", 4, 5120, 1024),
-    "K4-mtp-up": ("mtp.layers.0.mlp.up_proj", 4, 5120, 17408),
-    "K5-oproj": ("model.language_model.layers.63.self_attn.o_proj", 5, 6144, 5120),
-    "K6-lmhead": ("lm_head", 6, 5120, 248320),
+# checkpoint dir name -> id -> (checkpoint prefix, K, k = in_features, n = out_features); mul1
+CHECKPOINTS = {
+    "Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6": {  # erlidev, the primary model
+        "K2-up": ("model.language_model.layers.0.mlp.up_proj", 2, 5120, 17408),
+        "K3-down": ("model.language_model.layers.10.mlp.down_proj", 3, 17408, 5120),
+        "K3-up": ("model.language_model.layers.9.mlp.up_proj", 3, 5120, 17408),
+        "K4-kproj": ("mtp.layers.0.self_attn.k_proj", 4, 5120, 1024),
+        "K4-mtp-up": ("mtp.layers.0.mlp.up_proj", 4, 5120, 17408),
+        "K4-oproj": ("model.language_model.layers.63.self_attn.o_proj", 4, 6144, 5120),
+        "K5-kproj": ("model.language_model.layers.11.self_attn.k_proj", 5, 5120, 1024),
+        "K4-lmhead": ("lm_head", 4, 5120, 248320),
+    },
+    "Qwen3.8-27B-exl3-3.50bpw": {  # turboderp, the A/B
+        "K3-down": ("model.language_model.layers.10.mlp.down_proj", 3, 17408, 5120),
+        "K3-up": ("model.language_model.layers.9.mlp.up_proj", 3, 5120, 17408),
+        "K4-kproj": ("model.language_model.layers.11.self_attn.k_proj", 4, 5120, 1024),
+        "K4-mtp-up": ("mtp.layers.0.mlp.up_proj", 4, 5120, 17408),
+        "K5-oproj": ("model.language_model.layers.63.self_attn.o_proj", 5, 6144, 5120),
+        "K6-lmhead": ("lm_head", 6, 5120, 248320),
+    },
 }
+TENSORS = CHECKPOINTS[MODEL.name]
+HEAD = next(t for t in TENSORS if t.endswith("lmhead"))
+# one tensor per K below the head, the subsets the slower tests use (K4-kproj is in both)
+PER_K = [t for t in TENSORS if t not in (HEAD, "K3-up", "K4-mtp-up")]
 # activation rows: every GEMM bucket and the GEMV limits (1..17), the largest capture size
 # (48), the first reconstruct row (145) and the fused reconstruct (1024)
 ROWS = list(range(1, 18)) + [48, 145, 1024]

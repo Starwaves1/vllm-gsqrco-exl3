@@ -5,16 +5,20 @@
 # be re-run; it overwrites its own run dir. Logs /workspace/logs/exl3/NN-*.log; big outputs stay in
 # /workspace/runs/exl3/NN-*/; small results are copied to $WT/cloud/results/exl3/NN-*/ to commit.
 # Needs part A (00-prep.sh venv, overlay, plugins, ref, model) done.
+# Model: erlidev's Swift SC_3.50bpw_H4_V6; a job's --alt runs it on turboderp's 3.50bpw instead
+# (the A/B; 00-prep.sh model --alt), with its own run, log and result dirs (suffix -alt).
 set -euo pipefail
 source /workspace/box-env.sh               # GSQ_CPU_TIER_BYTES (13 GiB /dev/shm), LLAMA_DIR, box_clean_shm
 export WT=${WT:-/workspace/wt-exl3}
 S=$WT/cloud/results/exl3/box-scripts
 export GSQ_VENV=/workspace/venv-main GSQ_EXL3_VENV=/workspace/venv-exl3ref
 export GSQ_PROD_ARGV=$WT/env/prod-main-serve-argv.txt VLLM_USE_V2_MODEL_RUNNER=0   # production's main launcher env
-export GSQ_EXL3_MODEL=/workspace/models/Qwen3.8-27B-exl3-3.50bpw
+ALT=; [ "${1:-}" = --alt ] && ALT=-alt
+if [ -n "$ALT" ]; then export GSQ_EXL3_MODEL=/workspace/models/Qwen3.8-27B-exl3-3.50bpw
+else export GSQ_EXL3_MODEL=/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6; fi
 export EXL3_MODEL=$GSQ_EXL3_MODEL
-export R=/workspace/runs/exl3 L=/workspace/logs/exl3 RES=$WT/cloud/results/exl3
-export EXL3_REF_DIR=$R/kernel-ref EXLLAMAV3_TUNE_CACHE=$R/tune-cache   # one autotune cache for plugin + reference
+export R=/workspace/runs/exl3$ALT L=/workspace/logs/exl3$ALT RES=$WT/cloud/results/exl3$ALT
+export EXL3_REF_DIR=$R/kernel-ref EXLLAMAV3_TUNE_CACHE=/workspace/runs/exl3/tune-cache   # one autotune cache for plugin + reference, both models
 export GSQ_RUNS=$R GSQ_ALLOW_GPU=1 VLLM_GGUF_LCPP=1
 export PYTHONPATH=$WT/plugin-exl3:$WT/plugin:$WT/tools
 # production's 40,960 draft ids (~/qwen38-27b-rtx3090/prepare/draft_vocab_ids.json on ms4, copied by part A)

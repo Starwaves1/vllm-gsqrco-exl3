@@ -38,7 +38,7 @@ sys.path.insert(0, str(ROOT / "plugin-exl3"))
 SLACK, FLOOR_RMS, FLOOR_MAX = 1.5, 2e-3, 2e-2
 NOREF_RMS, NOREF_MAX = 5e-3, 5e-2  # no reference JSON: exllamav3's documented ~1 % of RMS (H_ACC)
 GRAPH_ROWS = [1, 2, 4, 8, 16, 17, 48]
-GRAPH_TIDS = ["K3-down", "K4-kproj", "K5-oproj", "K6-lmhead"]
+GRAPH_TIDS = [*C.PER_K, C.HEAD]
 WARM_ROWS = [1, 2, 4, 8, 16]
 FAULT = ("illegal memory access", "misaligned address", "unspecified launch failure", "CUDA error",
          "an illegal instruction", "operation not permitted when stream is capturing")
@@ -137,7 +137,7 @@ def test_gemm_bits_match_exllamav3(ops, tid, m, out_fp32):
 
 
 @pytest.mark.parametrize("m", [145, 1024])
-@pytest.mark.parametrize("tid", ["K3-down", "K4-kproj", "K5-oproj"])
+@pytest.mark.parametrize("tid", C.PER_K)
 def test_routes_agree(ops, tid, m):
     import torch
 
@@ -152,7 +152,7 @@ def test_routes_agree(ops, tid, m):
 
 
 @pytest.mark.parametrize("m", [1, 8, 16, 48])
-@pytest.mark.parametrize("tid", ["K3-down", "K4-kproj", "K6-lmhead"])
+@pytest.mark.parametrize("tid", ["K3-down", "K4-kproj", C.HEAD])
 def test_fp32_fp16_outputs_agree(ops, tid, m):
     import torch
 

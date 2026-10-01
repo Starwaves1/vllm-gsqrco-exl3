@@ -8,7 +8,8 @@ A quantized linear `<key>` is stored as (modules/quant/exl3.py, LinearEXL3):
   <key>.mul1 | <key>.mcg   int32 0-dim codebook multiplier (absent: the 3INST codebook)
   <key>.bias     fp16 [out]  optional
 K (bits per weight) is per tensor. The model-level block is config.json's
-`quantization_config` (quant_method "exl3", bits, head_bits, mtp_bits, codebook).
+`quantization_config` (quant_method "exl3", bits, head_bits, mtp_bits, codebook, and
+vision_bits when the vision tower is quantized too).
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ class EXL3QuantConfig:
     mtp_bits: float | None
     codebook: str
     version: str | None = None
+    vision_bits: float | None = None  # set when the vision tower is EXL3 too ("V" variants)
 
     @classmethod
     def from_dict(cls, d: dict) -> EXL3QuantConfig:
@@ -63,6 +65,7 @@ class EXL3QuantConfig:
             mtp_bits=float(d["mtp_bits"]) if d.get("mtp_bits") is not None else None,
             codebook=codebook,
             version=d.get("version"),
+            vision_bits=float(d["vision_bits"]) if d.get("vision_bits") is not None else None,
         )
 
     @property

@@ -33,7 +33,7 @@ DRAFT_IDS_FILE = "mtp_draft_vocab_ids.pt"
 
 def is_unquantized_module(prefix: str) -> bool:
     """Whether the vLLM module at prefix is stored unquantized in an EXL3 Qwen3.5 checkpoint
-    (plain bf16 vision tower assumed: exllamav3's "V" variants with a 6-bit tower are not
-    supported)."""
+    (a bf16 vision tower; an EXL3 one, quantization_config vision_bits, is refused by
+    EXL3Config unless the tower is skipped, as under text-only serving)."""
     parts = prefix.split(".")
     return parts[-1] in (*UNQUANTIZED_LINEARS, DRAFT_HEAD) or "visual" in parts

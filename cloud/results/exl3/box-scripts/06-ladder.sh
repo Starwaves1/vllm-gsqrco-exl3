@@ -1,5 +1,6 @@
 #!/bin/bash
-# EXL3 phase 1, job 06 (~60-90 min): speed ladder on production's main argv with MTP.
+# EXL3 phase 1, job 06 (~60-90 min): speed ladder on production's main argv with MTP, on
+# erlidev's Swift SC_3.50bpw_H4_V6 (--alt: turboderp's 3.50bpw, see lib.sh).
 # bench/speed/run.sh exl3 --start: production's run_benchmarks.sh `single` (real-prompt cohorts,
 # c=1/2/4/8, default sampling and greedy, two passes, keep pass 2), the salted prefill ladder
 # 8k/64k/180k, MTP acceptance per position from /metrics, GPU clocks/power every second per phase.

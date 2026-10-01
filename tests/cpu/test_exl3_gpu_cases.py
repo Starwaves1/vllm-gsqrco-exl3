@@ -1,6 +1,6 @@
-"""tests/gpu/exl3_cases.py (the EXL3 GPU kernel cases) against the checkpoint's metadata, CPU
-only: every case tensor exists with the pinned K, k, n and the mul1 codebook, and the row list
-covers the routing boundaries."""
+"""tests/gpu/exl3_cases.py (the EXL3 GPU kernel cases) against each checkpoint's metadata, CPU
+only: every case tensor exists with the pinned K, k, n and the mul1 codebook, every text-model
+bit width has a case, and the row list covers the routing boundaries."""
 
 import json
 import os
@@ -9,30 +9,32 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tests/gpu"))
 sys.path.insert(0, os.path.join(ROOT, "plugin-exl3"))
-HF = os.path.join(ROOT, "hf-config/Qwen3.8-27B-exl3-3.50bpw")
+import pytest  # noqa: E402
+
+import exl3_cases as C  # noqa: E402
 
 
-def test_case_tensors_match_checkpoint():
-    import exl3_cases as C
-
-    heads = json.load(open(os.path.join(HF, "safetensors_headers.json")))
-    wm = json.load(open(os.path.join(HF, "model.safetensors.index.json")))["weight_map"]
+@pytest.mark.parametrize("ckpt", list(C.CHECKPOINTS))
+def test_case_tensors_match_checkpoint(ckpt):
+    hf = os.path.join(ROOT, "hf-config", ckpt)
+    heads = json.load(open(os.path.join(hf, "safetensors_headers.json")))
+    wm = json.load(open(os.path.join(hf, "model.safetensors.index.json")))["weight_map"]
     shapes = {}
     for info in heads.values():
         for name, t in (info.get("tensors") or info).items():
             if isinstance(t, dict) and "shape" in t:
                 shapes[name] = t["shape"]
     ks = set()
-    for tid, (prefix, K, k, n) in C.TENSORS.items():
+    for tid, (prefix, K, k, n) in C.CHECKPOINTS[ckpt].items():
         assert shapes[f"{prefix}.trellis"] == [k // 16, n // 16, 16 * K], tid
         assert shapes[f"{prefix}.suh"] == [k] and shapes[f"{prefix}.svh"] == [n], tid
         assert f"{prefix}.mul1" in wm and f"{prefix}.mcg" not in wm, tid
         ks.add(K)
-    assert ks == {3, 4, 5, 6}  # every bit width in the 3.50bpw checkpoint
+    text = {s[2] // 16 for n, s in shapes.items() if n.endswith(".trellis") and "visual" not in n}
+    assert ks == text  # every bit width the text model uses (swift 2..5, turboderp 3..6)
 
 
 def test_rows_cover_routing_boundaries():
-    import exl3_cases as C
     from vllm_exl3_plugin import ops
 
     assert set(range(1, 18)) <= set(C.ROWS)
