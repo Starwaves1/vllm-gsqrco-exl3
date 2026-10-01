@@ -1,9 +1,9 @@
 """Summarise a bench/soak.sh run dir into soak-summary.json (stdout too):
 hours, requests by status, faults, restarts, GPU MiB and host RSS min/max (after the first hour
-too), and per-hour throughput (completion tokens / 3600 s, requests). bad_output records that
-ended on length with tokens are counted as reasoning_only: soak_load before cf8fbde looked only
-at message.content, and vLLM returns content None when max_tokens ends inside the thinking.
-  python3 soak_summary.py RUN_DIR"""
+too), and per-hour throughput (completion tokens / 3600 s, requests). Run dirs whose load
+generator predates cf8fbde (it looked only at message.content) need --pre-cf8fbde: their
+bad_output records that ended on length with tokens are counted as reasoning_only.
+  python3 soak_summary.py RUN_DIR [--pre-cf8fbde]"""
 import json
 import sys
 from pathlib import Path
@@ -22,7 +22,7 @@ def mm(xs):
 status = {}
 for r in recs:
     s = r["status"]
-    if s == "bad_output" and r.get("finish") == "length" and r.get("completion_tokens", 0) > 0:
+    if "--pre-cf8fbde" in sys.argv and s == "bad_output" and r.get("finish") == "length" and r.get("completion_tokens", 0) > 0:
         s = "reasoning_only"
     status[s] = status.get(s, 0) + 1
 hours = {}

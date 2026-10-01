@@ -25,7 +25,7 @@ rows and Q4_K/IQ4_XS/IQ2_S at 9..32, IQ1_M on MMVQ, one q8_1 quantize per fused 
 rented 350 W 3090: decode 1.17 / 0.99 / 1.01 / 1.07x the production W4A16 baseline at c=1/2/4/8 in
 tok/s, but per engine step still 1.01-1.19x slower (the tok/s lead is MTP acceptance); prefill
 1.07-1.13x (see "Integration 2"). The IQ3 repack now runs with scratch bounded to min(tensor, 64 MiB)
-on the GPU (0.59 s for all IQ3 at load, was 6.78 s and ~9x per chunk; no host memory either way).
+on the GPU (0.59 s for all IQ3 at load, was 6.78 s and up to ~9x the tensor, ~37x per 256-row chunk; no host memory either way).
 Open against HANDOFF section 2: the absolute logit gate (KLD 0.0249 vs <= 0.001), c=2 decode (0.99x)
 and per-step speed at every c, T=1 MTP acceptance (vLLM draft sampling), the DeepSWE run. Full
 report with the checklist: `cloud/results/REPORT.md`. Without MTP the GGUF is
@@ -123,7 +123,7 @@ already allocated on the 23.56 GiB card; max-model-len or gpu-util cannot help.
 
 ## Final phase: bounded IQ3 repack, 24 h soak, benchmark report (2026-09-30, same 350 W 3090)
 
-Box worktree /workspace/wt-final = main (`b9cdfa5` for every box job), built in place. Scripts and
+Box worktree /workspace/wt-final = main (`b9cdfa5` for the pack and load jobs; the soak ran `4c4e3d5`, same plugin code), built in place. Scripts and
 data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
 
 - Repack (`iq3_pack.py`): the old pack widened to int32/int64 and built its output by `torch.cat`
@@ -133,7 +133,9 @@ data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
   min(tensor, 64 MiB): measured 0.99x max over all 222 IQ3 tensors, 0.59 s total (was 6.78 s),
   bytes identical to the old pack on every tensor (`pack/packmem-cuda.txt`). New GPU test
   `test_iq3_pack_inplace_peak` enforces the bound. Parity -k "pack or packed or iq3" 2664 pass / 104
-  skip / 0 fail; CPU pack + routing + guards 259 pass.
+  skip / 0 fail; CPU pack + routing + guards 259 pass. Review after the soak: groups shrunk from 1/3 to
+  1/4 of min(tensor, 64 MiB) for margin under the 1.0x test bound (2.96x per group measured, so ~0.75x;
+  CPU tests 13 pass and 16/48/64/1024-row round trips; the GPU test was not rerun, no GPU available).
 - Host memory at load (server session, sampled every 0.5 s, `pack/loadrss-*`): the pack never touches
   it (weights are on the GPU). Peak RSS / RssAnon in the model-loading window 17.5 / 5.2 GB before,
   15.8 / 4.0 GB after, both from one ~2 s transient ~68 s into the load (GGUF file pages + <= 1.3 GB
@@ -146,15 +148,16 @@ data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
   Both handled by `final/box-scripts/soak.sh`; the engine's maps show wt-final's `.so`.
   `soak_load.py` counted reasoning-only answers (max_tokens 16 ends inside the thinking; vLLM returns
   content None, tokens in message.reasoning) as bad_output: fixed in `cf8fbde` after the soak started
-  (the running load generator keeps the old check; its records are reclassified in the soak summary).
+  (the 1.19 h partial run predates it and is summarised with `soak_summary.py --pre-cf8fbde`; the 19.4 h run has the fix).
 - Soak (`cloud/results/soak/run-20260930-100520/`, REPORT.md section 12): c=2, production's 0.27.1 argv with
   CUDA graphs, wt-final `4c4e3d5`, 2026-09-30 10:08 UTC, stopped gracefully at 19.43 h by decision (GPU
   needed elsewhere). Server alive and /health 200 in all 1,164 rows, 0 restarts, 0 device faults, 0 fault
   lines; 7,941 requests (7,114 ok, 783 aborted streams, 1,227 tool calls parsed); GPU 23,482 MiB flat from
   hour 1; host RSS 31.42 -> 31.87 GiB (+24 MB/h, mostly the CPU KV tier filling). The 44 bad_output records
-  are model output, not faults: 38 EOS-first short completions on prefix-cache follow-ups (EOS p 0.02-0.18
-  as first token, same on a forced cache miss; `soak/eos-first-capture.txt`) and 6 empty outputs cut by
-  max_tokens (no text returned, resends normal, cause unexplained; soak_load now keeps the returned choice).
+  are 38 short completions on prefix-cache follow-ups (34 EOS-first, 4 EOS by token 2-4; model sampling: EOS
+  p 0.02-0.18 as first token, same on a forced cache miss; `soak/eos-first-capture.txt`) and 6 unexplained
+  empty outputs cut by max_tokens (0.08%; no text returned, resends normal; a transient fault is not excluded;
+  soak_load now keeps the returned choice, so the vLLM-main soak can close it).
   An earlier 1.19 h start (`soak/partial-20260930/`) was stopped for the model matrix, also clean.
 
 ## Integration 2: P2 + K3 + R2 merged (2026-09-30, same 350 W 3090)

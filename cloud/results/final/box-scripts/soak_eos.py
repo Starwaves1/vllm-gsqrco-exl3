@@ -35,7 +35,7 @@ plan = soak_load.Plan(a.seed, a.tokenizer)
 target = eos[a.resend]
 for i in range(target + 1):
     q = plan.next()
-assert q["kind"] == recs[target]["kind"] and len(q["body"].get("prompt", [])) + 0 >= 0, (q["kind"], recs[target])
+assert q["kind"] == recs[target]["kind"] and len(q["body"]["prompt"]) == recs[target]["prompt_tokens"], (q["kind"], recs[target])
 body = dict(q["body"], logprobs=5)
 print("rebuilt:", q["kind"], q["path"], "prompt tokens", len(body.get("prompt", [])), "(logged", recs[target]["prompt_tokens"], ")",
       "max_tokens", body["max_tokens"], "T", body.get("temperature"), "priority", body.get("priority"))

@@ -9,8 +9,7 @@
  "status": {
   "ok": 7114,
   "aborted": 783,
-  "bad_output": 38,
-  "reasoning_only": 6
+  "bad_output": 44
  },
  "by_kind": {
   "abort": 783,

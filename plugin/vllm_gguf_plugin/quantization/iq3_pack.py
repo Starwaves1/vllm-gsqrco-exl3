@@ -119,14 +119,14 @@ def _pack_tiles(w: torch.Tensor, weight_type: WeightType) -> torch.Tensor:
 
 
 def pack_(w: torch.Tensor, weight_type: int) -> None:
-    """pack() in place, a group of whole tiles at a time: the peak is w plus at most
-    min(w's bytes, CHUNK_BYTES) of scratch (_pack_tiles needs up to ~3x its chunk: 2.96x measured
-    on IQ3_XXS, less on IQ3_S; linear in the chunk, so the same for every shape)."""
+    """pack() in place, a group of whole tiles at a time. _pack_tiles needs ~3x its chunk in
+    scratch (2.96x measured on IQ3_XXS, less on IQ3_S), so chunks of min(w's bytes, CHUNK_BYTES) / 4
+    keep the scratch at ~0.75x of that. Below 64 rows the chunk is one 16-row tile (~3x w)."""
     weight_type = WeightType(weight_type)
     assert weight_type in (WeightType.IQ3_S, WeightType.IQ3_XXS), weight_type
     rows, rb = w.shape
     assert rows % ROWS == 0, w.shape
-    step = ROWS * max(1, min(CHUNK_BYTES, w.numel()) // (3 * ROWS * rb))
+    step = ROWS * max(1, min(CHUNK_BYTES, w.numel()) // (4 * ROWS * rb))
     for r0 in range(0, rows, step):
         w[r0:r0 + step].copy_(_pack_tiles(w[r0:r0 + step], weight_type))
 

@@ -221,14 +221,16 @@ relative otherwise (fp32 summation order).
 The repack (`quantization/iq3_pack.py`, called by `GGUFLinearMethod._pack_iq3`) runs on the
 GPU-resident weight after load. The old code widened every byte to int32/int64 and built the output
 with `torch.cat` of permuted copies, using ~35x its input in scratch. At load it went 256 rows at a
-time, so the peak was ~9x on the smallest tensors; the tests' whole-tensor `pack()` peaked at
-1.31 GiB. The new code copies from strided views straight into one uint8 output, in tile groups
-sized so the scratch stays under min(tensor, 64 MiB). Measured on the box over all 222 IQ3 tensors
+time, so the absolute load peak was only ~20-70 MB (~37x a 256-row chunk, up to ~9x the smallest
+tensors); the tests' whole-tensor `pack()` peaked at 1.31 GiB. The new code copies from strided views
+straight into one uint8 output, in tile groups of min(tensor, 64 MiB) / 4, so the scratch (~3x a
+group) stays under that bound. What it buys at load is time (6.2 s) and a hard bound; the large win
+is on the tests' path. Measured on the box over all 222 IQ3 tensors
 of the GGUF (5,453 MiB); data in `cloud/results/final/pack/`:
 
 | | old | new |
 |---|---|---|
-| load path `pack_`, max GPU scratch / tensor | 9.16x (blk.3.attn_k, 1024 rows) | 0.99x (limit 1.0x, enforced by `test_iq3_pack_inplace_peak`) |
+| load path `pack_`, max GPU scratch / tensor | 9.16x (blk.3.attn_k, 1024 rows) | 0.99x with groups of 1/3 (measured; limit 1.0x, `test_iq3_pack_inplace_peak`); groups are now 1/4, ~0.75x by the same factor (GPU test not rerun) |
 | load path `pack_`, total time | 6.78 s | 0.59 s |
 | whole-tensor `pack()` on blk.1.ffn_down (36.5 MiB) | +1,339 MiB (36.7x) | +70 MiB (1.9x, including the output copy) |
 | bytes | | identical to the old pack on every tensor |
@@ -238,8 +240,9 @@ of the GGUF (5,453 MiB); data in `cloud/results/final/pack/`:
 The pack does not touch host memory. In both runs the load-window peak is one ~2 s transient about
 68 s into the load: 8-13 GB of GGUF file-backed pages plus up to 1.3 GB of anonymous memory, sampled
 every 0.5 s. Outside it, RSS stays at 4-5 GB (anon 3-4 GB), and the before/after anon difference is
-within the sampling of that transient. After load the server session's host RSS is ~31 GiB, mostly
-the 13 GiB CPU KV tier in /dev/shm (production's argv asks for 24 GiB) and GGUF page cache. On a host
+within the sampling of that transient. After load the server session's host RSS is ~31 GiB: 26.6 GB of
+it is the engine's shared memory, which holds the 13 GiB CPU KV tier in /dev/shm (production's argv asks
+for 24 GiB) plus ~13 GB not yet attributed (a per-mapping smaps breakdown is the next step). On a host
 with 62 GB shared with production, the CPU tier size is the number to watch.
 
 ## 11. Tests
@@ -269,29 +272,30 @@ load.jsonl.gz, server-excerpt.txt).
 |---|---|
 | server alive / health 200 | 1,164 of 1,164 monitor rows (every 60 s) |
 | restarts / device faults / fault lines in server.log | 0 / 0 / 0 (IMA, CUDA error, Traceback, EngineDead: none) |
-| requests | 7,941: ok 7,114, aborted streams 783, model-output cases 44 (below) |
+| requests | 7,941: ok 7,114, aborted streams 783, short EOS completions 38 (explained), empty outputs 6 (unexplained) |
 | tool calls parsed | 1,227 of 1,228 tool requests |
 | preemptions | 0 |
 | GPU MiB (server processes) | 22,466 at the first row, then 23,482 flat from hour 1 to the end (slope 0) |
 | host RSS (server session) | 31.42 -> 31.87 GiB after hour 1 (+24 MB/h; limit 1 GiB total) |
-| RSS split at 8.2 h | API server anon 1.9 GB; engine anon 2.7 GB, shmem 26.6 GB (CPU KV tier) |
+| RSS split at 8.2 h | API server anon 1.9 GB; engine anon 2.7 GB, shmem 26.6 GB (the 13 GiB CPU KV tier plus ~13 GB not yet attributed) |
 | completion tokens/s per full hour (0-18) | 25-45 (the mix varies by hour; no downward trend) |
 | ok-request latency p50 / p99 | 4.0 s / 281 s |
 
 `soak.sh`'s strict `pass` is false for two reasons: 44 bad_output records and 19.4 of 24 h run.
-The 44 records were reclassified as model output, not faults:
+38 of the 44 are explained as model output; 6 are not explained:
 
-- **38 short completions on prefix-cache follow-ups** (long_hit, finish stop, 1-3 tokens; 2.3% of
-  1,629 long_hit). The model samples EOS first on these raw-completion "follow-up" prompts at T=1.
+- **38 short completions on prefix-cache follow-ups** (long_hit, finish stop, 1-4 tokens, 34 of them
+  EOS-first; 2.3% of 1,629 long_hit). The model samples EOS first on these raw-completion "follow-up" prompts at T=1.
   Two were rebuilt exactly by replaying soak_load's deterministic plan (checked: 200 records, 0
   mismatches) and resent. EOS is a first-token candidate with p 0.02 and 0.18. On a forced
   prefix-cache miss (`cache_salt`) the ranking is the same, with EOS log-probability -1.52 vs -1.69 on the hit.
   `cloud/results/soak/eos-first-capture.txt`.
-- **6 empty outputs cut by max_tokens** (chat / greedy short prompts, 64 or 256 tokens, finish
+- **6 empty outputs cut by max_tokens** (0.08% of requests; chat / greedy short prompts, 64 or 256 tokens, finish
   length, no content and no reasoning text). Two were rebuilt and resent (one 3 times at T=1/T=1/T=0, the other twice at T=0); every resend was normal.
   The cause is unexplained: soak_load did not keep the returned text (it does since `2bab4d2`). INFERRED: response
   side (qwen3 reasoning parser) rather than the kernels, since the token count is normal and no
-  error was logged. T=0 output also differs run to run under concurrent load (not batch-invariant).
+  error was logged; a transient numerical fault is not excluded. T=0 output also differs run to run under
+  concurrent load (not batch-invariant). The vLLM-main soak keeps the returned text and can close this.
 
 An earlier 1.19 h start on `b9cdfa5` (`cloud/results/soak/partial-20260930/`) was stopped on request
 for the model matrix: 0 faults there too.
@@ -306,8 +310,8 @@ harness on branch `torture`).
 | 1 drop-in | met: separate venv equal to production's, plugin loaded via `VLLM_PLUGINS`; argv differs only in model path, HF config dir, port and tier roots; Route L behind `VLLM_GGUF_LCPP=1` |
 | 2 correct | partly: 866/866 tensors map (meta dry run); IQ dequant bit-exact; K-quant CUDA dequant 1 ulp off in fp16 (not on this model's linear path); tool calls and reasoning parse (smoke, soak); **logit gate KLD <= 0.001 / top-1 >= 99% FAIL** (0.0249 / 98.18%), relative gate PASS where measured |
 | 3 fast | decode c=1 PASS (1.17x); **c=2 FAIL by 0.9%** (0.99x), **slower per engine step at every c**; prefill PASS (1.07-1.13x); MTP greedy PASS (-0.5 pt), T=1 FAIL (+3.4 pt, vLLM draft sampling) |
-| 4 fits | PASS: 253,906 KV tokens (1.27x at 200k) |
-| 5 stable | partly: 19.4 of 24 h clean at c=2 with CUDA graphs (0 faults, 0 restarts, GPU memory flat, RSS +0.45 GiB); stopped early by decision. Full 24 h and a 12 h torture soak still to run |
+| 4 fits | PASS: 253,906 KV tokens (1.27x at 200k; 253,125 in other starts of the same build) |
+| 5 stable | partly: 19.4 of 24 h at c=2 with CUDA graphs on the 0.27.1 argv (MTP k=3), not the vLLM-main / k=5 configuration now in production: 0 device faults, 0 restarts, GPU memory flat, RSS +0.45 GiB; 6 unexplained empty outputs (0.08%); stopped early by decision. Full 24 h and a 12 h torture soak still to run |
 | 6 scientific (DeepSWE Pi run) | not run |
 | 7 reproducible | pinned plugin fork (`e2b8ad5` + commits, subtree split `swift-gsq-rco`), vendored `b11211` with sha256, `tools/build-plugin.sh` / `VLLM_GGUF_BUILD_LCPP=1`, CPU + GPU suites, this report; no upstream PRs opened |
 
