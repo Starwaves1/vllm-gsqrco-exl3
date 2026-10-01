@@ -1,0 +1,8 @@
+draft head (40960, 5120) torch.bfloat16 ids 40960 sorted True
+draft rows vs EXL3 lm_head on the ids: {'rel_rms': 0.004139159189112711, 'max_rel': 0.023843949678675206, 'finite': True, 'ref_rms': 0.9923829331536936} argmax agreement 1.0
+DRAFT_HEAD_OK
+-rw-rw-r-- 1 root root    283350 Oct  1 05:44 /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/model.safetensors.index.json
+-rw-rw-r-- 1 root root        41 Oct  1 05:38 /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/model.safetensors.index.json.ok
+-rw-rw-r-- 1 root root    295620 Oct  1 05:44 /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/model.safetensors.index.json.orig
+-rw------- 1 root root 419430600 Oct  1 05:44 /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/mtp_draft_head.safetensors
+-rw-rw-r-- 1 root root    329341 Oct  1 05:44 /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6/mtp_draft_vocab_ids.pt
