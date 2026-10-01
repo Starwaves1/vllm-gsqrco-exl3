@@ -294,6 +294,61 @@ def test_lm_head_many_rows_bounded(ops, monkeypatch, mr):
     assert y32.dtype == ops.exl3_linear_fake(x[:300].half(), t, None, None, False, True, True).dtype == torch.float
 
 
+def _garbage(kind, rows, k):
+    import torch
+
+    if kind == "nan":
+        return torch.full((rows, k), float("nan"))
+    if kind == "inf":
+        g = torch.full((rows, k), float("inf"))
+        g[:, ::2] = float("-inf")
+        return g
+    return torch.full((rows, k), 65504.0) * torch.sign(torch.randn(rows, k))  # fp16 max, both signs
+
+
+@pytest.mark.parametrize("pad", ["nan", "inf", "big"])
+@pytest.mark.parametrize("n", [9, 12, 16])
+@pytest.mark.parametrize("op", ["exl3_gemm", "exl3_gemm_mr"])
+@pytest.mark.parametrize("tid", ["K2-up", "K3-down", "K4-mtp-up", "K5-kproj"])
+def test_padded_rows_in_capture(ops, tid, op, n, pad):
+    """The drafter at 9-16 running requests (k=2 tier): a 16-row CUDA graph with n real rows and
+    padding rows holding NaN / +-inf / +-65504. The real rows' outputs stay finite and equal the
+    eager result on the real rows alone (rel. rms <= 1e-3): no row of a padded batch leaks into another."""
+    import torch
+
+    if op == "exl3_gemm_mr" and BITS[tid] not in (3, 4, 5):
+        pytest.skip("not on exl3_gemm_mr")
+    if tid not in C.TENSORS:
+        pytest.skip(f"{tid} not in this checkpoint's table")
+    w = C.load(torch, tid)
+    t = ops.repack_k4_(w["trellis"].clone()) if op == "exl3_gemm_mr" and BITS[tid] == 4 else w["trellis"]
+    args = (t, w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    if op == "exl3_gemm":
+        torch.ops._C_exl3.exl3_warmup(*args[:5], [1, 2, 4, 8, 16], True)
+    else:
+        torch.ops._C_exl3.exl3_mr_warmup(*args[:5], [16], True)
+    fn = getattr(torch.ops._C_exl3, op)
+    k = w["suh"].numel()
+    x_real = C.make_x(torch, tid, n)
+    x16 = torch.cat([x_real, _garbage(pad, 16 - n, k).half().cuda()]) if n < 16 else x_real.clone()
+    s = torch.cuda.Stream()
+    s.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(s):
+        fn(x16, *args)
+    torch.cuda.current_stream().wait_stream(s)
+    g = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(g):
+        y16 = fn(x16, *args)
+    g.replay()
+    torch.cuda.synchronize()
+    eager = fn(x_real, *args)
+    real = y16[:n]
+    d = C.err_stats(torch, real, eager.double())
+    print(f"\npadded {tid} {op} n={n} pad={pad}: finite={d['finite']} bit-identical={torch.equal(real, eager)} {d}")
+    assert d["finite"] and d["rel_rms"] <= 1e-3, d
+    del g
+
+
 _UNWARMED = r"""
 import json, sys, torch
 sys.path.insert(0, sys.argv[1])

@@ -50,18 +50,37 @@ def prompts(path: str | None, n: int) -> list[str]:
     return out[:n]
 
 
-def one(url, key, model, prompt, temp, seed, max_tokens):
+def one(url, key, model, prompt, temp, seed, max_tokens, stream=True, top_k=None, top_p=None):
     body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens,
-            "temperature": temp, "stream": True, "logprobs": True, "return_tokens_as_token_ids": True,
-            "stream_options": {"include_usage": True}}
+            "temperature": temp, "stream": stream, "logprobs": True, "return_tokens_as_token_ids": True}
+    if stream:
+        body["stream_options"] = {"include_usage": True}
     if temp > 0:
         body["seed"] = seed
+        if top_k is not None:
+            body["top_k"] = top_k
+        if top_p is not None:
+            body["top_p"] = top_p
     req = urllib.request.Request(url + "/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     t0, raw, ids, text, reasoning, finish, bad = time.time(), bytearray(), [], [], [], None, 0
     try:
         with urllib.request.urlopen(req, timeout=1800) as r:
-            for line in r:
+            if not stream:  # one JSON body: same fields as the stream's deltas, in "message"
+                raw += r.read()
+                try:
+                    body_out = json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    body_out, bad = {}, 1
+                for ch in body_out.get("choices") or []:
+                    m = ch.get("message") or {}
+                    text.append(m.get("content") or "")
+                    reasoning.append(m.get("reasoning_content") or m.get("reasoning") or "")
+                    for c in ((ch.get("logprobs") or {}).get("content") or []):
+                        tok = c.get("token", "")
+                        ids.append(int(tok.split(":", 1)[1]) if tok.startswith("token_id:") else -1)
+                    finish = ch.get("finish_reason") or finish
+            for line in (r if stream else []):
                 raw += line
                 if not line.startswith(b"data: ") or line.strip() == b"data: [DONE]":
                     continue
@@ -92,15 +111,17 @@ def run(a):
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     temps = [float(t) for t in a.temps.split(",")]
+    streams = {"1": [True], "0": [False], "both": [True, False]}[a.stream]
     with open(out / f"{a.label}.jsonl", "w") as f:
         for c in [int(x) for x in a.conc.split(",")]:
-            jobs = [(i, t) for t in temps for i in range(len(ps))]
+            jobs = [(i, t, st) for st in streams for t in temps for i in range(len(ps))]
             with cf.ThreadPoolExecutor(c) as ex:
-                futs = {ex.submit(one, a.url, key, a.model, ps[i], t, 1000 + i, a.max_tokens): (i, t) for i, t in jobs}
+                futs = {ex.submit(one, a.url, key, a.model, ps[i], t, 1000 + i, a.max_tokens, st, a.top_k, a.top_p):
+                        (i, t, st) for i, t, st in jobs}
                 for fu in cf.as_completed(futs):
-                    i, t = futs[fu]
+                    i, t, st = futs[fu]
                     r = fu.result()
-                    r.update(prompt_idx=i, conc=c, label=a.label, prompt=ps[i][:80], max_tokens=a.max_tokens)
+                    r.update(prompt_idx=i, conc=c, stream=st, label=a.label, prompt=ps[i][:80], max_tokens=a.max_tokens)
                     f.write(json.dumps(r) + "\n")
                     f.flush()
             print(f"{a.label} c={c}: {len(jobs)} requests done", flush=True)
@@ -142,7 +163,7 @@ def compare(a):
             ps.setdefault(r["prompt_idx"], r["prompt"])
         label = rows[0]["label"] if rows else Path(path).stem
         tot, kinds, mism, divpos, examples = 0, {}, 0, [], []
-        by_temp = {}
+        by_temp, by_conc = {}, {}
         for r in rows:
             rf = ref.get(r["prompt_idx"])
             fl = flags(r, rf, r["prompt"])
@@ -151,10 +172,14 @@ def compare(a):
             bt = by_temp.setdefault(r["temp"], [0, 0])
             bt[0] += 1
             bt[1] += bad
+            bc = by_conc.setdefault(r["conc"], [0, 0])
+            bc[0] += 1
+            bc[1] += bad
             for k, v in fl.items():
                 kinds[k] = kinds.get(k, 0) + bool(v)
             if bad and len(examples) < 8:
-                examples.append({"prompt_idx": r["prompt_idx"], "temp": r["temp"], "conc": r["conc"], "flags":
+                examples.append({"prompt_idx": r["prompt_idx"], "temp": r["temp"], "conc": r["conc"],
+                                 "stream": r.get("stream", True), "flags":
                                  [k for k, v in fl.items() if v], "tail": (r["reasoning"] + r["content"])[-160:]})
             if r["temp"] == 0 and rf is not None:
                 n = min(len(r["ids"]), len(rf["ids"]))
@@ -166,6 +191,7 @@ def compare(a):
         divpos.sort()
         print(json.dumps({"config": label, "requests": tot, "corrupt": n_bad, "rate": round(n_bad / max(tot, 1), 4),
                           "by_temp": {str(t): {"n": v[0], "corrupt": v[1]} for t, v in sorted(by_temp.items())},
+                          "by_conc": {str(c): {"n": v[0], "corrupt": v[1]} for c, v in sorted(by_conc.items())},
                           "by_kind": kinds, "t0_token_mismatch": mism,
                           "t0_first_divergence_median": divpos[len(divpos) // 2] if divpos else None,
                           "examples": examples}, ensure_ascii=False))
@@ -184,6 +210,9 @@ def main():
     r.add_argument("--max-tokens", type=int, default=512)
     r.add_argument("--prompts")
     r.add_argument("--n-prompts", type=int, default=38)
+    r.add_argument("--stream", default="1", choices=["1", "0", "both"])
+    r.add_argument("--top-k", type=int)
+    r.add_argument("--top-p", type=float)
     c = sub.add_parser("compare")
     c.add_argument("--ref", required=True)
     c.add_argument("runs", nargs="+")
