@@ -116,6 +116,68 @@ def test_lcpp_op_packed(qt, n, rows, want):
     assert _lcpp_op(n, int(qt), rows, K, True) == want
 
 
+class _Quantizer:
+    """Stands in for torch.ops._C_gguf: records the type the shared quantize
+    runs with."""
+
+    def __init__(self):
+        self.calls = []
+
+    def lcpp_quantize_q8_1(self, x, qt, mmq, vendored):
+        self.calls.append((qt, mmq, vendored))
+        return "filled"
+
+
+def _ids(v):
+    return (
+        "+".join(t.name for t in v)
+        if isinstance(v, list) and v and hasattr(v[0], "name")
+        else str(v)
+    )
+
+
+FILLS = [
+    (4, [T.Q4_K, T.IQ2_XS], [2048, BIG], T.Q4_K),  # the first run that reads q8_1
+    (8, [T.Q4_K], [BIG], T.Q4_K),  # the Q4_K kernel reads it at 8 rows
+    (8, [T.Q4_K], [2048], None),  # MMQ quantizes for itself
+    (8, [T.IQ4_XS, T.Q4_K], [BIG, BIG], T.Q4_K),  # MMQ beside the Q4_K kernel
+    (8, [T.Q4_K, T.IQ3_S], [2048, BIG], T.IQ3_S),  # MMQ beside the IQ3 mma kernel
+    (9, [T.IQ3_S, T.Q4_K], [BIG, BIG], None),  # MMQ and mma_k quantize for themselves
+    (0, [T.IQ3_S], [BIG], None),  # no rows: nothing to quantize
+]
+
+
+@pytest.mark.parametrize("n,types,rows,want", FILLS, ids=_ids)
+def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want, packed=False):
+    """apply()'s shared quantize runs (once, MMVQ layout) iff some run's op
+    reads q8_1; else it returns an unfilled buffer of the q8_1 size that
+    nothing reads."""
+    import torch
+
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    q = _Quantizer()
+    monkeypatch.setattr(torch.ops, "_C_gguf", q, raising=False)
+    x = torch.zeros(n, 512, dtype=torch.bfloat16)
+    out = _quantize_x_q8_1(x, [int(t) for t in types], rows, packed)
+    if want is None:
+        assert q.calls == [] and out.dtype == torch.uint8
+        assert out.numel() == n * 512 // 32 * 36
+    else:
+        assert q.calls == [(int(want), False, False)] and out == "filled"
+
+
+PACKED_FILLS = [
+    (4, [T.IQ3_S, T.Q4_K], [BIG, BIG], T.IQ3_S),  # the packed mma kernel reads it
+    (9, [T.IQ3_XXS, T.Q4_K], [BIG, BIG], None),  # tiled + mma_k
+]
+
+
+@pytest.mark.parametrize("n,types,rows,want", PACKED_FILLS, ids=_ids)
+def test_quantize_x_q8_1_fills_packed(monkeypatch, n, types, rows, want):
+    test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want, packed=True)
+
+
 def test_fused_mul_mat_gguf_zero_rows():
     """0 activation rows return an empty [0, rows] result before any routing."""
     import torch

@@ -175,7 +175,7 @@ def test_gguf_linear_same_type_shards_skip_concat(monkeypatch):
     assert isinstance(layer.weight, torch.nn.Parameter)
     calls: list[tuple[tuple[int, ...], int]] = []
 
-    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False):
+    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False, x_q8=None):
         calls.append((tuple(weight.shape), weight_type, packed))
         return torch.zeros(
             (x.shape[0], weight.shape[0]), dtype=x.dtype, device=x.device
@@ -237,7 +237,7 @@ def test_gguf_linear_packs_iq3_under_lcpp(monkeypatch):
     assert torch.equal(packed.weight.data, iq3_pack.pack(torch.cat(shards), 21))
     calls = []
 
-    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False):
+    def fake_fused_mul_mat_gguf(x, weight, weight_type, packed=False, x_q8=None):
         calls.append((tuple(weight.shape), weight_type, packed))
         return torch.zeros((x.shape[0], weight.shape[0]), dtype=x.dtype)
 

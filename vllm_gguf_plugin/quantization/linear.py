@@ -41,6 +41,9 @@ _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
 # Packed IQ3: lcpp_mul_mat_vec_iq3_mma_packed up to this many rows,
 # lcpp_mul_mat_iq3_packed above.
 PACKED_VEC_MAX_ROWS = 8
+# lcpp ops that quantize X themselves (MMQ's layout); the others read q8_1
+# blocks, which apply() may share between the products of one layer (x_q8).
+_OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed")
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -82,8 +85,11 @@ def _fused_mul_mat_gguf(
     weight: torch.Tensor,
     weight_type: int,
     packed: bool = False,
+    x_q8: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """x @ weight.T. packed: see _lcpp_op."""
+    """x @ weight.T. packed: see _lcpp_op. x_q8: x already quantized by
+    _quantize_x_q8_1 for this product and others on the same x; used if this
+    product reads q8_1."""
     if weight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if weight.shape[0] > 5120 else 16
     else:
@@ -95,7 +101,9 @@ def _fused_mul_mat_gguf(
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
         name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
         op = getattr(torch.ops._C_gguf, name)
-        return op(weight, x, weight_type, weight.shape[0])
+        if name in _OWN_QUANTIZE_OPS:
+            return op(weight, x, weight_type, weight.shape[0])
+        return op(weight, x, weight_type, weight.shape[0], x_q8)
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
         y = ops.ggml_mul_mat_vec_a8(weight, x, weight_type, weight.shape[0])
     elif weight_type in MMQ_QUANT_TYPES:
@@ -141,13 +149,49 @@ def _shard_runs(weight: torch.Tensor, shard_ids: list, weight_types: list[int]):
         yield _shard_weight(weight, start, offsets[ids[-1]][1], size), weight_type
 
 
+def _quantize_x_q8_1(
+    x: torch.Tensor,
+    weight_types: list[int],
+    weight_rows: list[int],
+    packed: bool = False,
+) -> torch.Tensor:
+    """x as q8_1 blocks, quantized once for all products on x of weights with
+    these types and row counts (packed: see _lcpp_op) that read q8_1 (the same
+    bytes each would make). When none of them does (MMQ and the other
+    _OWN_QUANTIZE_OPS quantize x themselves, in MMQ's layout), an unfilled
+    buffer of the same shape: no product reads it."""
+    n, k = x.shape
+    q8_1 = [
+        t
+        for t, rows in zip(weight_types, weight_rows)
+        if t in ops.LCPP_QUANT_TYPES
+        and _lcpp_op(n, t, rows, k, packed) not in _OWN_QUANTIZE_OPS
+    ]
+    if n and q8_1:
+        return torch.ops._C_gguf.lcpp_quantize_q8_1(x, q8_1[0], False, False)
+    return _quantize_x_q8_1_fake(x, weight_types, weight_rows)
+
+
 def _fused_mul_mat_gguf_fake(
     x: torch.Tensor,
     weight: torch.Tensor,
     weight_type: int,
     packed: bool = False,
+    x_q8: torch.Tensor | None = None,
 ) -> torch.Tensor:
     return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
+
+
+def _quantize_x_q8_1_fake(
+    x: torch.Tensor,
+    weight_types: list[int],
+    weight_rows: list[int],
+    packed: bool = False,
+) -> torch.Tensor:
+    # block_q8_1: 32 int8 values + a half2 (scale, sum) = 36 bytes
+    return torch.empty(
+        x.shape[0] * x.shape[1] // 32 * 36, dtype=torch.uint8, device=x.device
+    )
 
 
 try:
@@ -156,7 +200,13 @@ try:
         op_func=_fused_mul_mat_gguf,
         fake_impl=_fused_mul_mat_gguf_fake,
     )
+    direct_register_custom_op(
+        op_name="_quantize_x_q8_1",
+        op_func=_quantize_x_q8_1,
+        fake_impl=_quantize_x_q8_1_fake,
+    )
     fused_mul_mat_gguf = torch.ops.vllm._fused_mul_mat_gguf
+    quantize_x_q8_1 = torch.ops.vllm._quantize_x_q8_1
 except AttributeError as error:
     raise error
 
@@ -375,12 +425,18 @@ class GGUFLinearMethod(LinearMethodBase):
                 if bias is not None:
                     out.add_(bias)
                 return out
+            runs = list(_shard_runs(weight, shard_id, shard_weight_types))
+            # lcpp: the runs share one q8_1 quantization of x (the cat stays
+            # outside the ops, where inductor folds it into a following split)
+            x_q8 = (
+                quantize_x_q8_1(
+                    x, [t for _, t in runs], [w.shape[0] for w, _ in runs], packed
+                )
+                if ops.LCPP_ENABLED
+                else None
+            )
             out = torch.cat(
-                [
-                    fused_mul_mat_gguf_op(x, w, t, packed)
-                    for w, t in _shard_runs(weight, shard_id, shard_weight_types)
-                ],
-                axis=1,
+                [fused_mul_mat_gguf_op(x, w, t, packed, x_q8) for w, t in runs], axis=1
             )
         else:
             weight = layer.weight
