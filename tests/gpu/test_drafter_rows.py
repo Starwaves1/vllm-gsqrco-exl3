@@ -9,7 +9,7 @@ Targets are the drafter's real weights, routed as in production (`linear._fused_
     ffn_gate, ffn_down,
   - the target lm_head (Q4_K, 248,320 rows) at the verify rows the schedule makes (k=2 at 9..10
     requests: 27, 30; k=3 at 5..8: 20..32), mma_k too.
-Per (target, n): the n real rows (hidden-state-like bf16) are padded to the next capture size with
+Per (target, n), drafter tensors and one target tensor per quant type at 9..48 rows: the n real rows (hidden-state-like bf16) are padded to the next capture size with
 NaN / inf / bf16-max / stale-random rows. Checked: real rows finite, identical to the same rows with
 zero padding (rows are independent: nothing may leak across activation columns), within LOOSE_XSUM
 of the dequantized fp32 product, and the same under CUDA-graph capture + replay with new real rows.
@@ -75,7 +75,7 @@ def _weight(gguf_reader, target):
             ids = torch.load(ids_path, map_location="cpu", weights_only=True).numpy()
             raw = raw[ids]
     else:
-        t = by[f"blk.64.{target}.weight"]
+        t = by[f"{target}.weight" if target.startswith("blk.") else f"blk.64.{target}.weight"]
         raw = np.asarray(t.data)
     qt = int(gguf.GGMLQuantizationType[t.tensor_type.name])
     w = torch.from_numpy(np.ascontiguousarray(raw)).cuda()
@@ -84,9 +84,15 @@ def _weight(gguf_reader, target):
     return _W[target]
 
 
-CASES = ([("draft_head", n) for n in range(9, 17)]
-         + [(t, n) for t in ("nextn.eh_proj", "attn_q", "attn_output", "ffn_gate", "ffn_down") for n in (9, 12, 16)]
-         + [("lm_head", n) for n in (20, 24, 27, 30, 32)])
+# 9..16 requests at k=2: target verify and padded first draft pass = 3 rows per request (27..48),
+# draft loop pass = 1 row per request (9..16)
+CASES = ([("draft_head", n) for n in list(range(9, 17)) + [27, 30, 33, 36, 39, 42, 45, 48]]
+         + [(t, n) for t in ("nextn.eh_proj", "attn_q", "attn_output", "ffn_gate", "ffn_down") for n in (9, 12, 16, 27, 33, 48)]
+         + [("lm_head", n) for n in (20, 24, 27, 30, 32, 33, 36, 39, 42, 45, 48)]
+         # one target tensor per quant type (routes: packed IQ3 tiled, mma_k, MMQ, IQ1_M chunked MMVQ)
+         + [(t, n) for t in ("blk.1.ffn_down", "blk.2.ffn_gate", "blk.0.attn_qkv", "blk.1.ssm_out", "blk.0.ffn_down",
+                             "blk.0.ffn_gate", "blk.0.ffn_up", "blk.7.attn_q", "blk.13.ffn_gate")
+            for n in (9, 16, 27, 33, 48)])
 
 
 @pytest.mark.parametrize("target,n", CASES, ids=[f"{t}-{n}" for t, n in CASES])
@@ -99,10 +105,15 @@ def test_drafter_rows_padding(gguf_reader, target, n):
     if not ops.LCPP_ENABLED:
         pytest.skip("needs VLLM_GGUF_LCPP=1")
     w, qt, k = _weight(gguf_reader, target)
+    W0 = w
     rows = w.shape[0]
     total = _padded_size(n)
-    route = linear._lcpp_op(total, qt, rows, k)
-    f = lambda x: linear._fused_mul_mat_gguf(x, w, qt)  # noqa: E731
+    packed = False
+    if qt in (int(linear.WeightType.IQ3_S), int(linear.WeightType.IQ3_XXS)) and rows % 16 == 0:
+        from vllm_gguf_plugin.quantization import iq3_pack  # the model's IQ3 layers run packed
+        w, packed = iq3_pack.pack(w, qt), True
+    route = linear._lcpp_op(total, qt, rows, k, packed)
+    f = lambda x: linear._fused_mul_mat_gguf(x, w, qt, None, packed)  # noqa: E731
 
     x = _x(n, k, seed=1000 + n).cuda()
     clean = f(_pad(x.cpu(), total, "zero", n).cuda())[:n].clone()
@@ -112,7 +123,8 @@ def test_drafter_rows_padding(gguf_reader, target, n):
     num = den = 0.0
     for r0 in range(0, rows, 32768):
         r1 = min(rows, r0 + 32768)
-        ref = x.float() @ ops.ggml_dequantize(w[r0:r1], qt, r1 - r0, k, torch.float32).T
+        wd = W0[r0:r1] if packed else w[r0:r1]
+        ref = x.float() @ ops.ggml_dequantize(wd, qt, r1 - r0, k, torch.float32).T
         num += (clean[:, r0:r1].float() - ref).pow(2).sum(-1)
         den += ref.pow(2).sum(-1)
     err = float((num.sqrt() / den.sqrt()).max())
