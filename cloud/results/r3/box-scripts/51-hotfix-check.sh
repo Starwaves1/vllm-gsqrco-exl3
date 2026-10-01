@@ -8,13 +8,16 @@
 #      fixed one (must pass)
 #   2. the whole tests/gpu/test_kernel_parity.py with VLLM_GGUF_LCPP=1 on the fixed plugin (parity rerun)
 #   3. 50-plp-repro on the fixed plugin (servers: GSQ and stock W4A16), logs in 50-plp-repro-fixed
+#   4. the same with vLLM's prompt logprobs computed in bounded row passes
+#      (patches/prompt-logprobs-chunked.patch on an overlay copy of venv-main; a proposal: stock
+#      W4A16 also dies at 512 prompt tokens), logs in 50-plp-repro-fixed-vllmpatch
 # Output: /workspace/logs/r3/51-hotfix-check/{summary.txt, *.log}
-# GPU time: ~35 min.
+# GPU time: ~45 min.
 #   bash 51-hotfix-check.sh [--plan]
 source "$(dirname "$0")/lib.sh"
 R3_BUILT_WT=${R3_BUILT_WT:-/workspace/wt-gsq-32ae6ec}
 r3_init 51-hotfix-check "$@"
-if [ $R3_PLAN = 1 ]; then sed -n '2,15p' "$0"; exit 0; fi
+if [ $R3_PLAN = 1 ]; then sed -n '2,18p' "$0"; exit 0; fi
 r3_step "copy the built .so"
 base=$(git -C "$R3_BUILT_WT" rev-parse HEAD)
 git -C "$R3_WT" diff --quiet "$base" HEAD -- plugin/vllm_gguf_plugin/csrc plugin/setup.py \
@@ -43,6 +46,13 @@ r3_step "parity, fixed"
 t parity-fixed "$R3_WT" tests/gpu/test_kernel_parity.py || r3_die "kernel parity fails on the fixed plugin"
 r3_step "repro on the fixed plugin"
 ( R3_TAG=fixed R3_PLUGIN_WT=$R3_WT bash "$R3_S/50-plp-repro.sh" ) > "$L/repro-fixed.log" 2>&1
-r3_summary "repro on fixed plugin: rc=$? (see $R3_LOGS/50-plp-repro-fixed/summary.txt)" \
+r3_summary "repro on fixed plugin, stock vLLM: rc=$? (see $R3_LOGS/50-plp-repro-fixed/summary.txt)" \
   "$(cut -c1-300 "$R3_LOGS/50-plp-repro-fixed/summary.txt" 2>/dev/null | head -40)"
+r3_step "repro on the fixed plugin + vLLM prompt-logprobs chunking (overlay venv, proposal)"
+bash "$R3_S/overlay-venv.sh" /workspace/venv-r3-plp "$R3_S/../patches/prompt-logprobs-chunked.patch" > "$L/overlay-plp.log" 2>&1 \
+  || r3_die "overlay venv for prompt-logprobs-chunked.patch"
+( R3_TAG=fixed-vllmpatch R3_PLUGIN_WT=$R3_WT GSQ_VENV_OVERRIDE=/workspace/venv-r3-plp bash "$R3_S/50-plp-repro.sh" ) \
+  > "$L/repro-fixed-vllmpatch.log" 2>&1
+r3_summary "repro on fixed plugin + vLLM patch: rc=$? (see $R3_LOGS/50-plp-repro-fixed-vllmpatch/summary.txt)" \
+  "$(cut -c1-300 "$R3_LOGS/50-plp-repro-fixed-vllmpatch/summary.txt" 2>/dev/null | head -40)"
 cat "$L/summary.txt"

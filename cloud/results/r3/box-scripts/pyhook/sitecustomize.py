@@ -249,3 +249,76 @@ if os.environ.get("R3_NANCHECK"):
             return spec
 
     sys.meta_path.insert(0, _NanFinder())
+
+if os.environ.get("R3_NANTRACE"):
+    # Debug only (eager servers): every GGUF linear call while the arm file exists -> one JSON
+    # line: layer, rows, weight type(s), route, input/output absmax and NaN/inf counts; the
+    # first call whose output has NaN/inf from a finite input also saves its x and weight.
+    import functools as _ft2
+    import importlib.abc as _iabc2
+    import json as _json2
+
+    _NT_OUT = os.environ["R3_NANTRACE"]
+    _NT_ARM = _NT_OUT + ".arm"
+    _NT_SAVED = {"done": False}
+
+    def _nt_wrap(fn, kind):
+        @_ft2.wraps(fn)
+        def apply(self, layer, x, *a, **k):
+            out = fn(self, layer, x, *a, **k)
+            if not os.path.exists(_NT_ARM):
+                return out
+            try:
+                import torch
+                xf, of = x.float(), out.float()
+                rec = {"kind": kind, "layer": getattr(layer, "prefix", "?"), "n": int(x.shape[0]),
+                       "K": int(x.shape[-1]), "rows": int(out.shape[-1]),
+                       "x_absmax": float(xf.abs().nan_to_num(posinf=3e38).max()) if x.numel() else 0.0,
+                       "x_bad": int((~torch.isfinite(xf)).sum()), "out_bad": int((~torch.isfinite(of)).sum()),
+                       "out_absmax": float(of.abs().nan_to_num(posinf=3e38).max()) if out.numel() else 0.0}
+                wt = getattr(layer, "weight_type", None)
+                if wt is not None:
+                    rec["wtype"] = int(wt.weight_type)
+                    rec["shard_types"] = {str(kk): int(v) for kk, v in getattr(wt, "shard_weight_type", {}).items()}
+                if rec["out_bad"]:
+                    rows_bad = (~torch.isfinite(of)).any(-1).nonzero().flatten()[:16].tolist()
+                    rec["bad_rows"] = rows_bad
+                    if not rec["x_bad"] and not _NT_SAVED["done"]:
+                        _NT_SAVED["done"] = True
+                        torch.save({"x": x.detach().cpu(), "w": layer.weight.detach().cpu(), "rec": rec,
+                                    "packed": bool(getattr(layer.weight, "iq3_packed", False))},
+                                   _NT_OUT + ".first.pt")
+                        rec["saved"] = _NT_OUT + ".first.pt"
+                with open(_NT_OUT, "a") as f:
+                    f.write(_json2.dumps(rec) + "\n")
+            except Exception as e:  # noqa: BLE001
+                with open(_NT_OUT, "a") as f:
+                    f.write(_json2.dumps({"hook_error": repr(e)}) + "\n")
+            return out
+        apply.__r3__ = True
+        return apply
+
+    class _NtFinder(_iabc2.MetaPathFinder):
+        def find_spec(self, fullname, path, target=None):
+            if fullname != "vllm_gguf_plugin.quantization.linear":
+                return None
+            for f in sys.meta_path:
+                if f is self or not hasattr(f, "find_spec"):
+                    continue
+                spec = f.find_spec(fullname, path, target)
+                if spec is not None:
+                    break
+            else:
+                return None
+            orig = spec.loader.exec_module
+
+            def exec_module(module, _orig=orig):
+                _orig(module)
+                for cname, kind in (("GGUFLinearMethod", "gguf"), ("GGUFUnquantizedLinearMethod", "unquant")):
+                    cls = getattr(module, cname, None)
+                    if cls is not None and not getattr(cls.apply, "__r3__", False):
+                        cls.apply = _nt_wrap(cls.apply, kind)
+            spec.loader.exec_module = exec_module
+            return spec
+
+    sys.meta_path.insert(0, _NtFinder())
