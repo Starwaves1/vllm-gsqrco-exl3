@@ -18,6 +18,17 @@ sys.path.insert(0, os.path.join(ROOT, "plugin-exl3"))
 MUL1 = 0x83DCD12D
 
 
+@pytest.fixture(autouse=True)
+def _phase1_routing(monkeypatch):
+    """Phase 1's table (EXL3_MR=0, the hook from 17 rows): this file pins it; the multi-row
+    defaults (EXL3_MR=2) are tests/cpu/test_exl3_mr.py's."""
+    from vllm_exl3_plugin import ops
+
+    monkeypatch.setattr(ops, "MR_MODE", 0)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
+    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
+
+
 @pytest.fixture
 def method(monkeypatch):
     from vllm_exl3_plugin.format import EXL3QuantConfig

@@ -31,19 +31,21 @@ WIDTH = {2: 32, 3: 48, 4: 64, 5: 80, 6: 96}  # tile width 16*K
 def mr_mode(monkeypatch):
     from vllm_exl3_plugin import ops
 
-    def set_mode(mode):
+    def set_mode(mode, mr_min=17):  # 17: the boundary tables below; the default (1) has its own test
         monkeypatch.setattr(ops, "MR_MODE", mode)
         monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP if mode else None)
+        monkeypatch.setattr(ops, "MULTI_ROW_MIN", mr_min)
         return ops
     return set_mode
 
 
-def test_default_is_off():
-    """Without EXL3_MR the phase-1 table holds (the test environment does not set it)."""
+def test_defaults():
+    """Without the environment: EXL3_MR=2, K3/K5 from 1 row, glue and host embedding off."""
     from vllm_exl3_plugin import ops
 
-    assert os.environ.get("EXL3_MR") is None
-    assert ops.MR_MODE == 0 and ops.MULTI_ROW_OP is None
+    assert os.environ.get("EXL3_MR") is None and os.environ.get("EXL3_MR_MIN") is None
+    assert ops.MR_MODE == 2 and ops.MULTI_ROW_OP == ops.MR_OP and ops.MULTI_ROW_MIN == 1
+    assert not ops.MR_GLUE and not ops.EMBED_HOST
 
 
 # rows -> route, for a stored K3/K5 tensor (mr_ok) under EXL3_MR=1 or 2
@@ -69,6 +71,13 @@ def test_routing_table(mr_mode, mode, bits):
     assert ops._exl3_op(1024, mr_ok, repacked) == RECON_HAD
 
 
+def test_default_min_row(mr_mode):
+    """EXL3_MR_MIN default 1: stored K3/K5 on exl3_gemm_mr at every row count to 384."""
+    ops = mr_mode(2, mr_min=1)
+    assert [ops._exl3_op(n, True, False) for n in (1, 6, 16, 17, 384, 385)] == [MR] * 5 + [RECON]
+    assert [ops._exl3_op(n, False, False) for n in (1, 16, 144, 145)] == [GEMM, GEMM, GEMM, RECON]
+
+
 @pytest.mark.parametrize("width,mul1,takes,repacks", [
     (32, True, False, False), (48, True, True, False), (64, True, False, True),
     (80, True, True, False), (96, True, False, False), (56, True, False, False),
@@ -90,14 +99,15 @@ def test_capture_sizes_never_dequant(mr_mode, mode):
 
 
 @pytest.mark.parametrize("value,want", [("0", "None 0"), ("1", "exl3_gemm_mr 1"), ("2", "exl3_gemm_mr 2"),
-                                        ("3", "ValueError")])
+                                        ("3", "ValueError"), (None, "exl3_gemm_mr 2")])
 def test_env(value, want):
     code = ("import sys; sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2]); import no_gpu\n"
             "try:\n    from vllm_exl3_plugin import ops\nexcept ValueError:\n    print('ValueError'); raise SystemExit\n"
             "print(ops.MULTI_ROW_OP, ops.MR_MODE)")
     p = subprocess.run([sys.executable, "-c", code, os.path.join(ROOT, "plugin-exl3"), os.path.join(ROOT, "tools")],
                        capture_output=True, text=True, timeout=300,
-                       env=dict(os.environ, EXL3_MR=value, CUDA_VISIBLE_DEVICES=""))
+                       env={k: v for k, v in dict(os.environ, EXL3_MR=value or "", CUDA_VISIBLE_DEVICES="").items()
+                            if not (k == "EXL3_MR" and value is None)})
     assert p.stdout.strip().splitlines()[-1:] == [want], p.stderr[-2000:]
 
 

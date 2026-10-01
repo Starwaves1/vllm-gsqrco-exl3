@@ -14,6 +14,16 @@ import pytest  # noqa: E402
 import exl3_cases as C  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _phase1_routing(monkeypatch):
+    """Phase 1's table (EXL3_MR=0): the GPU case table is phase 1's; EXL3_MR is test_exl3_mr.py's."""
+    from vllm_exl3_plugin import ops
+
+    monkeypatch.setattr(ops, "MR_MODE", 0)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
+    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
+
+
 @pytest.mark.parametrize("ckpt", list(C.CHECKPOINTS))
 def test_case_tensors_match_checkpoint(ckpt):
     hf = os.path.join(ROOT, "hf-config", ckpt)

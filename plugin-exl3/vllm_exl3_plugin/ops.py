@@ -18,12 +18,12 @@ Routing (`_exl3_op`, pinned by tests/cpu/test_exl3_routing.py), n = activation r
 | >= 1024      | recon_had_hgemm      | original-basis dequant (Hadamards folded in), hgemm     |
 
 The multi-row kernel is trellis-serve's Marlin-EXL3 (csrc/trellis_serve, op exl3_gemm_mr,
-_C_exl3_mr), switched by EXL3_MR (read once at import; default 0 = the phase-1 table):
+_C_exl3_mr), switched by EXL3_MR (read once at import; default 2; 0 = the phase-1 table):
 
 | EXL3_MR | tensors on exl3_gemm_mr | rows | layout |
 |---------|--------------------------|------|--------|
 | 0       | none                     |      |        |
-| 1       | K3, K5 (mul1)            | 17..384 | the stored int16 trellis, read as int32 (no copy) |
+| 1       | K3, K5 (mul1)            | EXL3_MR_MIN (default 1)..384 | the stored int16 trellis, read as int32 (no copy) |
 | 2       | 1, plus K4 (mul1)        | K4: 1..384 | exl3_mr_repack at load: lossless word permutation, the only resident copy; unpacked per call above 384 rows |
 
 K2, K6 and other codebooks stay on exl3_gemm. A repacked (int32) trellis is routed by its
@@ -64,7 +64,8 @@ RECON_SLICE_N = 32768  # MAX_RECONSTRUCT_SLICE_N: dequant at most this many colu
 # rows for the tensors it takes. None: those rows stay on the vendored exl3_gemm, which
 # re-streams the weight once per 16 rows. EXL3_MR (table above) sets it to exl3_gemm_mr,
 # which is accepted only after 10-mr-parity (cloud/results/exl3-opt/box-scripts).
-MR_MODE = int(os.environ.get("EXL3_MR", "0"))
+# default 2 (job 12, pass 2 T=0, c=1/2/4/8: 33.7/38.9/52.0/52.4 ms/step vs 39.9/43.0/69.9/72.1 at 0)
+MR_MODE = int(os.environ.get("EXL3_MR", "2"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
@@ -73,11 +74,12 @@ MR_OP = "exl3_gemm_mr"
 # fp32 round trip out. Same bits.
 MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "0") == "1"
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
-# EXL3_MR_MIN (A/B while measured): the first row count K3/K5 take exl3_gemm_mr at (default 17)
+# EXL3_MR_MIN: the first row count K3/K5 take exl3_gemm_mr at; default 1 (job 12: from 17 rows
+# instead costs +3.4 ms/step at c=1, +1.5 at c=2; job 11: mr beats exl3_gemm at 1..16 rows too)
 # MULTI_ROW_MAX: past exllamav3's 144 the multi-row kernel still beats the dequant route; job 11
 # (3090, erlidev, model sum over every eligible tensor): 192 rows 170 vs 280 ms, 256: 221 vs 299,
 # 384: 326 vs 354, 512: 435 vs 424. So to 384 (K2, the one class it cannot take, keeps 144).
-MULTI_ROW_MIN, MULTI_ROW_MAX = int(os.environ.get("EXL3_MR_MIN", "17")), 384
+MULTI_ROW_MIN, MULTI_ROW_MAX = int(os.environ.get("EXL3_MR_MIN", "1")), 384
 MR_TILE_WIDTHS = (48, 80)  # K3, K5: exl3_gemm_mr reads the stored trellis
 MR_REPACK_TILE_WIDTH = 64  # K4: exl3_mr_repack first (EXL3_MR=2)
 

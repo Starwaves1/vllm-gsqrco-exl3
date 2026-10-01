@@ -57,6 +57,8 @@ def ops():
 
     if not o.OPS_AVAILABLE:
         pytest.skip("_C_exl3 not built (VLLM_EXL3_BUILD=1)")
+    # phase 1's routes (EXL3_MR=0); the multi-row kernel is test_exl3_mr.py's
+    o.MR_MODE, o.MULTI_ROW_OP, o.MULTI_ROW_MIN = 0, None, 17
     torch.manual_seed(0)
     return o
 
