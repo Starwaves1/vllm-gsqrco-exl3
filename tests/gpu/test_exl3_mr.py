@@ -168,6 +168,7 @@ def test_routing_mr1(ops, monkeypatch, tid, m):
 
     monkeypatch.setattr(ops, "MR_MODE", 1)
     monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP)
+    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)  # the 16/17 boundary (default EXL3_MR_MIN is 1)
     w = weights(tid)
     x = C.make_x(torch, tid, m)
     args = (w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
