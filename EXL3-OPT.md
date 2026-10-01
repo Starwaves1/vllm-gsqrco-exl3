@@ -46,12 +46,15 @@ embedding; all three are the defaults now (a and g as constants):
 | 2 (K3/K5 from 17) | 77.0, 37.0 | 145.1, 40.4 | 226.5, 51.9 | 411.5, 52.7 | 0.394 |
 | 2a (K3/K5 from 1) | 85.7, 33.7 | 155.8, 38.9 | 226.0, 52.0 | 409.2, 52.4 | 0.390 |
 | 2ga (+ glue) | 89.1, 33.1 | 148.5, 38.4 | 216.2, 51.3 | 397.4, 51.9 | |
-| **2gah (+ host embedding) = defaults** | **90.4, 33.2** | **151.9, 38.5** | **234.5, 51.3** | **408.4, 51.7** | |
+| 2gah (+ host embedding) | 90.4, 33.2 | 151.9, 38.5 | 234.5, 51.3 | 408.4, 51.7 | |
+| **2gahc (+ 128x128 at 17..64 rows) = defaults** | **88.8, 33.2** | **149.7, 38.3** | **232.3, 50.8** | **416.2, 50.7** | |
 | GGUF Integration-2 | 27.9 | 31.6 | 35.7 | 44.2 | |
 | prod W4A16 | 27.6 | 27.3 | 30.0 | 41.3 | |
 
-Defaults vs EXL3_MR=0: -6.7 / -4.6 / -18.5 / -20.4 ms/step, almost all of it from the multi-row
-kernel (2a). Glue (2a -> 2ga) and the host embedding (2ga -> 2gah) move ms/step by less than the
+Defaults (2gahc) vs EXL3_MR=0: -6.7 / -4.7 / -19.1 / -21.3 ms/step, almost all of it from the
+multi-row kernel (2a); the forced config adds -0.5 / -1.0 at c=4/8. The review fixes after it
+(host embedding by registration id, n >= 2048 for the forced config, the lm_head route above 384
+rows) were not laddered: jobs 10 and 14 re-validate them, queued behind phase 1's 04/05. Glue (2a -> 2ga) and the host embedding (2ga -> 2gah) move ms/step by less than the
 run-to-run spread (pass 1 vs pass 2 of one server differ by up to 0.7 ms; T=0 tok/step varies
 2.77-3.03 between modes with identical numerics): no measurable cost or gain; the host embedding
 is kept for the fit, glue because it removes launches at the same bits. Still 5.6-21 ms/step
