@@ -151,7 +151,13 @@ r3_apply_mut() {
 
 r3_build_argv() {
   gsq_load_prod_argv
-  gsq_rewrite_argv "$GSQ_GGUF" --hf-config-path "$GSQ_HF_CONFIG" --tokenizer "$GSQ_HF_CONFIG"
+  if [ "${R3_MODEL_KIND:-gsq}" = baseline ]; then  # production's previous W4A16 (-fast), stock vLLM path
+    gsq_rewrite_argv "$GSQ_BASELINE_MODEL"
+    export VLLM_PLUGINS=$GSQ_PLUGINS_OFF
+  else
+    gsq_rewrite_argv "$GSQ_GGUF" --hf-config-path "$GSQ_HF_CONFIG" --tokenizer "$GSQ_HF_CONFIG"
+    export VLLM_PLUGINS=$GSQ_PLUGINS_ON
+  fi
   r3_apply_mut
 }
 
