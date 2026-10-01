@@ -199,7 +199,7 @@ if os.environ.get("R3_NANCHECK"):
                 n = int(hidden_states.shape[0])
                 hn = int(torch.isnan(hidden_states).sum())
                 ln = int(torch.isnan(out).sum()) if out is not None else -1
-                if hn or ln or n > 64:
+                if hn or ln or (n > 64 and not os.environ.get("R3_NANCHECK_NAN_ONLY")):
                     rows = []
                     if out is not None and ln:
                         rows = torch.isnan(out).any(dim=-1).nonzero().flatten()[:16].tolist()
