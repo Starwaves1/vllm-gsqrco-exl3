@@ -41,18 +41,76 @@ if _should_build_extension():
         # hipcc (ROCm 7.x) rejects nvcc-only flags like --use_fast_math.
         nvcc_args.insert(2, "--use_fast_math")
 
+    sources = [
+        "vllm_gguf_plugin/csrc/torch_bindings.cpp",
+        "vllm_gguf_plugin/csrc/gguf/gguf_kernel.cu",
+    ]
+    include_dirs = [
+        "vllm_gguf_plugin/csrc",
+        "vllm_gguf_plugin/csrc/gguf",
+    ]
+    # llama.cpp b11211 MMVQ/MMQ (csrc/lcpp, vendored unmodified) behind
+    # csrc/lcpp_shim.cu: the lcpp_* ops. Opt-in; the default build is unchanged.
+    if os.environ.get("VLLM_GGUF_BUILD_LCPP") == "1" and not is_rocm:
+        lcpp = pathlib.Path("vllm_gguf_plugin/csrc/lcpp").resolve()
+        cuda = lcpp / "ggml/src/ggml-cuda"
+        # setup() needs relative sources
+        cuda_rel = "vllm_gguf_plugin/csrc/lcpp/ggml/src/ggml-cuda"
+        sources += (
+            [
+                "vllm_gguf_plugin/csrc/lcpp_shim.cu",
+            ]
+            + [f"{cuda_rel}/{f}" for f in ["mmvq.cu", "quantize.cu"]]
+            + [
+                f"{cuda_rel}/template-instances/mmq-instance-{t}.cu"
+                for t in [
+                    "iq2_s",
+                    "iq2_xs",
+                    "iq2_xxs",
+                    "iq3_s",
+                    "iq3_xxs",
+                    "iq4_xs",
+                    "q2_k",
+                    "q4_k",
+                    "q6_k",
+                ]
+            ]
+        )
+        # lcpp dirs first: csrc/gguf has its own (older) ggml-common.h etc.
+        # gguf_kernel.cu still gets its own via quoted same-directory lookup.
+        # Absolute: torch's ninja build runs from build/temp*.
+        include_dirs = [
+            str(lcpp / "ggml/include"),
+            str(lcpp / "ggml/src"),
+            str(cuda),
+        ] + [str(pathlib.Path(d).resolve()) for d in include_dirs]
+        nvcc_args += [
+            "-DNDEBUG",
+            "--extended-lambda",
+            # llama.cpp needs the native half/bf16 operators torch disables.
+            "-U__CUDA_NO_HALF_OPERATORS__",
+            "-U__CUDA_NO_HALF_CONVERSIONS__",
+            "-U__CUDA_NO_HALF2_OPERATORS__",
+            "-U__CUDA_NO_BFLOAT16_CONVERSIONS__",
+        ]
+        # vendors/cuda.h includes cublas_v2.h (declarations only, never linked);
+        # a pip-only toolkit may lack it, so fall back to the nvidia wheel's.
+        try:
+            import nvidia
+
+            for base in nvidia.__path__:
+                for inc in sorted(pathlib.Path(base).glob("*/include")):
+                    if (inc / "cublas_v2.h").exists():
+                        nvcc_args += ["-Xcompiler", f"-idirafter,{inc}"]
+        except ImportError:
+            pass
+
     setup_kwargs.update(
         ext_modules=[
             CUDAExtension(
                 name="vllm_gguf_plugin._C_gguf",
-                sources=[
-                    "vllm_gguf_plugin/csrc/torch_bindings.cpp",
-                    "vllm_gguf_plugin/csrc/gguf/gguf_kernel.cu",
-                ],
-                include_dirs=[
-                    "vllm_gguf_plugin/csrc",
-                    "vllm_gguf_plugin/csrc/gguf",
-                ],
+                sources=sources,
+                include_dirs=include_dirs,
                 py_limited_api=True,
                 extra_compile_args={
                     "cxx": ["-O3", "-std=c++17"],

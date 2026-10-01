@@ -90,6 +90,30 @@ _CUDA_GEMM_QUANT_TYPES = frozenset(
 )
 
 
+# Opt-in (VLLM_GGUF_LCPP=1): llama.cpp b11211 MMVQ/MMQ via csrc/lcpp_shim.cu for
+# these types. Needs the extension built with VLLM_GGUF_BUILD_LCPP=1.
+LCPP_ENABLED = os.environ.get("VLLM_GGUF_LCPP") == "1"
+LCPP_QUANT_TYPES = frozenset(
+    {
+        GGML_TYPE_Q2_K,
+        GGML_TYPE_Q4_K,
+        GGML_TYPE_Q6_K,
+        GGML_TYPE_IQ2_XXS,
+        GGML_TYPE_IQ2_XS,
+        GGML_TYPE_IQ2_S,
+        GGML_TYPE_IQ3_XXS,
+        GGML_TYPE_IQ3_S,
+        GGML_TYPE_IQ4_XS,
+    }
+)
+if LCPP_ENABLED and not (
+    _CUDA_ENABLED and hasattr(torch.ops._C_gguf, "lcpp_mul_mat_q")
+):
+    raise ImportError(
+        "VLLM_GGUF_LCPP=1 needs _C_gguf built with VLLM_GGUF_BUILD_LCPP=1"
+    )
+
+
 def _cuda_kernel_available(op_name: str, quant_type: int | None = None) -> bool:
     if not _CUDA_ENABLED:
         return False
