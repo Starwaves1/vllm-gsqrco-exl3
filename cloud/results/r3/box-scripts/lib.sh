@@ -32,7 +32,7 @@ r3_step() { R3_STEP=$1; echo; echo "=== [$(date -u +%T)] $*"; }
 
 # r3_init NAME "$@": parse --plan, set $L, start logging, install the exit trap.
 r3_init() {
-  R3_NAME=$1; shift
+  R3_NAME=$1${R3_TAG:+-$R3_TAG}; shift   # R3_TAG: a second run of a script (e.g. on a patched venv)
   for a in "$@"; do
     case $a in
       --plan) R3_PLAN=1 ;;

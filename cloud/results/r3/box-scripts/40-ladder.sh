@@ -11,8 +11,9 @@
 # GPU time: ~35 min.
 #   bash 40-ladder.sh [--plan]
 source "$(dirname "$0")/lib.sh"
-TAG=${R3_TAG:-main}
-r3_init "40-ladder-$TAG" "$@"
+R3_TAG=${R3_TAG:-main}
+TAG=$R3_TAG
+r3_init 40-ladder "$@"
 if [ $R3_PLAN = 1 ]; then sed -n '2,13p' "$0"; echo "plugin: $R3_PLUGIN_WT venv: ${GSQ_VENV_OVERRIDE:-/workspace/venv-main}"; exit 0; fi
 r3_env
 r3_preflight
