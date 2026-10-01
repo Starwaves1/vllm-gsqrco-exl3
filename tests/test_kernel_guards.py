@@ -7,6 +7,7 @@ Pass: the op rejects the input with a clean exception, or runs and returns what
 it returns on clean inputs. Fail: a device fault, a crash, or a silently wrong
 result. The lcpp ops (built with VLLM_GGUF_BUILD_LCPP=1, skipped
 otherwise) check all of these before launching, so every case must pass.
+Every bad x_q8 must be rejected.
 
 GGUF_COMPUTE_SANITIZER=/path/to/compute-sanitizer also runs each case under
 memcheck, which catches out-of-bounds reads that happen not to fault. Memcheck
@@ -36,6 +37,12 @@ CASES = [
     "row_too_big",
     "k_mismatch",
     "graph_replay",
+    "x_q8_short",
+    "x_q8_misaligned",
+    "x_q8_dtype",
+    "x_q8_2d",
+    "x_q8_strided",
+    "x_q8_cpu",
 ]
 TYPES_OPS = [
     ("IQ3_S", "ggml_mul_mat_vec_a8"),
@@ -72,6 +79,13 @@ FAULT = (
     "CUDA error",
     "illegal instruction",
 )
+Q8_READERS = (
+    "lcpp_mul_mat_vec_q",
+    "lcpp_mul_mat_vec_iq3",
+    "lcpp_mul_mat_vec_iq3_mma",
+    "lcpp_mul_mat_vec_iq3_mma_packed",
+    "lcpp_mul_mat_vec_own",
+)
 
 
 def run_case(case: str, name: str, op: str) -> dict:
@@ -101,7 +115,11 @@ def run_case(case: str, name: str, op: str) -> dict:
 @pytest.mark.parametrize("type_op", TYPES_OPS, ids=lambda p: f"{p[0]}-{p[1]}")
 @pytest.mark.parametrize("case", CASES)
 def test_bad_input(case, type_op):
+    if case.startswith("x_q8") and type_op[1] not in Q8_READERS:
+        pytest.skip("x_q8 is an argument of the q8_1-reading lcpp ops only")
     res = run_case(case, *type_op)
+    if case.startswith("x_q8"):
+        assert res["status"] == "rejected", res
     assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
 
 

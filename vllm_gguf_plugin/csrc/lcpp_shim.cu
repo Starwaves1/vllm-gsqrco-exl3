@@ -5,7 +5,7 @@
 // This file provides the few pieces of ggml-base / ggml-cuda.cu the vendored
 // kernels link against (device info, context, pool, type sizes, error hooks),
 // an owned q8_1 quantizer and IQ3 kernel, and these torch ops, all
-// (W, X, type, row) -> [n, row] in X's dtype:
+// (W, X, type, row[, x_q8]) -> [n, row] in X's dtype:
 //   lcpp_mul_mat_vec_q               MMVQ, 1..8 activation rows
 //   lcpp_mul_mat_q                   MMQ (int8 tensor cores), any rows
 //   lcpp_mul_mat_vec_iq3             owned IQ3_S / IQ3_XXS dp4a kernel,
@@ -22,7 +22,9 @@
 //                                    tensor-core kernel, 1..64 rows
 //                                    (lcpp_owned_mma_k.cu)
 // W: uint8 [>= row, row_bytes] GGUF blocks, contiguous rows. X: [n, K] fp32 /
-// fp16 / bf16, unit inner stride.
+// fp16 / bf16, unit inner stride. The ops with an x_q8 argument also take X
+// already quantized to q8_1 (lcpp_quantize_q8_1(X, type, false, false)), so
+// several products on one X quantize it once.
 // All checks run before any launch. Nothing here touches CUDA until an op is
 // called on CUDA tensors.
 
@@ -909,9 +911,9 @@ enum class Kernel {
   mma_k
 };
 
-static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
-                  Kernel kernel) {
-  // mmvq: the kernel reads MMVQ-layout q8_1 (quantize_x) and writes
+static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
+                  const std::optional<Tensor>& x_q8 = std::nullopt) {
+  // mmvq: the kernel reads MMVQ-layout q8_1 (x_q8 or quantize_x) and writes
   // fp32 dst: MMVQ and the 1..8-row owned kernels (the packed decode one to 32
   // rows)
   const bool mmvq = kernel != Kernel::mmq && kernel != Kernel::iq3_packed &&
@@ -946,6 +948,18 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
   const ScalarType out_dtype = X.scalar_type();
   const int64_t k_padded = GGML_PAD(k, MATRIX_ROW_PADDING);
   const int64_t q8_bytes = n * k_padded * (int64_t)sizeof(block_q8_1) / QK8_1;
+  if (x_q8) {  // X's q8_1 blocks, made by the caller: trusted to come from X
+    STD_TORCH_CHECK(x_q8->scalar_type() == ScalarType::Byte &&
+                        x_q8->dim() == 1 && x_q8->stride(0) == 1 &&
+                        x_q8->numel() >= q8_bytes,
+                    op, ": x_q8 must be contiguous uint8 with at least ",
+                    q8_bytes, " bytes");
+    STD_TORCH_CHECK(reinterpret_cast<uintptr_t>(x_q8->data_ptr()) % 16 == 0, op,
+                    ": x_q8 must be 16-byte aligned");
+    STD_TORCH_CHECK(
+        x_q8->is_cuda() && x_q8->get_device_index() == X.get_device_index(), op,
+        ": x_q8 must be on X's device");
+  }
   if (n == 0) {
     return torch::stable::new_empty(X, {0, row}, out_dtype);
   }
@@ -1009,12 +1023,12 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
     return y;
   }
 
-  // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast).
-  // The dp4a IQ3 kernel writes X's dtype; MMVQ / MMQ, the IQ3 mma kernels and
-  // the Q4_K / IQ2_S kernel write fp32 dst only, so for them 16-bit X costs one
-  // output cast. Launches per call with 16-bit X:
-  //   IQ3 dp4a: quantize, iq3_mul_mat_vec = 2
-  //   MMVQ, iq3_mma, own: quantize, the kernel, cast Y = 3
+  // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast)
+  // unless x_q8 is given. The dp4a IQ3 kernel writes X's dtype; MMVQ / MMQ, the
+  // IQ3 mma kernels and the Q4_K / IQ2_S kernel write fp32 dst only, so for
+  // them 16-bit X costs one output cast. Launches per call with 16-bit X:
+  //   IQ3 dp4a: [quantize], iq3_mul_mat_vec = 1 or 2
+  //   MMVQ, iq3_mma, own: [quantize], the kernel, cast Y = 2 or 3
   //   MMQ: tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
   const ScalarType y_dtype =
       kernel == Kernel::iq3 ? out_dtype : ScalarType::Float;
@@ -1061,8 +1075,10 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
       // entry point of the legacy op path, one channel, rows row_low..row_high
       // = 0..row.
       ggml_cuda_pool_alloc<char> q8(ctx.pool());
-      quantize_x(X, q8.alloc(q8_bytes), src0.type, false, k_padded, stream);
-      const char* vy = q8.get();
+      if (!x_q8) {
+        quantize_x(X, q8.alloc(q8_bytes), src0.type, false, k_padded, stream);
+      }
+      const char* vy = x_q8 ? (const char*)x_q8->data_ptr() : q8.get();
       if (kernel == Kernel::iq3) {
         (type == GGML_TYPE_IQ3_S
              ? iq3_mul_mat_vec_y<GGML_TYPE_IQ3_S>
@@ -1098,43 +1114,49 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
              : torch::stable::to(y, std::optional<ScalarType>(out_dtype));
 }
 
-Tensor lcpp_mul_mat_vec_q(Tensor W, Tensor X, int64_t type, int64_t row) {
-  return run(W, X, type, row, Kernel::mmvq);
+Tensor lcpp_mul_mat_vec_q(Tensor W, Tensor X, int64_t type, int64_t row,
+                          std::optional<Tensor> x_q8) {
+  return run(W, X, type, row, Kernel::mmvq, x_q8);
 }
 
 Tensor lcpp_mul_mat_q(Tensor W, Tensor X, int64_t type, int64_t row) {
   return run(W, X, type, row, Kernel::mmq);
 }
 
-Tensor lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int64_t type, int64_t row) {
-  return run(W, X, type, row, Kernel::iq3);
+Tensor lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int64_t type, int64_t row,
+                            std::optional<Tensor> x_q8) {
+  return run(W, X, type, row, Kernel::iq3, x_q8);
 }
 
-Tensor lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int64_t type, int64_t row) {
-  return run(W, X, type, row, Kernel::iq3_mma);
+Tensor lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int64_t type, int64_t row,
+                                std::optional<Tensor> x_q8) {
+  return run(W, X, type, row, Kernel::iq3_mma, x_q8);
 }
 
 Tensor lcpp_mul_mat_vec_iq3_mma_packed(Tensor W, Tensor X, int64_t type,
-                                       int64_t row) {
-  return run(W, X, type, row, Kernel::iq3_mma_packed);
+                                       int64_t row,
+                                       std::optional<Tensor> x_q8) {
+  return run(W, X, type, row, Kernel::iq3_mma_packed, x_q8);
 }
 
 Tensor lcpp_mul_mat_iq3_packed(Tensor W, Tensor X, int64_t type, int64_t row) {
   return run(W, X, type, row, Kernel::iq3_packed);
 }
 
-Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row) {
-  return run(W, X, type, row, Kernel::own);
+Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row,
+                            std::optional<Tensor> x_q8) {
+  return run(W, X, type, row, Kernel::own, x_q8);
 }
 
 Tensor lcpp_mul_mat_mma_k(Tensor W, Tensor X, int64_t type, int64_t row) {
   return run(W, X, type, row, Kernel::mma_k);
 }
 
-// The q8_1 bytes quantize_x makes for MMVQ (mmq false) or MMQ (mmq true, in
-// type's ds layout), or those of the vendored fp32 quantizers (vendored true;
-// X must then be fp32 with a row stride that is a multiple of 4). For tests.
-// Every byte is written: no zero fill.
+// The q8_1 bytes the ops feed MMVQ and the owned kernels (mmq false; linear.py
+// passes them as x_q8 to share one quantize between products on one X) or MMQ
+// (mmq true, in type's ds layout; test only), from quantize_x, or from the
+// vendored fp32 quantizers (vendored true, test only; X must be fp32 with a row
+// stride that is a multiple of 4). Every byte is written: no zero fill.
 Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
   STD_TORCH_CHECK(lcpp_type_supported(type) && X.is_cuda() && X.dim() == 2 &&
                       X.stride(1) == 1 && X.size(1) % MATRIX_ROW_PADDING == 0 &&
@@ -1164,23 +1186,24 @@ Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
 
 STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
   ops.def(
-      "lcpp_mul_mat_vec_q(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
+      "lcpp_mul_mat_vec_q(Tensor W, Tensor X, int type, SymInt row, Tensor? "
+      "x_q8=None) -> Tensor");
   ops.def("lcpp_mul_mat_q(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def(
-      "lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row) -> "
-      "Tensor");
+      "lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int type, SymInt row, Tensor? "
+      "x_q8=None) -> Tensor");
   ops.def(
-      "lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row) -> "
-      "Tensor");
+      "lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row, "
+      "Tensor? x_q8=None) -> Tensor");
   ops.def(
       "lcpp_mul_mat_vec_iq3_mma_packed(Tensor W, Tensor X, int type, SymInt "
-      "row) -> Tensor");
+      "row, Tensor? x_q8=None) -> Tensor");
   ops.def(
       "lcpp_mul_mat_iq3_packed(Tensor W, Tensor X, int type, SymInt row) -> "
       "Tensor");
   ops.def(
-      "lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row) -> "
-      "Tensor");
+      "lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row, Tensor? "
+      "x_q8=None) -> Tensor");
   ops.def(
       "lcpp_mul_mat_mma_k(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def(

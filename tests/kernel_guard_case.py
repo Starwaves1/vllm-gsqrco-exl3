@@ -19,6 +19,10 @@ packed by quantization/iq3_pack.py first). Cases:
   graph_replay    capture in a CUDA graph, replay with new X, compare to eager
   graph_first     as graph_replay, with the op's first call in this process
                   inside the capture (its one-time launch attribute setup)
+  x_q8_short      pre-quantized X (x_q8) one byte short (its own allocation)
+  x_q8_misaligned x_q8 starts one byte into its storage
+  x_q8_dtype, x_q8_2d, x_q8_strided, x_q8_cpu   x_q8 as int8, 2-D, stride 2,
+                  or on the CPU
 """
 
 import json
@@ -67,7 +71,7 @@ def main() -> None:
     if case != "graph_first":
         clean = fn(w, x, int(qt), row)  # before any bad input can fault
         torch.cuda.synchronize()
-    xc, wc = x, w
+    xc, wc, extra = x, w, ()
 
     if case == "x_noncontig":
         xc = x.t().contiguous().t()
@@ -89,6 +93,18 @@ def main() -> None:
         row += 64
     elif case == "k_mismatch":
         xc = x[:, : k // 2].contiguous()
+    elif case.startswith("x_q8_"):
+        q8 = torch.ops._C_gguf.lcpp_quantize_q8_1(x, int(qt), False, False)
+        extra = (
+            {
+                "x_q8_short": lambda: q8[:-1].clone(),
+                "x_q8_misaligned": lambda: torch.cat([q8.new_zeros(1), q8])[1:],
+                "x_q8_dtype": lambda: q8.view(torch.int8),
+                "x_q8_2d": lambda: q8.view(1, -1),
+                "x_q8_strided": lambda: torch.stack([q8, q8], 1).view(-1)[::2],
+                "x_q8_cpu": lambda: q8.cpu(),
+            }[case](),
+        )
     elif case not in ("graph_replay", "graph_first"):
         raise SystemExit(f"unknown case {case}")
 
@@ -106,7 +122,7 @@ def main() -> None:
             graph.replay()
             y, clean = static_y, fn(w, x2, int(qt), row)
         else:
-            y = fn(wc, xc, int(qt), row)
+            y = fn(wc, xc, int(qt), row, *extra)
         torch.cuda.synchronize()
     except (RuntimeError, ValueError, TypeError) as e:
         if "CUDA error" in str(e) or "illegal" in str(e).lower():
