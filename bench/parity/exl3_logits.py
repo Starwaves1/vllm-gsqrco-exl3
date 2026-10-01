@@ -106,16 +106,18 @@ def run(model_dir: str, prompts: Path, out: Path, names: list[str], chunk: int, 
            "load_s": round(time.time() - t0, 1), "gpu_mib_after_load": torch.cuda.memory_allocated() >> 20,
            "chunk": chunk, "logits_rows": logits_rows, "sequences": {}}
     vocab = config.vocab_size
-    for name in names:
-        ids = read_i32(prompts / f"{name}.ids")
-        pos = read_i32(prompts / f"{name}.pos")
-        row_of = {int(p): i for i, p in enumerate(pos)}
-        rows = np.zeros((len(pos), vocab), np.float32)
-        t0 = time.time()
-        torch.cuda.reset_peak_memory_stats()
-        state = cache.get_new_state() if model.caps.get("recurrent_states", False) else None
-        try:
-            with torch.inference_mode():
+    # exllamav3 allocates its cache and recurrent-state tensors as inference tensors: creating,
+    # clearing and releasing a state must happen inside inference_mode too
+    with torch.inference_mode():
+        for name in names:
+            ids = read_i32(prompts / f"{name}.ids")
+            pos = read_i32(prompts / f"{name}.pos")
+            row_of = {int(p): i for i, p in enumerate(pos)}
+            rows = np.zeros((len(pos), vocab), np.float32)
+            t0 = time.time()
+            torch.cuda.reset_peak_memory_stats()
+            state = cache.get_new_state() if model.caps.get("recurrent_states", False) else None
+            try:
                 for s, e, n_logits in plan(len(ids), pos, chunk, logits_rows):
                     x = torch.from_numpy(ids[s:e].astype(np.int64)).unsqueeze(0)
                     params = {"attn_mode": "flash_attn", "cache": cache, "past_len": s,
@@ -129,20 +131,20 @@ def run(model_dir: str, prompts: Path, out: Path, names: list[str], chunk: int, 
                     logits = model.forward(x, params)[0, -n_logits:, :vocab].float().cpu().numpy()
                     for j, p in enumerate(range(e - n_logits, e)):
                         rows[row_of[p]] = logits[j]
-            write_rows(out / f"{name}.exl3.f32", pos, rows)
-            st = {"status": "ok"}
-        except torch.OutOfMemoryError as ex:
-            st = {"status": "oom", "error": str(ex).splitlines()[0][:300]}
-        finally:
-            if state is not None:
-                cache.release_state(state)
-        st.update(n_tokens=len(ids), n_pos=len(pos), seconds=round(time.time() - t0, 1),
-                  peak_gpu_mib=torch.cuda.max_memory_allocated() >> 20)
-        rec["sequences"][name] = st
-        (out / "exl3_logits.json").write_text(json.dumps(rec, indent=1))
-        print(f"{name}: {len(ids)} tokens, {len(pos)} rows, {st['status']}, {st['seconds']} s, "
-              f"peak {st['peak_gpu_mib']} MiB", flush=True)
-        torch.cuda.empty_cache()
+                write_rows(out / f"{name}.exl3.f32", pos, rows)
+                st = {"status": "ok"}
+            except torch.OutOfMemoryError as ex:
+                st = {"status": "oom", "error": str(ex).splitlines()[0][:300]}
+            finally:
+                if state is not None:
+                    cache.release_state(state)
+            st.update(n_tokens=len(ids), n_pos=len(pos), seconds=round(time.time() - t0, 1),
+                      peak_gpu_mib=torch.cuda.max_memory_allocated() >> 20)
+            rec["sequences"][name] = st
+            (out / "exl3_logits.json").write_text(json.dumps(rec, indent=1))
+            print(f"{name}: {len(ids)} tokens, {len(pos)} rows, {st['status']}, {st['seconds']} s, "
+                  f"peak {st['peak_gpu_mib']} MiB", flush=True)
+            torch.cuda.empty_cache()
 
 
 def main() -> None:
