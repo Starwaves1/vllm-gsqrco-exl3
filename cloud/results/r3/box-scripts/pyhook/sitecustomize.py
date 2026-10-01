@@ -54,6 +54,12 @@ if os.environ.get("R3_INSTR_DIR"):
         "vllm.v1.kv_offload.tiering.manager": {"TieringOffloadingManager": [
             "on_schedule_end", "_writeback_step", "_process_finished_jobs", "_flush_pending_promotions",
             "_flush_pending_cascades", "lookup", "prepare_store", "touch", "complete_store"]},
+        # attention metadata: FlashInfer's build() syncs on seq_lens.cpu() under spec decode
+        # (flashinfer.py ~1527) and the MTP drafter rebuilds it once per draft position
+        "vllm.v1.attention.backends.flashinfer": {"FlashInferMetadataBuilder": ["build"]},
+        "vllm.v1.attention.backends.gdn_attn": {"GDNAttentionMetadataBuilder": ["build"]},
+        "vllm.v1.spec_decode.llm_base_proposer": {"SpecDecodeBaseProposer": [
+            "propose", "build_per_group_and_layer_attn_metadata", "_sample_draft_tokens"]},
         "torch.cuda.streams": {"Event": ["synchronize"], "Stream": ["synchronize"]},
     }
     _acc: dict = {}

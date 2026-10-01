@@ -39,6 +39,11 @@ NESTED = [
     ("runner: _bookkeeping_sync", "GPUModelRunner._bookkeeping_sync"),
     ("runner: take_draft_token_ids", "GPUModelRunner.take_draft_token_ids"),
     ("sched: update_draft_token_ids", "Scheduler.update_draft_token_ids"),
+    ("attn md: FlashInferMetadataBuilder.build (incl. seq_lens.cpu() wait)", "FlashInferMetadataBuilder.build"),
+    ("attn md: GDNAttentionMetadataBuilder.build", "GDNAttentionMetadataBuilder.build"),
+    ("drafter: propose", "SpecDecodeBaseProposer.propose"),
+    ("drafter: per-pass metadata rebuild", "SpecDecodeBaseProposer.build_per_group_and_layer_attn_metadata"),
+    ("drafter: _sample_draft_tokens", "SpecDecodeBaseProposer._sample_draft_tokens"),
     ("sync: cuda Event.synchronize", "Event.synchronize"),
     ("sync: cuda Stream.synchronize", "Stream.synchronize"),
 ]
@@ -100,7 +105,8 @@ def cmd_instr(a):
     for label, k in NESTED:
         v = mean(ms(k))
         out[label] = v
-        lines.append(f"    {label:45s} {v:7.3f}")
+        calls = sum(r["cnt"].get(k, 0) for r in rows) / n
+        lines.append(f"    {label:70s} {v:7.3f}   (calls/cycle {calls:.2f})")
     conn = defaultdict(float)
     for r in rows:
         for k, v in r["acc"].items():

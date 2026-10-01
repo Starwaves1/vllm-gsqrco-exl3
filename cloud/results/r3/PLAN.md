@@ -19,6 +19,16 @@ on the production host, read-only), INFERRED.
   `scheduler.update_draft_token_ids`. None of this overlaps GPU work. The runner has further host syncs:
   `_update_states` :1275, `_prepare_inputs` :2153, :3863 `prepare_inputs_event`, and `_bookkeeping_sync`
   -> `_to_list` :7506-7519.
+- SOURCE: the MTP drafter rebuilds attention metadata for every draft position. The loop in
+  `v1/spec_decode/llm_base_proposer.py:689-716` calls `build_per_group_and_layer_attn_metadata` at
+  :988. FlashInfer's `build` under spec decode does a blocking `common_attn_metadata.seq_lens.cpu()`
+  (`v1/attention/backends/flashinfer.py:1515-1528`, gated at :1517 on `_num_speculative_tokens == 0`)
+  and then a host-side `plan()`. sm86 has no trtllm path, so `needs_seq_lens_cpu` is always true. That
+  makes about k+1 GPU->CPU syncs per step (target + first draft pass + k-1 loop passes: 6 at k=5, 4 at
+  k=3). After each sync the GPU waits while the host plans and launches the next pass. The cost is per
+  pass, not per request, so it does not grow with n. The overlay's own comment (flashinfer.py:107-121)
+  calls the sync incidental. 22 times it directly (`FlashInferMetadataBuilder.build` and the drafter's
+  per-pass rebuild in the timer block; host syncs per step in the trace).
 - SOURCE: graph mode is PIECEWISE. `config/vllm.py:1064-1080` forces it for any dynamic k schedule on the
   V1 runner. FlashInfer with spec decode also forced it on 0.27.1 (`phase3/item2/cg.txt`), so this is not
   the 0.27.1 -> main difference. The splitting ops (`config/compilation.py:764-776`) include FlashInfer
@@ -49,7 +59,7 @@ on the production host, read-only), INFERRED.
 
 | # | hypothesis | owner | decided by |
 |---|---|---|---|
-| H1 | Synchronous engine-loop host work (schedule, update, draft-token D2H sync, input prep, attention/GDN metadata, eager launches between graph pieces) is ~5 ms on a fast idle host and grew on main or with long context | vLLM main | 20 (box c2 vs 0.27.1's ~4.7), 22 timers + py-spy + trace, 21 `async` |
+| H1 | Synchronous engine-loop host work is ~5 ms on a fast idle host and grew on main (k=5: 6 drafter/target metadata builds per step, each behind a `seq_lens.cpu()` sync followed by `plan()`) or grew with long context. The work: schedule, update, draft-token D2H sync, input prep, attention/GDN metadata, eager launches between graph pieces | vLLM main | 20 (box c2 vs 0.27.1's ~4.7; c2 k=5 vs c8 k=3), 22 timers (FlashInfer build calls/cycle and ms) + py-spy + trace, 21 `async` |
 | H2 | Production's host CPU is slower or contended (3.9 GHz cap, EPP power, VM on 4 of 12 threads), so the same host work takes 2-3x longer | prod host config | 20 (box does not reproduce) then 26 (pin to 6C/12T + 4 busy threads) |
 | H3 | The OffloadingConnector's per-step hooks, mainly the tiering write-back scan with a full CPU tier | connector (overlay fork + upstream) | 21 `noconn` / `nofs` vs 20, 22 timer block "KV connector" |
 | H4 | Host cost that grows with total context (block tables, metadata for ~200k tokens) | vLLM main | 20 c2 vs c2s, 22 timers c2 vs c2s, 23 idle by context |
