@@ -195,8 +195,9 @@ class EXL3LinearMethod(LinearMethodBase):
         # the kernels take fp16: cast once per layer, not per part; with a bf16 model the
         # kernels write fp32 (no second fp16 rounding) and the result is cast once
         xh = x.reshape(-1, x.shape[-1])
-        if not (ops.MR_GLUE and x.dtype == torch.bfloat16):  # glue: bf16 through (ops.MR_GLUE)
-            xh = xh.to(torch.half)
+        # glue (ops.MR_GLUE): bf16 straight through, made contiguous as the cast did (x can be a
+        # strided view; the compiled graph asserts the custom op's input strides)
+        xh = xh.contiguous() if ops.MR_GLUE and x.dtype == torch.bfloat16 else xh.to(torch.half)
         out_fp32 = x.dtype != torch.half
         outs = [
             torch.ops.vllm._exl3_linear(

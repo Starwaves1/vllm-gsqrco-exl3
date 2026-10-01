@@ -40,6 +40,9 @@ serve_mr() {
   local mode=$1 mr=${1:0:1} glue=0 mrmin=17 out=$2 t0; shift 2; mkdir -p "$out"
   [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1
   export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin
+  # own compile cache per glue setting: vLLM's cache key does not cover the plugin's apply(), so a
+  # graph traced with the bf16 glue must never be loaded by a run without it (or by phase 1)
+  export VLLM_CACHE_ROOT=$R/vllm-cache-glue$glue
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)
