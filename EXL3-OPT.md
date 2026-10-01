@@ -1,7 +1,59 @@
 # EXL3 optimization (branch `exl3-opt`, from `exl3` 977bafd)
 
-Phase-2 preparation, CPU and compile only, 2026-10-01. Nothing here has run on a GPU. Labels as
-in EXL3.md: VERIFIED, DOCUMENTED, INFERRED.
+2026-10-01: prepared CPU-only, then measured on the rented 3090 (jobs 10-14, results below).
+Labels as in EXL3.md: VERIFIED, DOCUMENTED, INFERRED.
+
+## Results (box, erlidev SC_3.50bpw_H4_V6, production's main argv, max-model-len 196608)
+
+**10-mr-parity** (VERIFIED, b01436b): 294 passed, 28 skipped (K3/K5 below 17 rows in the old
+table). Decoded weights equal exl3_dequant for every row and column (K3/K4/K5, lm_head
+included). Across 150 (tensor, rows 1..384, bf16/fp16) cases, mr's rms error vs fp64 is at or
+below exl3_gemm's in 149 (worst 2.0e-3); max_rel is at or below in 133 (worst 3.4e-2, floor
+3e-2 x1.5 slack; run 1 failed one case at 0.0246 vs 0.0244, a bf16-rounding outlier with better
+rms). Also: routing (K2 bit-identical), repacked K4 above 384 == stored, determinism, graph
+replay, unwarmed capture refused, bf16 io == cast path bit for bit, host embedding gather ==
+F.embedding (incl. graph replay). memcheck and initcheck clean on 42 cases. Error table:
+`cloud/results/exl3-opt/10-mr-parity-run1/errors.txt`.
+
+**11-mr-micro** (VERIFIED): model sum of the 401 target-pass GEMMs (trellis 11.28 GB, floor
+12.05 ms at 936 GB/s), `cloud/results/exl3-opt/11-mr-micro/`:
+
+| rows | exl3_gemm (MR=0) | MR=2, K3/K5 from 17 | MR=2, K3/K5 from 1 | dequant route |
+|---|---|---|---|---|
+| 6 (c=1) | 24.6 ms, 459 GB/s, 49 % | 22.3 | 18.8 ms, 599 GB/s, 64 % | |
+| 12 (c=2) | 26.4 | 24.7 | 23.1 | |
+| 24 (c=4) | 51.3 ms, 220 GB/s, 23 % | 35.4 | 35.4 ms, 319 GB/s, 34 % | |
+| 32 (c=8) | 53.5 | 36.1 | 36.1 | |
+| 48 | 79.4 | 50.0 | 50.0 | |
+| 144 | 234.8 | 142.5 | 142.5 | 234.9 |
+| 192 | | | 169.6 (mr) | 279.7 |
+| 384 | | | 326.0 (mr) | 353.5 |
+| 512 | | | 434.5 (mr) | 423.5 |
+
+Neither kernel is near the floor: mr reaches 64 % at 6 rows and 34 % at 24-32 rows. Per shape at
+24 rows, K4 spans 13-48 % of floor, K3 24-30 %, K5 (k_proj, 5120x1024) 17 %. The step from 16 to
+17 rows (23.1 to 35.4 ms) is the launcher's switch from the 16-row family to thread_m_blocks 2
+with 256-thread configs (INFERRED from `exl3_marlin.cu`'s config tables, not profiled).
+
+**12-mr-ladder** (VERIFIED, pass 2, T=0; ms/step = C x 1000 / decode tok/s x tok/step; MR=0 is
+phase 1's 06-ladder, same argv):
+
+LADDER_PLACEHOLDER
+
+**Fit**: FIT_PLACEHOLDER
+
+**13-profile**: PROFILE_PLACEHOLDER
+
+**Kept / reverted**: KEPT_PLACEHOLDER
+
+**Found on the way**: an allocating K4 repack left the int16 copies live at load (23.05 GiB
+allocated, OOM in the lm_head warmup): the repack is now in place. vLLM's torch.compile cache key
+does not cover the plugin's `apply()`/`embedding()` (same aot hash with and without glue), so
+graph variants get their own `VLLM_CACHE_ROOT` in the jobs; the two shared entries written while
+that was not so are in `/workspace/runs/exl3-opt/moved-compile-cache/`. A bare `torch.cat` of
+custom-op outputs (glue on fused layers) trips inductor's split-of-cat simplification (GDN's z
+comes back with the part's own stride): glue is on single-part layers only.
+
 
 ## What is here
 
@@ -37,15 +89,15 @@ routes unpack per call. Bytes per target pass (erlidev, VERIFIED from the header
 K4 54.0 % + lm_head 5.6 %, K5 0.9 %, K2 0.8 %, out of 11.28 GB (12.05 ms at 936 GB/s). EXL3_MR=1
 alone therefore reaches 40 % of the bytes, and EXL3_MR=2 reaches 99 %.
 
-## Switch
+## Switches (read once when the plugin imports)
 
-`EXL3_MR` is read once when the plugin imports. The default 0 is phase 1's routing.
-
-| EXL3_MR | exl3_gemm_mr takes | rows |
+| variable | default | what |
 |---|---|---|
-| 0 | nothing | |
-| 1 | K3, K5 (mul1) | 17..144 |
-| 2 | 1, plus K4 (mul1) incl. lm_head, MTP | K4: 1..144 |
+| `EXL3_MR` | 2 | 0: phase 1's routing; 1: K3/K5 (mul1) on exl3_gemm_mr; 2: and K4 (lm_head, MTP included), repacked in place at load |
+| `EXL3_MR_MIN` | 1 | first row count K3/K5 take exl3_gemm_mr at (K4 under 2: always from 1) |
+| (constant) `MULTI_ROW_MAX` | 384 | last row count on exl3_gemm_mr; above, the dequant routes (K2 keeps exllamav3's 144) |
+| `EXL3_MR_GLUE` | 0 | with 2: bf16 straight through exl3_gemm_mr on single-part layers (A/B) |
+| `EXL3_EMBED_HOST` | 0 | bf16 token embedding in pinned host memory, gathered per step (A/B) |
 
 With bf16 out the kernel writes bf16, widened to fp32 for `out_fp32`, so the result is one
 rounding of the fp32 epilogue, as with exl3_gemm. The capture guard is keyed per (k, n, K, rows)
