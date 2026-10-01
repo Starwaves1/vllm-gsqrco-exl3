@@ -13,14 +13,14 @@ N=${DL_CHUNKS:-16}
 AUTH=(); [ -n "${HF_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer $HF_TOKEN")
 die() { echo "dl: $*" >&2; exit 2; }
 
-# tree <repo>: "path<TAB>size<TAB>lfs-sha256-or-empty<TAB>git-oid" per file
+# tree <repo>: "path<TAB>size<TAB>lfs-sha256-or-dash<TAB>git-oid" per file
 tree() {
   curl -sSfL "${AUTH[@]}" "https://huggingface.co/api/models/$1/tree/${DL_REV:-main}?recursive=true" | python3 -c '
 import json, sys
 for f in json.load(sys.stdin):
     if f["type"] == "file":
         lfs = f.get("lfs") or {}
-        print(f["path"], lfs.get("size", f["size"]), lfs.get("oid", ""), f["oid"], sep="\t")'
+        print(f["path"], lfs.get("size", f["size"]), lfs.get("oid") or "-", f["oid"], sep="\t")'
 }
 
 chunk() {  # i url size chunk_size dir
@@ -81,6 +81,7 @@ case ${1:-} in
     tree "$repo" > "/tmp/dl-tree.$$"; trap 'rm -f /tmp/dl-tree.$$' EXIT
     [ -s "/tmp/dl-tree.$$" ] || die "empty file list for $repo"
     while IFS=$'\t' read -r path size sha oid; do
+      [ "$sha" = - ] && sha=   # "-" = not an LFS file (a tab IFS would merge an empty field)
       fetch "$repo" "$path" "$dir/$path" "$size" "$sha" "$oid"
     done < "/tmp/dl-tree.$$" ;;
   *) sed -n '2,10p' "$0"; exit 2 ;;
