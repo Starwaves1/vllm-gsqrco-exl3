@@ -23,6 +23,7 @@ Every subcommand exits non-zero with a reason when its validity checks fail.
 """
 
 import argparse
+import concurrent.futures
 import http.client
 import json
 import os
@@ -42,6 +43,10 @@ sys.path.insert(0, str(ROOT / "bench" / "parity"))
 MODEL = os.environ.get("R3_SERVED_MODEL", "qwen3.8-27b")
 API_KEY = os.environ.get("GSQ_API_KEY", "gsq-local-test")
 CACHE = Path(os.environ.get("R3_PROMPT_CACHE", "/workspace/logs/r3/_prompts"))
+
+
+def cf_pool(n):
+    return concurrent.futures.ThreadPoolExecutor(max(1, n))
 
 
 def die(msg: str) -> None:
@@ -528,6 +533,12 @@ def cmd_steady(a):
         nm, kd, nt = a.prefix.split(":")
         prefix = prompt_ids(nm, kd, int(nt))
         specs[0] = (f"{a.tag}-tail", "code", a.tokens - len(prefix))
+    if a.prewarm and not a.chat:  # prefill every prompt first (max_tokens 1), so all streams start decoding together
+        pre = [prompt_ids(*sp) for sp in specs]
+        if prefix:
+            pre[0] = prefix + pre[0]
+        with cf_pool(len(pre)) as ex:
+            list(ex.map(lambda x: srv.post("/v1/completions", completion_body(x, 1, 0, 0, stream=False), timeout=3600), pre))
     samp = Sampler(srv, out, a.tag)
     samp.start()
     t_send = time.time()
@@ -703,6 +714,7 @@ def main():
     sp["steady"].add_argument("--prefix", default="", help="NAME:KIND:TOKENS put in front of stream 0")
     sp["steady"].add_argument("--allow-problems", action="store_true")
     sp["steady"].add_argument("--chat", action="store_true", help="streaming chat completions (parsers on)")
+    sp["steady"].add_argument("--prewarm", action="store_true", help="prefill the prompts first (prefix-cache hits)")
     sp["steady"].add_argument("--tools", action="store_true", help="with --chat: tools in the request")
     sp["steady"].add_argument("--turns", type=int, default=1, help="with --chat: turns per stream")
     sp["steady"].add_argument("--natural", action="store_true", help="with --chat: no ignore_eos")

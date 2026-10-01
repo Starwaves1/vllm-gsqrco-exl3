@@ -26,7 +26,7 @@ r3_step warm;  "${LOAD[@]}" warm || r3_die "warm-up"
 r3_step fill;  "${LOAD[@]}" fill --n 2 --tokens 90000 --conc 2 || r3_die "fill"
 r3_step c2s;   "${LOAD[@]}" steady --conc 2 --tokens 4000 --max-tokens 9000 --window 60 --k 5 --tag c2s --out "$R" || r3_die "c2s window"
 r3_step c2;    "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 12000 --window 90 --k 5 --tag c2 --out "$R" || r3_die "c2 window"
-r3_step c8;    "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --tag c8 --out "$R" || r3_die "c8 window"
+r3_step c8;    "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --prewarm --tag c8 --out "$R" || r3_die "c8 window"
 curl -s "$GSQ_URL/metrics" > "$R/metrics-final.txt"
 r3_stop
 r3_summary "R3-20 idle baseline (box, production's main argv, $(date -u +%F))" "$(cat "$R/lines.txt")" "" \

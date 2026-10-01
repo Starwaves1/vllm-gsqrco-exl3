@@ -28,7 +28,7 @@ run() {  # tag venv
   "${LOAD[@]}" probe --n 4 --tokens 2000 --max-tokens 256 --tag probe --out "$R" || r3_die probe
   "${LOAD[@]}" fill --n 2 --tokens 90000 --conc 2 || r3_die fill
   "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 12000 --window 90 --k 5 --tag c2 --out "$R" || r3_die c2
-  "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --tag c8 --out "$R" || r3_die c8
+  "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --prewarm --tag c8 --out "$R" || r3_die c8
 }
 v_stock() { run stock /workspace/venv-main; }
 v_patched() { run patched "$VR"; }
