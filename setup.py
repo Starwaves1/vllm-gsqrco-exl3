@@ -70,6 +70,7 @@ if _should_build_extension():
                 "vllm_gguf_plugin/csrc/lcpp_shim.cu",
                 "vllm_gguf_plugin/csrc/lcpp_owned_iq3_mma.cu",
                 "vllm_gguf_plugin/csrc/lcpp_owned_k4.cu",
+                "vllm_gguf_plugin/csrc/lcpp_owned_mma_k.cu",
             ]
             + [f"{cuda_rel}/{f}" for f in ["mmvq.cu", "quantize.cu"]]
             + [
