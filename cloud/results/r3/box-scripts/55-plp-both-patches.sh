@@ -16,9 +16,10 @@ P=$R3_S/../patches
 r3_step overlay
 bash "$R3_S/overlay-venv.sh" /workspace/venv-r3-plp2 "$P/prompt-logprobs-chunked.patch" "$P/prompt-logprobs-after-drafter.patch" \
   > "$L/overlay.log" 2>&1 || { cat "$L/overlay.log"; r3_die "overlay venv"; }
-grep -c "rows_per_pass\|hidden_states = hidden_states.clone()" \
-  /workspace/venv-r3-plp2/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py | grep -qx 2 \
-  || r3_die "overlay is missing one of the two patches"
+GMR=/workspace/venv-r3-plp2/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py
+for pat in "rows_per_pass = " "hidden_states = hidden_states.clone()"; do
+  grep -q "$pat" "$GMR" || r3_die "overlay is missing the patch with '$pat'"
+done
 r3_step repro
 ( R3_TAG=both GSQ_VENV_OVERRIDE=/workspace/venv-r3-plp2 bash "$R3_S/50-plp-repro.sh" ) > "$L/repro.log" 2>&1
 rc=$?
