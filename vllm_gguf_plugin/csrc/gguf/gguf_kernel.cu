@@ -1,6 +1,9 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
+#include <climits>
+#include <cstdint>
+
 #include <torch/csrc/inductor/aoti_torch/c/shim.h>
 #include <torch/csrc/stable/accelerator.h>
 #include <torch/csrc/stable/ops.h>
@@ -84,9 +87,124 @@ static void quantize_row_q8_1_cuda(const scalar_t* x, void* vy, const int kx,
   }
 }
 
+// Input checks for the dense ops below. The kernels only take data_ptr(), so
+// without them a strided or misaligned W, a non-contiguous X, a row count
+// past W or an X of the wrong width gave silently wrong results, NaNs or a
+// device fault, and an unsupported type returned zeros (or, in
+// ggml_dequantize, called a null function). Device checks come last, so the
+// CPU registration (torch_bindings.cpp) runs every other check without a GPU.
+
+// Values and bytes per block of the types these ops take; false for others.
+static bool ggml_block_size(int64_t type, int64_t* values, int64_t* bytes) {
+  switch (type) {
+#define GGML_BLOCK(t, qk, block) \
+  case t:                        \
+    *values = qk;                \
+    *bytes = sizeof(block);      \
+    return true;
+    GGML_BLOCK(2, QK4_0, block_q4_0)
+    GGML_BLOCK(3, QK4_1, block_q4_1)
+    GGML_BLOCK(6, QK5_0, block_q5_0)
+    GGML_BLOCK(7, QK5_1, block_q5_1)
+    GGML_BLOCK(8, QK8_0, block_q8_0)
+    GGML_BLOCK(10, QK_K, block_q2_K)
+    GGML_BLOCK(11, QK_K, block_q3_K)
+    GGML_BLOCK(12, QK_K, block_q4_K)
+    GGML_BLOCK(13, QK_K, block_q5_K)
+    GGML_BLOCK(14, QK_K, block_q6_K)
+    GGML_BLOCK(16, QK_K, block_iq2_xxs)
+    GGML_BLOCK(17, QK_K, block_iq2_xs)
+    GGML_BLOCK(18, QK_K, block_iq3_xxs)
+    GGML_BLOCK(19, QK_K, block_iq1_s)
+    GGML_BLOCK(20, QK4_NL, block_iq4_nl)
+    GGML_BLOCK(21, QK_K, block_iq3_s)
+    GGML_BLOCK(22, QK_K, block_iq2_s)
+    GGML_BLOCK(23, QK_K, block_iq4_xs)
+    GGML_BLOCK(29, QK_K, block_iq1_m)
+#undef GGML_BLOCK
+    default:
+      return false;
+  }
+}
+
+// The types ggml_mul_mat_a8 has a kernel for.
+static bool ggml_mmq_type(int64_t type) {
+  return type == 2 || type == 3 || type == 6 || type == 7 || type == 8 ||
+         (type >= 10 && type <= 14);
+}
+
+static bool is_float_dtype(ScalarType t) {
+  return t == ScalarType::Float || t == ScalarType::Half ||
+         t == ScalarType::BFloat16;
+}
+
+// W [>= row, row_bytes] uint8 blocks with contiguous rows, X [n, K] with
+// contiguous rows. Returns K.
+static int64_t check_mul_mat_inputs(const Tensor& W, const Tensor& X,
+                                    int64_t type, int64_t row, bool mmq,
+                                    const char* op) {
+  int64_t values = 0, bytes = 0;
+  STD_TORCH_CHECK(
+      ggml_block_size(type, &values, &bytes) && (!mmq || ggml_mmq_type(type)),
+      op, ": unsupported ggml type ", type);
+  STD_TORCH_CHECK(W.dim() == 2 && X.dim() == 2, op, ": W and X must be 2-D");
+  STD_TORCH_CHECK(W.scalar_type() == ScalarType::Byte, op, ": W must be uint8");
+  STD_TORCH_CHECK(is_float_dtype(X.scalar_type()), op,
+                  ": X must be fp32, fp16 or bf16");
+  const int64_t row_bytes = W.size(1);
+  STD_TORCH_CHECK(row_bytes > 0 && row_bytes % bytes == 0, op, ": W row bytes ",
+                  row_bytes, " not a multiple of the block size ", bytes);
+  const int64_t k = row_bytes / bytes * values;
+  STD_TORCH_CHECK(X.size(1) == k, op, ": X has ", X.size(1),
+                  " columns, W rows hold K=", k);
+  STD_TORCH_CHECK(row > 0 && row <= W.size(0), op, ": row=", row,
+                  " out of range (W has ", W.size(0), " rows)");
+  STD_TORCH_CHECK(k <= INT_MAX && W.size(0) <= INT_MAX && X.size(0) <= INT_MAX,
+                  op, ": W or X too large");
+  STD_TORCH_CHECK(
+      W.stride(1) == 1 && (W.size(0) <= 1 || W.stride(0) == row_bytes), op,
+      ": W rows must be contiguous (row stride ", W.stride(0), ", row bytes ",
+      row_bytes, ")");
+  STD_TORCH_CHECK(reinterpret_cast<uintptr_t>(W.data_ptr()) % 16 == 0, op,
+                  ": W data must be 16-byte aligned");
+  STD_TORCH_CHECK(X.stride(1) == 1 && (X.size(0) <= 1 || X.stride(0) == k), op,
+                  ": X rows must be contiguous");
+  STD_TORCH_CHECK(mmq || X.size(0) <= 65535, op, ": at most 65535 rows");
+  STD_TORCH_CHECK(W.is_cuda() && X.is_cuda(), op,
+                  ": W and X must be CUDA tensors");
+  STD_TORCH_CHECK(W.get_device_index() == X.get_device_index(), op,
+                  ": W and X must be on the same device");
+  return k;
+}
+
 Tensor ggml_dequantize(Tensor W,  // quant weight
                        int64_t type, int64_t m, int64_t n,
                        std::optional<ScalarType> dtype) {
+  int64_t values = 0, bytes = 0;
+  STD_TORCH_CHECK(ggml_block_size(type, &values, &bytes),
+                  "ggml_dequantize: unsupported ggml type ", type);
+  STD_TORCH_CHECK(W.scalar_type() == ScalarType::Byte,
+                  "ggml_dequantize: W must be uint8");
+  // The kernels see m * n values as one flat run of blocks (the embedding
+  // path passes m = hidden size, n = tokens).
+  STD_TORCH_CHECK(m >= 0 && n >= 0 && (m * n) % values == 0,
+                  "ggml_dequantize: m * n = ", m * n,
+                  " must be a multiple of the block's ", values, " values");
+  int64_t numel = 1, expected_stride = 1;
+  for (int64_t d = W.dim() - 1; d >= 0; --d) {
+    STD_TORCH_CHECK(W.size(d) <= 1 || W.stride(d) == expected_stride,
+                    "ggml_dequantize: W must be contiguous");
+    expected_stride *= W.size(d);
+    numel *= W.size(d);
+  }
+  STD_TORCH_CHECK(numel >= m * n / values * bytes, "ggml_dequantize: W has ",
+                  numel, " bytes, ", m, " x ", n, " values need ",
+                  m * n / values * bytes);
+  STD_TORCH_CHECK(reinterpret_cast<uintptr_t>(W.data_ptr()) % 16 == 0,
+                  "ggml_dequantize: W data must be 16-byte aligned");
+  STD_TORCH_CHECK(!dtype || is_float_dtype(*dtype),
+                  "ggml_dequantize: dtype must be fp32, fp16 or bf16");
+  STD_TORCH_CHECK(W.is_cuda(), "ggml_dequantize: W must be a CUDA tensor");
   const int32_t device_idx = W.get_device_index();
   const DeviceGuard device_guard(device_idx);
   const auto dtype_ = dtype.value_or(ScalarType::Half);
@@ -104,6 +222,7 @@ Tensor ggml_dequantize(Tensor W,  // quant weight
 Tensor ggml_mul_mat_vec_a8(Tensor W,  // quant weight
                            Tensor X,  // input
                            int64_t type, int64_t row) {
+  check_mul_mat_inputs(W, X, type, row, false, "ggml_mul_mat_vec_a8");
   int64_t col = X.sizes()[1];
   int64_t vecs = X.sizes()[0];
   const int64_t padded = (col + 512 - 1) / 512 * 512;
@@ -220,6 +339,7 @@ Tensor ggml_mul_mat_vec_a8(Tensor W,  // quant weight
 Tensor ggml_mul_mat_a8(Tensor W,  // quant weight
                        Tensor X,  // input
                        int64_t type, int64_t row) {
+  check_mul_mat_inputs(W, X, type, row, true, "ggml_mul_mat_a8");
   int64_t col = X.sizes()[1];
   int64_t padded = (col + 512 - 1) / 512 * 512;
   int64_t batch = X.sizes()[0];

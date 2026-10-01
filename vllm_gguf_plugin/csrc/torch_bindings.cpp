@@ -48,6 +48,14 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("ggml_moe_a8_vec", TORCH_BOX(&ggml_moe_a8_vec));
 }
 
+// CPU: the input checks only (they end in "must be CUDA tensors" when every
+// other check passes), so they can be tested without a GPU.
+STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
+  ops.impl("ggml_dequantize", TORCH_BOX(&ggml_dequantize));
+  ops.impl("ggml_mul_mat_vec_a8", TORCH_BOX(&ggml_mul_mat_vec_a8));
+  ops.impl("ggml_mul_mat_a8", TORCH_BOX(&ggml_mul_mat_a8));
+}
+
 STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CompositeExplicitAutograd, ops) {
   ops.impl("ggml_moe_get_block_size", TORCH_BOX(&ggml_moe_get_block_size));
 }
