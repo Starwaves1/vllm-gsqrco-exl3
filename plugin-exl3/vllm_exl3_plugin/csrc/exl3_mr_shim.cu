@@ -64,6 +64,7 @@ void exl3_linear_marlin_out(const at::Tensor& x, const at::Tensor& b, const at::
 at::Tensor repack_trellis(const at::Tensor& trellis);
 at::Tensor unpack_trellis(const at::Tensor& b);
 void init_device(int64_t device);
+void set_force_cfg(int64_t tk, int64_t tn);
 
 namespace {
 
@@ -201,6 +202,11 @@ at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at
     TORCH_CHECK(g_warmed.count({x.get_device(), w.k, w.n, w.bits, m}), op, ": shape k=", w.k, " n=", w.n,
                 " K=", w.bits, " rows=", m, " was not warmed up (exl3_mr_warmup) before CUDA graph capture");
   }
+  // job 15 (3090, the model's shapes): at 17..64 rows (thread_m_blocks 2..4, one launch) thread_k
+  // 128 x thread_n 128 beats the launcher's default pick by 4-6 % (target pass at 24 rows 33.2 ->
+  // 31.7 ms, 48 rows 46.4 -> 44.2); the vendored launcher keeps its default where it is invalid
+  const bool wide = m > 16 && m <= 64;
+  set_force_cfg(wide ? 128 : 0, wide ? 128 : 0);
   at::Tensor xh = at::empty({m, w.k}, x.options().dtype(at::kHalf));
   at::Tensor y = at::empty({m, w.n}, x.options().dtype(bf16_io || out_fp32 ? at::kBFloat16 : at::kHalf));
   exl3_linear_marlin_out(x, w.b, suh, svh, kCbMul1, xh, y);
