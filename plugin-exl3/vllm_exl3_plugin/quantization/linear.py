@@ -160,8 +160,8 @@ class EXL3LinearMethod(LinearMethodBase):
             _WARMED.add(key)
 
     def _mr_prepare(self, layer, quant) -> None:
-        """EXL3_MR: under 2, K4 trellises become exl3_mr_repack's layout (after exl3_warmup,
-        which reads the stored one; the repack is the only copy kept). Then exl3_mr_warmup
+        """EXL3_MR: under 2, K4 trellises become exl3_mr_repack's layout in place (ops.repack_k4_,
+        after exl3_warmup, which reads the stored one). Then exl3_mr_warmup
         for every part exl3_gemm_mr takes, at each routed row count (the capture guard is
         per row count)."""
         if not ops.MR_AVAILABLE:
@@ -171,7 +171,7 @@ class EXL3LinearMethod(LinearMethodBase):
         for i in range(layer.exl3_num_parts):
             trellis = getattr(layer, f"exl3_trellis_{i}")
             if ops.mr_repacks(trellis.shape[2], quant.mul1):
-                trellis = mr.exl3_mr_repack(trellis)
+                trellis = ops.repack_k4_(trellis)
                 setattr(layer, f"exl3_trellis_{i}", Parameter(trellis, requires_grad=False))
                 rows = range(1, ops.GEMM_MAX_ROWS + 1)  # graphs stop at 48 rows; above 144 eager
             elif ops.mr_takes(trellis.shape[2], quant.mul1):

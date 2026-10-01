@@ -230,6 +230,18 @@ def test_glue_needs_mode_2():
     assert ops.MR_GLUE is False  # default environment
 
 
+@pytest.mark.parametrize("kt,nt,chunk", [(8, 8, 1 << 20), (24, 16, 2048), (16, 12, 4096)])
+def test_repack_k4_inplace(kt, nt, chunk):
+    """ops.repack_k4_ == the per-word definition, on the same storage (chunked: rows at a time)."""
+    from vllm_exl3_plugin.ops import repack_k4_
+
+    t = torch.randint(-32768, 32768, (kt, nt, 64), dtype=torch.int32, generator=torch.Generator().manual_seed(kt)).to(torch.int16)
+    want = ref_repack(t.clone())
+    b = repack_k4_(t, chunk_bytes=chunk)
+    assert b.data_ptr() == t.data_ptr() and b.dtype == torch.int32 and b.is_contiguous()
+    assert torch.equal(b, want) and torch.equal(ref_unpack(b), ref_unpack(want))
+
+
 def test_fake_impl_repacked():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 
@@ -270,7 +282,6 @@ def _qkv_layer(method, g):
 def test_mr_prepare(mr_mode, method, monkeypatch, mode):
     ops = mr_mode(mode)
     monkeypatch.setattr(ops, "MR_AVAILABLE", True)
-    monkeypatch.setattr(torch.ops._C_exl3, "exl3_mr_repack", ref_repack, raising=False)
     layer = _qkv_layer(method, torch.Generator().manual_seed(0))
     method.process_weights_after_loading(layer)
     stored = [getattr(layer, f"exl3_trellis_{i}") for i in range(3)]

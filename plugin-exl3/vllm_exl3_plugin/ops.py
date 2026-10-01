@@ -108,6 +108,21 @@ def mr_repacks(tile_width: int, mul1: bool) -> bool:
     return MR_MODE == 2 and mul1 and tile_width == MR_REPACK_TILE_WIDTH
 
 
+def repack_k4_(trellis: torch.Tensor, chunk_bytes: int = 64 << 20) -> torch.Tensor:
+    """exl3_mr_repack in place: the same word permutation (32-bit word l of tile (i, 4g + j) to
+    [i, g, l, j]) on the tensor's own storage, a few k/16 rows at a time; returns the int32
+    [k/16, n/64, 32, 4] view. No second copy of the weight ever exists, whoever still references
+    the int16 tensor (job 12 run 1: an allocating repack left 23.05 GiB live at load and OOMed)."""
+    kt, nt, width = trellis.shape
+    assert trellis.dtype == torch.int16 and width == MR_REPACK_TILE_WIDTH and nt % 4 == 0 and trellis.is_contiguous()
+    w = trellis.view(torch.int32).view(kt, nt // 4, 4, 32)
+    step = max(1, chunk_bytes // (nt * 128))
+    for i in range(0, kt, step):
+        blk = w[i:i + step]
+        blk.view(-1).copy_(blk.permute(0, 1, 3, 2).contiguous().view(-1))
+    return w.view(kt, nt // 4, 32, 4)
+
+
 def out_features(trellis: torch.Tensor) -> int:
     """n of a stored (int16 [k/16, n/16, 16K]) or repacked (int32 [k/16, n/64, 32, 4]) trellis."""
     return trellis.shape[1] * (64 if trellis.dtype == torch.int32 else 16)
