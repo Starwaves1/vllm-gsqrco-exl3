@@ -29,7 +29,10 @@ PY
   rm -rf "$P/exl3-resume"
 fi
 cp "$P/exl3/exl3_logits.json" "$O/"
-if [ "${EXL3_SPREAD:-1}" = 1 ] && [ "$(df --output=avail -B1G /workspace | tail -1)" -ge 9 ]; then
+# nothing was missing and a spread from after the dumps exists (e.g. a full 04 ran first): keep it
+if [ -z "$missing" ] && [ -s "$O/spread.json" ] && [ "$O/spread.json" -nt "$P/exl3/exl3_logits.json" ]; then
+  echo "spread kept: $O/spread.json is newer than the dumps"
+elif [ "${EXL3_SPREAD:-1}" = 1 ] && [ "$(df --output=avail -B1G /workspace | tail -1)" -ge 9 ]; then
   EXL3_HGEMM_F16ACC=0 "$GSQ_EXL3_VENV/bin/python" bench/parity/exl3_logits.py -m "$EXL3_MODEL" -d "$P/prompts" \
     -o "$P/exl3-fp32acc" 2>&1 | tee "$O/exl3-fp32acc.log"
   cp "$P/exl3-fp32acc/exl3_logits.json" "$O/exl3_logits-fp32acc.json"
