@@ -53,50 +53,59 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--types", default=",".join(TYPES))
     ap.add_argument("--tokens", default=",".join(map(str, TOKENS)))
-    ap.add_argument("--shapes", default=",".join(f"{r}x{k}" for r, k in SHAPES))
+    ap.add_argument("--shapes", default="", help="RxK list; default: every (type, rows, K) of the GGUF's linears")
     a = ap.parse_args()
     reader = gguf.GGUFReader(str(gemm.GGUF))
     tokens = [int(t) for t in a.tokens.split(",")]
-    shapes = [tuple(int(d) for d in s.split("x")) for s in a.shapes.split(",")]
-    lines = ["type\trows\tK\tn\tvariant\tis_route\tus\tfloor_us\tGBps\tTOPS"]
-    print(f"{torch.cuda.get_device_name()}  X bf16, graph-replay timing", flush=True)
-    for name in a.types.split(","):
-        for rows, k in shapes:
-            try:
-                w, qt = gemm.weight(reader, name, rows, k)
-            except Exception as e:  # noqa: BLE001  (type absent from the GGUF)
-                print(f"{name} {rows}x{k}: skipped ({e})")
-                continue
-            packed = None
-            if name.startswith("IQ3") and rows % 16 == 0:
-                packed = iq3_pack.pack(w, qt)
-            floor = w.numel() / HBM * 1e6
-            print(f"\n{name} {rows}x{k} ({w.numel() / 1e6:.1f} MB, floor {floor:.1f} us)", flush=True)
-            for n in tokens:
-                x = torch.randn(n, k, device="cuda", dtype=torch.bfloat16)
-                route = linear._lcpp_op(n, qt, rows, k, packed is not None)
-                row = []
-                for vname, fn in candidates(name, qt, rows, k, n, packed).items():
-                    try:
-                        us = gemm.time_graph(fn, w, x)
-                    except Exception as e:  # noqa: BLE001  (kernel guard: unsupported n/type)
-                        msg = str(e).splitlines()[0][:60]
-                        row.append(f"{vname}: n/a ({msg})")
-                        torch.cuda.synchronize()
-                        continue
-                    op = {"mmq": "lcpp_mul_mat_q", "mma_k": "lcpp_mul_mat_mma_k", "mma_k_chunked64": "-",
-                          "iq3_tiled_packed": "lcpp_mul_mat_iq3_packed",
-                          "iq3_vec_mma_packed": "lcpp_mul_mat_vec_iq3_mma_packed",
-                          "mmvq": "lcpp_mul_mat_vec_q", "own_vec": "lcpp_mul_mat_vec_own"}[vname]
-                    is_route = int(op == route)
-                    gbps = w.numel() / (us * 1e-6) / 1e9
-                    tops = 2.0 * n * rows * k / (us * 1e-6) / 1e12
-                    lines.append(f"{name}\t{rows}\t{k}\t{n}\t{vname}\t{is_route}\t{us:.1f}\t{floor:.1f}\t{gbps:.0f}\t{tops:.1f}")
-                    row.append(f"{'*' if is_route else ''}{vname} {us:.1f}us ({us / floor:.2f}x floor)")
-                print(f"  n={n:4d} route={route}: " + " | ".join(row), flush=True)
-            del w, packed
-            torch.cuda.empty_cache()
-            Path(a.out).write_text("\n".join(lines) + "\n")
+    types = a.types.split(",")
+    counts = {}
+    if a.shapes:
+        shapes = [tuple(int(d) for d in s.split("x")) for s in a.shapes.split(",")]
+        cases = [(t, r, k) for t in types for r, k in shapes]
+    else:  # the model's own linears (GGUF shape = [K, rows]); the embedding table is a gather
+        for t in reader.tensors:
+            if len(t.shape) == 2 and t.tensor_type.name in types and not t.name.startswith("token_embd"):
+                key = (t.tensor_type.name, int(t.shape[1]), int(t.shape[0]))
+                counts[key] = counts.get(key, 0) + 1
+        cases = sorted(counts)
+    lines = ["type\trows\tK\tn\tvariant\tis_route\tus\tfloor_us\tGBps\tTOPS\tcount"]
+    print(f"{torch.cuda.get_device_name()}  X bf16, graph-replay timing; {len(cases)} (type, rows, K) cases", flush=True)
+    for name, rows, k in cases:
+        try:
+            w, qt = gemm.weight(reader, name, rows, k)
+        except Exception as e:  # noqa: BLE001  (type absent from the GGUF)
+            print(f"{name} {rows}x{k}: skipped ({e})")
+            continue
+        packed = None
+        if name.startswith("IQ3") and rows % 16 == 0:
+            packed = iq3_pack.pack(w, qt)
+        floor = w.numel() / HBM * 1e6
+        print(f"\n{name} {rows}x{k} ({w.numel() / 1e6:.1f} MB, floor {floor:.1f} us)", flush=True)
+        for n in tokens:
+            x = torch.randn(n, k, device="cuda", dtype=torch.bfloat16)
+            route = linear._lcpp_op(n, qt, rows, k, packed is not None)
+            row = []
+            for vname, fn in candidates(name, qt, rows, k, n, packed).items():
+                try:
+                    us = gemm.time_graph(fn, w, x)
+                except Exception as e:  # noqa: BLE001  (kernel guard: unsupported n/type)
+                    msg = str(e).splitlines()[0][:60]
+                    row.append(f"{vname}: n/a ({msg})")
+                    torch.cuda.synchronize()
+                    continue
+                op = {"mmq": "lcpp_mul_mat_q", "mma_k": "lcpp_mul_mat_mma_k", "mma_k_chunked64": "-",
+                      "iq3_tiled_packed": "lcpp_mul_mat_iq3_packed",
+                      "iq3_vec_mma_packed": "lcpp_mul_mat_vec_iq3_mma_packed",
+                      "mmvq": "lcpp_mul_mat_vec_q", "own_vec": "lcpp_mul_mat_vec_own"}[vname]
+                is_route = int(op == route)
+                gbps = w.numel() / (us * 1e-6) / 1e9
+                tops = 2.0 * n * rows * k / (us * 1e-6) / 1e12
+                lines.append(f"{name}\t{rows}\t{k}\t{n}\t{vname}\t{is_route}\t{us:.1f}\t{floor:.1f}\t{gbps:.0f}\t{tops:.1f}\t{counts.get((name, rows, k), 1)}")
+                row.append(f"{'*' if is_route else ''}{vname} {us:.1f}us ({us / floor:.2f}x floor)")
+            print(f"  n={n:4d} route={route}: " + " | ".join(row), flush=True)
+        del w, packed
+        torch.cuda.empty_cache()
+        Path(a.out).write_text("\n".join(lines) + "\n")
 
 
 if __name__ == "__main__":
