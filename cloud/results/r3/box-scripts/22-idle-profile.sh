@@ -7,7 +7,8 @@
 #     thread, one line per cycle); R3_PTRACE_ANY = lets py-spy attach (yama scope 1, no CAP_SYS_PTRACE)
 #   - VLLM_CUSTOM_SCOPES_FOR_PROFILING=1 (record_function scopes for the trace; ~0.1 ms/step when idle)
 #   - --profiler-config torch, 25 iterations per start, CPU+CUDA activities (CUPTI), no stacks
-# Sequence: warm, fill the CPU tier past the write-back watermark, c=2 decode; 60 s window with
+# Sequence: warm, fill the CPU tier past the write-back watermark, a 30 s c=2 x 4k timer window
+# (short context), then c=2 x 96k decode; 60 s window with
 # timers + /metrics; then (streams still decoding) py-spy dumps, py-spy record 30 s of EngineCore and
 # API server, one torch-profiler capture (~25 steps).
 # nsys is used instead of nothing only if present (not in this container): CUPTI via torch.
@@ -34,6 +35,8 @@ r3_serve prof
 "${LOAD[@]}" warm || r3_die warm
 r3_step fill; "${LOAD[@]}" fill --n 2 --tokens 90000 --conc 2 || r3_die fill
 export R ENGINE_PID API_PID PYSPY
+r3_step "c2s window (short context, timers only)"
+"${LOAD[@]}" steady --conc 2 --tokens 4000 --max-tokens 6000 --window 30 --k 5 --tag c2s --out "$R" || r3_die "c2s window"
 r3_step "c2 window + hook"
 "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 16000 --window 60 --k 5 --tag c2 --out "$R" \
   --hook "bash $R3_S/22-hook.sh" || r3_die "c2 window/hook"
@@ -45,6 +48,9 @@ T1=$("$PY" -c "import json;print(json.load(open('$R/c2-steady.json'))['window_t1
 IN=$(ls "$R3_INSTR_DIR"/instr-*.jsonl 2>/dev/null | xargs -r wc -l | sort -n | grep -v total | tail -1 | awk '{print $2}')
 [ -n "$IN" ] || r3_die "no instrumentation output in $R3_INSTR_DIR"
 "$PY" "$R3_S/r3analyze.py" instr "$IN" --t0 "$T0" --t1 "$T1" --json "$R/instr.json" > "$R/instr.txt" || r3_die "instr analysis"
+S0=$("$PY" -c "import json;print(json.load(open('$R/c2s-steady.json'))['window_t0'])")
+S1=$("$PY" -c "import json;print(json.load(open('$R/c2s-steady.json'))['window_t1'])")
+"$PY" "$R3_S/r3analyze.py" instr "$IN" --t0 "$S0" --t1 "$S1" --json "$R/instr-c2s.json" > "$R/instr-c2s.txt" || r3_die "instr analysis (c2s)"
 TR=$(ls -t "$L"/prof/trace/*.pt.trace.json* 2>/dev/null | head -1)
 [ -n "$TR" ] || r3_die "no torch trace in $L/prof/trace"
 "$PY" "$R3_S/r3analyze.py" trace "$TR" --json "$R/trace.json" > "$R/trace.txt" || r3_die "trace analysis"
@@ -53,7 +59,8 @@ for f in "$R"/pyspy-*.raw; do
   "$PY" "$R3_S/r3analyze.py" pyspy "$f" --json "${f%.raw}.json" > "${f%.raw}.txt" 2>&1 || echo "pyspy analysis failed for $f"
 done
 r3_summary "R3-22 idle profile (box, $(date -u +%F)), c=2 x 96k, k=5, production's main argv + timers/scopes/profiler" \
-  "$(cat "$R/lines.txt")" "" "--- engine-cycle timers (unprofiled window) ---" "$(cat "$R/instr.txt")" "" \
+  "$(cat "$R/lines.txt")" "" "--- engine-cycle timers, c2 x 96k (unprofiled window) ---" "$(cat "$R/instr.txt")" "" \
+  "--- engine-cycle timers, c2s x 4k (same server, short context) ---" "$(cat "$R/instr-c2s.txt")" "" \
   "--- torch profiler (CUPTI), ~25 steps ---" "$(cat "$R/trace.txt")" ""
 for f in "$R"/pyspy-*.txt; do [ -f "$f" ] && r3_summary "--- $(basename "$f") ---" "$(head -45 "$f")" ""; done
 grep -h "py-spy" "$R/hook.log" 2>/dev/null | grep -i -E "fail|error|unavailable" | sed 's/^/DEGRADED: /' >> "$L/summary.txt"
