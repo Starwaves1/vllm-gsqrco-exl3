@@ -717,3 +717,57 @@ def test_lcpp_packed_layer(n, types, monkeypatch):
     assert not getattr(odd.weight, "iq3_packed", False)
     ref = torch.cat([_routed(qkv[:200], x, qts[0]), _routed(z, x, qts[3])], 1)
     assert torch.equal(method.apply(odd, x), ref)
+
+
+# ------------------------------------------------ shared q8_1 X (x_q8)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8])
+@pytest.mark.parametrize("name", LCPP_TYPES)
+def test_lcpp_x_q8(name, n):
+    """The q8_1-reading ops on X quantized beforehand (x_q8, as apply() shares
+    one quantization between a layer's runs) return exactly what they return
+    quantizing X themselves."""
+    C = _lcpp()
+    _, x, w, qt = _case(name, n, torch.bfloat16, 950 + n)
+    x = x.cuda()
+    q8 = C.lcpp_quantize_q8_1(x, qt, False, False)
+    ops_ = [C.lcpp_mul_mat_vec_q] + [getattr(C, op) for t, op in OWNED if t == name]
+    for op in ops_:
+        assert torch.equal(op(w, x, qt, w.shape[0], q8), op(w, x, qt, w.shape[0]))
+    if name in IQ3_TYPES:  # the packed decode kernel, on W packed
+        p, op = _packed(w, qt), C.lcpp_mul_mat_vec_iq3_mma_packed
+        assert torch.equal(op(p, x, qt, p.shape[0], q8), op(p, x, qt, p.shape[0]))
+
+
+def test_quantize_x_q8_1_mixed_route():
+    """A layer's runs share one q8_1 quantization of X even when the first run
+    is not an lcpp type (Q5_K, stock path): the bytes are the lcpp run's."""
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    C = _lcpp()
+    _routing()
+    T = gguf.GGMLQuantizationType
+    x = make_x(4, 5120, torch.bfloat16, seed=77).cuda()
+    q8 = _quantize_x_q8_1(x, [int(T.Q5_K), int(T.IQ2_XS)], [5120, 5120])
+    assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.IQ2_XS), False, False))
+    # 8 rows: not MMVQ, but the Q4_K kernel (above 2048 weight rows)
+    x = make_x(8, 5120, torch.bfloat16, seed=78).cuda()
+    q8 = _quantize_x_q8_1(x, [int(T.Q4_K)], [4096])
+    assert torch.equal(q8, C.lcpp_quantize_q8_1(x, int(T.Q4_K), False, False))
+
+
+@pytest.mark.parametrize("n", [1, 4, 6, 8])
+@pytest.mark.parametrize("name,op", OWNED)
+def test_lcpp_x_q8_graph_replay(op, name, n):
+    """The decode path in one graph: apply()'s shared quantize (_quantize_x_q8_1,
+    with weight rows above the owned kernels' routing floor, so it fills) and
+    the owned op reading that x_q8."""
+    from vllm_gguf_plugin.quantization.linear import _quantize_x_q8_1
+
+    f = getattr(_lcpp(), op)
+
+    def fn(w, x, qt, rows):
+        return f(w, x, qt, rows, _quantize_x_q8_1(x, [qt], [17408]))
+
+    _graph_replay(name, n, fn)
