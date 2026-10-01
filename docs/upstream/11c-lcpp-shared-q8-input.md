@@ -24,7 +24,7 @@ another) quantized its input once per run, although every q8_1-reading op makes 
 
 ## How tested
 
-- Build: clean. CPU tests: 419 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 420 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090): bit-exact with per-run quantization; GPU input checks 168 passed / 30
   skipped (every bad `x_q8`, including on the CPU, rejected before a launch); compute-sanitizer clean on
   the `x_q8` and shared-quantize tests.

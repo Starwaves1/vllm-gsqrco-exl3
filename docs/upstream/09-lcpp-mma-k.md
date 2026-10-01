@@ -25,7 +25,7 @@ most of their time on tile overhead and the stream-k fixup.
 
 ## How tested
 
-- Build: clean. CPU tests: 337 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 338 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090): kernel parity (lcpp and routing) 1516 passed / 61 skipped; fp32
   relative error to MMQ at most 5.4e-7 (129 cases); 16-bit output within 1 ulp of MMQ on all 222 cases;
   GPU input checks 120 passed; compute-sanitizer memcheck + initcheck clean on 36 cases.

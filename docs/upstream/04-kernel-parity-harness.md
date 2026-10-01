@@ -42,8 +42,8 @@ harness can verify on the CPU; the strict xfail flags it when it lands.
 ## How tested
 
 - `pytest tests/test_dequant_host.py`: 26 passed, 16 xfailed (CPU, needs g++ with `_Float16`).
-- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 174 passed, 8 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
-  (stacked on 03, so including its 44 CPU guard cases)
+- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 175 passed, 8 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+  (stacked on 03, so including its 45 CPU guard cases)
 - The tolerances and the reference models come from the development suite, which ran the same tests on
   an RTX 3090 against the development model's tensors: 276 passed / 12 skipped at e2b8ad5 after
   calibration (worst reference-model error 2.5e-3 bf16 / 1.24e-3 fp16, worst error against full

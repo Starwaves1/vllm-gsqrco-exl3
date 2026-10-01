@@ -61,7 +61,7 @@ uninitialised bytes. A ready-to-file llama.cpp issue with file:line references i
 - Build with `VLLM_GGUF_BUILD_LCPP=1 python setup.py build_ext --inplace` (CUDA 13.0, sm_86): clean.
   Clean build 226 s at one job under a 3 GB memory cap (mmvq.cu 32 s, each MMQ instance 16-19 s,
   peak 0.9 GB); the .so is 28.9 MB for sm_86. The default build is unchanged.
-- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 264 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 265 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - pre-commit hooks: clean. Vendored files: `sha256sum -c` against VENDORED.md and `cmp` against a
   llama.cpp checkout at d7fb90e8.
 - GPU, on the development branch (RTX 3090, the 27B model's own tensors): 464 lcpp parity tests on all
@@ -97,6 +97,9 @@ per target pass from 433 to 356 (ms per engine step -0.8 % / -1.2 % at c=1 / c=2
   the D2S6 Q2_K layout); they match llama.cpp's own CUDA backend's behaviour. The absolute logit gate
   we set (KLD <= 1e-3 against llama.cpp CUDA) fails for the stock kernels too.
 - **Scope.** CUDA only, dense linears only (no MoE); IQ1_M is not routed here (no MMQ upstream).
+- **Alignment.** The ops require 16-byte aligned W. A same-type run that starts at an odd row of a padded
+  weight whose row stride is 8 mod 16 bytes (IQ3_S 2200, IQ2_S 1480, Q6_K 4200 bytes per 5120 values)
+  would be rejected with a clear error; no layer of the models we ran hits that.
 - **Related work.** Maxwell-Lyu's `codex-ggml-source-bridge` branch (Maxwell-Lyu/vllm-gguf-plugin)
   bridges the same ggml-cuda sources, the whole tree including MoE and FP4, restructured often. This
   PR takes the narrow slice for dense MMVQ / MMQ and borrows its read-tail fix. We would like to

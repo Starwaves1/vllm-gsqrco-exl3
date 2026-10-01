@@ -21,7 +21,7 @@ sequences) that also costs graph memory.
 
 ## How tested
 
-- Build: clean. CPU tests: 434 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 435 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090): kernel parity 2007 passed / 146 skipped (flag on); compute-sanitizer
   clean.
 

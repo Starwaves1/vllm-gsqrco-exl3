@@ -14,19 +14,19 @@ lcpp stack (05 ... 11e) is stacked, each branch on the previous one.
 | --- | --- | --- | --- | --- | --- | --- |
 | 01 | `upstream/01-host-staging-copy` | e2b8ad5 | 2 | +72/-2 | 105 passed, 6 skipped | OOM at MTP draft load (cumem pool); 1 file |
 | 02 | `upstream/02-qwen35-no-mmproj` | e2b8ad5 | 2 | +92/-8 | 110 passed, 6 skipped | text-only Qwen3.5 GGUF with the official config |
-| 03 | `upstream/03-kernel-input-guards` | e2b8ad5 | 3 | +477/-0 | 148 passed, 7 skipped | bad inputs: exceptions instead of wrong results / faults |
-| 04 | `upstream/04-kernel-parity-harness` | 03 | 2 | +534/-0 | 174 passed, 8 skipped, 16 xfailed | tight parity tests; fp16 dequant documented and bounded |
-| 05 | `upstream/05-lcpp-vendored-mmvq-mmq` | 04 | 4 | +1248/-46 | 264 passed, 9 skipped, 16 xfailed | RFC: vendored llama.cpp MMVQ/MMQ, opt-in |
-| 06 | `upstream/06-lcpp-q8-quantizer` | 05 | 2 | +209/-23 | 264 passed, 9 skipped, 16 xfailed | no activation cast |
-| 07 | `upstream/07-lcpp-owned-iq3` | 06 | 3 | +899/-35 | 294 passed, 9 skipped, 16 xfailed | IQ3 decode 1..8 rows |
-| 08 | `upstream/08-lcpp-owned-q4k-iq2s` | 07 | 3 | +442/-23 | 317 passed, 9 skipped, 16 xfailed | Q4_K / IQ2_S decode 1..8 rows |
-| 09 | `upstream/09-lcpp-mma-k` | 08 | 3 | +1076/-21 | 337 passed, 9 skipped, 16 xfailed | Q4_K / IQ4_XS / IQ2_S at 9..32 rows |
-| 10 | `upstream/10-lcpp-iq3-packed` | 09 | 4 | +1805/-25 | 410 passed, 9 skipped, 16 xfailed | IQ3 repack + packed kernels, all rows (largest gain) |
+| 03 | `upstream/03-kernel-input-guards` | e2b8ad5 | 3 | +482/-0 | 149 passed, 7 skipped | bad inputs: exceptions instead of wrong results / faults |
+| 04 | `upstream/04-kernel-parity-harness` | 03 | 2 | +534/-0 | 175 passed, 8 skipped, 16 xfailed | tight parity tests; fp16 dequant documented and bounded |
+| 05 | `upstream/05-lcpp-vendored-mmvq-mmq` | 04 | 4 | +1248/-46 | 265 passed, 9 skipped, 16 xfailed | RFC: vendored llama.cpp MMVQ/MMQ, opt-in |
+| 06 | `upstream/06-lcpp-q8-quantizer` | 05 | 2 | +209/-23 | 265 passed, 9 skipped, 16 xfailed | no activation cast |
+| 07 | `upstream/07-lcpp-owned-iq3` | 06 | 3 | +897/-35 | 295 passed, 9 skipped, 16 xfailed | IQ3 decode 1..8 rows |
+| 08 | `upstream/08-lcpp-owned-q4k-iq2s` | 07 | 3 | +442/-23 | 318 passed, 9 skipped, 16 xfailed | Q4_K / IQ2_S decode 1..8 rows |
+| 09 | `upstream/09-lcpp-mma-k` | 08 | 3 | +1076/-21 | 338 passed, 9 skipped, 16 xfailed | Q4_K / IQ4_XS / IQ2_S at 9..32 rows |
+| 10 | `upstream/10-lcpp-iq3-packed` | 09 | 4 | +1805/-25 | 411 passed, 9 skipped, 16 xfailed | IQ3 repack + packed kernels, all rows (largest gain) |
 | 11a | `upstream/11a-small-unquantized-gemv` | e2b8ad5 | 2 | +117/-6 | 110 passed, 11 skipped | small unquantized GEMMs (independent) |
 | 11b | `upstream/11b-dequant-no-zero-fill` | e2b8ad5 | 2 | +14/-1 | 104 passed, 6 skipped | no zero fill in dequantize (independent) |
-| 11c | `upstream/11c-lcpp-shared-q8-input` | 10 | 3 | +275/-46 | 419 passed, 9 skipped, 16 xfailed | one q8_1 quantize per layer input |
-| 11d | `upstream/11d-lcpp-mmq-tail-fold` | 11c | 1 | +37/-24 | 419 passed, 9 skipped, 16 xfailed | no memset per MMQ call |
-| 11e | `upstream/11e-lcpp-iq1m-mmvq` | 11d | 3 | +89/-11 | 434 passed, 9 skipped, 16 xfailed | IQ1_M on MMVQ |
+| 11c | `upstream/11c-lcpp-shared-q8-input` | 10 | 3 | +275/-46 | 420 passed, 9 skipped, 16 xfailed | one q8_1 quantize per layer input |
+| 11d | `upstream/11d-lcpp-mmq-tail-fold` | 11c | 1 | +37/-24 | 420 passed, 9 skipped, 16 xfailed | no memset per MMQ call |
+| 11e | `upstream/11e-lcpp-iq1m-mmvq` | 11d | 3 | +89/-11 | 435 passed, 9 skipped, 16 xfailed | IQ1_M on MMVQ |
 | 11f | `upstream/11f-mtp-draft-vocab-pruning` | e2b8ad5 | 3 | +82/-6 | 108 passed, 6 skipped | discussion only: needs a vLLM draft head |
 | 12 | `upstream/12-mtp-draft-config` | e2b8ad5 | 2 | +45/-8 | 105 passed, 6 skipped | MTP draft config on newer vLLM (or fix in core) |
 
@@ -71,14 +71,16 @@ One-line rationale per PR:
   `VLLM_GGUF_LCPP=1 pytest tests/test_lcpp_kernels.py tests/test_kernel_parity.py tests/test_kernel_guards.py`
   (and once without `VLLM_GGUF_LCPP` for the stock path).
 - The stack's end state (11e) was compared with the GPU-tested development build (`main` here): the
-  owned CUDA files are token-identical apart from clang-format, two macro-call semicolons and a split
-  string literal; the shim differs only in the order of op definitions; `linear.py` differs only in the
+  owned CUDA files are token-identical apart from clang-format, a semicolon after each of 16 macro
+  calls (two sites) and a split string literal; `iq3_pack.py` differs only in formatting; the shim differs only in the order of op definitions; `linear.py` differs only in the
   argument order of `_fused_mul_mat_gguf` (`packed` before `x_q8`, so 11c appends rather than inserts)
   and in the gemv of 11a, which is its own branch. The intermediate states (05 ... 11d) were never run
   on a GPU as such; 05's quantize path (vendored quantizers after a cast) is the development branch's
   phase-2 path with the MMVQ entry point of phase 3.
-- 03's checks on the stock ops and 07's `TORCH_CUDA_ARCH_LIST` rule for the lcpp build are new code
-  written for upstream (not in the development build).
+- 03's checks on the stock ops and 07's `TORCH_CUDA_ARCH_LIST` check for the lcpp build are new code
+  written for upstream (not in the development build). The review caught a bug in the first version of
+  03 (the `ggml_dequantize` check assumed n is a row width, but the embedding path passes the token
+  count); fixed, with a CPU test for that call shape.
 
 ## Before opening each PR
 

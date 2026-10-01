@@ -23,7 +23,7 @@ pass) the casts cost ~1.8 ms of a ~38 ms engine step.
 
 ## How tested
 
-- Build (`VLLM_GGUF_BUILD_LCPP=1`, sm_86): clean. CPU tests: 264 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build (`VLLM_GGUF_BUILD_LCPP=1`, sm_86): clean. CPU tests: 265 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - On the development branch (RTX 3090): the bytes were bit-identical to the vendored quantizer's in
   every case; kernel parity 776 -> 992 passed with the new tests; GPU input-check cases 64 of 64;
   compute-sanitizer memcheck and initcheck clean on 18 targeted cases.

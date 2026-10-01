@@ -29,12 +29,12 @@ refactor passes a view. The narrow-view NaN is exactly what `weight[start:end, :
 - `csrc/gguf/gguf_kernel.cu`: one check function for the two matmul ops (type supported by that op,
   2-D, W uint8, X fp32/fp16/bf16, K from W's row bytes equal to X's columns, `0 < row <= W rows`,
   W rows contiguous and 16-byte aligned, X rows contiguous, the MMVQ grid limit of 65535 rows, sizes
-  within int, devices), and the matching checks in `ggml_dequantize` (type, n a whole number of
+  within int, devices), and the matching checks in `ggml_dequantize` (type, m x n a whole number of
   blocks, W contiguous and large enough, alignment, dtype). All run before any launch; the device checks
   run last.
 - `csrc/torch_bindings.cpp`: the three ops are also registered for CPU, where the checks run and a
   call that passes them ends in "must be CUDA tensors". The MoE ops are unchanged.
-- `tests/test_kernel_guards_cpu.py` (CPU, 44 cases): which check fires for each bad input.
+- `tests/test_kernel_guards_cpu.py` ((CPU, 45 cases)): which check fires for each bad input.
 - `tests/kernel_guard_case.py` + `tests/test_kernel_guards.py` (CUDA): each bad input in its own
   process (a device fault is sticky); pass = clean rejection or the same result as on clean inputs.
   `GGUF_COMPUTE_SANITIZER=/path/to/compute-sanitizer` also runs each case under memcheck with the
@@ -43,8 +43,8 @@ refactor passes a view. The narrow-view NaN is exactly what `weight[start:end, :
 ## How tested
 
 - Build: `python setup.py build_ext --inplace` (CUDA 13.0, sm_86): clean, no new warnings.
-- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 148 passed, 7
-  skipped on vLLM 0.27.1 and vLLM main (the 44 CPU guard cases included; the CUDA module skips on a
+- `pytest tests --ignore=tests/test_kernels.py --ignore=tests/test_gguf_generation.py`: 149 passed, 7
+  skipped on vLLM 0.27.1 and vLLM main (the 45 CPU guard cases included; the CUDA module skips on a
   machine without a GPU).
 - pre-commit hooks: clean.
 - Not run on a GPU in this form: the table above comes from the same harness at e2b8ad5 with the

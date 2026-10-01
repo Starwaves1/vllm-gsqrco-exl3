@@ -17,7 +17,7 @@ per product, ~360 per engine step at 4 sequences.
 
 ## How tested
 
-- Build: clean. CPU tests: 419 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 420 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - The existing MMQ tests at 1..9 rows run with the allocator's free blocks poisoned, so an unzeroed tail
   shows up; on the development branch they pass, and compute-sanitizer memcheck + initcheck are clean
   on 53 cases including MMQ at 1..9 rows.

@@ -25,7 +25,7 @@ weights, and a 248320 x 5120 Q4_K lm_head) at 4..8 rows, on vendored MMVQ.
 
 ## How tested
 
-- Build: clean. CPU tests: 317 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 318 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090): kernel parity 2036 passed / 119 skipped with 07 and this kernel (flag
   on), 1979 / 176 with the flag off; compute-sanitizer memcheck + initcheck clean, including this
   kernel at 8192 rows and inside `apply()`.

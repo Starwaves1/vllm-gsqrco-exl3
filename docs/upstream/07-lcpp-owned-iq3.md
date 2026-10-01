@@ -29,7 +29,7 @@ shares the IQ3 decode across activation rows, so "decode once" alone is not the 
 
 ## How tested
 
-- Build: clean. CPU tests: 294 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 295 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090, real tensors): kernel parity 1152 passed / 16 skipped with the dp4a
   kernel, 1594 with the mma kernel added; compute-sanitizer memcheck + initcheck clean on 16 cases per
   op (1..8 rows, all tail shapes).
@@ -46,7 +46,9 @@ Op level at 4 rows: 541 / 520 GB/s for IQ3_S / IQ3_XXS (vendored MMVQ ~380).
 
 - Owned CUDA code to maintain (~250 lines dp4a, ~430 mma).
 - The mma kernel needs sm_80+ (`mma.sync m16n8k32` s8; ptxas rejects it for sm_75). From this PR on, a
-  `VLLM_GGUF_BUILD_LCPP=1` build therefore targets 8.0+ only: `TORCH_CUDA_ARCH_LIST` defaults to
-  `8.0;8.6;8.9;9.0` there and older entries are refused at setup time. The vendored-only build of 05 / 06
-  has no such limit. Pre-Ampere GPUs keep the default build.
+  `VLLM_GGUF_BUILD_LCPP=1` build needs compute capability 8.0+: setup.py refuses an explicit
+  `TORCH_CUDA_ARCH_LIST` with an older numeric entry (an unset list is left to torch, which builds for
+  the local GPU). The vendored-only build of 05 / 06 has no such limit. Pre-Ampere GPUs keep the
+  default build. A multi-arch build including pre-Ampere archs would need arch guards in the owned
+  kernels; not done.
 - Routing thresholds (5 / 6 / 8 rows) were tuned on one RTX 3090.

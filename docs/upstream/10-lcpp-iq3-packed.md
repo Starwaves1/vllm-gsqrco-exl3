@@ -35,7 +35,7 @@ the order an mma fragment consumes them removes that work from every forward.
 
 ## How tested
 
-- Build: clean. CPU tests: 410 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
+- Build: clean. CPU tests: 411 passed, 9 skipped, 16 xfailed on vLLM 0.27.1 and vLLM main
 - Development branch (RTX 3090): parity `-k "pack or packed or iq3"` 2664 passed / 104 skipped; the
   pack round-trips on every IQ3 block of the 27B model (222 tensors); `pack_` scratch measured at most
   0.99x the tensor (was 9.2x before the bounded version), 0.59 s for all 5.45 GB of IQ3 at load, no host
