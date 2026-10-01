@@ -33,10 +33,16 @@ from .utils import (
     UNQUANTIZED_TYPES,
 )
 
+_IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
+
 
 def _lcpp_op(n: int, weight_type: int) -> str:
     """The lcpp op (VLLM_GGUF_LCPP=1) for n activation rows times a weight of
     weight_type."""
+    if n <= 8 and weight_type in _IQ3_TYPES:
+        # the owned IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one
+        # at 1..5 rows, the int8 tensor-core one from 6
+        return "lcpp_mul_mat_vec_iq3_mma" if n >= 6 else "lcpp_mul_mat_vec_iq3"
     # MMQ is faster than MMVQ from 8 rows
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 

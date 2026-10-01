@@ -7,24 +7,22 @@ import pytest
 from gguf import GGMLQuantizationType as T
 
 MMVQ, MMQ = "lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"
+IQ3, MMA = "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"
 BIG = 17408
 K = 5120
 
 CASES = [
+    # IQ3: dp4a 1..5, mma 6..8, MMQ from 9, at any weight rows
+    *[
+        (t, n, rows, want)
+        for t in (T.IQ3_S, T.IQ3_XXS)
+        for rows in (1024, BIG)
+        for n, want in ((1, IQ3), (5, IQ3), (6, MMA), (8, MMA), (9, MMQ))
+    ],
     # every other lcpp type: MMVQ below 8, MMQ from 8
     *[
         (t, n, BIG, want)
-        for t in (
-            T.Q2_K,
-            T.Q6_K,
-            T.IQ2_XXS,
-            T.IQ2_XS,
-            T.IQ3_S,
-            T.IQ3_XXS,
-            T.Q4_K,
-            T.IQ2_S,
-            T.IQ4_XS,
-        )
+        for t in (T.Q2_K, T.Q6_K, T.IQ2_XXS, T.IQ2_XS, T.Q4_K, T.IQ2_S, T.IQ4_XS)
         for n, want in ((1, MMVQ), (7, MMVQ), (8, MMQ), (9, MMQ), (32, MMQ))
     ],
 ]
