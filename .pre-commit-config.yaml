@@ -20,7 +20,7 @@ repos:
     rev: v21.1.2
     hooks:
       - id: clang-format
-        exclude: 'vllm_gguf_plugin/csrc/gguf/(ggml-common\.h|dequantize\.cuh|vecdotq\.cuh|mmq\.cuh|mmvq\.cuh)'
+        exclude: 'vllm_gguf_plugin/csrc/(gguf/(ggml-common\.h|dequantize\.cuh|vecdotq\.cuh|mmq\.cuh|mmvq\.cuh)|lcpp/)'
         types_or: [c++, cuda]
         args: [--style=file, --verbose]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
