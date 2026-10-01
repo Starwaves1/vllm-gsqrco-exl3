@@ -1,7 +1,7 @@
 #!/bin/bash
 # R3-20 idle baseline: production's exact main argv on the box, then steady decode measured the way
 # the 2026-10-01 production profile measured it (/metrics drafts per second + nvidia-smi util at 1 Hz).
-#   1. serve (prod argv; CPU tier 13 GiB as on every box run, fs tier capped at 7 GB (box disk))
+#   1. serve (prod argv; CPU tier 13 GiB as on every box run, fs tier capped at 4 GB (box disk at 95%))
 #   2. warm-up, then fill the CPU tier past its 0.85 write-back watermark (2 x 90k distinct prompts,
 #      prefill only) so the tiering manager's per-step write-back scan runs as in production
 #   3. c2s: c=2 at short context (2 x 4k), 60 s window: same n and k as c2, ~25x less context, so

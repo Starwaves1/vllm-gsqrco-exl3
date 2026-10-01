@@ -70,7 +70,7 @@ r3_env() {
   source /workspace/box-env.sh
   export GSQ_VENV=${GSQ_VENV_OVERRIDE:-/workspace/venv-main}
   export GSQ_PROD_ARGV=$R3_WT/env/prod-main-serve-argv.txt
-  export GSQ_KV_TIER_ROOT=/workspace/kvtier-r3 GSQ_KV_TIER_MAX_BYTES=${R3_FS_TIER_BYTES:-7000000000}
+  export GSQ_KV_TIER_ROOT=/workspace/kvtier-r3 GSQ_KV_TIER_MAX_BYTES=${R3_FS_TIER_BYTES:-4000000000}
   export VLLM_GGUF_LCPP=1 VLLM_USE_V2_MODEL_RUNNER=0 GSQ_ALLOW_GPU=1
   export PYTHONPATH=$R3_PLUGIN_WT/plugin:$R3_PLUGIN_WT/tools${R3_EXTRA_PYTHONPATH:+:$R3_EXTRA_PYTHONPATH}
   # shellcheck disable=SC1091
@@ -100,7 +100,7 @@ r3_preflight() {
   [[ $got == "$R3_PLUGIN_WT"/plugin/* ]] || r3_die "plugin resolves to $got, not $R3_PLUGIN_WT/plugin"
   [ -f "$GSQ_GGUF" ] || r3_die "GGUF missing: $GSQ_GGUF"
   local free_gb; free_gb=$(df -BG --output=avail /workspace | tail -1 | tr -dc 0-9)
-  [ "$free_gb" -ge "${R3_MIN_DISK_GB:-10}" ] || r3_die "only ${free_gb} GB free on /workspace (fs tier cap $GSQ_KV_TIER_MAX_BYTES + traces)"
+  [ "$free_gb" -ge "${R3_MIN_DISK_GB:-6}" ] || r3_die "only ${free_gb} GB free on /workspace (fs tier cap $GSQ_KV_TIER_MAX_BYTES + traces)"
   local shm; shm=$(df -B1 --output=avail /dev/shm | tail -1 | tr -dc 0-9)
   [ "$shm" -ge $((GSQ_CPU_TIER_BYTES + 1073741824)) ] || r3_die "/dev/shm has $shm bytes free, CPU tier needs $GSQ_CPU_TIER_BYTES"
   { echo "date $(date -u +%FT%TZ)"; echo "gpu $q"

@@ -51,4 +51,8 @@ under graphs on vLLM main gives NaN logits on every request (54 `lcpp0`).
 1. Plugin: branch `hotfix-prompt-logprobs` (main + the linear.py chunking + its GPU test).
 2. vLLM overlay: apply both patches to qwen38/main
    (`patch -p1 -d <site-packages> < prompt-logprobs-*.patch`, or commit them there).
-   Box evidence: 55 (both patches + fixed plugin, graphs on, GSQ and W4A16).
+   Box evidence, 55 (both patches + the fixed plugin, CUDA graphs on, production's main argv),
+   on GSQ and on W4A16: echo + logprobs on 5 / 40 / 200-token prompts, prompt_logprobs=1 on 5 and
+   512 / 1,024 / 2,048 / 2,600 / 3,936 tokens, and logprobs without echo all return HTTP 200 with
+   finite values; both servers stay alive. Without the patches (50): 400 "nan" on echo (GSQ), and
+   the EngineCore dies at 512 prompt tokens (both models).
