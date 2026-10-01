@@ -7,6 +7,10 @@
 # Needs job 02 (draft head) first, on the same model (02-draft-head.sh [--alt]).
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 03-smoke
+# erlidev SC_3.50bpw_H4_V6 on production's argv misses 200k by 0.01 GiB (box run 1: 7.07 GiB KV
+# needed, 7.06 available, vLLM's estimate 199,280 tokens): this job runs below it so it can do
+# its own work; 07-fit keeps 200,000 and records the miss. EXL3_MAX_MODEL_LEN=200000 restores it.
+export GSQ_MAX_MODEL_LEN=${EXL3_MAX_MODEL_LEN:-196608}
 require_idle_gpu
 O=$R/03-smoke; rm -rf "$O"; mkdir -p "$O"
 [ -f "$EXL3_MODEL/mtp_draft_head.safetensors" ] || die "run 02-draft-head first"
