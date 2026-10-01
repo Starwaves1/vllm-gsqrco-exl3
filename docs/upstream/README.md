@@ -97,3 +97,7 @@ One-line rationale per PR:
 - `llamacpp-mmq-tail-issue.md`: a ready-to-file llama.cpp issue on MMQ's q8_1 read tail below 8
   columns (file:line at b11211 / d7fb90e8, proposed fix).
 - The RFC issue text for the lcpp backend is at the end of `05-lcpp-vendored-mmvq-mmq.md`.
+
+## HOLD (2026-10-01)
+
+Do not open PRs 09 (9-32-row int8-mma kernel), 10 (IQ3 repack + packed kernels) or 11c-11e (shared q8 input, MMQ tail fold, IQ1_M chunking) until the production incident is resolved: GSQ-RCO corrupts generations only when ≥9 requests run at once (the MTP drafter's 9-16-row matmuls through these kernel paths inside CUDA graphs), 26% of answers at 9+ vs 0.1% at ≤8; see cloud/results/prod-garbled-tokens-20261001.md. PRs 01-08, 11a, 11b and 12 are unaffected but should wait for the root cause in case it touches the quantizer or routing they share.
