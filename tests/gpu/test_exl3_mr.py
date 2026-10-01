@@ -225,6 +225,41 @@ def test_graph_replay(ops, tid, m):
     del g
 
 
+@pytest.mark.parametrize("rows", [1, 6, 48, 2048])
+def test_embed_host_gather(ops, rows):
+    """exl3_embed_host on a pinned table == F.embedding on the GPU copy, bit for bit; out-of-range
+    ids give zero rows; a captured gather replays with new ids."""
+    import torch
+
+    from vllm_exl3_plugin.quantization.embedding import EXL3HostEmbeddingMethod
+
+    torch.manual_seed(rows)
+    g = torch.Generator().manual_seed(rows)
+    layer = torch.nn.Module()
+    layer.weight = torch.nn.Parameter(torch.randn(248320, 5120, device="cuda", dtype=torch.bfloat16),
+                                      requires_grad=False)
+    ref_w = layer.weight.data.clone()
+    m = EXL3HostEmbeddingMethod()
+    free0 = torch.cuda.mem_get_info()[0]
+    m.process_weights_after_loading(layer)
+    assert m.host.is_pinned() and layer.weight.shape == (0, 5120)
+    assert torch.cuda.mem_get_info()[0] - free0 >= 2 * 2**30, "GPU copy not freed"
+    ids = torch.randint(0, 248320, (rows,), generator=g).cuda()
+    assert torch.equal(m.embedding(layer, ids), torch.nn.functional.embedding(ids, ref_w))
+    bad = torch.tensor([-1, 248320, 7], device="cuda")
+    out = m.embedding(layer, bad)
+    assert torch.equal(out[:2], torch.zeros_like(out[:2])) and torch.equal(out[2], ref_w[7])
+    static = ids.clone()
+    gr = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(gr):
+        y = m.embedding(layer, static)
+    new = torch.randint(0, 248320, (rows,), generator=g).cuda()
+    static.copy_(new)
+    gr.replay()
+    torch.cuda.synchronize()
+    assert torch.equal(y, ref_w[new])
+
+
 _UNWARMED = r"""
 import json, sys, torch
 sys.path.insert(0, sys.argv[1])

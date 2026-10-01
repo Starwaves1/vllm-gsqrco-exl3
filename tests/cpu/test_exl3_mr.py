@@ -242,6 +242,38 @@ def test_repack_k4_inplace(kt, nt, chunk):
     assert torch.equal(b, want) and torch.equal(ref_unpack(b), ref_unpack(want))
 
 
+@pytest.mark.parametrize("on", [False, True])
+def test_embed_host_method(monkeypatch, on):
+    """EXL3_EMBED_HOST: the token embedding gets the host method; lm_head / draft head do not."""
+    from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead, VocabParallelEmbedding
+
+    from vllm_exl3_plugin import ops
+    from vllm_exl3_plugin.format import EXL3QuantConfig
+    from vllm_exl3_plugin.quantization import EXL3Config
+    from vllm_exl3_plugin.quantization.embedding import EXL3HostEmbeddingMethod
+
+    monkeypatch.setattr(ops, "EMBED_HOST", on)
+    cfg = EXL3Config(EXL3QuantConfig(bits=3.5, head_bits=6, mtp_bits=4, codebook="mul1"))
+    emb = VocabParallelEmbedding.__new__(VocabParallelEmbedding)
+    head = ParallelLMHead.__new__(ParallelLMHead)
+    m = cfg.get_quant_method(emb, "model.language_model.embed_tokens")
+    assert isinstance(m, EXL3HostEmbeddingMethod) if on else m is None
+    assert not isinstance(cfg.get_quant_method(head, "mtp.draft_lm_head"), EXL3HostEmbeddingMethod)
+    assert not isinstance(cfg.get_quant_method(head, "lm_head"), EXL3HostEmbeddingMethod)
+
+
+def test_embed_host_cpu_weight_stays():
+    """On CPU (no CUDA weight) the method is a plain embedding: nothing moved."""
+    from vllm_exl3_plugin.quantization.embedding import EXL3HostEmbeddingMethod
+
+    layer = torch.nn.Module()
+    layer.weight = torch.nn.Parameter(torch.randn(16, 8).to(torch.bfloat16), requires_grad=False)
+    m = EXL3HostEmbeddingMethod()
+    m.process_weights_after_loading(layer)
+    ids = torch.tensor([3, 0, 15])
+    assert m.table is None and torch.equal(m.embedding(layer, ids), layer.weight[ids])
+
+
 def test_fake_impl_repacked():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 
@@ -307,7 +339,7 @@ def test_mr_prepare_needs_library(mr_mode, method, monkeypatch):
 # ---------------------------------------------------------------------------
 # The shim: registration, guards, repack (needs _C_exl3_mr)
 
-OPS = ("exl3_gemm_mr", "exl3_mr_repack", "exl3_mr_unpack", "exl3_mr_warmup")
+OPS = ("exl3_gemm_mr", "exl3_mr_repack", "exl3_mr_unpack", "exl3_mr_warmup", "exl3_embed_host")
 K_IN, N_OUT = 5120, 1024
 
 _CHILD = r"""
@@ -346,6 +378,8 @@ for name, c in cases.items():
             ops.exl3_mr_repack(t(a["trellis"]))
         elif c["op"] == "exl3_mr_unpack":
             ops.exl3_mr_unpack(t(a["trellis"]))
+        elif c["op"] == "exl3_embed_host":
+            ops.exl3_embed_host(t(a["ids"]), a["ptr"], a["rows"], a["cols"])
         res[name] = "no error"
     except RuntimeError as e:
         res[name] = str(e).splitlines()[0][:300]
@@ -432,6 +466,18 @@ CASES = {
     "repack-noncontig": (dict(op="exl3_mr_repack", args=dict(trellis=tr(width=64, t=True))), "must be contiguous"),
     "repack-n-not-128": (dict(op="exl3_mr_repack", args=dict(trellis=tr(n=64, width=64))), "multiples of 128"),
     "unpack-valid": (dict(op="exl3_mr_unpack", args=dict(trellis=rp())), "no error"),
+    "embed-valid": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4096, rows=248320, cols=5120)),
+                    "ids must be a CUDA tensor"),
+    "embed-ids-int32": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int32"), ptr=4096, rows=8, cols=64)),
+                        "ids must be contiguous 1-D int64"),
+    "embed-ids-2d": (dict(op="exl3_embed_host", args=dict(ids=T(2, 3, dtype="int64"), ptr=4096, rows=8, cols=64)),
+                     "ids must be contiguous 1-D int64"),
+    "embed-null": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=0, rows=8, cols=64)),
+                   "16-byte aligned bf16"),
+    "embed-misaligned": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4100, rows=8, cols=64)),
+                         "16-byte aligned bf16"),
+    "embed-cols": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4096, rows=8, cols=60)),
+                   "16-byte aligned bf16"),
     "unpack-int16": (dict(op="exl3_mr_unpack", args=dict(trellis=tr(width=64))), "b must be exl3_mr_repack's"),
     "unpack-bad-inner": (dict(op="exl3_mr_unpack", args=dict(trellis=T(320, 16, 4, 32, dtype="int32"))),
                          "b must be exl3_mr_repack's"),

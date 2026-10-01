@@ -2,13 +2,13 @@
 # gpuq entry point for the EXL3 optimization jobs: run one, record its status, enforce the one
 # real dependency (12 and 13 measure exl3_gemm_mr in the served model, so they need 10's parity).
 #   gpuq submit exl3opt-NAME -- bash /workspace/wt-exl3-opt/cloud/results/exl3-opt/box-scripts/run-job.sh NAME
-# NAME: 10-mr-parity | 11-mr-micro | 12-mr-ladder | 13-profile
+# NAME: 10-mr-parity | 11-mr-micro | 12-mr-ladder | 13-profile | 14-fit  (then the job's args)
 # Status: /workspace/logs/exl3-opt/status/NAME (ok | fail rc=N | skipped: ...); log run-job.log.
 S="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 L=/workspace/logs/exl3-opt; ST=$L/status; mkdir -p "$ST"
 name=${1:?job name}; shift
 log() { echo "$(date -u +%FT%TZ) $name: $*" | tee -a "$L/run-job.log"; }
-declare -A NEEDS=([12-mr-ladder]=10-mr-parity [13-profile]=10-mr-parity)
+declare -A NEEDS=([12-mr-ladder]=10-mr-parity [13-profile]=10-mr-parity [14-fit]=10-mr-parity)
 dep=${NEEDS[$name]:-}
 if [ -n "$dep" ] && [ "${EXL3_OPT_IGNORE_DEPS:-0}" != 1 ] && [ "$(cat "$ST/$dep" 2>/dev/null)" != ok ]; then
   echo "skipped: needs $dep, whose status is '$(cat "$ST/$dep" 2>/dev/null || echo none)'" > "$ST/$name"
@@ -16,7 +16,7 @@ if [ -n "$dep" ] && [ "${EXL3_OPT_IGNORE_DEPS:-0}" != 1 ] && [ "$(cat "$ST/$dep"
 fi
 log start
 case $name in
-  1[0-3]-*) bash "$S/$name.sh" "$@" > /dev/null 2>&1 ;;   # the job scripts tee to $L/NAME.log themselves
+  1[0-4]-*) bash "$S/$name.sh" "$@" > /dev/null 2>&1 ;;   # the job scripts tee to $L/NAME.log themselves
   *) log "unknown job"; exit 2 ;;
 esac
 rc=$?

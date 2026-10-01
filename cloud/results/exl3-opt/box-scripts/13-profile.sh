@@ -12,12 +12,13 @@ job_log 13-profile
 require_idle_gpu
 require_mr_build
 [ -f "$EXL3_MODEL/mtp_draft_head.safetensors" ] || die "no draft head (phase 1's 02-draft-head)"
-O=$R/13-profile; rm -rf "$O"; mkdir -p "$O"
+O=$R/13-profile; mkdir -p "$O"
 H=(-H "Authorization: Bearer $GSQ_API_KEY" -H "Content-Type: application/json")
 req() { curl -s "$GSQ_URL/v1/chat/completions" "${H[@]}" -d "{\"model\":\"qwen3.8-27b\",\"messages\":[{\"role\":\"user\",\"content\":\"Write a detailed essay about the history of the printing press, part $2.\"}],\"max_tokens\":$1,\"temperature\":0}" > /dev/null; }
 rc=0
-for mr in ${EXL3_OPT_PROFILE_MODES:-0 2ga}; do
-  D=$O/mr$mr; mkdir -p "$D/trace"
+modes=("${MODES_ARGS[@]}"); [ ${#modes[@]} = 0 ] && modes=(${EXL3_OPT_PROFILE_MODES:-0 2ga})
+for mr in "${modes[@]}"; do
+  D=$O/mr$mr; rm -rf "$D"; mkdir -p "$D/trace"
   echo "=== EXL3_MR=$mr $(date -u +%FT%TZ)"
   serve_mr "$mr" "$D" --profiler-config "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"$D/trace\",\"torch_profiler_with_stack\":false,\"torch_profiler_use_gzip\":false,\"ignore_frontend\":true,\"delay_iterations\":60,\"max_iterations\":6}" \
     || { rc=1; stopall; continue; }

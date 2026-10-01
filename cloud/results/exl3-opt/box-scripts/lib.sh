@@ -25,6 +25,7 @@ fi
 export EXLLAMAV3_TUNE_CACHE=$R/tune-cache
 # production's main argv, as 03/06 (the erlidev quant misses 200,000 by 0.01 GiB, see 06-ladder.sh)
 export GSQ_MAX_MODEL_LEN=${EXL3_MAX_MODEL_LEN:-196608}
+MODES_ARGS=("$@")  # a job's positional args: the modes it runs (12, 13, 14)
 mkdir -p "$R" "$L"
 
 require_mr_build() {  # the plugin under test is this worktree's, with both extensions built
@@ -34,15 +35,17 @@ import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS
   [[ $got == "$WT/plugin-exl3/vllm_exl3_plugin/__init__.py True True" ]] || die "plugin not from $WT or not built: $got"
 }
 # serve_mr <mode> <run dir> [extra vLLM args]: scripts/serve-exl3.sh (production's argv) in the
-# background with EXL3_MR=<mode's digit>; suffix g: EXL3_MR_GLUE=1, suffix a: EXL3_MR_MIN=1 (K3/K5
-# on exl3_gemm_mr at every row count), e.g. 2ga; wait for health; load summary in <run dir>/load.txt
+# background with EXL3_MR=<mode's digit>; suffix g: EXL3_MR_GLUE=1, a: EXL3_MR_MIN=1 (K3/K5 on
+# exl3_gemm_mr at every row count), h: EXL3_EMBED_HOST=1 (token embedding in pinned host memory),
+# e.g. 2gah; wait for health; load summary in <run dir>/load.txt
 serve_mr() {
-  local mode=$1 mr=${1:0:1} glue=0 mrmin=17 out=$2 t0; shift 2; mkdir -p "$out"
-  [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1
-  export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin
-  # own compile cache per glue setting: vLLM's cache key does not cover the plugin's apply(), so a
-  # graph traced with the bf16 glue must never be loaded by a run without it (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-glue$glue
+  local mode=$1 mr=${1:0:1} glue=0 mrmin=17 host=0 out=$2 t0; shift 2; mkdir -p "$out"
+  [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1; [[ $mode == *h* ]] && host=1
+  export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin EXL3_EMBED_HOST=$host
+  # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
+  # apply()/embedding(), so a graph traced with glue or the host embedding must never be loaded by
+  # a run without it (or by phase 1)
+  export VLLM_CACHE_ROOT=$R/vllm-cache-g$glue-h$host
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)
@@ -50,7 +53,7 @@ serve_mr() {
   SPID=$!
   trap stopall EXIT
   gsq_wait_health 2400 "$SPID" || { echo SERVER_FAILED; tail -80 "$out/server.log"; return 1; }
-  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin healthy after $(( $(date +%s) - t0 )) s"
+  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin EXL3_EMBED_HOST=$host healthy after $(( $(date +%s) - t0 )) s"
     grep -E "Loading weights took|Model loading took|model weights|GPU KV cache size|Maximum concurrency|CUDA graph|init engine|exl3|EXL3" "$out/server.log" | cut -c1-260 | head -30
     echo "VRAM after load: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"; } | tee "$out/load.txt"
 }

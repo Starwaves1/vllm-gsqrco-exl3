@@ -10,8 +10,9 @@ from vllm.model_executor.layers.quantization.base_config import (
     QuantizationConfig,
     QuantizeMethodBase,
 )
-from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
+from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead, VocabParallelEmbedding
 
+from .. import ops
 from ..format import QUANT_METHOD, EXL3QuantConfig
 from ..weights_adapter.qwen3_5 import is_unquantized_module
 
@@ -66,7 +67,11 @@ class EXL3Config(QuantizationConfig):
             if is_unquantized_module(prefix):
                 return None  # vLLM's UnquantizedEmbeddingMethod
             return EXL3LinearMethod(self)
-        return None  # VocabParallelEmbedding: bf16 in the checkpoint
+        if ops.EMBED_HOST and isinstance(layer, VocabParallelEmbedding):
+            from .embedding import EXL3HostEmbeddingMethod
+
+            return EXL3HostEmbeddingMethod()  # bf16, in pinned host memory
+        return None  # VocabParallelEmbedding: bf16 in the checkpoint, on the GPU
 
 
 def _refuse_quantized_vision_tower(prefix: str, bits: float) -> None:

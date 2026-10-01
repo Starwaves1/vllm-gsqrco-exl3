@@ -30,6 +30,13 @@
 //       call per row count, which loads every kernel instance those rows select. Must run
 //       outside CUDA graph capture; throws if the stream is capturing.
 //
+//   exl3_embed_host(ids, table_ptr, rows, cols) -> bf16 [n, cols] on ids' device: rows of a bf16
+//       table [rows, cols] in pinned host memory at table_ptr (a host address; the caller keeps the
+//       pinned tensor alive), gathered by a kernel reading it over PCIe (UVA: pinned host memory
+//       is device-addressable), so the 2.4 GB token embedding needs no VRAM. The address is an int
+//       so no CPU tensor enters the compiled graph. Out-of-range ids give zero rows. No host
+//       work: graph-capturable.
+//
 // Capture safety: exl3_gemm_mr refuses to run while the current stream is capturing unless
 // exl3_mr_warmup ran that (device, k, n, K, rows) first. Keyed per row count, not per bucket:
 // the vendored launcher picks the thread config from m (narrow config, row family, 64-row
@@ -124,6 +131,40 @@ Weight check_weight(const at::Tensor& trellis, bool mcg, bool mul1, const char* 
               trellis.scalar_type(), " ", trellis.sizes());
   check_k_n(trellis.size(0) * 16, trellis.size(1) * 64, op);
   return {trellis, 4, trellis.size(0) * 16, trellis.size(1) * 64};
+}
+
+// ---------------------------------------------------------------------------
+// Host-resident embedding gather
+
+__global__ void embed_host_kernel(const int64_t* __restrict__ ids, const uint4* __restrict__ table,
+                                  uint4* __restrict__ out, int64_t v, int64_t d16) {
+  const int64_t row = blockIdx.x, id = ids[row];
+  uint4* dst = out + row * d16;
+  if (id < 0 || id >= v) {
+    for (int64_t j = threadIdx.x; j < d16; j += blockDim.x) dst[j] = make_uint4(0, 0, 0, 0);
+    return;
+  }
+  const uint4* src = table + id * d16;
+  for (int64_t j = threadIdx.x; j < d16; j += blockDim.x) dst[j] = src[j];
+}
+
+at::Tensor exl3_embed_host_op(const at::Tensor& ids, int64_t table_ptr, int64_t rows, int64_t cols) {
+  const char* op = "exl3_embed_host";
+  TORCH_CHECK(ids.scalar_type() == at::kLong && ids.dim() == 1 && ids.is_contiguous(), op,
+              ": ids must be contiguous 1-D int64");
+  TORCH_CHECK(table_ptr != 0 && table_ptr % 16 == 0 && rows > 0 && cols > 0 && cols % 8 == 0, op,
+              ": table must be a 16-byte aligned bf16 [rows, cols] with cols a multiple of 8");
+  TORCH_CHECK(ids.is_cuda(), op, ": ids must be a CUDA tensor");
+  const c10::cuda::CUDAGuard guard(ids.device());
+  at::Tensor out = at::empty({ids.size(0), cols}, ids.options().dtype(at::kBFloat16));
+  if (ids.size(0) == 0) return out;
+  void* dev_table = nullptr;  // fails unless table_ptr is pinned (page-locked) host memory
+  C10_CUDA_CHECK(cudaHostGetDevicePointer(&dev_table, reinterpret_cast<void*>(table_ptr), 0));
+  const int64_t d16 = cols / 8;
+  embed_host_kernel<<<(unsigned)ids.size(0), 128, 0, at::cuda::getCurrentCUDAStream().stream()>>>(
+      ids.data_ptr<int64_t>(), (const uint4*)dev_table, (uint4*)out.data_ptr(), rows, d16);
+  C10_CUDA_KERNEL_LAUNCH_CHECK();
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,9 +267,11 @@ TORCH_LIBRARY_FRAGMENT(_C_exl3, m) {
   m.def("exl3_mr_repack(Tensor trellis) -> Tensor");
   m.def("exl3_mr_unpack(Tensor b) -> Tensor");
   m.def("exl3_mr_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, bool out_fp32) -> ()");
+  m.def("exl3_embed_host(Tensor ids, int table_ptr, int rows, int cols) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
+  m.impl("exl3_embed_host", &exl3_embed_host_op);
   m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
   m.impl("exl3_mr_repack", &exl3_mr_repack_op);
   m.impl("exl3_mr_unpack", &exl3_mr_unpack_op);
@@ -238,6 +281,7 @@ TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
 // CPU: exl3_gemm_mr and exl3_mr_warmup run their guards and stop at "must be CUDA tensors";
 // repack and unpack are plain tensor ops and run.
 TORCH_LIBRARY_IMPL(_C_exl3, CPU, m) {
+  m.impl("exl3_embed_host", &exl3_embed_host_op);
   m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
   m.impl("exl3_mr_repack", &exl3_mr_repack_op);
   m.impl("exl3_mr_unpack", &exl3_mr_unpack_op);

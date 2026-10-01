@@ -181,11 +181,28 @@ def exl3_linear_fake(
     return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
+# EXL3_EMBED_HOST=1: the bf16 token embedding lives in pinned host memory (quantization/
+# embedding.py); rows are gathered to the GPU per step by exl3_embed_host.
+EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "0") == "1"
+
+
+def exl3_embed_host(ids: torch.Tensor, table_ptr: int, rows: int, cols: int) -> torch.Tensor:
+    flat = ids.reshape(-1).contiguous()
+    return torch.ops._C_exl3.exl3_embed_host(flat, table_ptr, rows, cols).view(*ids.shape, cols)
+
+
+def exl3_embed_host_fake(ids: torch.Tensor, table_ptr: int, rows: int, cols: int) -> torch.Tensor:
+    return ids.new_empty(*ids.shape, cols, dtype=torch.bfloat16)
+
+
 def _register() -> None:
     from vllm.utils.torch_utils import direct_register_custom_op
 
     direct_register_custom_op(
         op_name="_exl3_linear", op_func=exl3_linear, fake_impl=exl3_linear_fake
+    )
+    direct_register_custom_op(
+        op_name="_exl3_embed_host", op_func=exl3_embed_host, fake_impl=exl3_embed_host_fake
     )
 
 

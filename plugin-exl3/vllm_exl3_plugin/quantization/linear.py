@@ -196,8 +196,11 @@ class EXL3LinearMethod(LinearMethodBase):
         # kernels write fp32 (no second fp16 rounding) and the result is cast once
         xh = x.reshape(-1, x.shape[-1])
         # glue (ops.MR_GLUE): bf16 straight through, made contiguous as the cast did (x can be a
-        # strided view; the compiled graph asserts the custom op's input strides)
-        xh = xh.contiguous() if ops.MR_GLUE and x.dtype == torch.bfloat16 else xh.to(torch.half)
+        # strided view; the compiled graph asserts the custom op's input strides). Single-part
+        # layers only: a bare cat of custom-op outputs lets inductor hand a split of it (GDN's z)
+        # back as the part's own buffer, against the stride the next piece was traced with
+        glue = ops.MR_GLUE and x.dtype == torch.bfloat16 and layer.exl3_num_parts == 1
+        xh = xh.contiguous() if glue else xh.to(torch.half)
         out_fp32 = x.dtype != torch.half
         outs = [
             torch.ops.vllm._exl3_linear(

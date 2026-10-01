@@ -7,17 +7,19 @@
 # 8k x 4 (the unpack cost of a repacked K4 above 144 rows), not the 64k/180k ladder.
 # summary.txt: pass-2 T=0 ms/step per cohort per mode (ladder_summ.py), deltas vs EXL3_MR=0.
 # 2g = EXL3_MR=2 with EXL3_MR_GLUE=1 (bf16 straight through exl3_gemm_mr). EXL3_OPT_MR_MODES picks
-# the modes (default "2ga 2a 2"; suffix a = EXL3_MR_MIN=1, lib.sh serve_mr); EXL3_MR=0 is phase 1's 06-ladder (the same code path and argv),
+# the modes (default "2ga 2a 2"; suffixes in lib.sh serve_mr), or the job's arguments
+# (run-job.sh 12-mr-ladder 2ga 2gah); EXL3_MR=0 is phase 1's 06-ladder (the same code path and argv),
 # used as the baseline row when present (add 0 to the modes to re-measure it here).
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 12-mr-ladder
 require_idle_gpu
 require_mr_build
 [ -f "$EXL3_MODEL/mtp_draft_head.safetensors" ] || die "no draft head (phase 1's 02-draft-head)"
-O=$R/12-mr-ladder; rm -rf "$O"; mkdir -p "$O"
+O=$R/12-mr-ladder; mkdir -p "$O"   # per-mode dirs are replaced, other modes' results kept
 rc=0
-for mr in ${EXL3_OPT_MR_MODES:-2ga 2a 2}; do
-  D=$O/mr$mr; mkdir -p "$D"
+modes=("${MODES_ARGS[@]}"); [ ${#modes[@]} = 0 ] && modes=(${EXL3_OPT_MR_MODES:-2ga 2a 2})
+for mr in "${modes[@]}"; do
+  D=$O/mr$mr; rm -rf "$D"; mkdir -p "$D"
   echo "=== mode $mr $(date -u +%FT%TZ)"
   if serve_mr "$mr" "$D"; then
     GSQ_PREFILL="8192:1:4" OUT=$D bench/speed/run.sh exl3 > "$D/speed.log" 2>&1 || { echo "speed rc=$? (EXL3_MR=$mr)"; rc=1; }
@@ -30,6 +32,6 @@ for mr in ${EXL3_OPT_MR_MODES:-2ga 2a 2}; do
   keep "$D" "12-mr-ladder/mr$mr" "$D/summary.txt" "$D/load.txt" "$D/argv.txt" "$D"/clocks-*.csv "$D/server.log.gz"
 done
 base=; [ -s /workspace/runs/exl3/06-ladder/summary.txt ] && [ ! -d "$O/mr0" ] && base=/workspace/runs/exl3/06-ladder
-"$GSQ_VENV/bin/python" "$S/ladder_summ.py" $base "$O"/mr0 "$O"/mr1 "$O"/mr2 "$O"/mr2a "$O"/mr2g "$O"/mr2ga 2>/dev/null | tee "$O/summary.txt"
+"$GSQ_VENV/bin/python" "$S/ladder_summ.py" $base "$O"/mr* | tee "$O/summary.txt"
 keep "$O" 12-mr-ladder "$O/summary.txt"
 exit $rc
