@@ -138,6 +138,20 @@ misses an fp8 test bound since fixed).
 **Draft head** (`exl3-opt-parts`, `EXL3_DRAFT_FP8`, measuring): per-row e4m3 weights through vLLM's
 fp8 Marlin (0.21 instead of 0.42 GB per draft step); logits rel. rms 2.7 % vs the bf16 head.
 
+**prompt_logprobs / echo** (VERIFIED, job 18, ~4k-token code prompt, `cloud/results/exl3-opt/18-logprobs/`):
+on the defaults a 4096-token `prompt_logprobs` request kills the engine, but the OOM is vLLM's own
+(`sampler.compute_logprobs` in `_get_prompt_logprobs_dict`, an fp32 log-softmax of 1.57 GiB), as for
+stock W4A16 (GSQ round 3, r3-53); stock vLLM already fails at 512 tokens. With EXL3_MR=0 the plugin
+itself OOMs first, in the lm_head's dequant route. Kept (merged 95e4571): the lm_head on more than 256
+rows runs in 256-row chunks into one bf16 output, the head always takes bf16 (no fp32 full-vocab
+copy); GPU regression test: 2048 rows, 0.95 GiB output, scratch 0.43 GiB (EXL3_MR=0) / 0.12 GiB
+(defaults). With GSQ round 3's vLLM prompt-logprobs patch (`/workspace/venv-r3-plp`) and this fix:
+echo + logprobs on a 6- and a 40-token prompt 200 without NaN (the GGUF route's NaN is not here),
+`prompt_logprobs` at 512 / 2048 / 4096 tokens 200, no NaN / None, healthy after; echo + logprobs at
+4096 still dies in `compute_logprobs` (256 MiB): vLLM materializes the whole chunk's logits (2048 x
+248320 bf16, ~1 GiB, the plugin's output) before its chunked log-softmax, outside the profiled
+budget; the remaining fix is vLLM-side (logits per row chunk in the prompt-logprobs path).
+
 **GSQ side**: main 32ae6ec, IQ3 repack GPU tests after 62f27c0 (`-k "pack or packed"`,
 `VLLM_GGUF_LCPP=1`): 1462 passed, 0 skipped (`/workspace/logs/gsq-pack-32ae6ec-lcpp/test.log`).
 
