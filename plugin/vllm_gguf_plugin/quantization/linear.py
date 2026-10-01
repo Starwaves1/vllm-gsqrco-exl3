@@ -64,6 +64,10 @@ _FP32_DST_BUDGET = 256 << 20
 #                          not the tiled kernel
 #   VLLM_GGUF_IQ1M_MMVQ=0  IQ1_M above 8 rows on the stock dequantize + x @ W.T, not chunked MMVQ
 _MMA_K_ON = os.environ.get("VLLM_GGUF_MMA_K", "1") != "0"
+#   VLLM_GGUF_HEADCHECK=FILE  debug: every eager product on a vocab-sized weight (lm_head / draft
+#                          head, > 50,000 rows) at > 8 rows is recomputed with MMVQ in 8-row calls
+#                          and per-row disagreements are logged to FILE (syncs: debug only)
+_HEADCHECK = os.environ.get("VLLM_GGUF_HEADCHECK")
 _IQ3_TILED_ON = os.environ.get("VLLM_GGUF_IQ3_TILED", "1") != "0"
 _IQ1M_MMVQ_ON = os.environ.get("VLLM_GGUF_IQ1M_MMVQ", "1") != "0"
 
@@ -135,6 +139,37 @@ def _fused_mul_mat_gguf(
 ) -> torch.Tensor:
     """x @ weight.T. x_q8: x already quantized by _quantize_x_q8_1 for this
     product and others on the same x; used if this product reads q8_1."""
+    y = _fused_mul_mat_gguf_impl(x, weight, weight_type, x_q8, packed)
+    if (_HEADCHECK and weight.shape[0] > 50000 and x.shape[0] > 8
+            and weight_type in ops.LCPP_QUANT_TYPES and not torch.cuda.is_current_stream_capturing()):
+        _headcheck(x, weight, weight_type, y, _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed))
+    return y
+
+
+def _headcheck(x, weight, weight_type, y, name):
+    import json
+
+    alt = torch.cat([torch.ops._C_gguf.lcpp_mul_mat_vec_q(weight, x[i : i + 8], weight_type, weight.shape[0])
+                     for i in range(0, x.shape[0], 8)]).float()
+    yf = y.float()
+    rel = ((yf - alt).abs().amax(-1) / alt.abs().amax(-1).clamp_min(1e-6)).nan_to_num(1e9)
+    am_y, am_alt = yf.argmax(-1), alt.argmax(-1)
+    rec = {"n": x.shape[0], "rows": weight.shape[0], "route": name, "max_rel": float(rel.max()),
+           "bad_rows": (rel > 0.05).nonzero().flatten().tolist(),
+           "argmax_diff_rows": (am_y != am_alt).nonzero().flatten().tolist(),
+           "x_finite": bool(torch.isfinite(x).all()), "y_finite": bool(torch.isfinite(y).all()),
+           "x_absmax": float(x.float().abs().max())}
+    with open(_HEADCHECK, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
+def _fused_mul_mat_gguf_impl(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    weight_type: int,
+    x_q8: torch.Tensor | None = None,
+    packed: bool = False,
+) -> torch.Tensor:
     if weight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if weight.shape[0] > 5120 else 16
     else:

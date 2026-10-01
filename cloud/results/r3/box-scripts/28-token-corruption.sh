@@ -59,12 +59,32 @@ v_k2_small() {  # k=2 at every batch size: odd totals at 3 / 5 / 7 running, even
   R3_MUT=("set|--speculative-config|${SPEC}[[1,16,2]]}")
   r3_serve k2-small; "${LOAD[@]}" warm || r3_die warm; tok --tag k2-small --conc 3,4,5,6,7,8 --temps 0
 }
+v_headcheck() {  # prod argv, every eager lm_head / draft-head product at > 8 rows re-checked with MMVQ
+  export VLLM_GGUF_HEADCHECK=$L/runs/headcheck.jsonl.txt
+  r3_serve headcheck; "${LOAD[@]}" warm || r3_die warm; tok --tag headcheck --conc 8,9 --temps 0
+  "$PY" - "$VLLM_GGUF_HEADCHECK" > "$L/headcheck-summary.txt" <<'PYEOF'
+import json, sys, collections
+by = collections.defaultdict(lambda: [0, 0, 0, 0.0])
+ex = []
+for line in open(sys.argv[1]):
+    r = json.loads(line)
+    k = (r["rows"], r["n"], r["route"])
+    a = by[k]; a[0] += 1; a[1] += bool(r["bad_rows"]); a[2] += bool(r["argmax_diff_rows"]); a[3] = max(a[3], r["max_rel"])
+    if (r["bad_rows"] or not r["y_finite"]) and len(ex) < 12:
+        ex.append(r)
+print("weight rows, n, route: calls, calls with a row off by > 5 %, calls with an argmax change, max rel")
+for k, a in sorted(by.items()):
+    print(f"  {k}: {a[0]} calls, {a[1]} bad, {a[2]} argmax-diff, max rel {a[3]:.3g}")
+for r in ex:
+    print("  example:", json.dumps(r)[:300])
+PYEOF
+}
 v_g_notiled_k2(){ cell g-notiled-k2 graphs notiled k2; }
 v_g_noiq1m_k2() { cell g-noiq1m-k2 graphs noiq1m k2; }
 v_g_alloff_k2() { cell g-alloff-k2 graphs alloff k2; }
 report() {
   "$PY" "$R3_S/r3tok.py" report "$L/runs" --ref none --details 40 > "$L/report.txt" 2>&1
-  { cat "$L/report.txt"; for f in "${R3_FAILED[@]}"; do echo "variant $f: FAILED (see run.log)"; done; } > "$L/summary.txt"
+  { cat "$L/report.txt"; cat "$L/headcheck-summary.txt" 2>/dev/null; for f in "${R3_FAILED[@]}"; do echo "variant $f: FAILED (see run.log)"; done; } > "$L/summary.txt"
 }
 for v in ${R3_28_ONLY:-repro g_mmq_k2 e_ours_k2 g_ours_k3at9 g_ours_cap8 e_mmq_k2 g_mmq_cap8 e_ours_cap8 e_mmq_cap8}; do
   r3_step "$v"; r3_variant "$v" "v_$v"
