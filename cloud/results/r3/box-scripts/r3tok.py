@@ -162,7 +162,7 @@ def plp_client(srv, stop):
 
 
 def flagged(r):
-    return (r["status"] != 200 or not r["utf8_ok"] or r["fffd"] or not r["text_ok"] or r["eos_in_reasoning"]
+    return bool(r["status"] != 200 or not r["utf8_ok"] or r["fffd"] or not r["text_ok"] or r["eos_in_reasoning"]
             or r["odd"] or r["repeat"])
 
 
