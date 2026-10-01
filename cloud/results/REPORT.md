@@ -257,26 +257,47 @@ with 62 GB shared with production, the CPU tier size is the number to watch.
 
 ## 12. Soak
 
-The 24 h soak at c=2 has not run yet: it waits for the model/MTP test matrix on the same GPU.
-A first start on the final build ran 1.19 h (2026-09-30 04:12-05:24 UTC) and was stopped on request
-so the GPU could go to the test matrix. Nothing went wrong in that window
-(`cloud/results/soak/partial-20260930/`):
+c=2, production's argv with CUDA graphs (capture sizes <= 32), MTP k=3, `bench/soak.sh` + `soak_load.py`
+(mix: chat, tool calls, 8k-120k raw-completion prompts and prefix-cache follow-ups on them, aborted
+streams, greedy, priorities -10..10). Build: wt-final at `4c4e3d5` (plugin `.so` from `b9cdfa5`; the
+engine's memory maps were checked). Started 2026-09-30 10:08 UTC; **stopped gracefully at 19.43 h**
+(2026-10-01 05:35 UTC) by decision, to free the GPU for other work. It was not a failure. Data:
+`cloud/results/soak/run-20260930-100520/` (monitor.csv, report.json, soak-summary.json,
+load.jsonl.gz, server-excerpt.txt).
 
-| | 1.19 h partial |
+| | 19.43 h |
 |---|---|
-| server alive / health 200 | every 60 s row (72 rows) |
-| restarts / fault lines | 0 / 0 |
-| requests | 621: ok 410, aborted streams 70, reasoning-only 139, empty completion 2 |
-| tool calls parsed | 94 |
-| GPU MiB (server) | 22,500 at the first row, then 23,472-23,496 |
-| host RSS (server session) | 31.15-31.40 GiB |
-| completion tokens/s (hour 0) | 43.9 |
+| server alive / health 200 | 1,164 of 1,164 monitor rows (every 60 s) |
+| restarts / device faults / fault lines in server.log | 0 / 0 / 0 (IMA, CUDA error, Traceback, EngineDead: none) |
+| requests | 7,941: ok 7,114, aborted streams 783, model-output cases 44 (below) |
+| tool calls parsed | 1,227 of 1,228 tool requests |
+| preemptions | 0 |
+| GPU MiB (server processes) | 22,466 at the first row, then 23,482 flat from hour 1 to the end (slope 0) |
+| host RSS (server session) | 31.42 -> 31.87 GiB after hour 1 (+24 MB/h; limit 1 GiB total) |
+| RSS split at 8.2 h | API server anon 1.9 GB; engine anon 2.7 GB, shmem 26.6 GB (CPU KV tier) |
+| completion tokens/s per full hour (0-18) | 25-45 (the mix varies by hour; no downward trend) |
+| ok-request latency p50 / p99 | 4.0 s / 281 s |
 
-"reasoning-only" = max_tokens ended inside the thinking, so vLLM returned content None with the
-tokens in `message.reasoning`. The load generator counted these as bad output, and `soak_load.py`
-now counts them as output (`cf8fbde`). The 2 empty completions are long_hit requests (prefix-cache
-hits on 32k and 120k raw-completion prompts at T=1) whose first token was EOS; 2 of ~120 long_hit
-requests. Not a fault, but worth watching in the full soak.
+`soak.sh`'s strict `pass` is false for two reasons: 44 bad_output records and 19.4 of 24 h run.
+The 44 records were reclassified as model output, not faults:
+
+- **38 short completions on prefix-cache follow-ups** (long_hit, finish stop, 1-3 tokens; 2.3% of
+  1,629 long_hit). The model samples EOS first on these raw-completion "follow-up" prompts at T=1.
+  Two were rebuilt exactly by replaying soak_load's deterministic plan (checked: 200 records, 0
+  mismatches) and resent. EOS is a first-token candidate with p 0.02 and 0.18. On a forced
+  prefix-cache miss (`cache_salt`) the ranking is the same, with EOS log-probability -1.52 vs -1.69 on the hit.
+  `cloud/results/soak/eos-first-capture.txt`.
+- **6 empty outputs cut by max_tokens** (chat / greedy short prompts, 64 or 256 tokens, finish
+  length, no content and no reasoning text). Two were rebuilt and resent (one 3 times at T=1/T=1/T=0, the other twice at T=0); every resend was normal.
+  The cause is unexplained: soak_load did not keep the returned text (it does since `2bab4d2`). INFERRED: response
+  side (qwen3 reasoning parser) rather than the kernels, since the token count is normal and no
+  error was logged. T=0 output also differs run to run under concurrent load (not batch-invariant).
+
+An earlier 1.19 h start on `b9cdfa5` (`cloud/results/soak/partial-20260930/`) was stopped on request
+for the model matrix: 0 faults there too.
+
+Still to run: a full 24 h soak, and a 12 h torture soak (requested workload 01 on vLLM main; torture
+harness on branch `torture`).
 
 ## 13. Definition of done (HANDOFF section 2)
 
@@ -286,7 +307,7 @@ requests. Not a fault, but worth watching in the full soak.
 | 2 correct | partly: 866/866 tensors map (meta dry run); IQ dequant bit-exact; K-quant CUDA dequant 1 ulp off in fp16 (not on this model's linear path); tool calls and reasoning parse (smoke, soak); **logit gate KLD <= 0.001 / top-1 >= 99% FAIL** (0.0249 / 98.18%), relative gate PASS where measured |
 | 3 fast | decode c=1 PASS (1.17x); **c=2 FAIL by 0.9%** (0.99x), **slower per engine step at every c**; prefill PASS (1.07-1.13x); MTP greedy PASS (-0.5 pt), T=1 FAIL (+3.4 pt, vLLM draft sampling) |
 | 4 fits | PASS: 253,906 KV tokens (1.27x at 200k) |
-| 5 stable | section 12 |
+| 5 stable | partly: 19.4 of 24 h clean at c=2 with CUDA graphs (0 faults, 0 restarts, GPU memory flat, RSS +0.45 GiB); stopped early by decision. Full 24 h and a 12 h torture soak still to run |
 | 6 scientific (DeepSWE Pi run) | not run |
 | 7 reproducible | pinned plugin fork (`e2b8ad5` + commits, subtree split `swift-gsq-rco`), vendored `b11211` with sha256, `tools/build-plugin.sh` / `VLLM_GGUF_BUILD_LCPP=1`, CPU + GPU suites, this report; no upstream PRs opened |
 

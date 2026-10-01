@@ -1,8 +1,13 @@
 # Status: Swift GSQ-RCO IQ3_S-mtp GGUF on production vLLM
 
-Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); 24 h soak not run yet (see "Final phase").
+Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); soak 19.4 h clean at c=2, stopped early by decision (see "Final phase"). GSQ-RCO went live on production (vLLM main, k=5) on 2026-10-01.
 
-## Current state (2026-09-30)
+## Current state (2026-10-01)
+
+GSQ-RCO went live on production on 2026-10-01 (vLLM main, MTP k=5). The soak below ran on 0.27.1
+(k=3): 19.4 h clean, stopped early by decision; a full 24 h soak and a 12 h torture soak on vLLM main
+are still to run (requested workload 01; torture harness on branch `torture`).
+
 
 Production moved to vLLM main today (0.30.1rc1.dev285 + overlay 2a0fe5e1e1, k=5 MTP schedule, 16 seqs,
 capture 48; `env/prod-main-*`). The CPU-side preparation is done (`cloud/results/vllm-main-compat-cpu.md`).
@@ -23,7 +28,7 @@ tok/s, but per engine step still 1.01-1.19x slower (the tok/s lead is MTP accept
 on the GPU (0.59 s for all IQ3 at load, was 6.78 s and ~9x per chunk; no host memory either way).
 Open against HANDOFF section 2: the absolute logit gate (KLD 0.0249 vs <= 0.001), c=2 decode (0.99x)
 and per-step speed at every c, T=1 MTP acceptance (vLLM draft sampling), the DeepSWE run. Full
-report with the checklist: `cloud/results/REPORT.md`. Production is untouched. Without MTP the GGUF is
+report with the checklist: `cloud/results/REPORT.md`. Without MTP the GGUF is
 0.95 / 0.92 / 1.00 / 1.17-1.18x W4A16 per step at c=1/2/4/8, and ISTA's base GGUF runs at Swift's speed (see "Model matrix").
 
 The remaining sections are dated history ("Model matrix" is the newest). Labels: VERIFIED (checked in source or by running it here), DOCUMENTED (read in docs), INFERRED (reasoned, not checked).
@@ -142,9 +147,15 @@ data: `cloud/results/final/`. Report: `cloud/results/REPORT.md`.
   `soak_load.py` counted reasoning-only answers (max_tokens 16 ends inside the thinking; vLLM returns
   content None, tokens in message.reasoning) as bad_output: fixed in `cf8fbde` after the soak started
   (the running load generator keeps the old check; its records are reclassified in the soak summary).
-- Soak: not run yet (waits for the model/MTP test matrix). A first start ran 1.19 h on b9cdfa5
-  (04:12-05:24 UTC) and was stopped on request: 621 requests, 0 faults, 0 restarts, GPU 23,472-23,496
-  MiB after the first row, host RSS 31.15-31.40 GiB (`cloud/results/soak/partial-20260930/`).
+- Soak (`cloud/results/soak/run-20260930-100520/`, REPORT.md section 12): c=2, production's 0.27.1 argv with
+  CUDA graphs, wt-final `4c4e3d5`, 2026-09-30 10:08 UTC, stopped gracefully at 19.43 h by decision (GPU
+  needed elsewhere). Server alive and /health 200 in all 1,164 rows, 0 restarts, 0 device faults, 0 fault
+  lines; 7,941 requests (7,114 ok, 783 aborted streams, 1,227 tool calls parsed); GPU 23,482 MiB flat from
+  hour 1; host RSS 31.42 -> 31.87 GiB (+24 MB/h, mostly the CPU KV tier filling). The 44 bad_output records
+  are model output, not faults: 38 EOS-first short completions on prefix-cache follow-ups (EOS p 0.02-0.18
+  as first token, same on a forced cache miss; `soak/eos-first-capture.txt`) and 6 empty outputs cut by
+  max_tokens (no text returned, resends normal, cause unexplained; soak_load now keeps the returned choice).
+  An earlier 1.19 h start (`soak/partial-20260930/`) was stopped for the model matrix, also clean.
 
 ## Integration 2: P2 + K3 + R2 merged (2026-09-30, same 350 W 3090)
 

@@ -1,0 +1,19 @@
+{
+ "hours_planned": 24.0,
+ "hours_monitored": 19.43166666666667,
+ "restarts": 0,
+ "device_faults": [],
+ "other_fault_lines": 0,
+ "requests": {
+  "ok": 7114,
+  "aborted": 783,
+  "bad_output": 44
+ },
+ "gpu_mib_per_hour": -6.312801734466632e-13,
+ "rss_kib_per_hour": 24270.583179370708,
+ "limits": {
+  "gpu_mib_growth_total": 256,
+  "rss_kib_growth_total": 1048576
+ },
+ "pass": false
+}

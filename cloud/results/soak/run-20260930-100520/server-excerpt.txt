@@ -1,0 +1,22 @@
+(APIServer pid=1056675) INFO 09-30 10:05:28 [api_utils.py:273] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf', 'chat_template': '/workspace/wt-final/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_template.jinja', 'enable_auto_tool_choice': Tr
+(EngineCore pid=1057643) INFO 09-30 10:06:01 [core.py:121] Initializing a V1 LLM engine (v0.27.1) with config: model='/workspace/wt-final/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp', speculative_config=SpeculativeConfig(method='mtp', model='/workspace/wt-final/hf-config/Swift-1.5-Qwen3.8-27B-
+(EngineCore pid=1057643) INFO 09-30 10:08:13 [gpu_model_runner.py:5455] Model loading took 12.45 GiB memory and 124.029451 seconds
+(EngineCore pid=1057643) INFO 09-30 10:08:21 [kv_cache_utils.py:2389] GPU KV cache size: 253,125 tokens
+(EngineCore pid=1057643) INFO 09-30 10:08:32 [core.py:348] init engine (profile, create kv cache, warmup model) took 19.06 s (compilation: 3.53 s)
+(APIServer pid=1056675) INFO:     Application startup complete.
+...
+(APIServer pid=1056675) INFO 10-01 05:35:50 [core_client.py:688] [shutdown] MPClient: stopping engine manager
+(APIServer pid=1056675) INFO 10-01 05:35:50 [utils.py:612] [shutdown] Process manager: send sigterm to process EngineCore
+(APIServer pid=1056675) WARNING 10-01 05:35:50 [utils.py:632] [shutdown] Process manager: force killing remaining processes count=1
+(APIServer pid=1056675) WARNING 10-01 05:35:50 [utils.py:637] [shutdown] Process manager: force killing remaining process EngineCore pid 1057643
+(APIServer pid=1056675) INFO 10-01 05:35:50 [core_client.py:690] [shutdown] MPClient: engine manager stopped
+(APIServer pid=1056675) INFO 10-01 05:35:50 [core_client.py:691] [shutdown] MPClient: cleaning up background resources
+(APIServer pid=1056675) INFO 10-01 05:35:50 [core_client.py:693] [shutdown] MPClient: complete
+(APIServer pid=1056675) INFO 10-01 05:35:50 [launcher.py:137] [shutdown] API server: engine client stopped
+(APIServer pid=1056675) INFO 10-01 05:35:50 [launcher.py:140] [shutdown] API server: signalling HTTP server shutdown
+(APIServer pid=1056675) INFO 10-01 05:35:50 [launcher.py:161] [shutdown] API server: shutting down FastAPI HTTP server
+(APIServer pid=1056675) INFO:     Shutting down
+(APIServer pid=1056675) INFO:     Waiting for application shutdown.
+(APIServer pid=1056675) INFO:     Application shutdown complete.
+/.uv/python_install/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
