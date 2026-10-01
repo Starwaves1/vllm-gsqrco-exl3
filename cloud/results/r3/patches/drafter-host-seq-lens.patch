@@ -1,0 +1,99 @@
+diff -ru a/vllm/v1/attention/backend.py b/vllm/v1/attention/backend.py
+--- a/vllm/v1/attention/backend.py	2026-10-01 06:10:18.537590979 -0400
++++ b/vllm/v1/attention/backend.py	2026-10-01 06:11:04.974952087 -0400
+@@ -449,6 +449,12 @@
+     decode rows (assumes every draft was accepted). Not safe for kernels
+     that need exact per-row context lengths on decode rows."""
+ 
++    seq_lens_cpu_exact: bool = False
++    """True when seq_lens_cpu_upper_bound equals seq_lens on every row: set by
++    the model runner outside async scheduling and kept by the drafter, which
++    follows seq_lens on the host across draft passes. Builders that need exact
++    host lengths can then skip the seq_lens.cpu() sync."""
++
+     req_idx: np.ndarray | None = None
+     """(batch_size,) index of each row's request in the runner's request
+     table. Rows of one request are adjacent, so equal neighbours are PCP
+diff -ru a/vllm/v1/attention/backends/flashinfer.py b/vllm/v1/attention/backends/flashinfer.py
+--- a/vllm/v1/attention/backends/flashinfer.py	2026-10-01 06:10:18.543639091 -0400
++++ b/vllm/v1/attention/backends/flashinfer.py	2026-10-01 06:11:04.975243666 -0400
+@@ -1518,9 +1518,10 @@
+         if needs_seq_lens_cpu:
+             if (
+                 self._num_speculative_tokens == 0
+-                and common_attn_metadata.seq_lens_cpu_upper_bound is not None
+-            ):
+-                # No speculative token accounting, so the upper bound is exact.
++                or common_attn_metadata.seq_lens_cpu_exact
++            ) and common_attn_metadata.seq_lens_cpu_upper_bound is not None:
++                # No speculative token accounting, or the caller tracked the
++                # exact lengths on the host: the upper bound is exact.
+                 seq_lens_cpu = common_attn_metadata.seq_lens_cpu_upper_bound
+             else:
+                 with gpu_sync_allowed():
+diff -ru a/vllm/v1/spec_decode/llm_base_proposer.py b/vllm/v1/spec_decode/llm_base_proposer.py
+--- a/vllm/v1/spec_decode/llm_base_proposer.py	2026-10-01 06:10:18.552572322 -0400
++++ b/vllm/v1/spec_decode/llm_base_proposer.py	2026-10-01 06:11:04.976235323 -0400
+@@ -532,6 +532,29 @@
+         self.num_speculative_tokens = num_speculative_tokens
+         self._last_draft_probs = None
+         batch_size = common_attn_metadata.batch_size()
++        # Follow seq_lens on the host across the draft passes, so attention
++        # builders need no seq_lens.cpu() sync per pass: copy the rejected
++        # counts now, ahead of the first draft pass in the stream, and wait
++        # for that copy alone before the second pass.
++        rejected_ready = None
++        if (
++            num_speculative_tokens > 1
++            and num_rejected_tokens_gpu is not None
++            and common_attn_metadata.seq_lens_cpu_exact
++            and common_attn_metadata.seq_lens_cpu_upper_bound is not None
++            and num_rejected_tokens_gpu.shape[0]
++            <= common_attn_metadata.seq_lens_cpu_upper_bound.shape[0]
++        ):
++            n = num_rejected_tokens_gpu.shape[0]
++            buf = getattr(self, "_rejected_cpu", None)
++            if buf is None or buf.shape[0] < n or buf.dtype != num_rejected_tokens_gpu.dtype:
++                buf = torch.empty(
++                    max(n, 64), dtype=num_rejected_tokens_gpu.dtype, pin_memory=True
++                )
++                self._rejected_cpu = buf
++            buf[:n].copy_(num_rejected_tokens_gpu, non_blocking=True)
++            rejected_ready = torch.cuda.Event()
++            rejected_ready.record()
+ 
+         if self.method in ("eagle3", "dflash"):
+             model = self.model
+@@ -683,6 +706,19 @@
+         # (i.e., not the first proposal).
+         if self.num_speculative_tokens > 1 and num_rejected_tokens_gpu is not None:
+             common_attn_metadata.seq_lens -= num_rejected_tokens_gpu
++            exact = False
++            if rejected_ready is not None and common_attn_metadata.seq_lens_cpu_exact:
++                rejected_ready.synchronize()
++                n = num_rejected_tokens_gpu.shape[0]
++                lens = common_attn_metadata.seq_lens_cpu_upper_bound.clone()
++                lens[:n] -= self._rejected_cpu[:n].to(lens.dtype)
++                # The passes add 1 per position on the GPU unless a position
++                # reaches max_model_len (eagle_step_update_slot_mapping_and_
++                # metadata); stay exact only where that cannot happen.
++                if int(lens.max()) + self.num_speculative_tokens < self.max_model_len:
++                    common_attn_metadata.seq_lens_cpu_upper_bound = lens
++                    exact = True
++            common_attn_metadata.seq_lens_cpu_exact = exact
+ 
+         block_size = self.block_size
+         assert block_size > 0, "block_size has not been initialized."
+diff -ru a/vllm/v1/worker/gpu_model_runner.py b/vllm/v1/worker/gpu_model_runner.py
+--- a/vllm/v1/worker/gpu_model_runner.py	2026-10-01 06:10:18.548222027 -0400
++++ b/vllm/v1/worker/gpu_model_runner.py	2026-10-01 06:11:04.975940939 -0400
+@@ -2478,6 +2478,9 @@
+             query_start_loc_cpu=self.query_start_loc.cpu[: num_reqs_padded + 1],
+             seq_lens=self.seq_lens[:num_reqs_padded],
+             seq_lens_cpu_upper_bound=seq_lens_cpu_upper_bound,
++            # Optimistic lengths are exact unless async scheduling guessed the
++            # previous step's accepted drafts.
++            seq_lens_cpu_exact=not self.use_async_scheduling,
+             replayssm_decode_base_cpu=replayssm_decode_base_cpu,
+             num_reqs=num_reqs_padded,
+             num_actual_tokens=num_tokens_padded,

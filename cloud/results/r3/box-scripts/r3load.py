@@ -17,6 +17,7 @@ nvidia-smi utilization at 1 Hz for the busy/idle split (idle ms = (1 - util) x m
                     [--prefix NAME:KIND:TOKENS]  (stream 0 = that prompt + a fresh tail up to --tokens)
   r3load.py mixed   --url U --decoders 3 --dec-tokens 40000 --lane 600,1400,turn,4000
                     --turn-prefix 60000 --turn-new 1800 --window 120 --tag t128 --out DIR
+  r3load.py probe   --url U --n 4 --tokens 2000 --max-tokens 256 --tag X --out DIR   (greedy outputs, saved)
   r3load.py plan    (prints what each subcommand would send; no network)
 Every subcommand exits non-zero with a reason when its validity checks fail.
 """
@@ -498,6 +499,29 @@ def cmd_mixed(a):
         die(f"window invalid: {st['problems']}")
 
 
+def cmd_probe(a):
+    """Greedy outputs for a fixed prompt set, sent together (one batch, k from the schedule):
+    the correctness check for a change that must not alter numerics."""
+    srv, out = Server(a.url), Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    res = [None] * a.n
+
+    def one(i):
+        body = completion_body(prompt_ids(f"probe{i}", "chat", a.tokens), a.max_tokens, 0, 77 + i, stream=False)
+        body["logprobs"] = 1
+        r = json.loads(srv.post("/v1/completions", body, timeout=1800))
+        ch = r["choices"][0]
+        res[i] = {"text": ch["text"], "tokens": (ch.get("logprobs") or {}).get("tokens"),
+                  "completion_tokens": r["usage"]["completion_tokens"]}
+    th = [threading.Thread(target=one, args=(i,)) for i in range(a.n)]
+    [t.start() for t in th]
+    [t.join() for t in th]
+    if any(r is None for r in res):
+        die("probe: a request failed")
+    (out / f"{a.tag}-probe.json").write_text(json.dumps(res, indent=1))
+    print(f"probe {a.tag}: {a.n} x {a.max_tokens} greedy tokens saved")
+
+
 def cmd_profile(a):
     """POST /start_profile, wait, POST /stop_profile (the server's --profiler-config bounds it)."""
     srv = Server(a.url)
@@ -514,7 +538,7 @@ def cmd_plan(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("warm", "fill", "steady", "mixed", "profile", "plan"):
+    for name in ("warm", "fill", "steady", "mixed", "profile", "probe", "plan"):
         p = sub.add_parser(name)
         p.add_argument("--url", default=os.environ.get("GSQ_URL", "http://127.0.0.1:18090"))
         p.add_argument("--out", default=".")
@@ -543,9 +567,11 @@ def main():
     sp["mixed"].add_argument("--turn-prefix", type=int, default=60000)
     sp["mixed"].add_argument("--turn-new", type=int, default=1800)
     sp["profile"].add_argument("--seconds", type=float, default=5)
+    sp["probe"].add_argument("--n", type=int, default=4)
+    sp["probe"].add_argument("--tokens", type=int, default=2000)
     a = ap.parse_args()
     {"warm": cmd_warm, "fill": cmd_fill, "steady": cmd_steady, "mixed": cmd_mixed,
-     "profile": cmd_profile, "plan": cmd_plan}[a.cmd](a)
+     "profile": cmd_profile, "probe": cmd_probe, "plan": cmd_plan}[a.cmd](a)
 
 
 if __name__ == "__main__":
