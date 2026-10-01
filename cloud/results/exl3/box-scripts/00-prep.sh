@@ -132,7 +132,7 @@ model)
   DL_REV=$EXL3_REV DL_CHUNKS=${DL_CHUNKS:-16} "$S/dl.sh" repo "$EXL3_REPO" "$M"
   { echo "$EXL3_REPO @ $EXL3_REV -> $M"
     (cd "$M" && for f in $(find . -type f ! -name '*.ok' | sort); do printf '%s\t%s\t%s\n' "${f#./}" "$(stat -c %s "$f")" "$(cat "$f.ok")"; done)
-    echo "total $(du -sb --exclude='*.ok' "$M" | cut -f1) bytes"; } | tee "$L/model-files.txt" ;;
+    echo "total $(du -sb --exclude='*.ok' "$M" | cut -f1) bytes"; } | tee "$L/model-files-$(basename "$M").txt" ;;
 check)
   cd "$WT"
   "$V/bin/python" - <<'PY'
@@ -156,11 +156,14 @@ PY
   GSQ_VENV=$V tools/pytest -p no_gpu tests/gpu --collect-only -q -k exl3 2>&1 | tail -1 ;;
 postsoak)
   [ "${CONFIRM_DELETE_SOAK_KV:-0}" = 1 ] || die "deletes the soak's KV state: needs CONFIRM_DELETE_SOAK_KV=1"
-  [ ! -s /workspace/gpuq/running ] || die "a gpuq job is running: $(cat /workspace/gpuq/running)"
-  ! pgrep -f "VLLM::EngineCore|bin/vllm serve" > /dev/null || die "a vLLM server is running"
+  # (run as a gpuq job, /workspace/gpuq/running names this job, so look for the soak by name)
+  ! grep -q soak /workspace/gpuq/running 2>/dev/null || die "the soak job is still running: $(cat /workspace/gpuq/running)"
+  ! pgrep -f "VLLM::EngineCore|bin/vllm serve|soak_load.py|bench/soak.sh" > /dev/null || die "a vLLM server or soak process is running"
   [ -z "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ] || die "the GPU has compute processes"
   ls /workspace/gpuq/out/*final-soak-24h.status > /dev/null 2>&1 || die "the soak job has no exit status yet"
-  echo "soak job exit status: $(cat /workspace/gpuq/out/*final-soak-24h.status)"
+  SOAK_RUN=${SOAK_RUN:-/workspace/runs/20260930-100520-soak-gsq}   # results: never touched here
+  [ -s "$SOAK_RUN/report.json" ] || die "$SOAK_RUN/report.json missing: the soak did not finish its report"
+  echo "soak job exit status: $(cat /workspace/gpuq/out/*final-soak-24h.status); report: $SOAK_RUN/report.json"
   du -sh /workspace/kvtier 2>/dev/null || true; ls -la /dev/shm/vllm_offload_*.mmap 2>/dev/null || true
   rm -rf /workspace/kvtier; rm -f /dev/shm/vllm_offload_*.mmap ;;
 *) sed -n '2,24p' "$0"; exit 2 ;;

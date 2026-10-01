@@ -23,7 +23,7 @@ with safe_open(f"{d}/mtp_draft_head.safetensors", framework="pt") as f:
 ids = torch.load(f"{d}/mtp_draft_vocab_ids.pt")
 print("draft head", tuple(rows.shape), rows.dtype, "ids", ids.numel(), "sorted", bool((ids[1:] > ids[:-1]).all()))
 assert rows.shape == (40960, 5120) and rows.dtype == torch.bfloat16 and ids.numel() == 40960
-w = C.load(torch, "K6-lmhead")
+w = C.load(torch, C.HEAD)
 x = torch.randn(8, 5120, generator=torch.Generator().manual_seed(1)).half().cuda()
 full = ops.exl3_linear(x, w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)[:, ids.cuda()]
 draft = x.float() @ rows.cuda().float().t()

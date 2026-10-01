@@ -296,6 +296,9 @@ VERIFIED on the box:
   `CONFIRM_DELETE_SOAK_KV=1`; then `00-prep.sh model` (about 3 min at 96 MiB/s).
 
 GPU jobs (not run), in order, one gpuq job each:
+`run-job.sh NAME` is the gpuq entry point: it records each job's status in
+`/workspace/logs/exl3/status/`, skips 03 and 06 when 02 failed and 05 when 04 failed, and lets
+every other job run whatever came before (`postsoak` and `model` run first).
 
 | job | what | est. |
 |---|---|---|
