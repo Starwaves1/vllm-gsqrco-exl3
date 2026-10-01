@@ -5,7 +5,7 @@
 # NAME: 10-mr-parity | 11-mr-micro | 12-mr-ladder | 13-profile | 14-fit  (then the job's args)
 # Status: /workspace/logs/exl3-opt/status/NAME (ok | fail rc=N | skipped: ...); log run-job.log.
 S="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-L=/workspace/logs/exl3-opt; ST=$L/status; mkdir -p "$ST"
+L=/workspace/logs/exl3-opt${EXL3_OPT_TAG:-}; ST=$L/status; mkdir -p "$ST"
 name=${1:?job name}; shift
 log() { echo "$(date -u +%FT%TZ) $name: $*" | tee -a "$L/run-job.log"; }
 declare -A NEEDS=([12-mr-ladder]=10-mr-parity [13-profile]=10-mr-parity [14-fit]=10-mr-parity)

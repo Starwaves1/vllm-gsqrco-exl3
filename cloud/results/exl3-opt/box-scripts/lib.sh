@@ -10,12 +10,15 @@
 # The plugin is imported from $WT/plugin-exl3 (PYTHONPATH, checked), with _C_exl3 and
 # _C_exl3_mr built in place (box: compile-only build, VLLM_EXL3_BUILD=1 setup.py build_ext
 # --inplace with the phase-1 toolchain).
-export WT=/workspace/wt-exl3-opt
+# WT / EXL3_OPT_TAG: another worktree of the branch (an experiment) runs with its own run, log and
+# result dirs (suffix TAG, e.g. -h16), e.g. WT=/workspace/wt-exl3-opt-h16 EXL3_OPT_TAG=-h16
+export WT=${WT:-/workspace/wt-exl3-opt} EXL3_OPT_TAG=${EXL3_OPT_TAG:-}
 # the box clone belongs to another uid than root's git expects: let job_log's rev-parse work
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=$WT
 source "$WT/cloud/results/exl3/box-scripts/lib.sh"
 S=$WT/cloud/results/exl3-opt/box-scripts
-export R=/workspace/runs/exl3-opt$ALT L=/workspace/logs/exl3-opt$ALT RES=$WT/cloud/results/exl3-opt$ALT
+export R=/workspace/runs/exl3-opt$EXL3_OPT_TAG$ALT L=/workspace/logs/exl3-opt$EXL3_OPT_TAG$ALT
+export RES=$WT/cloud/results/exl3-opt$EXL3_OPT_TAG$ALT
 export GSQ_RUNS=$R GSQ_KV_TIER_ROOT=/workspace/kvtier-exl3-opt
 # a copy of phase 1's autotune cache: exl3_gemm runs the same tile choices as 01..07, and this
 # job's tuning never writes into phase 1's
