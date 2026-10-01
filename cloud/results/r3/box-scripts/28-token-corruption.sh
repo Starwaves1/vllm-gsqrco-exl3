@@ -8,7 +8,9 @@
 #        {graphs | --enforce-eager} x {our 9..32-row kernels | VLLM_GGUF_MMA_K=0 (vendored MMQ for the
 #        draft head and every Q4_K/IQ4_XS/IQ2_S product at 9..32 rows)} x {k=2 tier | capped at 8
 #        (max-num-seqs 8, [[1,4,5],[5,8,3]]: production's mitigation)}, plus k=3 at 9..16, and
-#        (R3_28_ONLY) single exclusions VLLM_GGUF_IQ3_TILED=0 / VLLM_GGUF_IQ1M_MMVQ=0 / all three off.
+#        (R3_28_ONLY) single exclusions VLLM_GGUF_IQ3_TILED=0 / VLLM_GGUF_IQ1M_MMVQ=0 / all three off,
+#        k2_parity (c=10/11/13/14/15 at T=0: even and odd verify totals) and k2_small (k=2 forced at
+#        every batch size, c=3..8: odd totals at 3/5/7).
 # Corruption flags per answer (r3tok.py): EOS inside reasoning, characters outside Latin/Greek/
 # punctuation/math/emoji, a fragment repeated 4+ times, text != decode(ids), HTTP/UTF-8 errors.
 # R3_28_ONLY="..." picks cells. Output: /workspace/logs/r3/28-token-corruption/ (summary = report so far).
@@ -51,6 +53,12 @@ v_e_mmq_k2()    { cell e-mmq-k2 eager mmq k2; }
 v_g_mmq_cap8()  { cell g-mmq-cap8 graphs mmq cap8; }
 v_e_ours_cap8() { cell e-ours-cap8 eager ours cap8; }
 v_e_mmq_cap8()  { cell e-mmq-cap8 eager mmq cap8; }
+# odd vs even verify-row totals (k=2: 3 rows per sequence, so odd c gives an odd total)
+v_k2_parity() { r3_serve k2-parity; "${LOAD[@]}" warm || r3_die warm; tok --tag k2-parity --conc 10,11,13,14,15 --temps 0; }
+v_k2_small() {  # k=2 at every batch size: odd totals at 3 / 5 / 7 running, even at 4 / 6 / 8
+  R3_MUT=("set|--speculative-config|${SPEC}[[1,16,2]]}")
+  r3_serve k2-small; "${LOAD[@]}" warm || r3_die warm; tok --tag k2-small --conc 3,4,5,6,7,8 --temps 0
+}
 v_g_notiled_k2(){ cell g-notiled-k2 graphs notiled k2; }
 v_g_noiq1m_k2() { cell g-noiq1m-k2 graphs noiq1m k2; }
 v_g_alloff_k2() { cell g-alloff-k2 graphs alloff k2; }
