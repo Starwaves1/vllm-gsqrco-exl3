@@ -288,8 +288,8 @@ def test_embed_host_cpu_weight_stays():
     assert m.table is None and torch.equal(m.embedding(layer, ids), layer.weight[ids])
 
 
-def test_wide_repacked_stays_on_mr(mr_mode, monkeypatch):
-    """A repacked lm_head (n > 32768) runs exl3_gemm_mr at any row count: no unpack copy."""
+def test_wide_repacked_chunked_on_mr(mr_mode, monkeypatch):
+    """A repacked lm_head (n > 32768) on 1024 rows: 256-row chunks, each on exl3_gemm_mr (no unpack copy)."""
     ops = mr_mode(2)
     shim = FakeShim(32768 + 256)
     for name in ("exl3_gemm", "exl3_gemm_mr", "exl3_mr_unpack", "exl3_dequant", "exl3_hgemm", "exl3_had_r_128"):

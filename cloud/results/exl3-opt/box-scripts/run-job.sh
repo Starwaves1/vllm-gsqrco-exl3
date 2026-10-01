@@ -16,7 +16,7 @@ if [ -n "$dep" ] && [ "${EXL3_OPT_IGNORE_DEPS:-0}" != 1 ] && [ "$(cat "$ST/$dep"
 fi
 log start
 case $name in
-  1[0-8]-*) bash "$S/$name.sh" "$@" > /dev/null 2>&1 ;;   # the job scripts tee to $L/NAME.log themselves
+  1[0-9]-*) bash "$S/$name.sh" "$@" > /dev/null 2>&1 ;;   # the job scripts tee to $L/NAME.log themselves
   *) log "unknown job"; exit 2 ;;
 esac
 rc=$?

@@ -1,0 +1,41 @@
+# ptxas -v, sm_86, trellis-serve 1ace59c kernels (exl3-opt build flags); thr/m/n/k = threads, thread_m_blocks, thread_n/16, thread_k/16
+== mb1_cb2_k3
+thr=128 m=1 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 156 registers
+thr=128 m=1 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 138 registers
+thr=256 m=1 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 136 registers
+thr=256 m=1 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 152 registers
+== mb2_cb2_k3
+thr=128 m=2 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 224 registers
+thr=128 m=2 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 216 registers
+thr=256 m=2 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 210 registers
+thr=256 m=2 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 214 registers
+== mb1_cb2_k4
+thr=128 m=1 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 154 registers
+thr=128 m=1 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 135 registers
+thr=256 m=1 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 134 registers
+thr=256 m=1 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 148 registers
+== mb2_cb2_k4
+thr=128 m=2 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 222 registers
+thr=128 m=2 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 214 registers
+thr=256 m=2 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 209 registers
+thr=256 m=2 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 212 registers
+== h16 v1_mb2
+thr=128 m=2 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 248 registers
+thr=128 m=2 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 232 registers
+thr=256 m=2 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 224 registers
+thr=256 m=2 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 237 registers
+== h16 v2_mb2
+thr=128 m=2 n=4 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 248 registers
+thr=128 m=2 n=8 k=4	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 232 registers
+thr=256 m=2 n=16 k=4	    16 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 224 registers
+thr=256 m=2 n=8 k=8	    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads	Used 237 registers
+== h16 v2_mb3
+thr=128 m=3 n=4 k=8	    104 bytes stack frame, 166 bytes spill stores, 276 bytes spill loads	Used 255 registers
+thr=128 m=3 n=8 k=4	    120 bytes stack frame, 246 bytes spill stores, 212 bytes spill loads	Used 255 registers
+thr=256 m=3 n=16 k=4	    128 bytes stack frame, 190 bytes spill stores, 156 bytes spill loads	Used 255 registers
+thr=256 m=3 n=8 k=8	    104 bytes stack frame, 214 bytes spill stores, 288 bytes spill loads	Used 255 registers
+== h16 v2_mb4
+thr=128 m=4 n=4 k=8	    456 bytes stack frame, 2030 bytes spill stores, 2532 bytes spill loads	Used 255 registers
+thr=128 m=4 n=8 k=4	    424 bytes stack frame, 1582 bytes spill stores, 1852 bytes spill loads	Used 255 registers
+thr=256 m=4 n=16 k=4	    432 bytes stack frame, 1494 bytes spill stores, 1740 bytes spill loads	Used 255 registers
+thr=256 m=4 n=8 k=8	    448 bytes stack frame, 2050 bytes spill stores, 2436 bytes spill loads	Used 255 registers

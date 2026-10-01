@@ -43,14 +43,17 @@ import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS
 # background with EXL3_MR=<mode's digit> and, for an h suffix (2h), EXL3_EMBED_HOST=1 (token
 # embedding in host memory); wait for health; load summary in <run dir>/load.txt. (The g/a
 # suffixes of the 2026-10-01 runs, glue and K3/K5 from 1 row, are now the code's constants.)
-serve_mr() {
-  local mode=$1 mr=${1:0:1} host=0 out=$2 t0; shift 2; mkdir -p "$out"
-  [[ $mode == *h* ]] && host=1
-  export EXL3_MR=$mr EXL3_EMBED_HOST=$host
+mode_env() {  # mode_env <mode>: the plugin's switches for a mode (serve_mr, offline runs)
+  local mode=$1 host=0; [[ $mode == *h* ]] && host=1
+  export EXL3_MR=${mode:0:1} EXL3_EMBED_HOST=$host
   # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
   # apply()/embedding() or its parameter layouts (EXL3_MR=2 stores K4 as int32 4-D), so a graph
   # traced under one variant must never be loaded by another (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-h$host
+  export VLLM_CACHE_ROOT=$R/vllm-cache-mr${mode:0:1}-h$host
+}
+serve_mr() {
+  local mode=$1 mr=${1:0:1} out=$2 t0; shift 2; mkdir -p "$out"
+  mode_env "$mode"; local host=$EXL3_EMBED_HOST
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)

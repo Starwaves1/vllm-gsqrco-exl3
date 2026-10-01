@@ -289,6 +289,9 @@ def test_lm_head_many_rows_bounded(ops, monkeypatch, mr):
     assert y.dtype == torch.bfloat16 and bool(torch.isfinite(y).all()) and extra <= 1.2 * 2**30
     ref = ops.exl3_linear(x[256:512], t, w["suh"], w["svh"], w["mcg"], w["mul1"], True)
     assert torch.equal(y[256:512], ref)
+    # fp16 x with fp32 out (the contract without the bf16 path): the chunked output keeps the fake's dtype
+    y32 = ops.exl3_linear(x[:300].half(), t, w["suh"], w["svh"], w["mcg"], w["mul1"], True)
+    assert y32.dtype == ops.exl3_linear_fake(x[:300].half(), t, None, None, False, True, True).dtype == torch.float
 
 
 _UNWARMED = r"""
