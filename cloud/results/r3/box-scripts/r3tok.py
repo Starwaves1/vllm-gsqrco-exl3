@@ -63,7 +63,7 @@ def norm(t: str) -> str:
     return "".join(t.replace("<think>", "").replace("</think>", "").split())
 
 
-ALLOWED = [(0x0000, 0x024F), (0x0370, 0x03FF), (0x2000, 0x206F), (0x2070, 0x209F), (0x20A0, 0x20CF), (0x2100, 0x21FF),
+ALLOWED = [(0x0000, 0x024F), (0x02B0, 0x02FF), (0x0370, 0x03FF), (0x1D00, 0x1DBF), (0x2000, 0x206F), (0x2070, 0x209F), (0x20A0, 0x20CF), (0x2100, 0x21FF),
            (0x2200, 0x22FF), (0x2300, 0x23FF), (0x2460, 0x24FF), (0x2500, 0x27BF), (0x1F300, 0x1FAFF), (0xFE0F, 0xFE0F)]
 REPEAT = None
 
@@ -135,11 +135,11 @@ def one(srv, i, text, temp, max_tokens, stream=True, seed=None):
     rtext, ctext = "".join(reasoning), "".join(content)
     emitted = rtext + ctext
     ref = decode(ids) if ids else ""
-    a, b = norm(ref), norm(emitted)
+    a, b = norm(ref).rstrip("\ufffd"), norm(emitted).rstrip("\ufffd")  # a cutoff can split a multi-byte char
     rec.update({"ids": ids, "chunks": chunks, "finish": finish, "n_tokens": len(ids),
                 "reasoning_chars": len(rtext), "content_chars": len(ctext),
                 "eos_in_reasoning": finish == "stop" and len(ids) < max_tokens and not ctext.strip(),
-                "odd": odd_chars(emitted)[:20], "repeat": repeated(emitted), "text_ok": a == b})
+                "odd": odd_chars(emitted.rstrip("\ufffd") if finish == "length" else emitted)[:20], "repeat": repeated(emitted), "text_ok": a == b})
     if a != b:
         k = next((j for j, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
         rec["text_diff"] = {"at": k, "decoded": a[max(0, k - 20):k + 20], "emitted": b[max(0, k - 20):k + 20]}
