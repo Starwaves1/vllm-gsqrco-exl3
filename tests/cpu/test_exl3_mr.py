@@ -318,6 +318,35 @@ def test_linear_parts(mr_mode, fake, bf16):
     assert f.shape == y.shape and f.dtype == y.dtype
 
 
+def test_draft_head_fp8_quantize():
+    """Per-row e4m3: every row's max hits 448, and q * scale reproduces w within e4m3's 2^-4 step."""
+    from vllm_exl3_plugin.quantization.draft_head import quantize_rows
+
+    w = torch.randn(64, 256, generator=torch.Generator().manual_seed(0)).to(torch.bfloat16) * 0.02
+    q, s = quantize_rows(w)
+    assert q.dtype == torch.float8_e4m3fn and s.shape == (64,)
+    assert torch.allclose(q.float().abs().amax(1), torch.full((64,), 448.0))
+    rel = ((q.float() * s[:, None]) - w.float()).abs() / w.float().abs().amax(1, keepdim=True)
+    assert rel.max() <= 2 ** -4
+
+
+@pytest.mark.parametrize("on", [False, True])
+def test_draft_head_fp8_method(monkeypatch, on):
+    from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
+
+    from vllm_exl3_plugin import ops
+    from vllm_exl3_plugin.format import EXL3QuantConfig
+    from vllm_exl3_plugin.quantization import EXL3Config
+    from vllm_exl3_plugin.quantization.draft_head import EXL3DraftHeadFp8Method
+
+    monkeypatch.setattr(ops, "DRAFT_FP8", on)
+    cfg = EXL3Config(EXL3QuantConfig(bits=3.5, head_bits=6, mtp_bits=4, codebook="mul1"))
+    head = ParallelLMHead.__new__(ParallelLMHead)
+    m = cfg.get_quant_method(head, "mtp.draft_lm_head")
+    assert isinstance(m, EXL3DraftHeadFp8Method) if on else m is None
+    assert not isinstance(cfg.get_quant_method(head, "lm_head"), EXL3DraftHeadFp8Method)
+
+
 def test_fake_impl_repacked():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 

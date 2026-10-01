@@ -278,6 +278,29 @@ def test_embed_host_gather(ops, rows):
     assert torch.equal(y, ref_w[new])
 
 
+@pytest.mark.parametrize("rows", [1, 4, 8])
+def test_draft_head_fp8(ops, rows):
+    """The fp8 draft head (Marlin) vs the bf16 head on the same rows: logits within e4m3's error
+    (rel. rms <= 4 %), and the argmax kept for >= 95 % of rows."""
+    import torch
+
+    from vllm_exl3_plugin.quantization.draft_head import EXL3DraftHeadFp8Method
+
+    torch.manual_seed(rows)
+    w = (torch.randn(40960, 5120, device="cuda") * 0.02).to(torch.bfloat16)
+    layer = torch.nn.Module()
+    layer.weight = torch.nn.Parameter(w.clone(), requires_grad=False)
+    m = EXL3DraftHeadFp8Method()
+    m.process_weights_after_loading(layer)
+    assert m.marlin is not None and layer.weight.shape == (0, 5120)
+    x = torch.randn(rows * 64, 5120, device="cuda").to(torch.bfloat16)
+    y, ref = m.apply(layer, x).float(), (x @ w.T).float()
+    rel = ((y - ref).pow(2).mean().sqrt() / ref.pow(2).mean().sqrt()).item()
+    agree = (y.argmax(1) == ref.argmax(1)).float().mean().item()
+    print(f"\nfp8 draft head rows={rows * 64}: rel rms {rel:.4f}, argmax agree {agree:.3f}")
+    assert rel <= 0.04 and agree >= 0.95
+
+
 _UNWARMED = r"""
 import json, sys, torch
 sys.path.insert(0, sys.argv[1])

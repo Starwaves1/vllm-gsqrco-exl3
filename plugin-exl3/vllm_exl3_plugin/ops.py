@@ -220,6 +220,8 @@ def exl3_linear_parts_fake(
 # no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
 # 196,608; 200,000 fits, job 14).
 EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "1") == "1"
+# EXL3_DRAFT_FP8 (A/B while measured): the MTP draft head as fp8 weights (quantization/draft_head.py)
+DRAFT_FP8 = os.environ.get("EXL3_DRAFT_FP8", "0") == "1"
 
 
 def exl3_embed_host(ids: torch.Tensor, table_id: int, cols: int) -> torch.Tensor:

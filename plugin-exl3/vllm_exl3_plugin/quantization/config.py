@@ -14,7 +14,7 @@ from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead, 
 
 from .. import ops
 from ..format import QUANT_METHOD, EXL3QuantConfig
-from ..weights_adapter.qwen3_5 import is_unquantized_module
+from ..weights_adapter.qwen3_5 import DRAFT_HEAD, is_unquantized_module
 
 
 class EXL3Config(QuantizationConfig):
@@ -66,6 +66,10 @@ class EXL3Config(QuantizationConfig):
             return EXL3LinearMethod(self)
         if isinstance(layer, ParallelLMHead):
             if is_unquantized_module(prefix):
+                if ops.DRAFT_FP8 and DRAFT_HEAD in prefix.split("."):
+                    from .draft_head import EXL3DraftHeadFp8Method
+
+                    return EXL3DraftHeadFp8Method()  # the MTP draft head in fp8 (EXL3_DRAFT_FP8)
                 return None  # vLLM's UnquantizedEmbeddingMethod
             return EXL3LinearMethod(self)
         if ops.EMBED_HOST and isinstance(layer, VocabParallelEmbedding) and "mtp" not in prefix.split("."):
