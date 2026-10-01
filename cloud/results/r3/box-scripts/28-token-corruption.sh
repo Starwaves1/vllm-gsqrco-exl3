@@ -33,7 +33,10 @@ v_eager()  { R3_MUT=("flag|--enforce-eager"); run eager; }
 v_nospec() { R3_MUT=("drop|--speculative-config"); run nospec; }
 v_k3()     { R3_MUT=("set|--speculative-config|$SPEC_K3"); run k3; }
 v_w4a16()  { export R3_MODEL_KIND=baseline; run w4a16; }
-report() { "$PY" "$R3_S/r3tok.py" report "$L/runs" --ref eager > "$L/report.txt" 2>&1; cp "$L/report.txt" "$L/summary.txt"; }
+report() {
+  "$PY" "$R3_S/r3tok.py" report "$L/runs" --ref eager > "$L/report.txt" 2>&1
+  { cat "$L/report.txt"; for f in "${R3_FAILED[@]}"; do echo "variant $f: FAILED (see run.log)"; done; } > "$L/summary.txt"
+}
 for v in ${R3_28_ONLY:-prod async eager nospec k3 w4a16}; do
   r3_step "$v"; r3_variant "$v" "v_$v"
   report
