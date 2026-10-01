@@ -157,7 +157,7 @@ PY
 postsoak)
   [ "${CONFIRM_DELETE_SOAK_KV:-0}" = 1 ] || die "deletes the soak's KV state: needs CONFIRM_DELETE_SOAK_KV=1"
   # (run as a gpuq job, /workspace/gpuq/running names this job, so look for the soak by name)
-  ! grep -q soak /workspace/gpuq/running 2>/dev/null || die "the soak job is still running: $(cat /workspace/gpuq/running)"
+  ! grep -q final-soak-24h /workspace/gpuq/running 2>/dev/null || die "the soak job is still running: $(cat /workspace/gpuq/running)"
   ! pgrep -f "VLLM::EngineCore|bin/vllm serve|soak_load.py|bench/soak.sh" > /dev/null || die "a vLLM server or soak process is running"
   [ -z "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ] || die "the GPU has compute processes"
   ls /workspace/gpuq/out/*final-soak-24h.status > /dev/null 2>&1 || die "the soak job has no exit status yet"
