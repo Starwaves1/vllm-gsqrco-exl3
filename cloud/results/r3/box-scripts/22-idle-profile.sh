@@ -58,6 +58,10 @@ for f in "$R"/pyspy-*.raw; do
   [ -s "$f" ] || continue
   "$PY" "$R3_S/r3analyze.py" pyspy "$f" --json "${f%.raw}.json" > "${f%.raw}.txt" 2>&1 || echo "pyspy analysis failed for $f"
 done
+if [ -s "$R/pyspy-engine.raw" ]; then  # the EngineCore's main thread (tid = pid) on its own
+  "$PY" "$R3_S/r3analyze.py" pyspy "$R/pyspy-engine.raw" --thread-match "thread ($ENGINE_PID)" \
+    --json "$R/pyspy-engine-main.json" > "$R/pyspy-engine-main.txt" 2>&1 || echo "pyspy main-thread analysis failed"
+fi
 r3_summary "R3-22 idle profile (box, $(date -u +%F)), c=2 x 96k, k=5, production's main argv + timers/scopes/profiler" \
   "$(cat "$R/lines.txt")" "" "--- engine-cycle timers, c2 x 96k (unprofiled window) ---" "$(cat "$R/instr.txt")" "" \
   "--- engine-cycle timers, c2s x 4k (same server, short context) ---" "$(cat "$R/instr-c2s.txt")" "" \

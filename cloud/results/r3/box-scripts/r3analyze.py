@@ -333,8 +333,15 @@ PYSPY_BUCKETS = [
 def cmd_pyspy(a):
     tot = defaultdict(int)
     selfc = defaultdict(int)
+    threads = defaultdict(int)
     n = 0
     for line in open(a.file):
+        if line.strip() and " " in line:
+            th = line.split(";", 1)[0]
+            try:
+                threads[th] += int(line.rsplit(" ", 1)[1])
+            except ValueError:
+                pass
         line = line.rstrip("\n")
         if not line or " " not in line:
             continue
@@ -357,7 +364,10 @@ def cmd_pyspy(a):
         selfc[frames[-1]] += cnt
     if n == 0:
         sys.exit("pyspy: no samples matched")
-    print(f"py-spy {a.file}: {n} samples (first matching bucket wins)")
+    allc = sum(threads.values())
+    print(f"py-spy {a.file}: {allc} samples over {len(threads)} threads; busiest: "
+          + ", ".join(f"{t} {100.0 * c / allc:.0f}%" for t, c in sorted(threads.items(), key=lambda x: -x[1])[:6]))
+    print(f"  bucket shares below: {n} samples{' of ' + a.thread_match if a.thread_match else ''} (first matching bucket wins)")
     for k, v in sorted(tot.items(), key=lambda x: -x[1]):
         print(f"  {k:52s} {100.0 * v / n:5.1f} %")
     print("  top self frames:")
