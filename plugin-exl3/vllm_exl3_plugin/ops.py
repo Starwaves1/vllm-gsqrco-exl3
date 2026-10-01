@@ -160,7 +160,8 @@ def exl3_linear(
     repacked = trellis.dtype == torch.int32
     name = _exl3_op(x.shape[0], not repacked and mr_takes(trellis.shape[2], mul1), repacked)
     if repacked and out_features(trellis) > RECON_SLICE_N:
-        name = MR_OP  # the lm_head: no 2.5 GB unpack copy per call above 384 rows (prompt_logprobs)
+        name = MR_OP  # the lm_head above 384 rows (prompt_logprobs only): no 0.6 GiB unpack copy outside
+        # vLLM's profiled budget; speed unmeasured there (job 11: mr ~ dequant at 512 rows)
     bf16 = x.dtype == torch.bfloat16  # bf16 in, bf16 out; only exl3_gemm_mr takes it directly
     if name == RECON_HGEMM or name == RECON_HAD_HGEMM:
         if repacked:  # the dequant reads exllamav3's layout: one transient copy per call

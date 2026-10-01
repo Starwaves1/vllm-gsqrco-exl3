@@ -109,7 +109,7 @@ comes back with the part's own stride): glue is on single-part layers only.
 | path | what |
 |---|---|
 | `plugin-exl3/vllm_exl3_plugin/csrc/trellis_serve/` | trellis-serve `1ace59c4b43c` (MIT; Marlin parts Apache-2.0), 19 files, byte-identical, `VENDORED.md` with sha256s and licenses |
-| `.../csrc/exl3_mr_shim.cu` | ops `exl3_gemm_mr`, `exl3_mr_repack`, `exl3_mr_unpack`, `exl3_mr_warmup`, `exl3_embed_host` in the `_C_exl3` namespace |
+| `.../csrc/exl3_mr_shim.cu` | ops `exl3_gemm_mr`, `exl3_mr_repack`, `exl3_mr_unpack`, `exl3_mr_warmup`, `exl3_embed_host_register`, `exl3_embed_host` in the `_C_exl3` namespace |
 | `plugin-exl3/setup.py` | second extension `_C_exl3_mr` (15 generated instance units: row families 0..4 x mul1 x K 3/4/5); `_C_exl3` is unchanged |
 | `.../ops.py`, `.../quantization/linear.py` | `EXL3_MR` routing, the in-place K4 repack at load, the mr warmup, glue |
 | `.../quantization/embedding.py` | the host-pinned token embedding (`EXL3_EMBED_HOST`) |
@@ -144,7 +144,7 @@ alone therefore reaches 40 % of the bytes, and EXL3_MR=2 reaches 99 %.
 | variable | default | what |
 |---|---|---|
 | `EXL3_MR` | 2 | 0: phase 1's routing; 1: K3/K5 (mul1) on exl3_gemm_mr; 2: and K4 (lm_head, MTP included), repacked in place at load |
-| (constant) `MULTI_ROW_MIN`, `MULTI_ROW_MAX` | 1, 384 | rows on exl3_gemm_mr; above 384 the dequant routes (K2 keeps exllamav3's 144); a repacked lm_head (n > 32768) stays on mr at any row count (no 2.5 GB unpack copy) |
+| (constant) `MULTI_ROW_MIN`, `MULTI_ROW_MAX` | 1, 384 | rows on exl3_gemm_mr; above 384 the dequant routes (K2 keeps exllamav3's 144); a repacked lm_head (n > 32768) stays on mr at any row count (prompt_logprobs only: no 0.6 GiB unpack copy outside vLLM's profiled budget; speed there unmeasured) |
 | (constant) glue | on with 2 | bf16 straight through exl3_gemm_mr on single-part layers (same bits) |
 | `EXL3_EMBED_HOST` | 1 | bf16 token embedding page-locked in host memory (exactly 2.37 GiB, `cudaHostRegister`; the MTP draft's own copy is not: vLLM swaps in the target's), gathered per step by a UVA kernel |
 
@@ -199,8 +199,8 @@ min per mode, 14 about 10 min.
 
 ## Risks
 
-- Compile cache: vLLM's torch.compile cache key misses the plugin's graph variants (EXL3_MR,
-  EXL3_MR_GLUE, EXL3_EMBED_HOST change the traced graph or its parameter layouts). The jobs and
+- Compile cache: vLLM's torch.compile cache key misses the plugin's graph variants (EXL3_MR and
+  EXL3_EMBED_HOST change the traced graph or its parameter layouts). The jobs and
   `scripts/serve-exl3.sh` use one `VLLM_CACHE_ROOT` per variant; any other launcher must too.
 - lm_head at n=248320 on the Marlin kernel: upstream keeps n > 65536 on exllamav3 by default (for
   transients, not correctness). Job 10 covers it (decode exact, error inside exl3_gemm's).

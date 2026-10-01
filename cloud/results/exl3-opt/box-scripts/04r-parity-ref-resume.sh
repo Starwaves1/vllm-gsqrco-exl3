@@ -10,17 +10,27 @@ job_log 04r-parity-ref-resume
 require_idle_gpu
 P=$R/parity; O=$R/04-parity-ref; mkdir -p "$O"
 [ -f "$P/prompts/manifest.json" ] || die "no prompts in $P/prompts (run 04 first)"
-missing=$(for f in "$P"/prompts/seq_*.ids; do n=$(basename "$f" .ids); [ -s "$P/exl3/$n.exl3.f32" ] || printf '%s,' "$n"; done)
-missing=${missing%,}
+# missing: no record in exl3_logits.json (an "oom" record stays as it is: the context limit)
+missing=$(python3 - "$P" <<'PY'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+j = p / "exl3" / "exl3_logits.json"
+done = json.loads(j.read_text())["sequences"] if j.exists() else {}
+names = sorted(f.stem for f in (p / "prompts").glob("seq_*.ids"))
+print(",".join(n for n in names if n not in done or (done[n]["status"] == "ok" and not (p / "exl3" / f"{n}.exl3.f32").exists())))
+PY
+)
 echo "missing reference dumps: ${missing:-none}"
 if [ -n "$missing" ]; then
   rm -rf "$P/exl3-resume"
   "$GSQ_EXL3_VENV/bin/python" bench/parity/exl3_logits.py -m "$EXL3_MODEL" -d "$P/prompts" -o "$P/exl3-resume" \
     --only "$missing" 2>&1 | tee "$O/exl3-resume.log"
-  mv "$P"/exl3-resume/*.exl3.f32 "$P/exl3/" 2>/dev/null || true
+  mkdir -p "$P/exl3"; mv "$P"/exl3-resume/*.exl3.f32 "$P/exl3/" 2>/dev/null || true
   python3 - "$P/exl3/exl3_logits.json" "$P/exl3-resume/exl3_logits.json" <<'PY'
-import json, sys
-base, new = (json.load(open(p)) for p in sys.argv[1:])
+import json, os, sys
+base = json.load(open(sys.argv[1])) if os.path.exists(sys.argv[1]) else {"sequences": {}}
+new = json.load(open(sys.argv[2]))
+base = {**new, "sequences": base["sequences"]}
 base["sequences"].update(new["sequences"])
 base["sequences"] = dict(sorted(base["sequences"].items()))
 json.dump(base, open(sys.argv[1], "w"), indent=1)
@@ -43,6 +53,8 @@ elif [ "${EXL3_SPREAD:-1}" = 1 ] && [ "$(df --output=avail -B1G /workspace | tai
   python3 bench/parity/compare.py -d "$P/prompts" -l "$P/spread-ref" -v "$P/spread-other" --json "$O/spread.json" \
     | tee "$O/spread.txt" || true
   rm -rf "$P/exl3-fp32acc" "$P/spread-ref" "$P/spread-other"
+else
+  echo "spread pass skipped (EXL3_SPREAD=${EXL3_SPREAD:-1}, $(df --output=avail -B1G /workspace | tail -1) GB free)" | tee "$O/spread.txt"
 fi
-keep "$O" 04-parity-ref "$O/exl3_logits.json" "$O/spread.txt" "$O/spread.json" "$O/exl3-resume.log"
+keep "$O" 04-parity-ref "$O/exl3_logits.json" "$O/exl3_logits-fp32acc.json" "$O/spread.txt" "$O/spread.json" "$O/exl3-resume.log"
 grep -q '"status": "ok"' "$P/exl3/exl3_logits.json" || die "no usable reference"

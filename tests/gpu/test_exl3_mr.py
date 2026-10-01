@@ -182,8 +182,8 @@ def test_routing_mr1(ops, monkeypatch, tid, m):
 @pytest.mark.parametrize("m", [1, 48, 145, 385, 1024])
 @pytest.mark.parametrize("tid", [t for t in MR_TIDS if BITS[t] == 4])
 def test_routing_repacked(ops, monkeypatch, tid, m):
-    """EXL3_MR=2: a repacked K4 runs exl3_gemm_mr to MULTI_ROW_MAX rows; above, unpack + dequant
-    gives the stored tensor's route bit for bit."""
+    """EXL3_MR=2: a repacked K4 runs exl3_gemm_mr to MULTI_ROW_MAX rows (the lm_head, n > 32768, at
+    any row count); above, unpack + dequant gives the stored tensor's route bit for bit."""
     import torch
 
     monkeypatch.setattr(ops, "MR_MODE", 2)
@@ -191,7 +191,7 @@ def test_routing_repacked(ops, monkeypatch, tid, m):
     w = weights(tid)
     x = C.make_x(torch, tid, m)
     y = ops.exl3_linear(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
-    if m <= ops.MULTI_ROW_MAX:
+    if m <= ops.MULTI_ROW_MAX or C.TENSORS[tid][3] > ops.RECON_SLICE_N:
         want = torch.ops._C_exl3.exl3_gemm_mr(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
     else:
         want = ops.exl3_linear(x, w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)

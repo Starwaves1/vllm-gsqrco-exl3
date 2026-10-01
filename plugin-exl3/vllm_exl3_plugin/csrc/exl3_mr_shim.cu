@@ -12,7 +12,7 @@
 //       launch with the output Hadamard in its epilogue. exl3_gemm's signature and output
 //       dtypes. The kernel writes fp16 or bf16 (its MMA accumulates in fp32); with out_fp32
 //       it writes bf16 and the result is widened, so a bf16 model sees one rounding of the
-//       fp32 epilogue value, as with exl3_gemm's fp32 output. bf16 x (a bf16 model, EXL3_MR_GLUE)
+//       fp32 epilogue value, as with exl3_gemm's fp32 output. bf16 x (a bf16 model, the glue)
 //       goes in as is (the input Hadamard converts it to fp16, the value conversion .to(fp16)
 //       does) and the bf16 result comes out as is: the same bits as fp16 x + out_fp32 + .to(bf16),
 //       without the two cast launches. Up to 64 rows per weight pass
