@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from .kernel_refs import (
+    LOOSE_XSUM,
     check,
     make_x,
     poison_cuda_allocator,
@@ -44,7 +45,10 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
 IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]
 IQ3_OPS = ["lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"]
-OWNED = [(t, op) for op in IQ3_OPS for t in IQ3_TYPES]
+OWN_TYPES = ["Q4_K", "IQ2_S"]
+OWNED = [(t, op) for op in IQ3_OPS for t in IQ3_TYPES] + [
+    (t, "lcpp_mul_mat_vec_own") for t in OWN_TYPES
+]
 
 
 def _qt(name: str) -> int:
@@ -228,10 +232,12 @@ def _qkvz(types):
 @pytest.mark.parametrize("n", [1, 4, 6, 7, 8, 9, 32, 128])
 def test_lcpp_same_type_run(n, types, monkeypatch):
     """apply() runs one product for the q/k/v run and one for z, bit-exact with
-    the routed op on the run's whole bytes, and with the op on each of the four
-    shards alone where no product takes MMQ (rows are independent); MMQ's
-    stream-k splits K differently for the run than for a shard, so there the
-    fp32 partial sums add in another order: within 1e-3."""
+    the routed op on the run's whole bytes. Against the four shards alone it is
+    bit-exact where each shard takes its run's kernel at <= 8 rows (rows are
+    independent); where MMQ splits K differently for the run than for a shard
+    (stream-k), fp32 partial sums add in another order: within 1e-3; where a
+    shard takes MMQ with its Q4_K min term and the run another kernel, within
+    LOOSE_XSUM."""
     from vllm_gguf_plugin.quantization.linear import _lcpp_op
 
     _routing()
@@ -243,8 +249,15 @@ def test_lcpp_same_type_run(n, types, monkeypatch):
     whole = torch.cat([_routed(qkv, x, qts[0]), _routed(z, x, qts[3])], dim=1)
     assert torch.equal(y, whole)
     per_shard = torch.cat([_routed(s, x, q) for s, q in zip(shards, qts)], dim=1)
-    if all(_lcpp_op(n, q) != "lcpp_mul_mat_q" for q in qts):
+    run_rows = [qkv.shape[0]] * 3 + [z.shape[0]]
+    pairs = [
+        (_lcpp_op(n, q, s.shape[0]), _lcpp_op(n, q, r))
+        for s, q, r in zip(shards, qts, run_rows)
+    ]
+    if n <= 8 and all(a == b for a, b in pairs):
         assert torch.equal(y, per_shard)
+    elif any(a != b and "lcpp_mul_mat_q" in (a, b) for a, b in pairs):
+        assert rel_err(y, per_shard.double().cpu()) <= LOOSE_XSUM
     else:
         assert rel_err(y, per_shard.double().cpu()) <= 1e-3
 

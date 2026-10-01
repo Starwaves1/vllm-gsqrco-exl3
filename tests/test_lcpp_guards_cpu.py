@@ -22,6 +22,7 @@ OPS = [
     "lcpp_mul_mat_q",
     "lcpp_mul_mat_vec_iq3",
     "lcpp_mul_mat_vec_iq3_mma",
+    "lcpp_mul_mat_vec_own",
 ]
 
 
@@ -105,6 +106,24 @@ for op in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
     CASES[f"{op}-w_misaligned"] = (_case(op, w_offset=1), "16-byte aligned")
     CASES[f"{op}-k_mismatch"] = (_case(op, k=K // 2), "columns, W rows hold")
     CASES[f"{op}-9_rows"] = (_case(op, n=9), "at most 8 rows")
+# the owned Q4_K / IQ2_S kernel: the same, with its own type check
+op = "lcpp_mul_mat_vec_own"
+for t in (Q4_K, IQ2_S):
+    CASES[f"{op}-valid-{t}"] = (_case(op, t), CUDA_ONLY)
+    CASES[f"{op}-row_strided-{t}"] = (
+        _case(op, t, stride=2 * K // 256 * TS[t]),
+        "rows must be contiguous",
+    )
+CASES[f"{op}-iq3_s"] = (_case(op, IQ3_S), "Q4_K or IQ2_S only")
+CASES[f"{op}-iq4_xs"] = (_case(op, IQ4_XS), "Q4_K or IQ2_S only")
+CASES[f"{op}-1_row"] = (_case(op, Q4_K, n=1), CUDA_ONLY)
+CASES[f"{op}-9_rows"] = (_case(op, Q4_K, n=9), "at most 8 rows")
+CASES[f"{op}-k_not_512"] = (
+    _case(op, Q4_K, row_bytes=144, k=256),
+    "must be a multiple of 512",
+)
+CASES[f"{op}-w_misaligned"] = (_case(op, Q4_K, w_offset=1), "16-byte aligned")
+CASES[f"{op}-k_mismatch"] = (_case(op, Q4_K, k=K // 2), "columns, W rows hold")
 
 
 def _w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):

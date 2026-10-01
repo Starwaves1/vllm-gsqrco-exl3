@@ -55,6 +55,8 @@ TYPES_OPS = [
     ("IQ3_XXS", "lcpp_mul_mat_vec_iq3"),
     ("IQ3_S", "lcpp_mul_mat_vec_iq3_mma"),
     ("IQ3_XXS", "lcpp_mul_mat_vec_iq3_mma"),
+    ("Q4_K", "lcpp_mul_mat_vec_own"),
+    ("IQ2_S", "lcpp_mul_mat_vec_own"),
 ]
 FAULT = (
     "illegal memory access",
