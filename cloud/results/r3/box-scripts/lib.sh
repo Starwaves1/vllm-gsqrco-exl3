@@ -91,6 +91,7 @@ r3_preflight() {
   local used; used=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | head -1)
   [ "$used" -lt 2000 ] || r3_die "GPU already has $used MiB in use (another job?)"
   pgrep -f "VLLM::EngineCore|bin/vllm serve" >/dev/null && r3_die "a vLLM server is already running"
+  box_clean_shm 2>/dev/null || true  # a killed server's CPU-tier mmap (no vLLM runs at this point)
   [ "$($PY -c 'import vllm; print(vllm.__version__)' 2>/dev/null | tail -1)" = "$R3_EXPECT_VLLM" ] \
     || r3_die "$GSQ_VENV is not vLLM $R3_EXPECT_VLLM"
   local so=$R3_PLUGIN_WT/plugin/vllm_gguf_plugin/_C_gguf.abi3.so
