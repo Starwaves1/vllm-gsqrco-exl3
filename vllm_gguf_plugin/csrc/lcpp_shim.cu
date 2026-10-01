@@ -4,7 +4,7 @@
 //
 // This file provides the few pieces of ggml-base / ggml-cuda.cu the vendored
 // kernels link against (device info, context, pool, type sizes, error hooks),
-// and these torch ops, all
+// an owned q8_1 quantizer, and these torch ops, all
 // (W, X, type, row) -> [n, row] in X's dtype:
 //   lcpp_mul_mat_vec_q               MMVQ, 1..8 activation rows
 //   lcpp_mul_mat_q                   MMQ (int8 tensor cores), any rows
@@ -293,26 +293,154 @@ struct TorchPool final : public ggml_cuda_pool {
 };
 
 // ---------------------------------------------------------------------------
-// q8_1 activation quantization with the vendored quantizers (quantize.cu).
-// They take fp32 X only, so 16-bit X is cast first (one more kernel), and they
-// load fp32 X as float4: 16-byte aligned, row stride a multiple of 4.
+// q8_1 activation quantizers for fp32 / fp16 / bf16 X. The same arithmetic and
+// output layout as the vendored quantize_q8_1 (MMVQ) and
+// quantize_mmq_q8_1 (MMQ; 2-D, no ids) in quantize.cu, which take fp32 only;
+// reading 16-bit X directly saves a cast kernel per call. Converting fp16/bf16
+// to float is exact, so the q8 blocks are bit-identical to the vendored ones on
+// X.float() (tests/test_lcpp_kernels.py::test_lcpp_quantize_vs_vendored).
+// Scalar loads: X needs no alignment beyond its element size.
+
+template <typename T>
+static __global__ void quantize_q8_1_x(const T* __restrict__ x,
+                                       block_q8_1* __restrict__ y,
+                                       const int64_t ne00, const int64_t s01,
+                                       const int64_t ne0) {
+  const int64_t i0 = (int64_t)blockDim.x * blockIdx.x + threadIdx.x;
+  if (i0 >= ne0) return;
+  const int64_t i_cont = blockIdx.y * ne0 + i0;
+  const int64_t ib = i_cont / QK8_1;
+  const int64_t iqs = i_cont % QK8_1;
+
+  const float xi = i0 < ne00 ? float(x[blockIdx.y * s01 + i0]) : 0.0f;
+  float amax = fabsf(xi);
+  float sum = xi;
+  amax = warp_reduce_max<QK8_1>(amax);
+  sum = warp_reduce_sum<QK8_1>(sum);
+
+  const float d = amax / 127.0f;
+  const int8_t q = amax == 0.0f ? 0 : roundf(xi / d);
+  y[ib].qs[iqs] = q;
+  if (iqs > 0) return;
+  y[ib].ds = make_half2(d, sum);
+}
+
+template <typename T, mmq_q8_1_ds_layout ds_layout>
+static __global__ void quantize_mmq_q8_1_x(const T* __restrict__ x,
+                                           block_q8_1_mmq* __restrict__ y,
+                                           const int64_t ne00,
+                                           const int64_t s01, const int64_t ne0,
+                                           const int ne1) {
+  constexpr int vals_per_scale = ds_layout == MMQ_Q8_1_DS_LAYOUT_D2S6 ? 64 : 32;
+  constexpr int vals_per_sum = ds_layout == MMQ_Q8_1_DS_LAYOUT_D2S6 ? 16 : 32;
+  const int64_t i0 = ((int64_t)blockDim.x * blockIdx.y + threadIdx.x) * 4;
+  if (i0 >= ne0) return;
+
+  const T* xr = x + blockIdx.x * s01 + i0;
+  const float4 xi = i0 < ne00 ? make_float4(float(xr[0]), float(xr[1]),
+                                            float(xr[2]), float(xr[3]))
+                              : make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+  float amax = fabsf(xi.x);
+  amax = fmaxf(amax, fabsf(xi.y));
+  amax = fmaxf(amax, fabsf(xi.z));
+  amax = fmaxf(amax, fabsf(xi.w));
+#pragma unroll
+  for (int offset = vals_per_scale / 8; offset > 0; offset >>= 1) {
+    amax = fmaxf(amax, __shfl_xor_sync(0xFFFFFFFF, amax, offset, WARP_SIZE));
+  }
+  float sum;
+  if (ds_layout != MMQ_Q8_1_DS_LAYOUT_D4) {
+    sum = xi.x + xi.y + xi.z + xi.w;
+#pragma unroll
+    for (int offset = vals_per_sum / 8; offset > 0; offset >>= 1) {
+      sum += __shfl_xor_sync(0xFFFFFFFF, sum, offset, WARP_SIZE);
+    }
+  }
+
+  const float d_inv = 127.0f / amax;
+  char4 q;
+  q.x = roundf(xi.x * d_inv);
+  q.y = roundf(xi.y * d_inv);
+  q.z = roundf(xi.z * d_inv);
+  q.w = roundf(xi.w * d_inv);
+  const float d = 1.0f / d_inv;
+
+  const int64_t ib = (i0 / QK8_1_MMQ) * ne1 + blockIdx.x;
+  const int64_t iqs = i0 % QK8_1_MMQ;
+  ((char4*)y[ib].qs)[iqs / 4] = q;
+  if (ds_layout == MMQ_Q8_1_DS_LAYOUT_D2S6) {
+    if (iqs % 16 == 0 && iqs < 96) {
+      y[ib].d2s6[2 + iqs / 16] = sum;
+      if (iqs % 64 == 0) y[ib].d2s6[iqs / 64] = d;
+    }
+  } else if (iqs % 32 == 0) {
+    if (ds_layout == MMQ_Q8_1_DS_LAYOUT_DS4) {
+      y[ib].ds4[iqs / 32] = make_half2(d, sum);
+    } else {
+      y[ib].d4[iqs / 32] = d;
+    }
+  }
+}
+
+// X [n, k] (row stride s01 elements) -> q8 at vy: block_q8_1 (mmq false) or
+// block_q8_1_mmq in type's ds layout, k_padded values per row. Launch geometry
+// as upstream's quantize_row_q8_1_cuda / quantize_mmq_q8_1_cuda.
+template <typename T>
+static void quantize_x_t(const T* x, void* vy, ggml_type type, bool mmq,
+                         int64_t n, int64_t k, int64_t s01, int64_t k_padded,
+                         cudaStream_t stream) {
+  if (!mmq) {
+    const dim3 grid(
+        (k_padded + CUDA_QUANTIZE_BLOCK_SIZE - 1) / CUDA_QUANTIZE_BLOCK_SIZE, n,
+        1);
+    quantize_q8_1_x<T><<<grid, CUDA_QUANTIZE_BLOCK_SIZE, 0, stream>>>(
+        x, (block_q8_1*)vy, k, s01, k_padded);
+    return;
+  }
+  const dim3 grid(n,
+                  (k_padded + 4 * CUDA_QUANTIZE_BLOCK_SIZE_MMQ - 1) /
+                      (4 * CUDA_QUANTIZE_BLOCK_SIZE_MMQ),
+                  1);
+  block_q8_1_mmq* y = (block_q8_1_mmq*)vy;
+  switch (mmq_get_q8_1_ds_layout(type)) {
+    case MMQ_Q8_1_DS_LAYOUT_D4:
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D4>
+          <<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01,
+                                                              k_padded, n);
+      break;
+    case MMQ_Q8_1_DS_LAYOUT_DS4:
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_DS4>
+          <<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01,
+                                                              k_padded, n);
+      break;
+    case MMQ_Q8_1_DS_LAYOUT_D2S6:
+      quantize_mmq_q8_1_x<T, MMQ_Q8_1_DS_LAYOUT_D2S6>
+          <<<grid, CUDA_QUANTIZE_BLOCK_SIZE_MMQ, 0, stream>>>(x, y, k, s01,
+                                                              k_padded, n);
+      break;
+  }
+}
+
 static void quantize_x(const Tensor& X, void* vy, ggml_type type, bool mmq,
                        int64_t k_padded, cudaStream_t stream) {
-  const Tensor xf =
-      X.scalar_type() == ScalarType::Float
-          ? X
-          : torch::stable::to(X, std::optional<ScalarType>(ScalarType::Float));
-  const int64_t n = xf.size(0), k = xf.size(1);
-  const int64_t s01 = n == 1 ? k : xf.stride(0);
-  STD_TORCH_CHECK(
-      reinterpret_cast<uintptr_t>(xf.data_ptr()) % 16 == 0 && s01 % 4 == 0,
-      "lcpp: fp32 X must be 16-byte aligned with a row stride that is a "
-      "multiple of 4");
-  (mmq ? quantize_mmq_q8_1_cuda : quantize_row_q8_1_cuda)(
-      (const float*)xf.data_ptr(), nullptr, vy, type, k, s01, s01 * n, s01 * n,
-      k_padded, n, 1, 1, stream);
+  const int64_t n = X.size(0), k = X.size(1), s01 = n == 1 ? k : X.stride(0);
+  switch (X.scalar_type()) {
+    case ScalarType::Float:
+      quantize_x_t((const float*)X.data_ptr(), vy, type, mmq, n, k, s01,
+                   k_padded, stream);
+      break;
+    case ScalarType::Half:
+      quantize_x_t((const half*)X.data_ptr(), vy, type, mmq, n, k, s01,
+                   k_padded, stream);
+      break;
+    default:  // BFloat16 (check_inputs admits nothing else)
+      quantize_x_t((const nv_bfloat16*)X.data_ptr(), vy, type, mmq, n, k, s01,
+                   k_padded, stream);
+      break;
+  }
   CUDA_CHECK(cudaGetLastError());
 }
+
 // ---------------------------------------------------------------------------
 // MMQ host side. Mirrors the non-MoE, q8_1 branch of ggml_cuda_mul_mat_q in
 // llama.cpp b11211 ggml-cuda/mmq.cu (not vendored: its type switch needs all
@@ -489,12 +617,11 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
   const DeviceGuard guard(device);
   const cudaStream_t stream = torch_stream(device);
 
-  // X is quantized to q8_1 by quantize_x (the vendored fp32 quantizers, after a
-  // cast for 16-bit X), and MMVQ / MMQ write fp32 dst only, so 16-bit X also
-  // costs an output cast. Launches per call with 16-bit X:
-  //   MMVQ: cast X, quantize, mul_mat_vec_q, cast Y                    = 4
-  //   MMQ:  cast X, tail memset, quantize, mul_mat_q, [stream-k fixup],
-  //         cast Y                                                     = 5 or 6
+  // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast).
+  // MMVQ / MMQ write fp32 dst only, so 16-bit X costs one output cast.
+  // Launches per call with 16-bit X:
+  //   MMVQ: quantize, mul_mat_vec_q, cast Y = 3
+  //   MMQ: tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
   const ScalarType y_dtype = ScalarType::Float;
   Tensor y = torch::stable::new_empty(X, {n, row}, y_dtype);
 
@@ -562,15 +689,50 @@ Tensor lcpp_mul_mat_q(Tensor W, Tensor X, int64_t type, int64_t row) {
   return run(W, X, type, row, Kernel::mmq);
 }
 
+// The q8_1 bytes quantize_x makes for MMVQ (mmq false) or MMQ (mmq true, in
+// type's ds layout), or those of the vendored fp32 quantizers (vendored true;
+// X must then be fp32 with a row stride that is a multiple of 4). For tests.
+// Every byte is written: no zero fill.
+Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
+  STD_TORCH_CHECK(lcpp_type_supported(type) && X.is_cuda() && X.dim() == 2 &&
+                      X.stride(1) == 1 && X.size(1) % MATRIX_ROW_PADDING == 0 &&
+                      (X.scalar_type() == ScalarType::Float ||
+                       X.scalar_type() == ScalarType::Half ||
+                       X.scalar_type() == ScalarType::BFloat16),
+                  "lcpp_quantize_q8_1: bad arguments");
+  const int64_t n = X.size(0), k = X.size(1), s01 = n == 1 ? k : X.stride(0);
+  const int64_t bytes =
+      mmq ? n * k / QK8_1_MMQ * (int64_t)sizeof(block_q8_1_mmq)
+          : n * k / QK8_1 * (int64_t)sizeof(block_q8_1);
+  Tensor q = torch::stable::new_empty(X, {bytes}, ScalarType::Byte);
+  const DeviceGuard guard(X.get_device_index());
+  const cudaStream_t stream = torch_stream(X.get_device_index());
+  if (vendored) {
+    STD_TORCH_CHECK(X.scalar_type() == ScalarType::Float && s01 % 4 == 0,
+                    "vendored: fp32 X");
+    (mmq ? quantize_mmq_q8_1_cuda : quantize_row_q8_1_cuda)(
+        (const float*)X.data_ptr(), nullptr, q.data_ptr(), (ggml_type)type, k,
+        s01, s01 * n, s01 * n, k, n, 1, 1, stream);
+    CUDA_CHECK(cudaGetLastError());
+  } else {
+    quantize_x(X, q.data_ptr(), (ggml_type)type, mmq, k, stream);
+  }
+  return q;
+}
+
 STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
   ops.def(
       "lcpp_mul_mat_vec_q(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
   ops.def("lcpp_mul_mat_q(Tensor W, Tensor X, int type, SymInt row) -> Tensor");
+  ops.def(
+      "lcpp_quantize_q8_1(Tensor X, int type, bool mmq, bool vendored) -> "
+      "Tensor");
 }
 
 STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("lcpp_mul_mat_vec_q", TORCH_BOX(&lcpp_mul_mat_vec_q));
   ops.impl("lcpp_mul_mat_q", TORCH_BOX(&lcpp_mul_mat_q));
+  ops.impl("lcpp_quantize_q8_1", TORCH_BOX(&lcpp_quantize_q8_1));
 }
 
 // CPU: the checks only (a call that passes them all ends in "must be CUDA
