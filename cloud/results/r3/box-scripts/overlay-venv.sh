@@ -15,7 +15,9 @@ cp -al "$SRC" "$DEST"
 for p in "$@"; do
   for f in $(grep -E '^\+\+\+ b/' "$p" | sed -E 's#^\+\+\+ b/([^[:space:]]+).*#\1#'); do
     t=$DEST/$SP/$f
-    cp --remove-destination "$SRC/$SP/$f" "$t.r3tmp" && mv -f "$t.r3tmp" "$t"
+    if [ "$(stat -c %i "$SRC/$SP/$f")" = "$(stat -c %i "$t")" ]; then  # still venv-main's inode
+      cp --remove-destination "$SRC/$SP/$f" "$t.r3tmp" && mv -f "$t.r3tmp" "$t"
+    fi
     rm -f "$(dirname "$t")/__pycache__/$(basename "${t%.py}")".*.pyc
   done
   patch -p1 -d "$DEST/$SP" --no-backup-if-mismatch < "$p"
