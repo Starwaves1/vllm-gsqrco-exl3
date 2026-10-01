@@ -17,8 +17,8 @@ r3_preflight
 r3_serve srv
 export R ENGINE_PID PYSPY
 "${LOAD[@]}" warm || r3_die warm
-r3_step c8; "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 40 --k 3 --tag c8 --out "$R" --hook "bash $R3_S/29-hook.sh c8" || r3_die c8
-r3_step c2; "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 12000 --window 40 --k 5 --tag c2 --out "$R" --hook "bash $R3_S/29-hook.sh c2" || r3_die c2
+r3_step c8; "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 40 --k 3 --prewarm --tag c8 --out "$R" --hook "bash $R3_S/29-hook.sh c8" || r3_die c8
+r3_step c2; "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 12000 --window 40 --k 5 --prewarm --tag c2 --out "$R" --hook "bash $R3_S/29-hook.sh c2" || r3_die c2
 r3_stop
 r3_summary "R3-29 py-spy step segments (box, $(date -u +%F)), production's main argv, same recipe as prod-sample-20261001.md" "$(cat "$R/lines.txt")" ""
 for t in c8 c2; do
