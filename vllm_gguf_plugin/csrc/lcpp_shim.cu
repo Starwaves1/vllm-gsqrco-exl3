@@ -7,7 +7,8 @@
 // an owned q8_1 quantizer and IQ3 kernel, and these torch ops, all
 // (W, X, type, row[, x_q8]) -> [n, row] in X's dtype:
 //   lcpp_mul_mat_vec_q               MMVQ, 1..8 activation rows
-//   lcpp_mul_mat_q                   MMQ (int8 tensor cores), any rows
+//   lcpp_mul_mat_q                   MMQ (int8 tensor cores), any rows; not
+//                                    IQ1_M (no MMQ instance upstream)
 //   lcpp_mul_mat_vec_iq3             owned IQ3_S / IQ3_XXS dp4a kernel,
 //                                    1..8 rows
 //   lcpp_mul_mat_vec_iq3_mma         the same on int8 tensor cores
@@ -837,6 +838,7 @@ static bool lcpp_type_supported(int64_t type) {
     case GGML_TYPE_IQ3_XXS:
     case GGML_TYPE_IQ3_S:
     case GGML_TYPE_IQ4_XS:
+    case GGML_TYPE_IQ1_M:  // MMVQ only
       return true;
     default:
       return false;
@@ -949,6 +951,8 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row, Kernel kernel,
                   op, ": Q4_K or IQ2_S only, got type ", type);
   STD_TORCH_CHECK(kernel != Kernel::mma_k || mma_k_supported((int)type), op,
                   ": Q4_K, IQ4_XS or IQ2_S only, got type ", type);
+  STD_TORCH_CHECK(kernel != Kernel::mmq || type != GGML_TYPE_IQ1_M, op,
+                  ": no MMQ for IQ1_M");
   STD_TORCH_CHECK(!packed || row % 16 == 0, op, ": row=", row,
                   " must be a multiple of 16 (packed 16-row tiles)");
   const int64_t max_rows =
@@ -1173,6 +1177,7 @@ Tensor lcpp_mul_mat_mma_k(Tensor W, Tensor X, int64_t type, int64_t row) {
 Tensor lcpp_quantize_q8_1(Tensor X, int64_t type, bool mmq, bool vendored) {
   STD_TORCH_CHECK(lcpp_type_supported(type) && X.is_cuda() && X.dim() == 2 &&
                       X.stride(1) == 1 && X.size(1) % MATRIX_ROW_PADDING == 0 &&
+                      !(mmq && type == GGML_TYPE_IQ1_M) &&
                       (X.scalar_type() == ScalarType::Float ||
                        X.scalar_type() == ScalarType::Half ||
                        X.scalar_type() == ScalarType::BFloat16),

@@ -12,7 +12,7 @@ in this directory, or `cmp` each file against a checkout of the commit.
 
 Only what the MMVQ / MMQ / q8_1-quantize path needs (found with `nvcc -M`), and
 MMQ instances for 9 types: Q2_K, Q4_K, Q6_K, IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS,
-IQ3_S, IQ4_XS (IQ1_M has no MMQ upstream and is left to the stock kernels). The
+IQ3_S, IQ4_XS (IQ1_M has no MMQ upstream; it runs on MMVQ only). The
 `mmq-config-*.cuh` for other GPUs are included unconditionally by `mmq.cuh`.
 
 `mmq.cu` is deliberately not vendored: its type switch references all 22 MMQ
