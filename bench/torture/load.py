@@ -90,8 +90,8 @@ PROBE = {"messages": [{"role": "user", "content": SHORT[1]}], "max_tokens": 256,
 LONG_TIMEOUT = 3600.0  # a request that takes longer is "stalled" (196k prefill under load is ~10 min)
 
 # Response classes. OK ones are expected outcomes; anything else fails the run.
-OK_CLASSES = {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call", "cancelled",
-              "client_timeout"}
+OK_CLASSES = {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call",
+              "whitespace_completion", "cancelled", "client_timeout"}
 
 
 def make_plan(total_s: float, seed: int) -> list[dict]:
@@ -180,7 +180,9 @@ def classify(req: dict, res: dict) -> str:
             return "reasoning_only"
         if c["finish"] == "stop" and ct <= n:
             return "eos_first"  # first token EOS: the model's own distribution at T>0 (soak finding)
-        # a few whitespace/think-tag tokens are plausible; a long output with no text is not
+        if req.get("path") == "/completions" and c["text"]:
+            return "whitespace_completion"  # raw text: blank lines can continue code (smoke 2: "\n" top-1, hit = miss)
+        # a few whitespace/think-tag tokens are plausible; a long chat output with no text is not
         return "short_empty" if ct // n < 8 else "empty_output"
     return "ok"
 
@@ -259,7 +261,7 @@ class Corpus:
         self.sha = hashlib.sha256(json.dumps(self.body).encode()).hexdigest()[:16]
         self.hex = {c: api.tokenize(c) for c in "0123456789abcdef"}
         self.salt_pre, self.salt_post = api.tokenize("[torture-salt "), api.tokenize("]\n")
-        self.tail_pre, self.tail_post = api.tokenize("\n# follow-up "), api.tokenize(": what does the code above do?\n")
+        self.tail_pre, self.tail_post = api.tokenize("\n# follow-up "), api.tokenize(": what does the code above do?\n# Answer:")
 
     def digits(self, h: str) -> list[int]:
         return [i for c in h for i in self.hex[c]]

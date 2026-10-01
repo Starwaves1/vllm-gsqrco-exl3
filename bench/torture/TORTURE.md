@@ -36,6 +36,9 @@ Canonical source: this directory (`bench/torture/` on branch `torture`). The ins
 The model comes from `/v1/models` (or `--model`). The API key comes from `--api-key` or
 `VLLM_API_KEY` / `OPENAI_API_KEY`. Only the given host:port is ever contacted.
 
+`--skip plog,echo` (request kinds or api variants, comma-separated) leaves out requests that
+hit a known open server bug, so the rest can still soak. See "First real-server smokes" below.
+
 Ctrl-C, or the server dying or restarting, stops the run at once: requests in flight are
 cut, and the report is still written.
 
@@ -159,6 +162,11 @@ Each response gets one of these classes:
 - `eos_first`: the first token was EOS. The soak traced this to the model's own distribution at T>0.
 - `short_empty`: under 8 tokens with no text.
 - `truncated_json`: a structured output cut off by max_tokens.
+- `dropped_tool_call`: tool_choice "none", finish stop, 8+ tokens, no text. vLLM main parses the
+  model's tool call out of the content and then drops it under "none" (seen in smoke 2: 19 of 960).
+- `whitespace_completion`: a raw `/v1/completions` continuation of blank lines. For these code
+  prompts "\n" is often the model's top-1, with the same logprobs on a prefix-cache hit and a miss
+  (smoke 2 diagnostics). A chat answer of blank lines is still `empty_output`.
 - `cancelled`, `client_timeout`: induced by the client on purpose.
 
 All of those are expected. Every other class fails the run:
@@ -243,6 +251,20 @@ Run dir contents:
   `tool_calls`, or ends on `length`.
 - The 20-minute smoke is the place to check all of these. Every class it reports should be one
   listed above.
+
+## First real-server smokes (2026-10-01, rental 3090, GSQ-RCO GGUF on main, polite defaults)
+
+- Smoke 1 (main 32ae6ec, all request kinds): the server died 6 min into the load. One
+  `prompt_logprobs=1` request on a 3,936-token prompt, sent alone (2048-row lm_head chunk), went
+  out of memory in the GGUF lm_head (`fused_mul_mat_gguf`, "Tried to allocate 1.57 GiB") →
+  EngineDeadError. `echo` + `logprobs` returned HTTP 400 "nan" 7 of 7 times. Both are server bugs.
+- Smoke 2 (with `--skip plog,echo`, 20 min, 33 phases, 960 responses):
+  - The server stayed up: 0 faults, `/health` 200 in every row, GPU MiB flat, anon RSS +10 MB.
+  - The only failures were 8 `empty_output`, all raw-completion prefix hits continuing in blank
+    lines. The diagnostics found identical first-token logprobs on hit and miss ("\n" at p≈0.68),
+    so it is the model's continuation of the harness's own prompt, not a cache fault. That
+    prompt now ends in "# Answer:", and such outputs count as `whitespace_completion`.
+  - The NaN reproduces with `prompt_logprobs` on a 5-token prompt, but not on a 200-token prompt.
 
 ## On Garrett's production 3090
 

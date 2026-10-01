@@ -88,6 +88,9 @@ SCHEMA_RF = {"type": "json_schema", "json_schema": {"name": "city", "schema": tl
     # vLLM main parses a tool call out of the content and then drops it under tool_choice "none"
     (req(tool_choice="none"), res(text="", ct=26), "dropped_tool_call"),
     (req(tool_choice="none"), res(finish="length", text="", ct=256), "empty_output"),
+    # raw completions may continue code with blank lines (smoke 2); a chat answer of blank lines may not
+    ({**req(max_tokens=128), "path": "/completions"}, res(finish="length", text="\n" * 128, ct=128), "whitespace_completion"),
+    ({**req(max_tokens=128), "path": "/chat/completions"}, res(finish="length", text="\n" * 128, ct=128), "empty_output"),
     (req(n=2), res(n=1), "bad_response"),
 ])
 def test_classify(q, r, want):
@@ -95,8 +98,8 @@ def test_classify(q, r, want):
 
 
 def test_ok_classes_are_client_or_model_outcomes():
-    assert tl.OK_CLASSES == {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call", "cancelled",
-                             "client_timeout"}
+    assert tl.OK_CLASSES == {"ok", "reasoning_only", "eos_first", "short_empty", "truncated_json", "dropped_tool_call",
+                             "whitespace_completion", "cancelled", "client_timeout"}
 
 
 # ---------------------------------------------------------------- report on a synthetic 12 h run
