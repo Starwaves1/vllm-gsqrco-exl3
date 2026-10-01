@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import os
 from itertools import groupby
 
 import gguf
@@ -57,12 +58,17 @@ _X_DTYPE_OPS = ("lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_v
 _FP32_DST_BUDGET = 256 << 20
 
 
+# Diagnosis switch: VLLM_GGUF_MMA_K=0 routes the 9..32-row Q4_K / IQ4_XS / IQ2_S products to
+# vendored MMQ instead of lcpp_mul_mat_mma_k.
+_MMA_K_ON = os.environ.get("VLLM_GGUF_MMA_K", "1") != "0"
+
+
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
     """Where lcpp_mul_mat_mma_k (int8 tensor cores, lcpp_owned_mma_k.cu) beats MMQ by more than
     the noise (cloud/results/opt/k3/route-*.tsv): 9..32 activation rows on W above 2048 rows,
     IQ4_XS at 17..32 rows only on the large W (from 12288 x 5120). From 33 rows it runs 64-column
     tiles and loses, bar 64 rows on large Q4_K W (+3..6 %, not routed)."""
-    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048:
+    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048 or not _MMA_K_ON:
         return False
     return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 

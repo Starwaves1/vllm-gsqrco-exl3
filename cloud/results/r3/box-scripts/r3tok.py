@@ -81,10 +81,14 @@ def repeated(t: str):
     return m.group(1)[:40] if m else None
 
 
-def one(srv, i, text, temp, max_tokens):
+def one(srv, i, text, temp, max_tokens, stream=True, seed=None):
     body = {"model": r3load.MODEL, "messages": [{"role": "user", "content": text}], "max_tokens": max_tokens,
-            "temperature": temp, "seed": 7 + i, "logprobs": True, "return_tokens_as_token_ids": True, "stream": True,
-            "stream_options": {"include_usage": True}}
+            "temperature": temp, "seed": 7 + i if seed is None else seed, "logprobs": True,
+            "return_tokens_as_token_ids": True, "stream": stream}
+    if stream:
+        body["stream_options"] = {"include_usage": True}
+    if temp > 0:  # the model's generation_config sampling (production's bench traffic)
+        body.update(top_k=20, top_p=0.95)
     c = srv.conn(timeout=900)
     try:
         c.request("POST", "/v1/chat/completions", body=json.dumps(body), headers=srv.hdr)
@@ -105,7 +109,15 @@ def one(srv, i, text, temp, max_tokens):
         s = raw.decode("utf-8", "replace")
     ids, content, reasoning, chunks, finish = [], [], [], [], None
     try:
-        for line in s.splitlines():
+        if not stream:
+            o = json.loads(s)
+            ch = o["choices"][0]
+            m = ch["message"]
+            content.append(m.get("content") or "")
+            reasoning.append(m.get("reasoning") or m.get("reasoning_content") or "")
+            finish = ch.get("finish_reason")
+            ids = [int(t["token"].split(":", 1)[1]) for t in (ch.get("logprobs") or {}).get("content") or []]
+        for line in (s.splitlines() if stream else []):
             if not line.startswith("data: ") or line[6:].strip() == "[DONE]":
                 continue
             o = json.loads(line[6:])
@@ -161,8 +173,10 @@ def cmd_run(a):
 
     def batch(f, c, temp, label):
         t0 = time.time()
+        nreq = max(len(P), a.per_conc * c)  # enough requests that c stay running most of the batch
         with cf.ThreadPoolExecutor(c) as ex:
-            recs = list(ex.map(lambda i: one(srv, i, P[i], temp, a.max_tokens), range(len(P))))
+            recs = list(ex.map(lambda j: one(srv, j % len(P), P[j % len(P)], temp, a.max_tokens,
+                                             not a.nonstream, 7 + j), range(nreq)))
         for r in recs:
             r.update({"tag": a.tag, "conc": c, "pass": label})
             f.write(json.dumps(r) + "\n")
@@ -196,22 +210,22 @@ def cmd_report(a):
     ref = {}
     if a.ref in runs:  # T=0, c=1 of the eager server
         ref = {r["i"]: r for r in runs[a.ref] if r["temp"] == 0 and r["conc"] == 1 and r["pass"] == "main"}
-    hdr = ("tag          pass  T    n  flagged  http  utf8  fffd  text  eos_reason  odd_script  repeat  "
+    hdr = ("tag          pass  T  c   n  flagged  http  utf8  fffd  text  eos_reason  odd_script  repeat  "
            "ids!=eager(T0)  stop_where_eager_ran")
     print(hdr)
     details = []
     for tag, rs in runs.items():
-        for (ps, temp) in sorted({(r["pass"], r["temp"]) for r in rs}):
-            sel = [r for r in rs if r["pass"] == ps and r["temp"] == temp]
+        for (ps, temp, cc) in sorted({(r["pass"], r["temp"], r["conc"]) for r in rs}):
+            sel = [r for r in rs if r["pass"] == ps and r["temp"] == temp and r["conc"] == cc]
             div = early = 0
             if temp == 0 and ref:
                 for r in sel:
                     e = ref.get(r["i"])
-                    if e and r["ids"] != e["ids"]:
+                    if e and r["i"] == r.get("i") and r["ids"] != e["ids"]:
                         div += 1
                     if e and r["finish"] == "stop" and e["finish"] == "length":
                         early += 1
-            print(f"{tag:12s} {ps:5s} {temp:3.1f} {len(sel):3d}  {sum(map(flagged, sel)):7d}  "
+            print(f"{tag:12s} {ps:5s} {temp:3.1f} {cc:2d} {len(sel):3d}  {sum(map(flagged, sel)):7d}  "
                   f"{sum(r['status'] != 200 for r in sel):4d}  {sum(not r['utf8_ok'] for r in sel):4d}  "
                   f"{sum(r['fffd'] > 0 for r in sel):4d}  {sum(not r['text_ok'] for r in sel):4d}  "
                   f"{sum(r['eos_in_reasoning'] for r in sel):10d}  {sum(bool(r['odd']) for r in sel):10d}  "
@@ -235,6 +249,8 @@ def main():
     p.add_argument("--temps", default="0,0.7")
     p.add_argument("--max-tokens", type=int, default=400)
     p.add_argument("--plp-pass", action="store_true")
+    p.add_argument("--nonstream", action="store_true")
+    p.add_argument("--per-conc", type=int, default=0, help="requests per batch = max(30, per_conc x c)")
     p = sub.add_parser("report")
     p.add_argument("dirs", nargs="+")
     p.add_argument("--ref", default="eager")
