@@ -147,12 +147,20 @@ def one(srv, i, text, temp, max_tokens, stream=True, seed=None):
     return rec
 
 
-def plp_client(srv, stop):
-    """Short prompt_logprobs requests back to back (the hotfix NaN path) beside the main load."""
+SIDE = {  # the side client's request, sent back to back beside the main load
+    "echo": {"prompt": "The capital of Denmark is", "echo": True, "logprobs": 1, "max_tokens": 4},
+    "plp": {"prompt": "The capital of Denmark is", "prompt_logprobs": 1, "max_tokens": 4},
+    "lp": {"prompt": "The capital of Denmark is", "logprobs": 1, "max_tokens": 4},
+    "plain": {"prompt": "The capital of Denmark is", "max_tokens": 4},
+    "plain1": {"prompt": "The capital of Denmark is", "max_tokens": 1},
+}
+
+
+def plp_client(srv, stop, mode="echo"):
+    """Short requests back to back beside the main load (default: echo + logprobs, the hotfix NaN path)."""
     n = 0
     while not stop.is_set():
-        body = {"model": r3load.MODEL, "prompt": "The capital of Denmark is", "echo": True, "logprobs": 1,
-                "max_tokens": 4, "temperature": 0}
+        body = {"model": r3load.MODEL, **SIDE[mode], "temperature": 0}
         try:
             srv.post("/v1/completions", body, timeout=60)
         except Exception:  # noqa: BLE001  (400 nan on an unpatched server is expected)
@@ -185,7 +193,7 @@ def cmd_run(a):
               f"{sum(map(flagged, recs))} flagged", flush=True)
 
     with open(out / f"{a.tag}.jsonl", "w") as f:
-        for temp in [float(t) for t in a.temps.split(",")]:
+        for temp in [float(t) for t in a.temps.split(",") if t]:
             for c in [int(x) for x in a.conc.split(",")]:
                 batch(f, c, temp, "main")
         if a.plp_pass:
@@ -194,6 +202,15 @@ def cmd_run(a):
             batch(f, 4, 0.0, "plp")
             stop.set()
             print(f"plp client sent {plp.result()} requests")
+        for mode in [m for m in a.side.split(",") if m]:
+            if mode == "none":
+                batch(f, a.side_conc, 0.0, "side-none")
+                continue
+            stop = threading.Event()
+            fut = cf.ThreadPoolExecutor(1).submit(plp_client, srv, stop, mode)
+            batch(f, a.side_conc, 0.0, f"side-{mode}")
+            stop.set()
+            print(f"side client {mode} sent {fut.result()} requests")
 
 
 def first_div(x, y):
@@ -210,7 +227,7 @@ def cmd_report(a):
     ref = {}
     if a.ref in runs:  # T=0, c=1 of the eager server
         ref = {r["i"]: r for r in runs[a.ref] if r["temp"] == 0 and r["conc"] == 1 and r["pass"] == "main"}
-    hdr = ("tag          pass  T  c   n  flagged  http  utf8  fffd  text  eos_reason  odd_script  repeat  "
+    hdr = ("tag          pass        T  c   n  flagged  http  utf8  fffd  text  eos_reason  odd_script  repeat  "
            "ids!=eager(T0)  stop_where_eager_ran")
     print(hdr)
     details = []
@@ -225,7 +242,7 @@ def cmd_report(a):
                         div += 1
                     if e and r["finish"] == "stop" and e["finish"] == "length":
                         early += 1
-            print(f"{tag:12s} {ps:5s} {temp:3.1f} {cc:2d} {len(sel):3d}  {sum(map(flagged, sel)):7d}  "
+            print(f"{tag:12s} {ps:11s} {temp:3.1f} {cc:2d} {len(sel):3d}  {sum(map(flagged, sel)):7d}  "
                   f"{sum(r['status'] != 200 for r in sel):4d}  {sum(not r['utf8_ok'] for r in sel):4d}  "
                   f"{sum(r['fffd'] > 0 for r in sel):4d}  {sum(not r['text_ok'] for r in sel):4d}  "
                   f"{sum(r['eos_in_reasoning'] for r in sel):10d}  {sum(bool(r['odd']) for r in sel):10d}  "
@@ -250,6 +267,8 @@ def main():
     p.add_argument("--max-tokens", type=int, default=400)
     p.add_argument("--plp-pass", action="store_true")
     p.add_argument("--nonstream", action="store_true")
+    p.add_argument("--side", default="", help="comma list of side-client modes (none,plain,plain1,lp,plp,echo), each a pass at --side-conc, T=0")
+    p.add_argument("--side-conc", type=int, default=4)
     p.add_argument("--per-conc", type=int, default=0, help="requests per batch = max(30, per_conc x c)")
     p = sub.add_parser("report")
     p.add_argument("dirs", nargs="+")
