@@ -36,11 +36,22 @@ from .utils import (
 _IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
 # Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+_MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
 
 
-def _lcpp_op(n: int, weight_type: int, rows: int) -> str:
+def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
+    """Where lcpp_mul_mat_mma_k beats MMQ by more than the run-to-run noise on
+    an RTX 3090: 9..32 activation rows on weights above 2048 rows, IQ4_XS at
+    17..32 rows only from 12288 x 5120. From 33 rows it runs 64-column tiles
+    and loses (except 64 rows on large Q4_K weights, +3..6 %, not routed)."""
+    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048:
+        return False
+    return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
+
+
+def _lcpp_op(n: int, weight_type: int, rows: int, k: int) -> str:
     """The lcpp op (VLLM_GGUF_LCPP=1) for n activation rows times a weight of
-    weight_type with rows rows."""
+    weight_type with rows rows and k columns."""
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the owned IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one
         # at 1..5 rows, the int8 tensor-core one from 6
@@ -49,6 +60,8 @@ def _lcpp_op(n: int, weight_type: int, rows: int) -> str:
         # Q4_K / IQ2_S: the owned kernel where it beats MMVQ and MMQ; its
         # 16-row CTAs underfill the GPU at <= 2048 rows
         return "lcpp_mul_mat_vec_own"
+    if _mma_k_wins(weight_type, n, rows, k):
+        return "lcpp_mul_mat_mma_k"
     # MMQ is faster than MMVQ from 8 rows
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
@@ -65,7 +78,7 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0])
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1])
         op = getattr(torch.ops._C_gguf, name)
         return op(weight, x, weight_type, weight.shape[0])
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
