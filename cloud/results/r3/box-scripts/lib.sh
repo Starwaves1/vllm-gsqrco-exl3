@@ -114,7 +114,7 @@ r3_preflight() {
 
 # --- argv mutations (applied to GSQ_ARGV after the standard rewrite) -------------------------
 # R3_MUT entries: "drop|--flag" (flag + its value), "set|--flag|value" (replace value or append),
-# "swap|--old|--new" (valueless flag), "add|--flag|value".
+# "swap|--old|--new" (valueless flag), "add|--flag|value", "flag|--flag" (append a valueless flag).
 r3_apply_mut() {
   local m op f v i out
   for m in "${R3_MUT[@]}"; do
@@ -142,6 +142,7 @@ r3_apply_mut() {
         done
         [ $hit = 1 ] || r3_die "mutation $m: $f not in argv" ;;
       add) out=("${GSQ_ARGV[@]}" "$f" "$v") ;;
+      flag) out=("${GSQ_ARGV[@]}" "$f") ;;
       *) r3_die "bad mutation $m" ;;
     esac
     GSQ_ARGV=("${out[@]}")
