@@ -42,6 +42,9 @@ LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # 1..7: MMQ below upstream's J_max read tail (only the shim's zeroed tail keeps
 # the reads defined); 128 and 2048: prefill chunks
 LCPP_MMQ_TOKENS = [1, 2, 3, 5, 7, 8, 9, 16, 64, 128, 512, 2048]
+IQ3_TYPES = ["IQ3_S", "IQ3_XXS"]
+IQ3_OPS = ["lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"]
+OWNED = [(t, op) for op in IQ3_OPS for t in IQ3_TYPES]
 
 
 def _qt(name: str) -> int:
@@ -268,3 +271,63 @@ def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
     ours = C.lcpp_quantize_q8_1(x, _qt(name), mmq, False)
     ref = C.lcpp_quantize_q8_1(x.float().contiguous(), _qt(name), mmq, True)
     assert torch.equal(ours, ref)
+
+
+# ------------------------------------------------ owned 1..8-row kernels
+
+
+@pytest.mark.parametrize(
+    "shape",
+    ["real", "row_tail", "k_tail", "odd_rows", "k_min", "few_rows", "many_tiles"],
+)
+@pytest.mark.parametrize(
+    "dtype", [torch.bfloat16, torch.float16, torch.float32], ids=str
+)
+@pytest.mark.parametrize("n", LCPP_MMVQ_TOKENS)
+@pytest.mark.parametrize("name,op", OWNED)
+def test_lcpp_owned_vec(op, name, n, dtype, shape):
+    """The owned 1..8-row kernels take MMVQ's q8_1 input and compute each
+    32-value slice's scaled integer sum exactly as the vendored vec_dot; only
+    the fp32 order of a row's slice terms differs. 16-bit X: the CPU reference
+    models, and the 16-bit output equals the op's fp32 output cast by torch.
+    fp32 X: within 1e-5 of vendored MMVQ. Shapes (512 rows, K 5120 unless
+    noted): row_tail 202 rows (the last 16-row CTA part-filled; even, because
+    the reference MMVQ reads one row past W at an odd count); k_tail K 4608
+    (the last staged chunk 16 q8_1 blocks, not 32); odd_rows 201 rows of K
+    4608, W's size 4 mod 8 (fp32 reference for the mma kernel: the dp4a one);
+    k_min K 512 (the mma kernel's warps 2 and 3 get no block); few_rows 20
+    rows (fewer tiles than CTAs); many_tiles 8192 rows (each CTA takes several;
+    fp32, and bf16 for lcpp_mul_mat_vec_own, whose routing starts above 2048
+    rows)."""
+    C = _lcpp()
+    if not hasattr(C, op):
+        pytest.skip(f"{op} not built")
+    own_bf16 = op == "lcpp_mul_mat_vec_own" and dtype == torch.bfloat16
+    if shape == "many_tiles" and dtype != torch.float32 and not own_bf16:
+        pytest.skip("fp32 only: the reference is MMVQ on the GPU")
+    if shape == "odd_rows" and op == "lcpp_mul_mat_vec_own" and dtype == torch.float32:
+        pytest.skip("the fp32 reference, MMVQ, reads past this W")
+    rows = {"row_tail": 202, "odd_rows": 201, "few_rows": 20, "many_tiles": 8192}
+    blocks = {"k_tail": 18, "odd_rows": 18, "k_min": 2}.get(shape, BLOCKS)
+    raw, x, w, qt = _case(name, n, dtype, 1000 + n, rows.get(shape, ROWS), blocks)
+    poison_cuda_allocator()
+    y = getattr(C, op)(w, x.cuda(), qt, w.shape[0])
+    assert y.shape == (n, raw.shape[0]) and y.dtype == dtype
+    if dtype == torch.float32:
+        mma_odd = shape == "odd_rows" and op.endswith("_mma")
+        ref_op = C.lcpp_mul_mat_vec_iq3 if mma_odd else C.lcpp_mul_mat_vec_q
+        ref = ref_op(w, x.cuda(), qt, w.shape[0])
+        assert rel_err(y, ref.double().cpu()) <= 1e-5
+    else:
+        check(y, raw, name, x, mmq=False, lcpp=True)
+        y32 = getattr(C, op)(w, x.cuda().float(), qt, w.shape[0])
+        assert torch.equal(y, y32.to(y.dtype))
+
+
+@pytest.mark.parametrize("n", [1, 4, 6, 8])
+@pytest.mark.parametrize("name,op", OWNED)
+def test_lcpp_owned_vec_graph_replay(op, name, n):
+    C = _lcpp()
+    if not hasattr(C, op):
+        pytest.skip(f"{op} not built")
+    _graph_replay(name, n, getattr(C, op))

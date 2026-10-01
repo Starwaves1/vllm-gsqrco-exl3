@@ -16,6 +16,8 @@ OP is the name of a _C_gguf op taking (W, X, type, row). Cases:
   row_too_big     the row argument exceeds W's rows (reads past W)
   k_mismatch      X has fewer columns than W's rows hold (reads past X)
   graph_replay    capture in a CUDA graph, replay with new X, compare to eager
+  graph_first     as graph_replay, with the op's first call in this process
+                  inside the capture (its one-time launch attribute setup)
 """
 
 import json
@@ -51,8 +53,9 @@ def main() -> None:
     x = torch.randn(n, k, generator=g).to(torch.bfloat16).cuda()
     w = torch.from_numpy(raw).cuda()
     row = w.shape[0]
-    clean = fn(w, x, int(qt), row)  # before any bad input can fault
-    torch.cuda.synchronize()
+    if case != "graph_first":
+        clean = fn(w, x, int(qt), row)  # before any bad input can fault
+        torch.cuda.synchronize()
     xc, wc = x, w
 
     if case == "x_noncontig":
@@ -75,12 +78,15 @@ def main() -> None:
         row += 64
     elif case == "k_mismatch":
         xc = x[:, : k // 2].contiguous()
-    elif case != "graph_replay":
+    elif case not in ("graph_replay", "graph_first"):
         raise SystemExit(f"unknown case {case}")
 
     try:
-        if case == "graph_replay":
+        if case in ("graph_replay", "graph_first"):
             static_x = x.clone()
+            if case == "graph_replay":
+                fn(w, static_x, int(qt), row)  # warm-up outside the capture
+            torch.cuda.synchronize()
             graph = torch.cuda.CUDAGraph()
             with torch.cuda.graph(graph):
                 static_y = fn(w, static_x, int(qt), row)

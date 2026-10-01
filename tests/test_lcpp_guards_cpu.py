@@ -20,6 +20,8 @@ CUDA_ONLY = "must be CUDA tensors"
 OPS = [
     "lcpp_mul_mat_vec_q",
     "lcpp_mul_mat_q",
+    "lcpp_mul_mat_vec_iq3",
+    "lcpp_mul_mat_vec_iq3_mma",
 ]
 
 
@@ -86,6 +88,23 @@ CASES["lcpp_mul_mat_q-9_rows"] = (_case("lcpp_mul_mat_q", n=9), CUDA_ONLY)
 CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), CUDA_ONLY)
 for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):  # no IQ1_M MMQ upstream
     CASES[f"{op}-iq1_m"] = (_case(op, IQ1_M), "unsupported ggml type")
+# the owned IQ3 kernels share check_inputs and add a type check
+for op in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
+    for t in (IQ3_S, IQ3_XXS):
+        CASES[f"{op}-valid-{t}"] = (_case(op, t), CUDA_ONLY)
+        CASES[f"{op}-row_strided-{t}"] = (
+            _case(op, t, stride=2 * K // 256 * TS[t]),
+            "rows must be contiguous",
+        )
+    CASES[f"{op}-q4_k"] = (_case(op, Q4_K), "IQ3_S or IQ3_XXS only")
+    CASES[f"{op}-1_row"] = (_case(op, n=1), CUDA_ONLY)
+    CASES[f"{op}-k_not_512"] = (
+        _case(op, row_bytes=110, k=256),
+        "must be a multiple of 512",
+    )
+    CASES[f"{op}-w_misaligned"] = (_case(op, w_offset=1), "16-byte aligned")
+    CASES[f"{op}-k_mismatch"] = (_case(op, k=K // 2), "columns, W rows hold")
+    CASES[f"{op}-9_rows"] = (_case(op, n=9), "at most 8 rows")
 
 
 def _w(rows, row_bytes, stride=None, offset=0, dtype=torch.uint8):
