@@ -1,0 +1,70 @@
+{
+ "exllamav3": "1.5.3",
+ "torch": "2.13.0+cu130",
+ "model": "/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6",
+ "EXL3_HGEMM_F16ACC": "(unset: on where the probe enables it)",
+ "EXL3_INT8_GEMV": "0",
+ "cache_tokens": 120064,
+ "load_s": 4.2,
+ "gpu_mib_after_load": 18813,
+ "chunk": 2048,
+ "logits_rows": 256,
+ "sequences": {
+  "seq_000": {
+   "status": "ok",
+   "n_tokens": 1024,
+   "n_pos": 256,
+   "seconds": 1.2,
+   "peak_gpu_mib": 19287
+  },
+  "seq_001": {
+   "status": "ok",
+   "n_tokens": 2048,
+   "n_pos": 288,
+   "seconds": 4.2,
+   "peak_gpu_mib": 19426
+  },
+  "seq_002": {
+   "status": "ok",
+   "n_tokens": 1536,
+   "n_pos": 288,
+   "seconds": 3.5,
+   "peak_gpu_mib": 19455
+  },
+  "seq_003": {
+   "status": "ok",
+   "n_tokens": 4096,
+   "n_pos": 288,
+   "seconds": 6.5,
+   "peak_gpu_mib": 19470
+  },
+  "seq_004": {
+   "status": "ok",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "seconds": 10.5,
+   "peak_gpu_mib": 19478
+  },
+  "seq_005": {
+   "status": "ok",
+   "n_tokens": 8192,
+   "n_pos": 288,
+   "seconds": 11.2,
+   "peak_gpu_mib": 19480
+  },
+  "seq_006": {
+   "status": "ok",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "seconds": 34.1,
+   "peak_gpu_mib": 19479
+  },
+  "seq_007": {
+   "status": "ok",
+   "n_tokens": 32768,
+   "n_pos": 288,
+   "seconds": 34.4,
+   "peak_gpu_mib": 19465
+  }
+ }
+}
