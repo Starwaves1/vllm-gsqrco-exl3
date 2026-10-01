@@ -12,6 +12,8 @@
 //                                    1..8 rows
 //   lcpp_mul_mat_vec_iq3_mma         the same on int8 tensor cores
 //                                    (lcpp_owned_iq3_mma.cu)
+//   lcpp_mul_mat_vec_own             owned Q4_K / IQ2_S kernel, 1..8 rows
+//                                    (lcpp_owned_k4.cu)
 // W: uint8 [>= row, row_bytes] GGUF blocks, contiguous rows. X: [n, K] fp32 /
 // fp16 / bf16, unit inner stride.
 // All checks run before any launch. Nothing here touches CUDA until an op is
@@ -708,6 +710,12 @@ static void iq3_mul_mat_vec_y(const char* vx, const void* vy, const Tensor& y,
   }
 }
 
+// lcpp_owned_k4.cu
+bool own_mul_mat_vec_supported(int type);
+void own_mul_mat_vec_cuda(int type, const char* vx, const void* vy, float* dst,
+                          int nrows, int k, int64_t row_bytes, int ncols,
+                          cudaStream_t stream);
+
 // ---------------------------------------------------------------------------
 // MMQ host side. Mirrors the non-MoE, q8_1 branch of ggml_cuda_mul_mat_q in
 // llama.cpp b11211 ggml-cuda/mmq.cu (not vendored: its type switch needs all
@@ -868,7 +876,7 @@ void iq3_mma_mul_mat_vec_cuda(ggml_type type, const char* vx, const void* vy,
                               float* dst, int nrows, int k, int64_t row_bytes,
                               int ncols, cudaStream_t stream);
 
-enum class Kernel { mmvq, mmq, iq3, iq3_mma };
+enum class Kernel { mmvq, mmq, iq3, iq3_mma, own };
 
 static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
                   Kernel kernel) {
@@ -876,12 +884,15 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
   // fp32 dst: MMVQ and the 1..8-row owned kernels
   const bool mmvq = kernel != Kernel::mmq;
   const bool iq3 = kernel == Kernel::iq3 || kernel == Kernel::iq3_mma;
-  const char* op = kernel == Kernel::mmvq  ? "lcpp_mul_mat_vec_q"
-                   : kernel == Kernel::mmq ? "lcpp_mul_mat_q"
-                   : kernel == Kernel::iq3 ? "lcpp_mul_mat_vec_iq3"
-                                           : "lcpp_mul_mat_vec_iq3_mma";
+  const char* op = kernel == Kernel::mmvq      ? "lcpp_mul_mat_vec_q"
+                   : kernel == Kernel::mmq     ? "lcpp_mul_mat_q"
+                   : kernel == Kernel::iq3     ? "lcpp_mul_mat_vec_iq3"
+                   : kernel == Kernel::iq3_mma ? "lcpp_mul_mat_vec_iq3_mma"
+                                               : "lcpp_mul_mat_vec_own";
   STD_TORCH_CHECK(!iq3 || type == GGML_TYPE_IQ3_S || type == GGML_TYPE_IQ3_XXS,
                   op, ": IQ3_S or IQ3_XXS only, got type ", type);
+  STD_TORCH_CHECK(kernel != Kernel::own || own_mul_mat_vec_supported((int)type),
+                  op, ": Q4_K or IQ2_S only, got type ", type);
   const int64_t max_rows = kernel == Kernel::mmq ? 0 : MMVQ_MAX_BATCH_SIZE;
   const int64_t k = check_inputs(W, X, type, row, max_rows, op);
   const int64_t n = X.size(0);
@@ -897,11 +908,11 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
   const cudaStream_t stream = torch_stream(device);
 
   // X is quantized to q8_1 by the owned quantize_x (any float dtype, no cast).
-  // The dp4a IQ3 kernel writes X's dtype; MMVQ / MMQ, the IQ3 mma kernels write
-  // fp32 dst only, so for them 16-bit X costs one output cast. Launches per
-  // call with 16-bit X:
+  // The dp4a IQ3 kernel writes X's dtype; MMVQ / MMQ, the IQ3 mma kernels and
+  // the Q4_K / IQ2_S kernel write fp32 dst only, so for them 16-bit X costs one
+  // output cast. Launches per call with 16-bit X:
   //   IQ3 dp4a: quantize, iq3_mul_mat_vec = 2
-  //   MMVQ, iq3_mma: quantize, the kernel, cast Y = 3
+  //   MMVQ, iq3_mma, own: quantize, the kernel, cast Y = 3
   //   MMQ: tail memset, quantize, mul_mat_q, [stream-k fixup], cast Y = 4 or 5
   const ScalarType y_dtype =
       kernel == Kernel::iq3 ? out_dtype : ScalarType::Float;
@@ -961,6 +972,10 @@ static Tensor run(Tensor W, Tensor X, int64_t type, int64_t row,
         iq3_mma_mul_mat_vec_cuda(src0.type, (const char*)src0.data, vy,
                                  (float*)dst.data, (int)row, (int)k, src0.nb[1],
                                  (int)n, stream);
+      } else if (kernel == Kernel::own) {
+        own_mul_mat_vec_cuda((int)type, (const char*)src0.data, vy,
+                             (float*)dst.data, (int)row, (int)k, src0.nb[1],
+                             (int)n, stream);
       } else {
         ggml_cuda_op_mul_mat_vec_q(
             ctx, &src0, &src1, &dst, (const char*)src0.data, nullptr, vy,
@@ -991,6 +1006,10 @@ Tensor lcpp_mul_mat_vec_iq3(Tensor W, Tensor X, int64_t type, int64_t row) {
 
 Tensor lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int64_t type, int64_t row) {
   return run(W, X, type, row, Kernel::iq3_mma);
+}
+
+Tensor lcpp_mul_mat_vec_own(Tensor W, Tensor X, int64_t type, int64_t row) {
+  return run(W, X, type, row, Kernel::own);
 }
 
 // The q8_1 bytes quantize_x makes for MMVQ (mmq false) or MMQ (mmq true, in
@@ -1035,6 +1054,9 @@ STABLE_TORCH_LIBRARY_FRAGMENT(_C_gguf, ops) {
       "lcpp_mul_mat_vec_iq3_mma(Tensor W, Tensor X, int type, SymInt row) -> "
       "Tensor");
   ops.def(
+      "lcpp_mul_mat_vec_own(Tensor W, Tensor X, int type, SymInt row) -> "
+      "Tensor");
+  ops.def(
       "lcpp_quantize_q8_1(Tensor X, int type, bool mmq, bool vendored) -> "
       "Tensor");
 }
@@ -1044,6 +1066,7 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CUDA, ops) {
   ops.impl("lcpp_mul_mat_q", TORCH_BOX(&lcpp_mul_mat_q));
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
+  ops.impl("lcpp_mul_mat_vec_own", TORCH_BOX(&lcpp_mul_mat_vec_own));
   ops.impl("lcpp_quantize_q8_1", TORCH_BOX(&lcpp_quantize_q8_1));
 }
 
@@ -1054,4 +1077,5 @@ STABLE_TORCH_LIBRARY_IMPL(_C_gguf, CPU, ops) {
   ops.impl("lcpp_mul_mat_q", TORCH_BOX(&lcpp_mul_mat_q));
   ops.impl("lcpp_mul_mat_vec_iq3", TORCH_BOX(&lcpp_mul_mat_vec_iq3));
   ops.impl("lcpp_mul_mat_vec_iq3_mma", TORCH_BOX(&lcpp_mul_mat_vec_iq3_mma));
+  ops.impl("lcpp_mul_mat_vec_own", TORCH_BOX(&lcpp_mul_mat_vec_own));
 }
