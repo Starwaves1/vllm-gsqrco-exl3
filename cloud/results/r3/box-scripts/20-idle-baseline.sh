@@ -9,7 +9,7 @@
 #      at ~200k at every running count, so its data cannot tell "fixed" from "grows with context")
 #   3b. c=2: two distinct ~96k-token prompts (prod n=2 median context 204k), 90 s window after both
 #      decode (k=5 by the schedule)
-#   4. c=8: eight distinct 20k-token prompts (160k -> ~200k during the window; prod n=8 median 195k),
+#   4. c=8: eight distinct 18k-token prompts (144k -> ~200k during the window; prod n=8 median 195k),
 #      90 s window (k=3)
 # Output: /workspace/logs/r3/20-idle-baseline/{summary.txt, srv/*-steady.json, metrics, nvsmi}
 # GPU time: ~22 min (load 4, fill 4, c2s 1.2, c=2 prefill 4 + 1.6, c=8 prefill 4 + 1.6).
@@ -26,7 +26,7 @@ r3_step warm;  "${LOAD[@]}" warm || r3_die "warm-up"
 r3_step fill;  "${LOAD[@]}" fill --n 2 --tokens 90000 --conc 2 || r3_die "fill"
 r3_step c2s;   "${LOAD[@]}" steady --conc 2 --tokens 4000 --max-tokens 9000 --window 60 --k 5 --tag c2s --out "$R" || r3_die "c2s window"
 r3_step c2;    "${LOAD[@]}" steady --conc 2 --tokens 96000 --max-tokens 12000 --window 90 --k 5 --tag c2 --out "$R" || r3_die "c2 window"
-r3_step c8;    "${LOAD[@]}" steady --conc 8 --tokens 20000 --max-tokens 6000 --window 90 --k 3 --tag c8 --out "$R" || r3_die "c8 window"
+r3_step c8;    "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --tag c8 --out "$R" || r3_die "c8 window"
 curl -s "$GSQ_URL/metrics" > "$R/metrics-final.txt"
 r3_stop
 r3_summary "R3-20 idle baseline (box, production's main argv, $(date -u +%F))" "$(cat "$R/lines.txt")" "" \

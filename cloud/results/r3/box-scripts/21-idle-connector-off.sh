@@ -43,7 +43,7 @@ v_async() {
   "${LOAD[@]}" warm || r3_die warm
   "${LOAD[@]}" fill --n 2 --tokens 90000 --conc 2 || r3_die fill
   c2
-  "${LOAD[@]}" steady --conc 8 --tokens 20000 --max-tokens 6000 --window 90 --k 3 --tag c8 --out "$R" || r3_die "c8 window"
+  "${LOAD[@]}" steady --conc 8 --tokens 18000 --max-tokens 9000 --window 90 --k 3 --tag c8 --out "$R" || r3_die "c8 window"
 }
 
 r3_summary "R3-21 idle A/B (box, $(date -u +%F)); baseline = 20-idle-baseline c2 line"
