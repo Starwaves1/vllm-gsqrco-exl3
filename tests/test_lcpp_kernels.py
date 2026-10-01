@@ -244,3 +244,27 @@ def test_lcpp_same_type_run(n, types, monkeypatch):
         assert torch.equal(y, per_shard)
     else:
         assert rel_err(y, per_shard.double().cpu()) <= 1e-3
+
+
+# ------------------------------------------------ owned q8_1 quantizer
+
+
+@pytest.mark.parametrize("x_kind", ["bfloat16", "float16", "float32", "rowstride"])
+@pytest.mark.parametrize("n", [1, 4, 9])
+@pytest.mark.parametrize("mmq", [False, True], ids=["q8_1", "mmq"])
+@pytest.mark.parametrize("name", LCPP_TYPES)
+def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
+    """The shim's q8_1 quantizer (reads fp32 / fp16 / bf16 X) writes the same
+    bytes as the vendored fp32 quantizers (quantize.cu) on X.float(): every
+    quant, scale and partial sum, for MMVQ's block_q8_1 and each type's MMQ ds
+    layout (D4 / DS4 / D2S6)."""
+    C = _lcpp()
+    k = BLOCKS * 256
+    dtype = getattr(torch, "bfloat16" if x_kind == "rowstride" else x_kind)
+    x = make_x(n, k, dtype, seed=900 + n).cuda()
+    x[0, 128:256] = 0  # all-zero blocks: the amax == 0 branches
+    if x_kind == "rowstride":
+        x = torch.cat([x, x[:, :512]], 1)[:, :k]  # row stride k + 512
+    ours = C.lcpp_quantize_q8_1(x, _qt(name), mmq, False)
+    ref = C.lcpp_quantize_q8_1(x.float().contiguous(), _qt(name), mmq, True)
+    assert torch.equal(ours, ref)
