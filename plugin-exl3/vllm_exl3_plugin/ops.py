@@ -69,10 +69,10 @@ MR_MODE = int(os.environ.get("EXL3_MR", "2"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
-# EXL3_MR_GLUE=1 (with EXL3_MR=2, A/B while measured): a bf16 model passes bf16 activations and
-# gets bf16 back (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and the
-# fp32 round trip out. Same bits.
-MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "0") == "1"
+# EXL3_MR_GLUE (default 1, with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16
+# back on single-part layers (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and
+# the fp32 round trip out. Same bits; job 12: -0.6/-0.5/-0.8/-0.45 ms/step at c=1/2/4/8.
+MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "1") == "1"
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
 # EXL3_MR_MIN: the first row count K3/K5 take exl3_gemm_mr at; default 1 (job 12: from 17 rows
 # instead costs +3.4 ms/step at c=1, +1.5 at c=2; job 11: mr beats exl3_gemm at 1..16 rows too)
@@ -183,9 +183,10 @@ def exl3_linear_fake(
     return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
-# EXL3_EMBED_HOST=1: the bf16 token embedding lives in pinned host memory (quantization/
-# embedding.py); rows are gathered to the GPU per step by exl3_embed_host.
-EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "0") == "1"
+# EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in pinned host memory (quantization/
+# embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12: +0.08/+0.07/
+# +0.09/-0.23 ms/step at c=1/2/4/8; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at 196,608).
+EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "1") == "1"
 
 
 def exl3_embed_host(ids: torch.Tensor, table_ptr: int, rows: int, cols: int) -> torch.Tensor:

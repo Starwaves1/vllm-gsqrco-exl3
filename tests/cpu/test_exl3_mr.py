@@ -40,12 +40,12 @@ def mr_mode(monkeypatch):
 
 
 def test_defaults():
-    """Without the environment: EXL3_MR=2, K3/K5 from 1 row, glue and host embedding off."""
+    """Without the environment: EXL3_MR=2, K3/K5 from 1 row, glue and host embedding on."""
     from vllm_exl3_plugin import ops
 
     assert os.environ.get("EXL3_MR") is None and os.environ.get("EXL3_MR_MIN") is None
     assert ops.MR_MODE == 2 and ops.MULTI_ROW_OP == ops.MR_OP and ops.MULTI_ROW_MIN == 1
-    assert not ops.MR_GLUE and not ops.EMBED_HOST
+    assert ops.MR_GLUE and ops.EMBED_HOST
 
 
 # rows -> route, for a stored K3/K5 tensor (mr_ok) under EXL3_MR=1 or 2
@@ -235,9 +235,12 @@ def test_linear_bf16_contract(mr_mode, fake, bits, rows, want):
 
 
 def test_glue_needs_mode_2():
-    from vllm_exl3_plugin import ops
-
-    assert ops.MR_GLUE is False  # default environment
+    code = ("import sys; sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2]); import no_gpu\n"
+            "from vllm_exl3_plugin import ops; print(ops.MR_GLUE)")
+    p = subprocess.run([sys.executable, "-c", code, os.path.join(ROOT, "plugin-exl3"), os.path.join(ROOT, "tools")],
+                       capture_output=True, text=True, timeout=300,
+                       env=dict(os.environ, EXL3_MR="1", CUDA_VISIBLE_DEVICES=""))
+    assert p.stdout.strip().splitlines()[-1:] == ["False"], p.stderr[-2000:]
 
 
 @pytest.mark.parametrize("kt,nt,chunk", [(8, 8, 1 << 20), (24, 16, 2048), (16, 12, 4096)])
