@@ -10,6 +10,7 @@ MMVQ, MMQ = "lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"
 IQ3, MMA = "lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"
 OWN = "lcpp_mul_mat_vec_own"
 MMA_K = "lcpp_mul_mat_mma_k"
+PACKED_VEC, PACKED_TILED = "lcpp_mul_mat_vec_iq3_mma_packed", "lcpp_mul_mat_iq3_packed"
 BIG = 17408  # rows of a large weight; the owned kernels route above 2048
 K = 5120
 
@@ -78,6 +79,41 @@ def test_lcpp_op(qt, n, rows, want):
 
     rows, k = rows if isinstance(rows, tuple) else (rows, K)
     assert _lcpp_op(n, int(qt), rows, k) == want
+    assert _lcpp_op(n, int(qt), rows, k, False) == want
+
+
+PACKED_CASES = [
+    # packed IQ3 (GGUFLinearMethod._pack_iq3): the packed mma kernel 1..8,
+    # the tiled one from 9
+    *[
+        (t, n, rows, want)
+        for t in (T.IQ3_S, T.IQ3_XXS)
+        for rows in (1024, BIG)
+        for n, want in (
+            (1, PACKED_VEC),
+            (5, PACKED_VEC),
+            (6, PACKED_VEC),
+            (8, PACKED_VEC),
+            (9, PACKED_TILED),
+            (32, PACKED_TILED),
+            (128, PACKED_TILED),
+            (2048, PACKED_TILED),
+        )  # fmt: skip
+    ],
+    # a packed layer's other runs route as unpacked
+    (T.Q4_K, 3, BIG, OWN),
+    (T.Q4_K, 9, BIG, MMA_K),
+    (T.IQ4_XS, 8, BIG, MMQ),
+]
+
+
+@pytest.mark.parametrize(
+    "qt,n,rows,want", PACKED_CASES, ids=lambda v: getattr(v, "name", str(v))
+)
+def test_lcpp_op_packed(qt, n, rows, want):
+    from vllm_gguf_plugin.quantization.linear import _lcpp_op
+
+    assert _lcpp_op(n, int(qt), rows, K, True) == want
 
 
 def test_fused_mul_mat_gguf_zero_rows():

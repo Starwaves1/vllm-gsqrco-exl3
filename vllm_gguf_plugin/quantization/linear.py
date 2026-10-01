@@ -14,6 +14,7 @@ from vllm.model_executor.utils import set_weight_attrs
 from vllm.utils.torch_utils import direct_register_custom_op
 
 from .. import ops
+from . import iq3_pack
 from .layout import GGUFLinearLayout
 from .params import (
     GGUFUninitializedWeightParameter,
@@ -37,6 +38,9 @@ _IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
 # Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
+# Packed IQ3: lcpp_mul_mat_vec_iq3_mma_packed up to this many rows,
+# lcpp_mul_mat_iq3_packed above.
+PACKED_VEC_MAX_ROWS = 8
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -49,9 +53,16 @@ def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
     return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 
 
-def _lcpp_op(n: int, weight_type: int, rows: int, k: int) -> str:
+def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) -> str:
     """The lcpp op (VLLM_GGUF_LCPP=1) for n activation rows times a weight of
-    weight_type with rows rows and k columns."""
+    weight_type with rows rows and k columns.
+    packed: the layer's IQ3 runs are in iq3_pack's layout."""
+    if packed and weight_type in _IQ3_TYPES:
+        # the owned int8 tensor-core kernels on the packed layout: the decode
+        # one up to PACKED_VEC_MAX_ROWS, the tiled one above
+        if n <= PACKED_VEC_MAX_ROWS:
+            return "lcpp_mul_mat_vec_iq3_mma_packed"
+        return "lcpp_mul_mat_iq3_packed"
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the owned IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one
         # at 1..5 rows, the int8 tensor-core one from 6
@@ -67,8 +78,12 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int) -> str:
 
 
 def _fused_mul_mat_gguf(
-    x: torch.Tensor, weight: torch.Tensor, weight_type: int
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    weight_type: int,
+    packed: bool = False,
 ) -> torch.Tensor:
+    """x @ weight.T. packed: see _lcpp_op."""
     if weight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if weight.shape[0] > 5120 else 16
     else:
@@ -78,7 +93,7 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1])
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
         op = getattr(torch.ops._C_gguf, name)
         return op(weight, x, weight_type, weight.shape[0])
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
@@ -130,6 +145,7 @@ def _fused_mul_mat_gguf_fake(
     x: torch.Tensor,
     weight: torch.Tensor,
     weight_type: int,
+    packed: bool = False,
 ) -> torch.Tensor:
     return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
 
@@ -148,6 +164,10 @@ except AttributeError as error:
 @register_weight_loader_v2_supported_method
 class GGUFLinearMethod(LinearMethodBase):
     """Linear method for GGUF."""
+
+    # apply() sends IQ3 weights to the packed kernels (_pack_iq3); False in
+    # subclasses whose apply() reads the GGUF bytes (ggml_dequantize)
+    pack_iq3 = True
 
     def __init__(
         self,
@@ -228,6 +248,38 @@ class GGUFLinearMethod(LinearMethodBase):
                 f"Unsupported GGUF quantization type {weight_type} in layer {layer}."
             )
         self._create_padded_weight_param(layer)
+        if ops.LCPP_ENABLED and self.pack_iq3:
+            self._pack_iq3(layer)
+
+    def _pack_iq3(self, layer: torch.nn.Module) -> None:
+        """Store the layer's IQ3_S / IQ3_XXS products (each same-type run of a
+        multi-shard weight) in iq3_pack's layout, in place, and set
+        weight.iq3_packed; apply() then routes them to the packed kernels. All
+        or nothing per layer: only if every IQ3 run has a multiple of 16 rows
+        (iq3_pack's tile) and 16-byte aligned bytes (the kernels' loads)."""
+        weight = layer.weight
+        if getattr(weight, "iq3_packed", False):
+            return
+        if hasattr(weight, "shard_offset_map"):
+            types = layer.weight_type.shard_weight_type
+            fallback = layer.weight_type.weight_type
+            runs = list(
+                _shard_runs(
+                    weight,
+                    weight.shard_id,
+                    [types.get(i, fallback) for i in weight.shard_id],
+                )
+            )
+        else:
+            runs = [(weight.data, layer.weight_type.weight_type)]
+        runs = [(w, t) for w, t in runs if t in _IQ3_TYPES]
+        if not runs or any(
+            w.shape[0] % iq3_pack.ROWS or w.data_ptr() % 16 for w, _ in runs
+        ):
+            return
+        for w, t in runs:
+            iq3_pack.pack_(w, t)
+        weight.iq3_packed = True
 
     def _materialize_gguf_parameters(self, layer: torch.nn.Module) -> None:
         self._materialize_weight(layer)
@@ -309,6 +361,7 @@ class GGUFLinearMethod(LinearMethodBase):
             x = self.layout.input_to_gguf(x)
 
         shard_id = layer.weight.shard_id
+        packed = getattr(layer.weight, "iq3_packed", False)  # its IQ3 runs are packed
         if shard_id:
             shard_id = ["q", "k", "v"] if "q" in shard_id else shard_id
             weight = layer.weight
@@ -318,13 +371,13 @@ class GGUFLinearMethod(LinearMethodBase):
                 for idx in shard_id
             ]
             if len(set(shard_weight_types)) == 1:
-                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0])
+                out = fused_mul_mat_gguf_op(x, weight, shard_weight_types[0], packed)
                 if bias is not None:
                     out.add_(bias)
                 return out
             out = torch.cat(
                 [
-                    fused_mul_mat_gguf_op(x, w, t)
+                    fused_mul_mat_gguf_op(x, w, t, packed)
                     for w, t in _shard_runs(weight, shard_id, shard_weight_types)
                 ],
                 axis=1,
@@ -332,7 +385,7 @@ class GGUFLinearMethod(LinearMethodBase):
         else:
             weight = layer.weight
             weight_type = layer.weight_type.weight_type
-            out = fused_mul_mat_gguf_op(x, weight, weight_type)
+            out = fused_mul_mat_gguf_op(x, weight, weight_type, packed)
         if bias is not None:
             out.add_(bias)
         return out
