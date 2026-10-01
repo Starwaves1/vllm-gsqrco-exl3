@@ -90,8 +90,12 @@ CASES["lcpp_mul_mat_vec_q-9_rows"] = (
 )
 CASES["lcpp_mul_mat_q-9_rows"] = (_case("lcpp_mul_mat_q", n=9), CUDA_ONLY)
 CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), CUDA_ONLY)
-for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):  # no IQ1_M MMQ upstream
-    CASES[f"{op}-iq1_m"] = (_case(op, IQ1_M), "unsupported ggml type")
+# IQ1_M: MMVQ only (llama.cpp has no IQ1_M MMQ)
+CASES["lcpp_mul_mat_vec_q-iq1_m"] = (_case("lcpp_mul_mat_vec_q", IQ1_M), CUDA_ONLY)
+CASES["lcpp_mul_mat_q-iq1_m"] = (
+    _case("lcpp_mul_mat_q", IQ1_M, n=64),
+    "no MMQ for IQ1_M",
+)
 # the owned IQ3 kernels share check_inputs and add a type check
 for op in (
     "lcpp_mul_mat_vec_iq3",

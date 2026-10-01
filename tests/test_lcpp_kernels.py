@@ -32,6 +32,7 @@ if not torch.cuda.is_available():
     pytest.skip("needs CUDA", allow_module_level=True)
 
 LCPP_TYPES = [
+    "IQ1_M",
     "IQ2_S",
     "IQ2_XS",
     "IQ2_XXS",
@@ -42,6 +43,7 @@ LCPP_TYPES = [
     "Q4_K",
     "Q6_K",
 ]
+LCPP_MMQ_TYPES = [q for q in LCPP_TYPES if q != "IQ1_M"]  # no IQ1_M MMQ
 ROWS, BLOCKS = 512, 20
 LCPP_MMVQ_TOKENS = [1, 2, 3, 4, 5, 6, 7, 8]
 # 1..7: MMQ below upstream's J_max read tail (only the shim's zeroed tail keeps
@@ -125,7 +127,7 @@ def test_lcpp_mmvq(name, n, dtype):
 
 @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16], ids=str)
 @pytest.mark.parametrize("n", LCPP_MMQ_TOKENS)
-@pytest.mark.parametrize("name", LCPP_TYPES)
+@pytest.mark.parametrize("name", LCPP_MMQ_TYPES)
 def test_lcpp_mmq(name, n, dtype):
     C = _lcpp()
     raw, x, w, qt = _case(name, n, dtype, 400 + n)
@@ -136,7 +138,7 @@ def test_lcpp_mmq(name, n, dtype):
 
 
 @pytest.mark.parametrize("n", [5, 128])
-@pytest.mark.parametrize("name", LCPP_TYPES)
+@pytest.mark.parametrize("name", LCPP_MMQ_TYPES)
 def test_lcpp_mmq_odd_rows(name, n):
     """W rows not a multiple of 128: MMQ's fallback tiles."""
     C = _lcpp()
@@ -155,6 +157,8 @@ def test_lcpp_mmq_odd_rows(name, n):
 def test_lcpp_graph_replay(name, op_n):
     C = _lcpp()
     op, n = op_n
+    if op == "mmq" and name not in LCPP_MMQ_TYPES:
+        pytest.skip(f"no {name} MMQ")
     fn = C.lcpp_mul_mat_vec_q if op == "mmvq" else C.lcpp_mul_mat_q
     _graph_replay(name, n, fn)
 
@@ -286,6 +290,8 @@ def test_lcpp_quantize_vs_vendored(name, mmq, n, x_kind):
     quant, scale and partial sum, for MMVQ's block_q8_1 and each type's MMQ ds
     layout (D4 / DS4 / D2S6)."""
     C = _lcpp()
+    if mmq and name not in LCPP_MMQ_TYPES:
+        pytest.skip(f"no {name} MMQ")
     k = BLOCKS * 256
     dtype = getattr(torch, "bfloat16" if x_kind == "rowstride" else x_kind)
     x = make_x(n, k, dtype, seed=900 + n).cuda()
@@ -771,3 +777,28 @@ def test_lcpp_x_q8_graph_replay(op, name, n):
         return f(w, x, qt, rows, _quantize_x_q8_1(x, [qt], [17408]))
 
     _graph_replay(name, n, fn)
+
+
+# ------------------------------------------------ IQ1_M on MMVQ above 8 rows
+
+
+@pytest.mark.parametrize("n", [9, 20, 32])
+def test_lcpp_iq1_m_chunks(n):
+    """IQ1_M above 8 rows (no IQ1_M MMQ): MMVQ on 8-row chunks, reading
+    apply()'s shared q8_1 X in row slices, equals the chunks' own products,
+    with or without x_q8."""
+    from vllm_gguf_plugin.quantization.linear import (
+        _fused_mul_mat_gguf,
+        _quantize_x_q8_1,
+    )
+
+    C = _lcpp()
+    _routing()
+    _, x, w, qt = _case("IQ1_M", n, torch.bfloat16, 980 + n)
+    x = x.cuda()
+    want = torch.cat(
+        [C.lcpp_mul_mat_vec_q(w, x[i : i + 8], qt, w.shape[0]) for i in range(0, n, 8)]
+    )
+    q8 = _quantize_x_q8_1(x, [qt], [w.shape[0]])
+    assert torch.equal(_fused_mul_mat_gguf(x, w, qt), want)
+    assert torch.equal(_fused_mul_mat_gguf(x, w, qt, False, q8), want)
