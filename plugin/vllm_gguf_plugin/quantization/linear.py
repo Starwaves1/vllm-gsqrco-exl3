@@ -58,9 +58,14 @@ _X_DTYPE_OPS = ("lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_v
 _FP32_DST_BUDGET = 256 << 20
 
 
-# Diagnosis switch: VLLM_GGUF_MMA_K=0 routes the 9..32-row Q4_K / IQ4_XS / IQ2_S products to
-# vendored MMQ instead of lcpp_mul_mat_mma_k.
+# Diagnosis switches (default on), each excluding one owned path:
+#   VLLM_GGUF_MMA_K=0      9..32-row Q4_K / IQ4_XS / IQ2_S products on vendored MMQ, not mma_k
+#   VLLM_GGUF_IQ3_TILED=0  packed IQ3 above 8 rows on the packed decode kernel in 32-row calls,
+#                          not the tiled kernel
+#   VLLM_GGUF_IQ1M_MMVQ=0  IQ1_M above 8 rows on the stock dequantize + x @ W.T, not chunked MMVQ
 _MMA_K_ON = os.environ.get("VLLM_GGUF_MMA_K", "1") != "0"
+_IQ3_TILED_ON = os.environ.get("VLLM_GGUF_IQ3_TILED", "1") != "0"
+_IQ1M_MMVQ_ON = os.environ.get("VLLM_GGUF_IQ1M_MMVQ", "1") != "0"
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -82,13 +87,13 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) 
         # IQ3_S / IQ3_XXS in iq3_pack's layout (GGUFLinearMethod._pack_iq3): the owned int8
         # tensor-core kernels, the decode one up to PACKED_VEC_MAX_ROWS (cloud/results/phase3/r1),
         # the tiled one above (r2)
-        if n <= PACKED_VEC_MAX_ROWS:
+        if n <= PACKED_VEC_MAX_ROWS or not _IQ3_TILED_ON:
             return "lcpp_mul_mat_vec_iq3_mma_packed"
         return "lcpp_mul_mat_iq3_packed"
     if weight_type == WeightType.IQ1_M:
         # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then the
         # stock dequantize + x @ W.T (cloud/results/opt-p2/runs/micro-iq1m-host.txt)
-        return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS else None
+        return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS and (n <= 8 or _IQ1M_MMVQ_ON) else None
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the shim's own IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one at
         # 1..5 rows (cloud/results/phase3/item5), the int8 tensor-core one from 6
@@ -148,6 +153,13 @@ def _fused_mul_mat_gguf(
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])
+        if name == "lcpp_mul_mat_vec_iq3_mma_packed" and x.shape[0] > 32:  # VLLM_GGUF_IQ3_TILED=0
+            b = x.shape[1] // 32 * 36
+            return torch.cat([
+                op(weight, x[i : i + 32], weight_type, weight.shape[0],
+                   None if x_q8 is None else x_q8[i * b : (i + 32) * b])
+                for i in range(0, x.shape[0], 32)
+            ])
         if name == "lcpp_mul_mat_vec_q" and x.shape[0] > 8:  # IQ1_M: MMVQ takes <= 8 rows per call
             b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
             return torch.cat([

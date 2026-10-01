@@ -163,3 +163,66 @@ def test_drafter_rows_padding(gguf_reader, target, n):
 
 def test_env():
     assert os.environ.get("VLLM_GGUF_LCPP") == "1", "run with VLLM_GGUF_LCPP=1"
+
+
+# Exact row counts (no padding), the shapes a mixed or eager batch can hand the ops, for
+# compute-sanitizer memcheck runs (PYTORCH_NO_CUDA_MEMORY_CACHING=1: every tensor its own
+# allocation, so an out-of-bounds read or write of X, x_q8, scratch or the output is reported).
+EXACT_N = list(range(9, 17)) + list(range(25, 34)) + [40, 41, 47, 48]
+EXACT_TARGETS = ["draft_head", "lm_head", "nextn.eh_proj", "blk.1.ffn_down", "blk.2.ffn_gate", "blk.0.attn_qkv",
+                 "blk.1.ssm_out", "blk.0.ffn_down", "blk.0.ffn_gate", "blk.0.ffn_up", "blk.7.attn_q", "blk.13.ffn_gate"]
+
+
+@pytest.mark.parametrize("n", EXACT_N)
+@pytest.mark.parametrize("target", EXACT_TARGETS)
+def test_rows_exact(gguf_reader, target, n):
+    import torch
+
+    from vllm_gguf_plugin import ops
+    from vllm_gguf_plugin.quantization import linear
+
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    w, qt, k = _weight(gguf_reader, target)
+    packed = False
+    if qt in (int(linear.WeightType.IQ3_S), int(linear.WeightType.IQ3_XXS)) and w.shape[0] % 16 == 0:
+        from vllm_gguf_plugin.quantization import iq3_pack
+        w, packed = iq3_pack.pack(w, qt), True
+    x = _x(n, k, seed=3000 + n).cuda()
+    y = linear._fused_mul_mat_gguf(x, w, qt, None, packed)
+    torch.cuda.synchronize()
+    assert y.shape == (n, w.shape[0]) and torch.isfinite(y).all(), f"{target} n={n}"
+
+
+@pytest.mark.parametrize("n", EXACT_N)
+def test_rows_exact_mixed_qkv(gguf_reader, n):
+    """A full-attention layer's fused qkv_proj with mixed shard types (blk.3: q IQ2_XXS, k / v IQ3_S,
+    packed): apply()'s shared x_q8 quantize and the per-run ops reading it."""
+    import gguf
+    import numpy as np
+    import torch
+
+    from vllm_gguf_plugin import ops
+    from vllm_gguf_plugin.quantization import iq3_pack, linear
+
+    if not ops.LCPP_ENABLED:
+        pytest.skip("needs VLLM_GGUF_LCPP=1")
+    by = {t.name: t for t in gguf_reader.tensors}
+    runs = []
+    for s in ("attn_q", "attn_k", "attn_v"):
+        t = by[f"blk.3.{s}.weight"]
+        qt = int(gguf.GGMLQuantizationType[t.tensor_type.name])
+        w = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+        runs.append((w, qt))
+    packed = all(w.shape[0] % 16 == 0 for w, qt in runs if qt in (int(linear.WeightType.IQ3_S), int(linear.WeightType.IQ3_XXS)))
+    if packed:
+        runs = [(iq3_pack.pack(w, qt) if qt in (int(linear.WeightType.IQ3_S), int(linear.WeightType.IQ3_XXS)) else w, qt)
+                for w, qt in runs]
+    k = int(by["blk.3.attn_q.weight"].shape[0])
+    x = _x(n, k, seed=4000 + n).cuda()
+    x_q8 = linear._quantize_x_q8_1(x, [qt for _, qt in runs], [w.shape[0] for w, _ in runs], packed)
+    ys = [linear._fused_mul_mat_gguf(x, w, qt, x_q8, packed) for w, qt in runs]
+    alone = [linear._fused_mul_mat_gguf(x, w, qt, None, packed) for w, qt in runs]
+    torch.cuda.synchronize()
+    for (w, qt), y, a in zip(runs, ys, alone):
+        assert torch.isfinite(y).all() and torch.equal(y, a), f"n={n} type {qt}: shared x_q8 != own quantize"

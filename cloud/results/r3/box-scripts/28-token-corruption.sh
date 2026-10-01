@@ -7,7 +7,8 @@
 #   2. cells at c=9 and 12, T=1.0, plus a pass beside an echo/prompt_logprobs client:
 #        {graphs | --enforce-eager} x {our 9..32-row kernels | VLLM_GGUF_MMA_K=0 (vendored MMQ for the
 #        draft head and every Q4_K/IQ4_XS/IQ2_S product at 9..32 rows)} x {k=2 tier | capped at 8
-#        (max-num-seqs 8, [[1,4,5],[5,8,3]]: production's mitigation)}, plus k=3 at 9..16.
+#        (max-num-seqs 8, [[1,4,5],[5,8,3]]: production's mitigation)}, plus k=3 at 9..16, and
+#        (R3_28_ONLY) single exclusions VLLM_GGUF_IQ3_TILED=0 / VLLM_GGUF_IQ1M_MMVQ=0 / all three off.
 # Corruption flags per answer (r3tok.py): EOS inside reasoning, characters outside Latin/Greek/
 # punctuation/math/emoji, a fragment repeated 4+ times, text != decode(ids), HTTP/UTF-8 errors.
 # R3_28_ONLY="..." picks cells. Output: /workspace/logs/r3/28-token-corruption/ (summary = report so far).
@@ -32,6 +33,9 @@ cell() {  # tag graphs|eager ours|mmq k2|cap8|k3at9
   R3_MUT=()
   [ "$2" = eager ] && R3_MUT+=("flag|--enforce-eager")
   [ "$3" = mmq ] && export VLLM_GGUF_MMA_K=0
+  [ "$3" = notiled ] && export VLLM_GGUF_IQ3_TILED=0
+  [ "$3" = noiq1m ] && export VLLM_GGUF_IQ1M_MMVQ=0
+  [ "$3" = alloff ] && export VLLM_GGUF_MMA_K=0 VLLM_GGUF_IQ3_TILED=0 VLLM_GGUF_IQ1M_MMVQ=0
   [ "$4" = cap8 ] && R3_MUT+=("${CAP8[@]}")
   [ "$4" = k3at9 ] && R3_MUT+=("${K3AT9[@]}")
   r3_serve "$tag"
@@ -47,6 +51,9 @@ v_e_mmq_k2()    { cell e-mmq-k2 eager mmq k2; }
 v_g_mmq_cap8()  { cell g-mmq-cap8 graphs mmq cap8; }
 v_e_ours_cap8() { cell e-ours-cap8 eager ours cap8; }
 v_e_mmq_cap8()  { cell e-mmq-cap8 eager mmq cap8; }
+v_g_notiled_k2(){ cell g-notiled-k2 graphs notiled k2; }
+v_g_noiq1m_k2() { cell g-noiq1m-k2 graphs noiq1m k2; }
+v_g_alloff_k2() { cell g-alloff-k2 graphs alloff k2; }
 report() {
   "$PY" "$R3_S/r3tok.py" report "$L/runs" --ref none --details 40 > "$L/report.txt" 2>&1
   { cat "$L/report.txt"; for f in "${R3_FAILED[@]}"; do echo "variant $f: FAILED (see run.log)"; done; } > "$L/summary.txt"
