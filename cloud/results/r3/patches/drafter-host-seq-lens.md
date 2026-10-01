@@ -1,6 +1,6 @@
 # [Spec Decode] Follow seq_lens on the host across draft passes (one sync per step instead of one per pass)
 
-Status: PROPOSAL. Measured on the rental box only (`box-scripts/42-drafter-sync-ab.sh`). Not applied
+Status: MEASURED, NOT KEPT (no speed gain on the box; see Results). Measured on the rental box only (`box-scripts/42-drafter-sync-ab.sh`). Not applied
 to production or to any shared venv. Patch: `drafter-host-seq-lens.patch`, against vLLM main
 `d28795f1a7` plus the qwen38/main overlay `2a0fe5e1e1` (site-packages paths).
 
@@ -44,7 +44,17 @@ plan staging only because the plan buffers are pageable. The overlay makes them 
 `VLLM_FLASHINFER_UNPINNED_PLAN_BUFFERS`, see the race note at the top of `flashinfer.py`. Upstream
 should land this together with that, or with an explicit sync between plans of the same wrapper.
 
-## Results
+## Results (42-drafter-sync-ab, same box and session, production's main argv, c=2 x 96k, k=5, 90 s windows)
 
-(filled in from 42-drafter-sync-ab: ms/step at c=2 x 96k k=5 and c=8 x 20k k=3, stock vs patched,
-same box and session; greedy probe identity; acceptance)
+| | ms/step | GPU busy | GPU idle | accepted/draft |
+|---|---|---|---|---|
+| stock | 57.5 | 51.1 | 6.4 | 3.28 |
+| patched | 57.2 | 51.1 | 6.1 | 3.28 |
+
+-0.3 ms/step (0.5 %), inside run-to-run noise. The per-pass `seq_lens.cpu()` syncs are not where
+the step's idle goes on this host: they wait on GPU work that is already queued, and the host work
+after each one (plan + launch of one MTP pass) is short next to the pass. The greedy probe
+(4 concurrent requests) differed between the two servers from token 6..161. That is inconclusive,
+because T=0 under MTP is not batch-invariant across server runs (the torture harness records the
+same). Not pursued: there is no gain to justify the change. The c=8 windows failed in both variants
+(sizing bug, since fixed).
