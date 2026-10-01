@@ -7,7 +7,8 @@ exception before any launch) or mismatch (ran, silently wrong).
 
     python tests/kernel_guard_case.py CASE TYPE OP
 
-OP is the name of a _C_gguf op taking (W, X, type, row). Cases:
+OP is the name of a _C_gguf op taking (W, X, type, row) (packed ops: W is
+packed by quantization/iq3_pack.py first). Cases:
   x_noncontig     X is a transposed view (column-major)
   x_misaligned    X starts one element into its storage
   x_rowstride     X is x[:, :k] of a wider buffer (row stride > k)
@@ -36,7 +37,13 @@ from vllm_gguf_plugin import ops  # noqa: E402, F401  (loads _C_gguf)
 ROWS = 256
 # activation rows per op (4 otherwise); lcpp MMQ at 5 rows is below upstream's
 # J_max read tail, where only the shim's zeroed tail keeps the reads defined
-N = {"ggml_mul_mat_a8": 64, "lcpp_mul_mat_q": 5, "lcpp_mul_mat_mma_k": 16}
+N = {
+    "ggml_mul_mat_a8": 64,
+    "lcpp_mul_mat_q": 5,
+    "lcpp_mul_mat_mma_k": 16,
+    "lcpp_mul_mat_vec_iq3_mma_packed": 16,
+    "lcpp_mul_mat_iq3_packed": 129,
+}
 
 
 def main() -> None:
@@ -52,6 +59,10 @@ def main() -> None:
     g = torch.Generator().manual_seed(0)
     x = torch.randn(n, k, generator=g).to(torch.bfloat16).cuda()
     w = torch.from_numpy(raw).cuda()
+    if op.endswith("_packed"):
+        from vllm_gguf_plugin.quantization import iq3_pack
+
+        w = iq3_pack.pack(w, int(qt))
     row = w.shape[0]
     if case != "graph_first":
         clean = fn(w, x, int(qt), row)  # before any bad input can fault

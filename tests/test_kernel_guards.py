@@ -60,6 +60,10 @@ TYPES_OPS = [
     ("Q4_K", "lcpp_mul_mat_mma_k"),
     ("IQ4_XS", "lcpp_mul_mat_mma_k"),
     ("IQ2_S", "lcpp_mul_mat_mma_k"),
+    ("IQ3_S", "lcpp_mul_mat_vec_iq3_mma_packed"),
+    ("IQ3_XXS", "lcpp_mul_mat_vec_iq3_mma_packed"),
+    ("IQ3_S", "lcpp_mul_mat_iq3_packed"),
+    ("IQ3_XXS", "lcpp_mul_mat_iq3_packed"),
 ]
 FAULT = (
     "illegal memory access",
@@ -101,7 +105,14 @@ def test_bad_input(case, type_op):
     assert res["status"] in ("ok", "rejected"), f"silently wrong: {res}"
 
 
-@pytest.mark.parametrize("op", ["lcpp_mul_mat_vec_iq3_mma"])
+@pytest.mark.parametrize(
+    "op",
+    [
+        "lcpp_mul_mat_vec_iq3_mma",
+        "lcpp_mul_mat_vec_iq3_mma_packed",
+        "lcpp_mul_mat_iq3_packed",
+    ],
+)
 @pytest.mark.parametrize("name", ["IQ3_S", "IQ3_XXS"])
 def test_first_call_in_capture(name, op):
     """The mma ops set their launch attributes (dynamic shared memory, resident

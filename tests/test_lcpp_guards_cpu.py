@@ -22,6 +22,8 @@ OPS = [
     "lcpp_mul_mat_q",
     "lcpp_mul_mat_vec_iq3",
     "lcpp_mul_mat_vec_iq3_mma",
+    "lcpp_mul_mat_vec_iq3_mma_packed",
+    "lcpp_mul_mat_iq3_packed",
     "lcpp_mul_mat_vec_own",
     "lcpp_mul_mat_mma_k",
 ]
@@ -91,7 +93,12 @@ CASES["lcpp_mul_mat_q-1_row"] = (_case("lcpp_mul_mat_q", n=1), CUDA_ONLY)
 for op in ("lcpp_mul_mat_vec_q", "lcpp_mul_mat_q"):  # no IQ1_M MMQ upstream
     CASES[f"{op}-iq1_m"] = (_case(op, IQ1_M), "unsupported ggml type")
 # the owned IQ3 kernels share check_inputs and add a type check
-for op in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
+for op in (
+    "lcpp_mul_mat_vec_iq3",
+    "lcpp_mul_mat_vec_iq3_mma",
+    "lcpp_mul_mat_vec_iq3_mma_packed",
+    "lcpp_mul_mat_iq3_packed",
+):
     for t in (IQ3_S, IQ3_XXS):
         CASES[f"{op}-valid-{t}"] = (_case(op, t), CUDA_ONLY)
         CASES[f"{op}-row_strided-{t}"] = (
@@ -106,7 +113,15 @@ for op in ("lcpp_mul_mat_vec_iq3", "lcpp_mul_mat_vec_iq3_mma"):
     )
     CASES[f"{op}-w_misaligned"] = (_case(op, w_offset=1), "16-byte aligned")
     CASES[f"{op}-k_mismatch"] = (_case(op, k=K // 2), "columns, W rows hold")
-    CASES[f"{op}-9_rows"] = (_case(op, n=9), "at most 8 rows")
+    if op.endswith("_packed"):  # 16-row tiles; the vec kernel to 32 rows
+        CASES[f"{op}-32_rows"] = (_case(op, n=32), CUDA_ONLY)
+        CASES[f"{op}-row_not_16"] = (_case(op, row=200), "must be a multiple of 16")
+        if op == "lcpp_mul_mat_iq3_packed":
+            CASES[f"{op}-2048_rows"] = (_case(op, n=2048), CUDA_ONLY)
+        else:
+            CASES[f"{op}-33_rows"] = (_case(op, n=33), "at most 32 rows")
+    else:
+        CASES[f"{op}-9_rows"] = (_case(op, n=9), "at most 8 rows")
 # the owned Q4_K / IQ2_S kernel: the same, with its own type check
 op = "lcpp_mul_mat_vec_own"
 for t in (Q4_K, IQ2_S):
