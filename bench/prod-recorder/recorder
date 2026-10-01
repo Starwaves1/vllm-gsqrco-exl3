@@ -1,0 +1,52 @@
+#!/bin/bash
+# prod-recorder control:  ./recorder start [recorder.py options] | stop | status | report [report.py options] | test
+set -euo pipefail
+DIR=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+DATA=${RECORDER_DATA:-$DIR/data}
+PY=${PYTHON:-python3}
+PID=$DATA/recorder.pid
+mkdir -p "$DATA"
+alive() { [ -f "$PID" ] && kill -0 "$(cat "$PID")" 2>/dev/null; }
+
+case "${1:-help}" in
+start)
+    shift
+    if alive; then echo "already running (pid $(cat "$PID"))"; exit 1; fi
+    nohup "$PY" "$DIR/recorder.py" --data "$DATA" "$@" >> "$DATA/recorder.log" 2>&1 < /dev/null &
+    echo $! > "$PID"
+    sleep 2
+    if alive; then
+        echo "recording: pid $(cat "$PID"), data in $DATA"
+        tail -n 3 "$DATA/recorder.log"
+    else
+        echo "failed to start:"; tail -n 20 "$DATA/recorder.log"; rm -f "$PID"; exit 1
+    fi ;;
+stop)
+    if ! alive; then echo "not running"; rm -f "$PID"; exit 0; fi
+    kill -TERM "$(cat "$PID")"
+    for _ in $(seq 70); do alive || break; sleep 0.5; done  # recorder drains in-flight requests (<= 30 s)
+    if alive; then echo "still draining after 35 s; killing"; kill -KILL "$(cat "$PID")"; fi
+    rm -f "$PID"
+    tail -n 1 "$DATA/recorder.log" ;;
+status)
+    if alive; then echo "running: pid $(cat "$PID")"; else echo "not running"; fi
+    if [ -f "$DATA/status.json" ]; then
+        "$PY" - "$DATA/status.json" <<'PY'
+import json, sys, time
+s = json.load(open(sys.argv[1]))
+age = time.time() - s["ts"]
+print(f"status {age:.0f} s old: {s['requests']} requests, {s['generations']} generations, "
+      f"{s['recorded']} recorded, {s['flagged']} flagged {s['flags']}, record_errors {s['record_errors']}, "
+      f"in flight {s['inflight']}, label {s['label']}")
+u = s.get("upstream_info") or {}
+print(f"upstream pid {u.get('pid')}: async={u.get('async')} spec={json.dumps(u.get('spec'))}")
+PY
+    fi
+    du -sh "$DATA" | awk '{print "disk: " $1}' ;;
+report)
+    shift; exec "$PY" "$DIR/report.py" --data "$DATA" "$@" ;;
+test)
+    cd "$DIR" && exec "$PY" -m unittest discover -s tests -v ;;
+*)
+    sed -n '2p' "$0"; exit 1 ;;
+esac
