@@ -2,7 +2,8 @@
 and rows 16/17/24/32/48, the default config vs trellis-serve's knobs (set_force_cfg(thread_k,
 thread_n), set_blocks_per_sm(2)), GPU us per call in a CUDA graph (weight copies cycled past L2).
 Prints one table; names the best knob per (shape, rows) and the model-level gain if each row
-count used its best global knob.
+count used its best global knob. Measures the knobs only on a shim before 144931e: since then
+exl3_gemm_mr sets the config itself on every call (17..64 rows, n >= 2048), overriding them.
   GSQ_ALLOW_GPU=1 EXL3_MODEL=<dir> python bench/micro/exl3_mr_cfg.py
 """
 import sys

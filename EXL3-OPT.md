@@ -12,7 +12,7 @@ below exl3_gemm's in 149 (worst 2.0e-3); max_rel is at or below in 133 (worst 3.
 3e-2 x1.5 slack; run 1 failed one case at 0.0246 vs 0.0244, a bf16-rounding outlier with better
 rms). Also: routing (K2 bit-identical), repacked K4 above 384 == stored, determinism, graph
 replay, unwarmed capture refused, bf16 io == cast path bit for bit, host embedding gather ==
-F.embedding (incl. graph replay). memcheck and initcheck clean on 42 cases. Error table:
+F.embedding (incl. graph replay). memcheck and initcheck clean (42 cases collected, 2 skipped). Error table:
 `cloud/results/exl3-opt/10-mr-parity-run1/errors.txt`.
 
 **11-mr-micro** (VERIFIED): model sum of the 401 target-pass GEMMs (trellis 11.28 GB, floor
@@ -35,8 +35,10 @@ Neither kernel is near the floor: mr reaches 64 % at 6 rows and 34 % at 24-32 ro
 17 rows (23.1 to 35.4 ms) is the launcher's switch from the 16-row family to thread_m_blocks 2
 with 256-thread configs (INFERRED from `exl3_marlin.cu`'s config tables, not profiled).
 
-**12-mr-ladder** (VERIFIED, pass 2, T=0; ms/step = C x 1000 / decode tok/s x tok/step; MR=0 is
-phase 1's 06-ladder, same argv):
+**12-mr-ladder** (VERIFIED, pass 2, T=0; ms/step = C x 1000 / decode tok/s x tok/step). The MR=0
+row is phase 1's 06-ladder (same argv; its exl3_gemm path is this branch's `_C_exl3`, unchanged,
+but it was not re-run on this branch). Mode letters: a = K3/K5 from 1 row, g = glue, h = host
+embedding; all three are the defaults now (a and g as constants):
 
 | mode | c=1 | c=2 | c=4 | c=8 | acc. rate |
 |---|---|---|---|---|---|
@@ -48,9 +50,15 @@ phase 1's 06-ladder, same argv):
 | GGUF Integration-2 | 27.9 | 31.6 | 35.7 | 44.2 | |
 | prod W4A16 | 27.6 | 27.3 | 30.0 | 41.3 | |
 
-Defaults vs EXL3_MR=0: -6.7 / -4.6 / -18.5 / -20.4 ms/step. Still 5.6-21 ms/step behind
-production and GGUF. Acceptance moved within noise (the whole-run rate includes sampled
+Defaults vs EXL3_MR=0: -6.7 / -4.6 / -18.5 / -20.4 ms/step, almost all of it from the multi-row
+kernel (2a). Glue (2a -> 2ga) and the host embedding (2ga -> 2gah) move ms/step by less than the
+run-to-run spread (pass 1 vs pass 2 of one server differ by up to 0.7 ms; T=0 tok/step varies
+2.77-3.03 between modes with identical numerics): no measurable cost or gain; the host embedding
+is kept for the fit, glue because it removes launches at the same bits. Still 5.6-21 ms/step
+behind production and GGUF. Acceptance moved within noise (the whole-run rate includes sampled
 cohorts). 8k prefill unchanged (1070 vs 1078 tok/s: 2048-row chunks stay on the dequant route).
+EXL3_MR=1 was not laddered; that it is dominated by 2 is INFERRED from job 11 (24 rows: 43.7 vs
+35.4 ms per target pass).
 
 **Fit**: at 196,608 (production argv as 06): EXL3_MR=0 199,716 KV tokens, defaults without the host
 embedding 197,385-198,162 (MR scratch and warmup), with it 264,993. **200,000 (job 14, defaults):
@@ -78,8 +86,11 @@ warm compile cache.
 
 **Kept / reverted**: kept (defaults, all parity-gated by job 10 and measured by job 12): EXL3_MR=2 with the
 in-place K4 repack; K3/K5 on mr from 1 row; mr range to 384 rows (job 11); glue on single-part
-layers; host embedding. Reverted or narrowed: the allocating repack (OOM), glue on fused layers
-(inductor stride bug), EXL3_MR=1 (dominated by 2: -18 ms/step at c=4 needs K4).
+layers; host embedding; thread_k 128 x thread_n 128 at 17..64 rows for n >= 2048 (job 15).
+Reverted or narrowed: the allocating repack (OOM), glue on fused layers (inductor stride bug), the
+forced config on n = 1024 (k_proj, +30 % in job 15), the A/B knobs EXL3_MR_GLUE and EXL3_MR_MIN
+(now constants), the pinned-address embedding op (review: vLLM's AOT cache reloads graphs without
+guards, so an address baked into a graph could go stale; it now passes a registration id).
 
 **Found on the way**: an allocating K4 repack left the int16 copies live at load (23.05 GiB
 allocated, OOM in the lm_head warmup): the repack is now in place. vLLM's torch.compile cache key
@@ -130,10 +141,9 @@ alone therefore reaches 40 % of the bytes, and EXL3_MR=2 reaches 99 %.
 | variable | default | what |
 |---|---|---|
 | `EXL3_MR` | 2 | 0: phase 1's routing; 1: K3/K5 (mul1) on exl3_gemm_mr; 2: and K4 (lm_head, MTP included), repacked in place at load |
-| `EXL3_MR_MIN` | 1 | first row count K3/K5 take exl3_gemm_mr at (K4 under 2: always from 1) |
-| (constant) `MULTI_ROW_MAX` | 384 | last row count on exl3_gemm_mr; above, the dequant routes (K2 keeps exllamav3's 144) |
-| `EXL3_MR_GLUE` | 1 | with 2: bf16 straight through exl3_gemm_mr on single-part layers (same bits) |
-| `EXL3_EMBED_HOST` | 1 | bf16 token embedding in pinned host memory, gathered per step by a UVA kernel |
+| (constant) `MULTI_ROW_MIN`, `MULTI_ROW_MAX` | 1, 384 | rows on exl3_gemm_mr; above 384 the dequant routes (K2 keeps exllamav3's 144); a repacked lm_head (n > 32768) stays on mr at any row count (no 2.5 GB unpack copy) |
+| (constant) glue | on with 2 | bf16 straight through exl3_gemm_mr on single-part layers (same bits) |
+| `EXL3_EMBED_HOST` | 1 | bf16 token embedding page-locked in host memory (exactly 2.37 GiB, `cudaHostRegister`; the MTP draft's own copy is not: vLLM swaps in the target's), gathered per step by a UVA kernel |
 
 With bf16 out the kernel writes bf16, widened to fp32 for `out_fp32`, so the result is one
 rounding of the fp32 epilogue, as with exl3_gemm. The capture guard is keyed per (k, n, K, rows)
@@ -177,7 +187,7 @@ min per mode, 14 about 10 min.
 
 | # | lever | expected | evidence / measure |
 |---|---|---|---|
-| 1 | mr launch config at 17-48 rows (the verify rows at c=4/8/16): the target pass costs 23.3 ms at 16 rows and 35.3 at 17 (thread_m_blocks 2, 256-thread configs); a per-row-count config pick, or splitting 17-32-row calls into two 16-row launches | up to -10 ms/step at c=4/8 | job 15 (CFG_NOTE), then 12 at c=4/8 |
+| 1 | mr at 17-48 rows (the verify rows at c=4/8/16): the target pass costs 21.2 ms at 16 rows and 31.6-34.3 at 17 under every launch config job 15 tried (the forced 128x128 kept here buys 4-6 %), so the jump is the 32-row tile itself; an owned 17-32-row path (two 16-row m-tiles sharing one weight read) | up to -10 ms/step at c=4/8 | 11/15 at 24/32 rows, then 12 |
 | 2 | host idle in the MTP loop: 10.7-12.6 ms/step of GPU idle, 6.2 ms not under any op (Python between graph replays), index / pin_memory / pre-graph bytecode 1.8 ms | -3 to -6 ms/step at every c; shared with every vLLM model, check prod's own idle first | 13 (gaps.py) on prod W4A16 for comparison |
 | 3 | fused-layer glue: one input Hadamard and one GEMM launch per fused layer for equal-K parts (`exl3_linear_marlin_multi_out`), bf16 written into the fused output's column spans (`had_out_into`): removes the 320 fp32 widen copies and ~140 Hadamard launches | -1.5 to -2 ms/step | 13 (cast/copy, had mr-in) |
 | 4 | the remaining mr floor gap at 1-16 rows (64 % of floor at 6 rows) and K4/K5 shapes at 13-17 % (k_proj 5120x1024) | -2 to -4 ms/step at c=1/2 | 11 per shape |
@@ -192,5 +202,6 @@ min per mode, 14 about 10 min.
 - lm_head at n=248320 on the Marlin kernel: upstream keeps n > 65536 on exllamav3 by default (for
   transients, not correctness). Job 10 covers it (decode exact, error inside exl3_gemm's).
 - Repacked K4 above 384 rows pays one unpack copy per call (about 1 % of a 2048-row chunk).
-- The host embedding puts 2.4 GB in pinned host memory per server (and briefly the MTP draft's
-  own copy at load).
+- The host embedding page-locks 2.37 GiB of host memory per server for the process's life.
+- `set_force_cfg` is a process-wide knob the shim sets on every call: fine with vLLM's single
+  model thread, not with two threads in one process.

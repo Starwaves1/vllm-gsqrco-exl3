@@ -35,17 +35,17 @@ import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS
   [[ $got == "$WT/plugin-exl3/vllm_exl3_plugin/__init__.py True True" ]] || die "plugin not from $WT or not built: $got"
 }
 # serve_mr <mode> <run dir> [extra vLLM args]: scripts/serve-exl3.sh (production's argv) in the
-# background with EXL3_MR=<mode's digit>; suffix g: EXL3_MR_GLUE=1, a: EXL3_MR_MIN=1 (K3/K5 on
-# exl3_gemm_mr at every row count), h: EXL3_EMBED_HOST=1 (token embedding in pinned host memory),
-# e.g. 2gah; wait for health; load summary in <run dir>/load.txt
+# background with EXL3_MR=<mode's digit> and, for an h suffix (2h), EXL3_EMBED_HOST=1 (token
+# embedding in host memory); wait for health; load summary in <run dir>/load.txt. (The g/a
+# suffixes of the 2026-10-01 runs, glue and K3/K5 from 1 row, are now the code's constants.)
 serve_mr() {
-  local mode=$1 mr=${1:0:1} glue=0 mrmin=17 host=0 out=$2 t0; shift 2; mkdir -p "$out"
-  [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1; [[ $mode == *h* ]] && host=1
-  export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin EXL3_EMBED_HOST=$host
+  local mode=$1 mr=${1:0:1} host=0 out=$2 t0; shift 2; mkdir -p "$out"
+  [[ $mode == *h* ]] && host=1
+  export EXL3_MR=$mr EXL3_EMBED_HOST=$host
   # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
   # apply()/embedding() or its parameter layouts (EXL3_MR=2 stores K4 as int32 4-D), so a graph
   # traced under one variant must never be loaded by another (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-g$glue-h$host
+  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-h$host
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)
@@ -53,7 +53,7 @@ serve_mr() {
   SPID=$!
   trap stopall EXIT
   gsq_wait_health 2400 "$SPID" || { echo SERVER_FAILED; tail -80 "$out/server.log"; return 1; }
-  { echo "EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin EXL3_EMBED_HOST=$host healthy after $(( $(date +%s) - t0 )) s"
+  { echo "EXL3_MR=$mr EXL3_EMBED_HOST=$host healthy after $(( $(date +%s) - t0 )) s"
     grep -E "Loading weights took|Model loading took|model weights|GPU KV cache size|Maximum concurrency|CUDA graph|init engine|exl3|EXL3" "$out/server.log" | cut -c1-260 | head -30
     echo "VRAM after load: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"; } | tee "$out/load.txt"
 }

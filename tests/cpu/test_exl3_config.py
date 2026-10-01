@@ -122,7 +122,7 @@ def _layer(cls):
     ("ParallelLMHead", "mtp.draft_lm_head", None),
     # token embedding: in pinned host memory by default (EXL3_EMBED_HOST, quantization/embedding.py)
     ("VocabParallelEmbedding", "language_model.model.embed_tokens", "EXL3HostEmbeddingMethod"),
-    ("VocabParallelEmbedding", "mtp.embed_tokens", "EXL3HostEmbeddingMethod"),
+    ("VocabParallelEmbedding", "mtp.embed_tokens", None),  # the draft's copy: replaced by the target's
 ])
 def test_quant_method_per_layer(cls, prefix, want):
     import vllm.model_executor.layers.linear as L

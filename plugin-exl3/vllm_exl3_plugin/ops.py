@@ -3,7 +3,7 @@
 
 `exl3_linear(x, trellis, suh, svh, mcg, mul1, out_fp32)` is x @ W for one EXL3 tensor W,
 x [n, k] fp16 (the kernels' activation dtype; the linear method casts once per layer), result
-fp32 or fp16; or x bf16 and the result bf16 (EXL3_MR_GLUE: exl3_gemm_mr converts inside its
+fp32 or fp16; or x bf16 and the result bf16 (ops.MR_GLUE: exl3_gemm_mr converts inside its
 launches, the other routes cast). It is registered as the vLLM custom op
 `torch.ops.vllm._exl3_linear` (with a fake impl), so torch.compile sees one opaque node per
 EXL3 tensor and the row-count choice below is made per call, not when the graph is traced.
@@ -13,7 +13,7 @@ Routing (`_exl3_op`, pinned by tests/cpu/test_exl3_routing.py), n = activation r
 | n            | op                   | what                                                    |
 |--------------|----------------------|---------------------------------------------------------|
 | 1..144       | exl3_gemm            | vendored kernel (GEMV where its heuristic picks it)     |
-| 17..144      | MULTI_ROW_OP if set  | multi-row kernel for the tensors it takes; else exl3_gemm |
+| 1..384       | MULTI_ROW_OP if set  | multi-row kernel for the tensors it takes (EXL3_MR, default on): before the rows above and below |
 | 145..1023    | recon_hgemm          | Hadamard x, rotated dequant, hgemm, Hadamard y          |
 | >= 1024      | recon_had_hgemm      | original-basis dequant (Hadamards folded in), hgemm     |
 
@@ -23,7 +23,7 @@ _C_exl3_mr), switched by EXL3_MR (read once at import; default 2; 0 = the phase-
 | EXL3_MR | tensors on exl3_gemm_mr | rows | layout |
 |---------|--------------------------|------|--------|
 | 0       | none                     |      |        |
-| 1       | K3, K5 (mul1)            | EXL3_MR_MIN (default 1)..384 | the stored int16 trellis, read as int32 (no copy) |
+| 1       | K3, K5 (mul1)            | 1..384 | the stored int16 trellis, read as int32 (no copy) |
 | 2       | 1, plus K4 (mul1)        | K4: 1..384 | exl3_mr_repack at load: lossless word permutation, the only resident copy; unpacked per call above 384 rows |
 
 K2, K6 and other codebooks stay on exl3_gemm. A repacked (int32) trellis is routed by its
@@ -69,17 +69,17 @@ MR_MODE = int(os.environ.get("EXL3_MR", "2"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
-# EXL3_MR_GLUE (default 1, with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16
-# back on single-part layers (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and
-# the fp32 round trip out. Same bits; job 12: -0.6/-0.5/-0.8/-0.45 ms/step at c=1/2/4/8.
-MR_GLUE = MR_MODE == 2 and os.environ.get("EXL3_MR_GLUE", "1") == "1"
+# glue (with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16 back on single-part
+# layers (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and the fp32 round trip
+# out. Same bits, fewer launches; job 12: no change beyond run-to-run spread (within 0.8 ms/step).
+MR_GLUE = MR_MODE == 2
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
-# EXL3_MR_MIN: the first row count K3/K5 take exl3_gemm_mr at; default 1 (job 12: from 17 rows
-# instead costs +3.4 ms/step at c=1, +1.5 at c=2; job 11: mr beats exl3_gemm at 1..16 rows too)
+# MULTI_ROW_MIN: K3/K5 take exl3_gemm_mr from 1 row (job 12: from 17 rows instead costs +3.3
+# ms/step at c=1, +1.5 at c=2; job 11: mr beats exl3_gemm at 1..16 rows too)
 # MULTI_ROW_MAX: past exllamav3's 144 the multi-row kernel still beats the dequant route; job 11
 # (3090, erlidev, model sum over every eligible tensor): 192 rows 170 vs 280 ms, 256: 221 vs 299,
 # 384: 326 vs 354, 512: 435 vs 424. So to 384 (K2, the one class it cannot take, keeps 144).
-MULTI_ROW_MIN, MULTI_ROW_MAX = int(os.environ.get("EXL3_MR_MIN", "1")), 384
+MULTI_ROW_MIN, MULTI_ROW_MAX = 1, 384
 MR_TILE_WIDTHS = (48, 80)  # K3, K5: exl3_gemm_mr reads the stored trellis
 MR_REPACK_TILE_WIDTH = 64  # K4: exl3_mr_repack first (EXL3_MR=2)
 
@@ -159,6 +159,8 @@ def exl3_linear(
 ) -> torch.Tensor:
     repacked = trellis.dtype == torch.int32
     name = _exl3_op(x.shape[0], not repacked and mr_takes(trellis.shape[2], mul1), repacked)
+    if repacked and out_features(trellis) > RECON_SLICE_N:
+        name = MR_OP  # the lm_head: no 2.5 GB unpack copy per call above 384 rows (prompt_logprobs)
     bf16 = x.dtype == torch.bfloat16  # bf16 in, bf16 out; only exl3_gemm_mr takes it directly
     if name == RECON_HGEMM or name == RECON_HAD_HGEMM:
         if repacked:  # the dequant reads exllamav3's layout: one transient copy per call
@@ -183,18 +185,19 @@ def exl3_linear_fake(
     return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
-# EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in pinned host memory (quantization/
-# embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12: +0.08/+0.07/
-# +0.09/-0.23 ms/step at c=1/2/4/8; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at 196,608).
+# EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in page-locked host memory
+# (quantization/embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12:
+# no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
+# 196,608; 200,000 fits, job 14).
 EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "1") == "1"
 
 
-def exl3_embed_host(ids: torch.Tensor, table_ptr: int, rows: int, cols: int) -> torch.Tensor:
+def exl3_embed_host(ids: torch.Tensor, table_id: int, cols: int) -> torch.Tensor:
     flat = ids.reshape(-1).contiguous()
-    return torch.ops._C_exl3.exl3_embed_host(flat, table_ptr, rows, cols).view(*ids.shape, cols)
+    return torch.ops._C_exl3.exl3_embed_host(flat, table_id, cols).view(*ids.shape, cols)
 
 
-def exl3_embed_host_fake(ids: torch.Tensor, table_ptr: int, rows: int, cols: int) -> torch.Tensor:
+def exl3_embed_host_fake(ids: torch.Tensor, table_id: int, cols: int) -> torch.Tensor:
     return ids.new_empty(*ids.shape, cols, dtype=torch.bfloat16)
 
 

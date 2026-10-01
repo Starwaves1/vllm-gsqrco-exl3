@@ -1,6 +1,6 @@
 #!/bin/bash
 # EXL3 opt, job 14 (~15 min): phase 1's 07-fit at production's 200,000 tokens with a mode
-# (default 2gah: EXL3_MR=2, glue, K3/K5 at all rows, token embedding in pinned host memory):
+# (default 2h: EXL3_MR=2 and the token embedding in host memory, the plugin's defaults):
 # tests/gpu/test_fit_200k.py against that server: KV capacity >= 1.0x at 200,000 from the log,
 # then a real ~195k-token request completes. Records KV tokens and VRAM.
 #   run-job.sh 14-fit [mode]
@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 14-fit
 require_idle_gpu
 require_mr_build
-mode=${MODES_ARGS[0]:-2gah}
+mode=${MODES_ARGS[0]:-2h}
 O=$R/14-fit-$mode; rm -rf "$O"; mkdir -p "$O"
 serve_mr "$mode" "$O" || die "server did not come up at 200k with mode $mode (see $O/server.log)"
 rc=0

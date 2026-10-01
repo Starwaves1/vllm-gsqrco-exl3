@@ -43,7 +43,7 @@ def test_defaults():
     """Without the environment: EXL3_MR=2, K3/K5 from 1 row, glue and host embedding on."""
     from vllm_exl3_plugin import ops
 
-    assert os.environ.get("EXL3_MR") is None and os.environ.get("EXL3_MR_MIN") is None
+    assert os.environ.get("EXL3_MR") is None
     assert ops.MR_MODE == 2 and ops.MULTI_ROW_OP == ops.MR_OP and ops.MULTI_ROW_MIN == 1
     assert ops.MR_GLUE and ops.EMBED_HOST
 
@@ -72,7 +72,7 @@ def test_routing_table(mr_mode, mode, bits):
 
 
 def test_default_min_row(mr_mode):
-    """EXL3_MR_MIN default 1: stored K3/K5 on exl3_gemm_mr at every row count to 384."""
+    """MULTI_ROW_MIN default 1: stored K3/K5 on exl3_gemm_mr at every row count to 384."""
     ops = mr_mode(2, mr_min=1)
     assert [ops._exl3_op(n, True, False) for n in (1, 6, 16, 17, 384, 385)] == [MR] * 5 + [RECON]
     assert [ops._exl3_op(n, False, False) for n in (1, 16, 144, 145)] == [GEMM, GEMM, GEMM, RECON]
@@ -215,7 +215,7 @@ def test_linear_dispatch_repacked(mr_mode, fake, rows, want):
     (3, 385, [("dequant", False)]),
 ])
 def test_linear_bf16_contract(mr_mode, fake, bits, rows, want):
-    """bf16 x (EXL3_MR_GLUE): bf16 out on every route; only exl3_gemm_mr sees bf16 x."""
+    """bf16 x (the glue, ops.MR_GLUE): bf16 out on every route; only exl3_gemm_mr sees bf16 x."""
     ops = mr_mode(2)
     seen = []
     orig = fake.exl3_gemm
@@ -271,6 +271,7 @@ def test_embed_host_method(monkeypatch, on):
     head = ParallelLMHead.__new__(ParallelLMHead)
     m = cfg.get_quant_method(emb, "model.language_model.embed_tokens")
     assert isinstance(m, EXL3HostEmbeddingMethod) if on else m is None
+    assert cfg.get_quant_method(emb, "mtp.embed_tokens") is None  # vLLM swaps in the target's module
     assert not isinstance(cfg.get_quant_method(head, "mtp.draft_lm_head"), EXL3HostEmbeddingMethod)
     assert not isinstance(cfg.get_quant_method(head, "lm_head"), EXL3HostEmbeddingMethod)
 
@@ -285,6 +286,19 @@ def test_embed_host_cpu_weight_stays():
     m.process_weights_after_loading(layer)
     ids = torch.tensor([3, 0, 15])
     assert m.table is None and torch.equal(m.embedding(layer, ids), layer.weight[ids])
+
+
+def test_wide_repacked_stays_on_mr(mr_mode, monkeypatch):
+    """A repacked lm_head (n > 32768) runs exl3_gemm_mr at any row count: no unpack copy."""
+    ops = mr_mode(2)
+    shim = FakeShim(32768 + 256)
+    for name in ("exl3_gemm", "exl3_gemm_mr", "exl3_mr_unpack", "exl3_dequant", "exl3_hgemm", "exl3_had_r_128"):
+        monkeypatch.setattr(torch.ops._C_exl3, name, getattr(shim, name), raising=False)
+    b = torch.zeros(8, shim.n_out // 64, 32, 4, dtype=torch.int32)
+    s = torch.zeros(128, dtype=torch.half)
+    ops.exl3_linear(torch.zeros(1024, 128, dtype=torch.half), b, s, torch.zeros(shim.n_out, dtype=torch.half),
+                    False, True, True)
+    assert shim.calls == [("mr", 1024, torch.int32)]
 
 
 def test_fake_impl_repacked():
@@ -352,7 +366,8 @@ def test_mr_prepare_needs_library(mr_mode, method, monkeypatch):
 # ---------------------------------------------------------------------------
 # The shim: registration, guards, repack (needs _C_exl3_mr)
 
-OPS = ("exl3_gemm_mr", "exl3_mr_repack", "exl3_mr_unpack", "exl3_mr_warmup", "exl3_embed_host")
+OPS = ("exl3_gemm_mr", "exl3_mr_repack", "exl3_mr_unpack", "exl3_mr_warmup", "exl3_embed_host",
+       "exl3_embed_host_register")
 K_IN, N_OUT = 5120, 1024
 
 _CHILD = r"""
@@ -392,7 +407,9 @@ for name, c in cases.items():
         elif c["op"] == "exl3_mr_unpack":
             ops.exl3_mr_unpack(t(a["trellis"]))
         elif c["op"] == "exl3_embed_host":
-            ops.exl3_embed_host(t(a["ids"]), a["ptr"], a["rows"], a["cols"])
+            ops.exl3_embed_host(t(a["ids"]), a["id"], a["cols"])
+        elif c["op"] == "exl3_embed_host_register":
+            ops.exl3_embed_host_register(t(a["table"]))
         res[name] = "no error"
     except RuntimeError as e:
         res[name] = str(e).splitlines()[0][:300]
@@ -479,21 +496,18 @@ CASES = {
     "repack-noncontig": (dict(op="exl3_mr_repack", args=dict(trellis=tr(width=64, t=True))), "must be contiguous"),
     "repack-n-not-128": (dict(op="exl3_mr_repack", args=dict(trellis=tr(n=64, width=64))), "multiples of 128"),
     "unpack-valid": (dict(op="exl3_mr_unpack", args=dict(trellis=rp())), "no error"),
-    "embed-valid": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4096, rows=248320, cols=5120)),
+    "embed-valid": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), id=0, cols=5120)),
                     "ids must be a CUDA tensor"),
-    "embed-ids-int32": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int32"), ptr=4096, rows=8, cols=64)),
+    "embed-ids-int32": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int32"), id=0, cols=64)),
                         "ids must be contiguous 1-D int64"),
-    "embed-ids-2d": (dict(op="exl3_embed_host", args=dict(ids=T(2, 3, dtype="int64"), ptr=4096, rows=8, cols=64)),
+    "embed-ids-2d": (dict(op="exl3_embed_host", args=dict(ids=T(2, 3, dtype="int64"), id=0, cols=64)),
                      "ids must be contiguous 1-D int64"),
-    "embed-null": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=0, rows=8, cols=64)),
-                   "16-byte aligned bf16"),
-    "embed-misaligned": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4100, rows=8, cols=64)),
-                         "16-byte aligned bf16"),
-    "embed-cols": (dict(op="exl3_embed_host", args=dict(ids=T(6, dtype="int64"), ptr=4096, rows=8, cols=60)),
-                   "16-byte aligned bf16"),
-    "unpack-int16": (dict(op="exl3_mr_unpack", args=dict(trellis=tr(width=64))), "b must be exl3_mr_repack's"),
-    "unpack-bad-inner": (dict(op="exl3_mr_unpack", args=dict(trellis=T(320, 16, 4, 32, dtype="int32"))),
-                         "b must be exl3_mr_repack's"),
+    "register-fp16": (dict(op="exl3_embed_host_register", args=dict(table=T(16, 64))),
+                      "contiguous 2-D bf16 CPU tensor"),
+    "register-1d": (dict(op="exl3_embed_host_register", args=dict(table=T(64, dtype="bfloat16"))),
+                    "contiguous 2-D bf16 CPU tensor"),
+    "register-cols": (dict(op="exl3_embed_host_register", args=dict(table=T(16, 60, dtype="bfloat16"))),
+                      "multiple of 16 bytes"),
 }
 
 

@@ -161,7 +161,7 @@ def main():
         torch.cuda.empty_cache()
     (out / "shapes.tsv").write_text("\n".join(lines) + "\n")
 
-    def route(K, m, mode):  # mode 0, 1, 2 or "2a" (EXL3_MR=2 with EXL3_MR_MIN=1)
+    def route(K, m, mode):  # mode 0, 1, 2 (K3/K5 from 17 rows) or "2a" (from 1 row, now the default)
         if m > ops.GEMM_MAX_ROWS:
             return "dequant"
         if mode in (2, "2a") and K == 4:

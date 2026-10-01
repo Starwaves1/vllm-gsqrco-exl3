@@ -24,7 +24,8 @@ class EXL3Config(QuantizationConfig):
     Methods by layer: linears and the lm_head get EXL3LinearMethod, except the modules the
     checkpoint stores unquantized (weights_adapter.qwen3_5.is_unquantized_module: GDN
     in_proj_ba, the vision tower, the pruned MTP draft head), which get vLLM's unquantized
-    methods; the input embedding stays bf16 (unquantized, on the GPU)."""
+    methods; the input embedding stays bf16, in page-locked host memory (EXL3_EMBED_HOST, default
+    on; the MTP draft's own copy stays plain: vLLM replaces it with the target's)."""
 
     def __init__(self, quant: EXL3QuantConfig) -> None:
         super().__init__()
@@ -67,7 +68,7 @@ class EXL3Config(QuantizationConfig):
             if is_unquantized_module(prefix):
                 return None  # vLLM's UnquantizedEmbeddingMethod
             return EXL3LinearMethod(self)
-        if ops.EMBED_HOST and isinstance(layer, VocabParallelEmbedding):
+        if ops.EMBED_HOST and isinstance(layer, VocabParallelEmbedding) and "mtp" not in prefix.split("."):
             from .embedding import EXL3HostEmbeddingMethod
 
             return EXL3HostEmbeddingMethod()  # bf16, in pinned host memory

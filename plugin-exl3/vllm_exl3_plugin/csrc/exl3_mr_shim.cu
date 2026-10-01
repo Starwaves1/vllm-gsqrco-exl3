@@ -30,12 +30,14 @@
 //       call per row count, which loads every kernel instance those rows select. Must run
 //       outside CUDA graph capture; throws if the stream is capturing.
 //
-//   exl3_embed_host(ids, table_ptr, rows, cols) -> bf16 [n, cols] on ids' device: rows of a bf16
-//       table [rows, cols] in pinned host memory at table_ptr (a host address; the caller keeps the
-//       pinned tensor alive), gathered by a kernel reading it over PCIe (UVA: pinned host memory
-//       is device-addressable), so the 2.4 GB token embedding needs no VRAM. The address is an int
-//       so no CPU tensor enters the compiled graph. Out-of-range ids give zero rows. No host
-//       work: graph-capturable.
+//   exl3_embed_host_register(table) -> id: page-locks a bf16 CPU table [rows, cols] in place
+//       (cudaHostRegister, mapped: exactly its size, where torch's pinned allocator rounds 2.37 GiB
+//       up to 4 GiB) and keeps it for the life of the process. Ids count from 0 in registration
+//       order, so the same model loads to the same id in every process: a compiled graph (vLLM's
+//       AOT cache reloads them without guards) holds the id, never an address.
+//   exl3_embed_host(ids, table_id, cols) -> bf16 [n, cols] on ids' device: rows of a registered
+//       table, gathered by a kernel reading it over PCIe (UVA), so the token embedding needs no
+//       VRAM. Out-of-range ids give zero rows. No host work: graph-capturable.
 //
 // Capture safety: exl3_gemm_mr refuses to run while the current stream is capturing unless
 // exl3_mr_warmup ran that (device, k, n, K, rows) first. Keyed per row count, not per bucket:
@@ -57,6 +59,7 @@
 #include <mutex>
 #include <set>
 #include <tuple>
+#include <vector>
 
 // Defined in the vendored trellis_serve/exl3_marlin.cu (no header declares them).
 void exl3_linear_marlin_out(const at::Tensor& x, const at::Tensor& b, const at::Tensor& suh, const at::Tensor& svh,
@@ -149,21 +152,41 @@ __global__ void embed_host_kernel(const int64_t* __restrict__ ids, const uint4* 
   for (int64_t j = threadIdx.x; j < d16; j += blockDim.x) dst[j] = src[j];
 }
 
-at::Tensor exl3_embed_host_op(const at::Tensor& ids, int64_t table_ptr, int64_t rows, int64_t cols) {
+std::mutex g_tables_mutex;
+std::vector<at::Tensor> g_tables;  // registered (page-locked) host tables, never released
+
+int64_t exl3_embed_host_register_op(const at::Tensor& table) {
+  const char* op = "exl3_embed_host_register";
+  TORCH_CHECK(table.device().is_cpu() && table.dim() == 2 && table.scalar_type() == at::kBFloat16 &&
+                  table.is_contiguous(),
+              op, ": table must be a contiguous 2-D bf16 CPU tensor");
+  TORCH_CHECK(table.size(1) % 8 == 0 && aligned16(table) && table.numel() > 0, op,
+              ": table rows must be a nonzero multiple of 16 bytes, 16-byte aligned");
+  C10_CUDA_CHECK(cudaHostRegister(table.data_ptr(), table.nbytes(), cudaHostRegisterMapped | cudaHostRegisterPortable));
+  std::lock_guard<std::mutex> lock(g_tables_mutex);
+  g_tables.push_back(table);
+  return (int64_t)g_tables.size() - 1;
+}
+
+at::Tensor exl3_embed_host_op(const at::Tensor& ids, int64_t table_id, int64_t cols) {
   const char* op = "exl3_embed_host";
   TORCH_CHECK(ids.scalar_type() == at::kLong && ids.dim() == 1 && ids.is_contiguous(), op,
               ": ids must be contiguous 1-D int64");
-  TORCH_CHECK(table_ptr != 0 && table_ptr % 16 == 0 && rows > 0 && cols > 0 && cols % 8 == 0, op,
-              ": table must be a 16-byte aligned bf16 [rows, cols] with cols a multiple of 8");
   TORCH_CHECK(ids.is_cuda(), op, ": ids must be a CUDA tensor");
+  at::Tensor table;
+  {
+    std::lock_guard<std::mutex> lock(g_tables_mutex);
+    TORCH_CHECK(table_id >= 0 && table_id < (int64_t)g_tables.size(), op, ": table ", table_id, " is not registered");
+    table = g_tables[table_id];
+  }
+  TORCH_CHECK(table.size(1) == cols, op, ": table ", table_id, " has ", table.size(1), " columns, not ", cols);
   const c10::cuda::CUDAGuard guard(ids.device());
   at::Tensor out = at::empty({ids.size(0), cols}, ids.options().dtype(at::kBFloat16));
   if (ids.size(0) == 0) return out;
-  void* dev_table = nullptr;  // fails unless table_ptr is pinned (page-locked) host memory
-  C10_CUDA_CHECK(cudaHostGetDevicePointer(&dev_table, reinterpret_cast<void*>(table_ptr), 0));
-  const int64_t d16 = cols / 8;
+  void* dev_table = nullptr;
+  C10_CUDA_CHECK(cudaHostGetDevicePointer(&dev_table, table.data_ptr(), 0));
   embed_host_kernel<<<(unsigned)ids.size(0), 128, 0, at::cuda::getCurrentCUDAStream().stream()>>>(
-      ids.data_ptr<int64_t>(), (const uint4*)dev_table, (uint4*)out.data_ptr(), rows, d16);
+      ids.data_ptr<int64_t>(), (const uint4*)dev_table, (uint4*)out.data_ptr(), table.size(0), cols / 8);
   C10_CUDA_KERNEL_LAUNCH_CHECK();
   return out;
 }
@@ -205,7 +228,9 @@ at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at
   // job 15 (3090, the model's shapes): at 17..64 rows (thread_m_blocks 2..4, one launch) thread_k
   // 128 x thread_n 128 beats the launcher's default pick by 4-6 % (target pass at 24 rows 33.2 ->
   // 31.7 ms, 48 rows 46.4 -> 44.2); the vendored launcher keeps its default where it is invalid
-  const bool wide = m > 16 && m <= 64;
+  // (not for narrow outputs: k_proj, n = 1024, keeps the launcher's narrow pick, job 15 +30 %).
+  // A process-wide knob, set on every call: one model thread per process, as vLLM runs it
+  const bool wide = m > 16 && m <= 64 && w.n >= 2048;
   set_force_cfg(wide ? 128 : 0, wide ? 128 : 0);
   at::Tensor xh = at::empty({m, w.k}, x.options().dtype(at::kHalf));
   at::Tensor y = at::empty({m, w.n}, x.options().dtype(bf16_io || out_fp32 ? at::kBFloat16 : at::kHalf));
@@ -273,7 +298,8 @@ TORCH_LIBRARY_FRAGMENT(_C_exl3, m) {
   m.def("exl3_mr_repack(Tensor trellis) -> Tensor");
   m.def("exl3_mr_unpack(Tensor b) -> Tensor");
   m.def("exl3_mr_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, bool out_fp32) -> ()");
-  m.def("exl3_embed_host(Tensor ids, int table_ptr, int rows, int cols) -> Tensor");
+  m.def("exl3_embed_host_register(Tensor table) -> int");
+  m.def("exl3_embed_host(Tensor ids, int table_id, int cols) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
@@ -287,6 +313,7 @@ TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
 // CPU: exl3_gemm_mr and exl3_mr_warmup run their guards and stop at "must be CUDA tensors";
 // repack and unpack are plain tensor ops and run.
 TORCH_LIBRARY_IMPL(_C_exl3, CPU, m) {
+  m.impl("exl3_embed_host_register", &exl3_embed_host_register_op);
   m.impl("exl3_embed_host", &exl3_embed_host_op);
   m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
   m.impl("exl3_mr_repack", &exl3_mr_repack_op);

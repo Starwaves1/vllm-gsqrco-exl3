@@ -16,7 +16,7 @@ K3, K4, K5 and the K4 lm_head for erlidev's).
   routing     exl3_linear with EXL3_MR 1 / 2 (monkeypatched): K2 stays on exl3_gemm, bit for
               bit; a repacked K4 above 144 rows (unpack + dequant) equals the stored one.
   determinism two calls give identical bits.
-  bf16 io     bf16 x in, bf16 out (EXL3_MR_GLUE) == fp16 x, fp32 out, .to(bf16), bit for bit.
+  bf16 io     bf16 x in, bf16 out (the glue, ops.MR_GLUE) == fp16 x, fp32 out, .to(bf16), bit for bit.
   graphs      after exl3_mr_warmup: captured exl3_gemm_mr replays == eager on new inputs; in a
               fresh process, a capture before warmup is refused without a device fault.
 
@@ -136,7 +136,7 @@ def test_gemm_vs_fp64(ops, tid, m, out_fp32):
 @pytest.mark.parametrize("m", [1, 8, 17, 48, 144])
 @pytest.mark.parametrize("tid", MR_TIDS)
 def test_bf16_io_same_bits(ops, tid, m):
-    """EXL3_MR_GLUE: bf16 x straight into exl3_gemm_mr == x.half() + fp32 out + .to(bf16), bit for bit."""
+    """Glue (ops.MR_GLUE): bf16 x straight into exl3_gemm_mr == x.half() + fp32 out + .to(bf16), bit for bit."""
     import torch
 
     if m < 17 and BITS[tid] != 4:
@@ -168,7 +168,7 @@ def test_routing_mr1(ops, monkeypatch, tid, m):
 
     monkeypatch.setattr(ops, "MR_MODE", 1)
     monkeypatch.setattr(ops, "MULTI_ROW_OP", ops.MR_OP)
-    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)  # the 16/17 boundary (default EXL3_MR_MIN is 1)
+    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)  # the 16/17 boundary (the default is 1)
     w = weights(tid)
     x = C.make_x(torch, tid, m)
     args = (w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
@@ -228,33 +228,33 @@ def test_graph_replay(ops, tid, m):
 
 @pytest.mark.parametrize("rows", [1, 6, 48, 2048])
 def test_embed_host_gather(ops, rows):
-    """exl3_embed_host on a pinned table == F.embedding on the GPU copy, bit for bit; out-of-range
-    ids give zero rows; a captured gather replays with new ids."""
+    """exl3_embed_host on a registered (page-locked) table == F.embedding on the GPU copy, bit for
+    bit; out-of-range ids give zero rows; a captured gather replays with new ids."""
     import torch
 
     from vllm_exl3_plugin.quantization.embedding import EXL3HostEmbeddingMethod
 
     torch.manual_seed(rows)
     g = torch.Generator().manual_seed(rows)
+    v = 16384  # registered tables live for the process: a small one per case
     layer = torch.nn.Module()
-    layer.weight = torch.nn.Parameter(torch.randn(248320, 5120, device="cuda", dtype=torch.bfloat16),
-                                      requires_grad=False)
+    layer.weight = torch.nn.Parameter(torch.randn(v, 5120, device="cuda", dtype=torch.bfloat16), requires_grad=False)
     ref_w = layer.weight.data.clone()
     m = EXL3HostEmbeddingMethod()
     alloc0 = torch.cuda.memory_allocated()  # freed blocks go to torch's cache, not the driver
     m.process_weights_after_loading(layer)
-    assert m.host.is_pinned() and layer.weight.shape == (0, 5120)
-    assert alloc0 - torch.cuda.memory_allocated() >= 2 * 2**30, "GPU copy not freed"
-    ids = torch.randint(0, 248320, (rows,), generator=g).cuda()
+    assert m.table is not None and layer.weight.shape == (0, 5120)
+    assert alloc0 - torch.cuda.memory_allocated() >= ref_w.nbytes, "GPU copy not freed"
+    ids = torch.randint(0, v, (rows,), generator=g).cuda()
     assert torch.equal(m.embedding(layer, ids), torch.nn.functional.embedding(ids, ref_w))
-    bad = torch.tensor([-1, 248320, 7], device="cuda")
+    bad = torch.tensor([-1, v, 7], device="cuda")
     out = m.embedding(layer, bad)
     assert torch.equal(out[:2], torch.zeros_like(out[:2])) and torch.equal(out[2], ref_w[7])
     static = ids.clone()
     gr = torch.cuda.CUDAGraph()
     with torch.cuda.graph(gr):
         y = m.embedding(layer, static)
-    new = torch.randint(0, 248320, (rows,), generator=g).cuda()
+    new = torch.randint(0, v, (rows,), generator=g).cuda()
     static.copy_(new)
     gr.replay()
     torch.cuda.synchronize()
