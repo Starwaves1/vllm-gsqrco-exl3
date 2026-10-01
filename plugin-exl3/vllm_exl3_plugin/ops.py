@@ -162,7 +162,8 @@ def exl3_linear(
 ) -> torch.Tensor:
     if x.shape[0] > WIDE_CHUNK_ROWS and out_features(trellis) > RECON_SLICE_N:
         # the lm_head on many rows (prompt_logprobs: whole prompt chunks): row chunks written into one
-        # output, so the scratch (dequant slices, fp32 products, casts) is bounded by one chunk
+        # output, so the scratch (dequant slices, fp32 products, casts) is bounded by one chunk; a repacked
+        # lm_head stays on exl3_gemm_mr (256 <= MULTI_ROW_MAX rows): no 0.6 GiB unpack copy
         dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
         out = torch.empty(x.shape[0], out_features(trellis), dtype=dtype, device=x.device)
         for r in range(0, x.shape[0], WIDE_CHUNK_ROWS):
@@ -170,9 +171,6 @@ def exl3_linear(
         return out
     repacked = trellis.dtype == torch.int32
     name = _exl3_op(x.shape[0], not repacked and mr_takes(trellis.shape[2], mul1), repacked)
-    if repacked and out_features(trellis) > RECON_SLICE_N:
-        name = MR_OP  # the lm_head above 384 rows (prompt_logprobs only): no 0.6 GiB unpack copy outside
-        # vLLM's profiled budget; speed unmeasured there (job 11: mr ~ dequant at 512 rows)
     bf16 = x.dtype == torch.bfloat16  # bf16 in, bf16 out; only exl3_gemm_mr takes it directly
     if name == RECON_HGEMM or name == RECON_HAD_HGEMM:
         if repacked:  # the dequant reads exllamav3's layout: one transient copy per call

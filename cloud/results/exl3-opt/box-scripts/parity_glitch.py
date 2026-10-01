@@ -1,7 +1,9 @@
-"""Per-sequence KLD of a 05 compare JSON with the reference's own glitches excluded: a position with
-KLD > 0.1 where the exllamav3 reference gives the actual next token < 1 % (job 05, bf16 KV: exllamav3
-predicted ' super' after 'hidden_states = hidden'). Prints mean, the excluded count and mean without
-them per sequence, then the overall mean.
+"""Candidate reference errors in a 05 compare JSON, for manual inspection: positions with KLD > 0.1
+where the exllamav3 reference gives the actual next token < 1 % (job 05, bf16 KV: exllamav3 predicted
+' super' after 'hidden_states = hidden'). It cannot tell those from plugin errors at positions the
+reference finds surprising (it never sees the plugin's distribution): a candidate is a reference error
+only after looking at the reference's top predictions there. Prints per sequence the mean, the
+candidate count and the mean without them, then the overall mean.
   python parity_glitch.py PARITY_JSON EXL3_DUMP_DIR PROMPT_DIR"""
 import json
 import sys

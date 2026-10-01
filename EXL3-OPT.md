@@ -119,8 +119,8 @@ doubles from 64 to 128. With fp32 accumulation an m16n8k16 HMMA costs about 32 t
 sub-partition on GA102, so the 16-row kernel is issue-bound (~5k cycles vs 4k tensor) and the
 32-row kernel tensor-bound (8k vs ~6k): MMA work alone at 32 rows is 1.65 TFLOP per pass, 21.8 ms at
 the 75 TFLOPS fp32-accumulate peak (INFERRED from counts and peak rates; Nsight Compute has no
-counter access in the container, job 16: ERR_NVGPUCTRPERM; job 17's timing probes split the kernel
-phases when it runs). fp16 accumulation halves the tensor time and leaves the 32-row kernel
+counter access in the container: ERR_NVGPUCTRPERM, so that job was deleted; job 17's timing probes
+split the kernel phases). fp16 accumulation halves the tensor time and leaves the 32-row kernel
 issue-bound: the owned patch `exl3_marlin_h16.patch` (fp16 partials folded into fp32 per k-stage,
 on a generated copy of the vendored template) measured 29.7 / 30.5 / 31.2 ms at 17 / 24 / 32 rows
 against 31.6 / 31.7 / 32.3 (fp32, forced 128x128), parity 294/294; on all m-blocks it spills at 48+
@@ -131,7 +131,9 @@ from 16 to 17 rows, K4 6144x5120 30.3 -> 39.7; reduce + write cost 3-11 us, setu
 micro (job 11, target pass ms at 6 / 12 / 16 / 17 / 24 / 32 / 48 rows): main 18.8 / 23.1 / 23.3 /
 34.1 / 34.6 / 34.9 / 48.3; h16b 18.7 / 23.0 / 23.2 / 29.4 / 30.1 / 30.9 / 48.1 (-4.0 to -4.6 ms per
 verify pass at 17-32 rows, parity 294/294); upstream's `TRELLIS_K3_IMAD_SHIFTS` 3 / 6 (K3 shifts on
-the FMA pipe) 0.6-1.8 ms worse everywhere (mul1 decode is IMAD-heavy already), rejected. h16b's
+the FMA pipe) 0.6-2.5 ms worse everywhere (mul1 decode is IMAD-heavy already), rejected. Evidence:
+`cloud/results/exl3-opt/cliff/` (ptxas registers and spills, SASS instruction counts, h16 on all
+m-blocks), `17-mr-probe/`, `11-mr-micro-phase3/`, `15-mr-cfg/`. h16b's
 ladder is queued. The rest of the cliff is the decode's instruction count at 8 warps per SM: an
 owned kernel (cheaper decode or more warps) is the remaining lever, a multi-day item.
 
@@ -157,19 +159,21 @@ echo + logprobs on a 6- and a 40-token prompt 200 without NaN (the GGUF route's 
 `prompt_logprobs` at 512 / 2048 / 4096 tokens 200, no NaN / None, healthy after; echo + logprobs at
 4096 still dies in `compute_logprobs` (256 MiB): vLLM materializes the whole chunk's logits (2048 x
 248320 bf16, ~1 GiB, the plugin's output) before its chunked log-softmax, outside the profiled
-budget; the remaining fix is vLLM-side (logits per row chunk in the prompt-logprobs path).
+budget; the remaining fix is vLLM-side (logits per row chunk in the prompt-logprobs path). The failing
+frames: `cloud/results/exl3-opt/18-logprobs/oom-frames.txt`.
 
 **GSQ side**: main 32ae6ec, IQ3 repack GPU tests after 62f27c0 (`-k "pack or packed"`,
 `VLLM_GGUF_LCPP=1`): 1462 passed, 0 skipped (`/workspace/logs/gsq-pack-32ae6ec-lcpp/test.log`).
 
-**Logit parity vs exllamav3** (VERIFIED, job 05 on the defaults, vLLM without MTP; reference: phase
-1's 04, all 11 sequences 1k-120k ok; exllamav3's own fp16- vs fp32-accumulate spread KLD 7.3e-5,
+**Logit parity vs exllamav3** (VERIFIED, job 05 on the defaults, vLLM without MTP; compare.py's
+verdict on the raw numbers: **fail** at both KV dtypes, KLD mean 0.0034 (bf16 KV) / 0.0094 (fp8) vs
+its 0.001 gate, top-1 0.9927 / 0.9914; reference: phase 1's 04, all 11 sequences 1k-120k ok; exllamav3's own fp16- vs fp32-accumulate spread KLD 7.3e-5,
 top-1 0.9997; `cloud/results/exl3-opt/05-parity/`). Per sequence, KLD mean (top-1):
 
 | seq | kind | tokens | bf16 KV | fp8 KV |
 |---|---|---|---|---|
-| 000 | chat | 1024 | 0.0127 (0.988); 0.0031 without 2 ref glitches | 0.0527 (0.969); 0.0158 without 6 |
-| 001 | chat | 2048 | 0.0224 (0.979); 0.0017 without 2 | 0.0470 (0.979); 0.0058 without 5 |
+| 000 | chat | 1024 | 0.0127 (0.988); 0.0031 without positions 807, 997 | 0.0527 (0.969) |
+| 001 | chat | 2048 | 0.0224 (0.979); 0.0017 without positions 1744, 1823 | 0.0470 (0.979) |
 | 002 | code | 1536 | 0.00023 (0.997) | 0.00117 (0.997) |
 | 003 | code | 4096 | 0.00068 (1.000) | 0.00131 (1.000) |
 | 004 | code | 8192 | 0.00020 (0.986) | 0.00062 (0.993) |
@@ -179,15 +183,20 @@ top-1 0.9997; `cloud/results/exl3-opt/05-parity/`). Per sequence, KLD mean (top-
 | 008 | mixed | 65536 | 0.00019 (0.993) | 0.00056 (0.990) |
 | 009 | code | 102400 | 0.00019 (0.997) | 0.00092 (0.993) |
 | 010 | mixed | 120000 | 0.00071 (0.993) | 0.00128 (1.000) |
-| all | | | 0.0034; 0.00067 without ref glitches | 0.0094; 0.0025 without |
+| all | | | 0.0034; 0.00067 without the 4 positions | 0.0094 |
 
-The chat sequences' outliers are the reference's: at seq_001 position 1744 (`hidden_states =
-hidden` -> `_states`) exllamav3 gives the actual token ~0 and predicts ` super` (0.51) / `调用`
-(0.21); at 1823 `<|im_end|>` 0.87 (`parity_glitch.py` excludes positions with KLD > 0.1 where the
-reference gives the actual token < 1 %). Long prompts are not worse than short ones (102k 1.9e-4,
-120k 7.1e-4 at bf16 KV, inside the 1.7e-4-6.8e-4 of the 1.5k-65k sequences): no case for an fp32
-prefill path from these data. fp8 KV costs 2-5x KLD everywhere (as on the GGUF route), most on the
-two short chat sequences (1.6e-2 and 5.8e-3 without glitches): flagged, not investigated.
+The 4 bf16-KV positions dropped above are the reference's errors by inspection of its own
+distribution: seq_001 1744 (`hidden_states = hidden` -> `_states`): exllamav3 gives `_states` ~0,
+predicts ` super` 0.51 / `调用` 0.21; 1823: `<|im_end|>` 0.87 mid-signature; seq_000 997 (`clear_t`
+-> `orch`): `target` 0.54; 807 (`INITCHECK = "` -> `init`): ` pytest` 0.35. `parity_glitch.py` only
+lists candidates (KLD > 0.1, reference p(actual) < 1 %) for that inspection; it cannot tell a
+reference error from a plugin error at a position the reference finds surprising (it lists 11 at
+fp8 KV against the same reference, so 7 of those are the plugin's), and the vLLM dumps were deleted
+after scoring (rerun 05 with KEEP=1 to check the plugin's p(actual) there). So no fp8 exclusion is
+claimed. Even without the 4 positions the chat sequences stay 3-10x worse than code/prose at bf16 KV
+(3.1e-3 / 1.7e-3 vs <= 7e-4): flagged, not explained. Long prompts are not worse than short ones (102k
+1.9e-4, 120k 7.1e-4 at bf16 KV, inside the 1.7e-4-6.8e-4 of the 1.5k-65k code/mixed sequences): no
+case for an fp32 prefill path from these data. fp8 KV costs 2-5x KLD on every sequence.
 
 ## What is here
 

@@ -23,7 +23,10 @@ for mr in "${modes[@]}"; do
     rc=1
   fi
   stopall
-  grep -i -E "out of memory|OutOfMemory|nan" "$D/server.log" | head -5 | tee "$D/oom.txt"
+  # where it failed: the OOM line and the frames from vLLM/the plugin above it (job 18's attribution)
+  { grep -i -E "out of memory|OutOfMemory|nan" "$D/server.log" | head -5
+    awk "/Traceback/{f=1} f" "$D/server.log" | grep -E "File \"" | grep -E "vllm/(v1|model_executor)|vllm_exl3_plugin" | head -12
+  } | tee "$D/oom.txt"
   gzip -kf "$D/server.log"
   keep "$D" "18-logprobs/mr$mr" "$D/check.txt" "$D/oom.txt" "$D/load.txt" "$D/server.log.gz"
 done

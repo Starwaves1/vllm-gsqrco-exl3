@@ -6,6 +6,7 @@ Checks HTTP 200, the number of prompt positions with a logprob, NaN / inf / None
   python bench/exl3_logprobs_check.py URL MODEL TOKENIZER_DIR N_TOKENS"""
 import json
 import math
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -19,7 +20,7 @@ import vllm  # noqa: E402
 src = "".join(p.read_text() for p in sorted(Path(vllm.__file__).parent.glob("v1/core/*.py")))
 ids = tok(src)["input_ids"][:n_tok]
 prompt = tok.decode(ids)
-key = {"Authorization": "Bearer " + __import__("os").environ.get("GSQ_API_KEY", "gsq-local-test"),
+key = {"Authorization": "Bearer " + os.environ.get("GSQ_API_KEY", "gsq-local-test"),
        "Content-Type": "application/json"}
 
 
