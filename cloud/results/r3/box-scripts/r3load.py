@@ -73,6 +73,28 @@ def prompt_ids(name: str, kind: str, n: int) -> list[int]:
     return ids
 
 
+def prompt_text(name: str, n: int) -> str:
+    """A ~n-token code text (the "code" kind's ids decoded), for chat messages."""
+    global _tok
+    ids = prompt_ids(name, "code", n)
+    if _tok is None:
+        import prompts
+        from tokenizers import Tokenizer
+        _tok = Tokenizer.from_file(str(prompts.HF_CONFIG / "tokenizer.json"))
+    return _tok.decode(ids)
+
+
+# Tool definitions as bench/torture/load.py sends them (an agent's read_file / run_shell).
+TOOLS = [{"type": "function", "function": {
+    "name": "read_file", "description": "Read a file from the repository",
+    "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "start_line": {"type": "integer"}},
+                   "required": ["path"]}}},
+         {"type": "function", "function": {
+             "name": "run_shell", "description": "Run a shell command in the repository and return its output",
+             "parameters": {"type": "object", "properties": {"command": {"type": "string"}, "timeout_s": {"type": "integer"}},
+                            "required": ["command"]}}}]
+
+
 # ---------------------------------------------------------------- HTTP
 class Server:
     def __init__(self, url: str):
@@ -112,6 +134,89 @@ def completion_body(ids, max_tokens, temperature, seed, stream=True):
     if temperature != "default":
         b["temperature"] = float(temperature)
     return b
+
+
+class ChatStream(threading.Thread):
+    """Streaming chat completions (reasoning on by the template default), optionally with tools,
+    for `turns` turns: each turn appends the assistant's text and a short user follow-up, so every
+    turn after the first is a prefix-cache hit plus a few hundred new tokens."""
+
+    def __init__(self, srv, text, max_tokens, temperature, seed, label, tools, turns, ignore_eos):
+        super().__init__(daemon=True)
+        self.srv, self.label, self.turns = srv, label, turns
+        self.msgs = [{"role": "user", "content": "Review this code. Explain what it does, then list concrete bugs "
+                      "and fixes, using the tools to inspect files where useful.\n\n" + text}]
+        self.base = {"model": MODEL, "max_tokens": max_tokens, "stream": True, "seed": seed,
+                     "stream_options": {"include_usage": True}, "ignore_eos": ignore_eos}
+        if temperature != "default":
+            self.base["temperature"] = float(temperature)
+        if tools:
+            self.base.update(tools=TOOLS, tool_choice="auto")
+        self.ids = text  # len() for the summary: characters, not tokens
+        self.t_send = self.t_first = self.t_end = None
+        self.chunks, self.turn_times, self.error = 0, [], None
+        self._stop = threading.Event()
+        self._conn = None
+
+    def run(self):
+        try:
+            for t in range(self.turns):
+                if self._stop.is_set():
+                    break
+                self._conn = c = self.srv.conn(timeout=7200)
+                ts = time.time()
+                if self.t_send is None:
+                    self.t_send = ts
+                c.request("POST", "/v1/chat/completions", body=json.dumps({**self.base, "messages": self.msgs}),
+                          headers=self.srv.hdr)
+                r = c.getresponse()
+                if r.status != 200:
+                    self.error = f"HTTP {r.status} {r.read()[:300]!r}"
+                    return
+                content = []
+                while not self._stop.is_set():
+                    line = r.readline()
+                    if not line:
+                        break
+                    if not line.startswith(b"data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == b"[DONE]":
+                        break
+                    obj = json.loads(data)
+                    ch = obj.get("choices") or []
+                    if ch and ch[0].get("delta"):
+                        d = ch[0]["delta"]
+                        if self.t_first is None:
+                            self.t_first = time.time()
+                        self.chunks += 1
+                        if d.get("content"):
+                            content.append(d["content"])
+                c.close()
+                self.turn_times.append(time.time() - ts)
+                self.msgs += [{"role": "assistant", "content": "".join(content) or "(tool call)"},
+                              {"role": "user", "content": "Continue: go deeper on the next part of the file."}]
+            self.t_end = time.time()
+        except Exception as e:  # noqa: BLE001
+            if not self._stop.is_set():
+                self.error = repr(e)
+        finally:
+            if self.t_end is None and not self._stop.is_set():
+                self.t_end = time.time()
+
+    def stop(self):
+        self._stop.set()
+        try:
+            if self._conn is not None and self._conn.sock is not None:
+                self._conn.sock.shutdown(2)
+        except OSError:
+            pass
+
+
+def proc_cpu_ticks(pid: int) -> int:
+    """utime + stime of a process and all its threads (clock ticks)."""
+    f = open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()
+    return int(f[11]) + int(f[12])
 
 
 class Stream(threading.Thread):
@@ -272,6 +377,14 @@ def window_stats(samples, gpu, t0, t1, n_expected, k_expected=None, n_decoders=N
         dt = y["t"] - x["t"]
         if dd > 0:
             per_sec.append(1000.0 * nd * dt / dd)
+    # production-profile "clean" seconds: running == n at both ends, no prompt tokens counted,
+    # drafts advanced (turn boundaries / prefills excluded)
+    clean = []
+    for x, y in zip(w, w[1:]):
+        dd = y.get("vllm:spec_decode_num_drafts_total", 0) - x.get("vllm:spec_decode_num_drafts_total", 0)
+        dp = y.get("vllm:prompt_tokens_total", 0) - x.get("vllm:prompt_tokens_total", 0)
+        if dd > 0 and dp == 0 and x.get("vllm:num_requests_running") == y.get("vllm:num_requests_running") == n_expected:
+            clean.append((x["t"], y["t"], dd))
     iters = d.get("vllm:iteration_tokens_total_count", 0.0)
     g = [r for r in gpu if t0 <= r["t"] <= t1]
     util = statistics.mean(r["util"] for r in g) / 100.0 if g else float("nan")
@@ -302,6 +415,13 @@ def window_stats(samples, gpu, t0, t1, n_expected, k_expected=None, n_decoders=N
         "kv_usage_mean": statistics.mean(s.get("vllm:kv_cache_usage_perc", 0) for s in w),
         "offload_bytes_in_window": {k2: v for k2, v in d.items() if "kv_offload" in k2},
     }
+    if clean:
+        cs = sum(b_ - a_ for a_, b_, _ in clean)
+        cms = 1000.0 * nd * cs / sum(dd for _, _, dd in clean)
+        cg = [r for r in g if any(a_ <= r["t"] <= b_ for a_, b_, _ in clean)]
+        cu = statistics.mean(r["util"] for r in cg) / 100.0 if cg else float("nan")
+        st.update({"clean_seconds": cs, "clean_ms_per_step": cms, "clean_gpu_util": cu,
+                   "clean_gpu_idle_ms": (1.0 - cu) * cms})
     problems = []
     if st["running_min"] != n_expected or st["running_max"] != n_expected:
         problems.append(f"running gauge {st['running_min']}-{st['running_max']} != {n_expected}")
@@ -321,7 +441,11 @@ def fmt_stats(tag: str, st: dict) -> str:
             f"steps/s {f(st['steps_per_s'], 2)}  util {f(100 * st['gpu_util'], 0)}%  busy {f(st['gpu_busy_ms'])} idle {f(st['gpu_idle_ms'])} ms  "
             f"k {f(st['k_mean'], 2)} acc/draft {f(st['accepted_per_draft'], 2)} tok/step/seq {f(st['tok_per_step_per_seq'], 2)}  "
             f"gen {f(st['gen_tok_s'])} tok/s  SM {f(st['gpu_sm_mhz_med'], 0)} MHz {f(st['gpu_power_med'], 0)} W  "
-            f"kv {f(st['kv_usage_mean'], 2)}  problems: {'; '.join(st['problems']) or 'none'}")
+            f"kv {f(st['kv_usage_mean'], 2)}"
+            + (f"  | clean {st['clean_seconds']:.0f}s: ms/step {st['clean_ms_per_step']:.1f} idle {st['clean_gpu_idle_ms']:.1f}"
+               if st.get("clean_seconds") else "")
+            + "".join(f"  | {k} CPU {v:.0f}%" for k, v in (st.get("proc_cpu_pct") or {}).items())
+            + f"  problems: {'; '.join(st['problems']) or 'none'}")
 
 
 # ---------------------------------------------------------------- subcommands
@@ -407,17 +531,31 @@ def cmd_steady(a):
     samp = Sampler(srv, out, a.tag)
     samp.start()
     t_send = time.time()
-    streams = start_streams(srv, specs, a.max_tokens, a.temperature, prefix)
+    if a.chat:
+        streams = [ChatStream(srv, prompt_text(f"{a.pname or a.tag}-txt{i}", a.tokens), a.max_tokens, a.temperature,
+                              1000 + i, f"chat{i}", a.tools, a.turns, not a.natural) for i in range(a.conc)]
+        for s_ in streams:
+            s_.start()
+    else:
+        streams = start_streams(srv, specs, a.max_tokens, a.temperature, prefix)
     t_dec = wait_first_tokens(streams, a.prefill_timeout)
     print(f"steady {a.tag}: all {a.conc} streams decoding {t_dec - t_send:.0f} s after send", flush=True)
     t0 = t_dec + a.settle
     t1 = t0 + a.window
+    pids = {k: int(v) for k, v in (x.split(":") for x in os.environ.get("R3_PIDS", "").split(",") if x)}
+    c0 = {}
+    while time.time() < t0:
+        time.sleep(0.2)
+    for k, p in pids.items():
+        c0[k] = (proc_cpu_ticks(p), time.time())
     while time.time() < t1 + 1.5:
         if any(s.error for s in streams):
             die(f"stream error during window: {[s.error for s in streams if s.error][0]}")
         if any(s.t_end for s in streams):
-            die("a stream finished inside the window (raise --max-tokens)")
+            die("a stream finished inside the window (raise --max-tokens / --turns)")
         time.sleep(0.5)
+    cpu = {k: 100.0 * (proc_cpu_ticks(p) - c0[k][0]) / os.sysconf("SC_CLK_TCK") / (time.time() - c0[k][1])
+           for k, p in pids.items()}
     hook = None
     if a.hook:
         th0 = time.time()
@@ -429,6 +567,9 @@ def cmd_steady(a):
         s.stop()
     samp.stop()
     st = window_stats(samp.samples, samp.gpu_rows(), t0, t1, a.conc, a.k)
+    st["proc_cpu_pct"] = cpu
+    if a.chat:
+        st["turn_seconds"] = [s.turn_times for s in streams]
     st.update({"tag": a.tag, "prompt_tokens_each": [len(s.ids) for s in streams], "prefill_seconds": t_dec - t_send,
                "window_t0": t0, "window_t1": t1, "hook": hook, "temperature": a.temperature,
                "max_tokens": a.max_tokens, "stream_chunks": [s.chunks for s in streams]})
@@ -561,6 +702,10 @@ def main():
     sp["steady"].add_argument("--pname", default="", help="prompt name prefix (default: --tag); same name = same prompts")
     sp["steady"].add_argument("--prefix", default="", help="NAME:KIND:TOKENS put in front of stream 0")
     sp["steady"].add_argument("--allow-problems", action="store_true")
+    sp["steady"].add_argument("--chat", action="store_true", help="streaming chat completions (parsers on)")
+    sp["steady"].add_argument("--tools", action="store_true", help="with --chat: tools in the request")
+    sp["steady"].add_argument("--turns", type=int, default=1, help="with --chat: turns per stream")
+    sp["steady"].add_argument("--natural", action="store_true", help="with --chat: no ignore_eos")
     sp["mixed"].add_argument("--decoders", type=int, default=3)
     sp["mixed"].add_argument("--dec-tokens", type=int, default=40000)
     sp["mixed"].add_argument("--lane", default="600,1400,turn,4000")
