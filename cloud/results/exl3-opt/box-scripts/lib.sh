@@ -17,6 +17,8 @@ export WT=${WT:-/workspace/wt-exl3-opt} EXL3_OPT_TAG=${EXL3_OPT_TAG:-}
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=$WT
 source "$WT/cloud/results/exl3/box-scripts/lib.sh"
 S=$WT/cloud/results/exl3-opt/box-scripts
+# EXL3_OPT_VENV: another vLLM venv (e.g. /workspace/venv-r3-plp, GSQ round 3's prompt-logprobs patch)
+export GSQ_VENV=${EXL3_OPT_VENV:-$GSQ_VENV}
 export R=/workspace/runs/exl3-opt$EXL3_OPT_TAG$ALT L=/workspace/logs/exl3-opt$EXL3_OPT_TAG$ALT
 export RES=$WT/cloud/results/exl3-opt$EXL3_OPT_TAG$ALT
 export GSQ_RUNS=$R GSQ_KV_TIER_ROOT=/workspace/kvtier-exl3-opt

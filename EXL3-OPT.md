@@ -141,9 +141,32 @@ fp8 Marlin (0.21 instead of 0.42 GB per draft step); logits rel. rms 2.7 % vs th
 **GSQ side**: main 32ae6ec, IQ3 repack GPU tests after 62f27c0 (`-k "pack or packed"`,
 `VLLM_GGUF_LCPP=1`): 1462 passed, 0 skipped (`/workspace/logs/gsq-pack-32ae6ec-lcpp/test.log`).
 
-**exllamav3 reference** (phase 1's 04, all 11 sequences, 1k-120k tokens, ok): its own spread (fp16-
-vs fp32-accumulate reconstruct GEMM) KLD mean 7.3e-5, top-1 0.9997, long (>=32k) KLD 4.4e-5, top-1
-1.0: the scale for 05's vLLM-vs-exllamav3 numbers (running).
+**Logit parity vs exllamav3** (VERIFIED, job 05 on the defaults, vLLM without MTP; reference: phase
+1's 04, all 11 sequences 1k-120k ok; exllamav3's own fp16- vs fp32-accumulate spread KLD 7.3e-5,
+top-1 0.9997; `cloud/results/exl3-opt/05-parity/`). Per sequence, KLD mean (top-1):
+
+| seq | kind | tokens | bf16 KV | fp8 KV |
+|---|---|---|---|---|
+| 000 | chat | 1024 | 0.0127 (0.988); 0.0031 without 2 ref glitches | 0.0527 (0.969); 0.0158 without 6 |
+| 001 | chat | 2048 | 0.0224 (0.979); 0.0017 without 2 | 0.0470 (0.979); 0.0058 without 5 |
+| 002 | code | 1536 | 0.00023 (0.997) | 0.00117 (0.997) |
+| 003 | code | 4096 | 0.00068 (1.000) | 0.00131 (1.000) |
+| 004 | code | 8192 | 0.00020 (0.986) | 0.00062 (0.993) |
+| 005 | prose | 8192 | 0.00032 (0.997) | 0.00089 (0.990) |
+| 006 | code | 32768 | 0.00017 (0.993) | 0.00063 (0.993) |
+| 007 | mixed | 32768 | 0.00025 (0.997) | 0.00068 (1.000) |
+| 008 | mixed | 65536 | 0.00019 (0.993) | 0.00056 (0.990) |
+| 009 | code | 102400 | 0.00019 (0.997) | 0.00092 (0.993) |
+| 010 | mixed | 120000 | 0.00071 (0.993) | 0.00128 (1.000) |
+| all | | | 0.0034; 0.00067 without ref glitches | 0.0094; 0.0025 without |
+
+The chat sequences' outliers are the reference's: at seq_001 position 1744 (`hidden_states =
+hidden` -> `_states`) exllamav3 gives the actual token ~0 and predicts ` super` (0.51) / `调用`
+(0.21); at 1823 `<|im_end|>` 0.87 (`parity_glitch.py` excludes positions with KLD > 0.1 where the
+reference gives the actual token < 1 %). Long prompts are not worse than short ones (102k 1.9e-4,
+120k 7.1e-4 at bf16 KV, inside the 1.7e-4-6.8e-4 of the 1.5k-65k sequences): no case for an fp32
+prefill path from these data. fp8 KV costs 2-5x KLD everywhere (as on the GGUF route), most on the
+two short chat sequences (1.6e-2 and 5.8e-3 without glitches): flagged, not investigated.
 
 ## What is here
 
