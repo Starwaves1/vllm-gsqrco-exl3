@@ -34,15 +34,21 @@ from .utils import (
 )
 
 _IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
+# Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
+_OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
 
 
-def _lcpp_op(n: int, weight_type: int) -> str:
+def _lcpp_op(n: int, weight_type: int, rows: int) -> str:
     """The lcpp op (VLLM_GGUF_LCPP=1) for n activation rows times a weight of
-    weight_type."""
+    weight_type with rows rows."""
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the owned IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one
         # at 1..5 rows, the int8 tensor-core one from 6
         return "lcpp_mul_mat_vec_iq3_mma" if n >= 6 else "lcpp_mul_mat_vec_iq3"
+    if _OWN_MIN_ROWS.get(weight_type, 9) <= n <= 8 and rows > 2048:
+        # Q4_K / IQ2_S: the owned kernel where it beats MMVQ and MMQ; its
+        # 16-row CTAs underfill the GPU at <= 2048 rows
+        return "lcpp_mul_mat_vec_own"
     # MMQ is faster than MMVQ from 8 rows
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
@@ -59,7 +65,7 @@ def _fused_mul_mat_gguf(
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
-        name = _lcpp_op(x.shape[0], weight_type)
+        name = _lcpp_op(x.shape[0], weight_type, weight.shape[0])
         op = getattr(torch.ops._C_gguf, name)
         return op(weight, x, weight_type, weight.shape[0])
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
