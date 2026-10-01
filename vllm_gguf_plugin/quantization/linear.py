@@ -37,6 +37,8 @@ from .utils import (
 _IQ3_TYPES = (WeightType.IQ3_S, WeightType.IQ3_XXS)
 # Fewest activation rows at which lcpp_mul_mat_vec_own is routed (up to 8).
 _OWN_MIN_ROWS = {WeightType.Q4_K: 3, WeightType.IQ2_S: 1}
+# Most activation rows at which IQ1_M runs on MMVQ (8 rows per call above 8).
+_IQ1_M_MAX_ROWS = 32
 _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
 # Packed IQ3: lcpp_mul_mat_vec_iq3_mma_packed up to this many rows,
 # lcpp_mul_mat_iq3_packed above.
@@ -56,9 +58,11 @@ def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
     return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 
 
-def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) -> str:
+def _lcpp_op(
+    n: int, weight_type: int, rows: int, k: int, packed: bool = False
+) -> str | None:
     """The lcpp op (VLLM_GGUF_LCPP=1) for n activation rows times a weight of
-    weight_type with rows rows and k columns.
+    weight_type with rows rows and k columns, or None where there is none.
     packed: the layer's IQ3 runs are in iq3_pack's layout."""
     if packed and weight_type in _IQ3_TYPES:
         # the owned int8 tensor-core kernels on the packed layout: the decode
@@ -66,6 +70,10 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) 
         if n <= PACKED_VEC_MAX_ROWS:
             return "lcpp_mul_mat_vec_iq3_mma_packed"
         return "lcpp_mul_mat_iq3_packed"
+    if weight_type == WeightType.IQ1_M:
+        # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then
+        # the stock dequantize + x @ W.T
+        return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS else None
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the owned IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one
         # at 1..5 rows, the int8 tensor-core one from 6
@@ -98,11 +106,29 @@ def _fused_mul_mat_gguf(
         return torch.empty(x.shape[0], weight.shape[0], dtype=x.dtype, device=x.device)
     if weight_type in UNQUANTIZED_TYPES:
         return x @ weight.T
+    name = None
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
         name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
+    if name is not None:
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])
+        if name == "lcpp_mul_mat_vec_q" and x.shape[0] > 8:
+            # IQ1_M: MMVQ takes at most 8 rows per call. x_q8 holds 36 bytes
+            # (one block_q8_1) per 32 values of a row.
+            b = x.shape[1] // 32 * 36
+            return torch.cat(
+                [
+                    op(
+                        weight,
+                        x[i : i + 8],
+                        weight_type,
+                        weight.shape[0],
+                        None if x_q8 is None else x_q8[i * b : (i + 8) * b],
+                    )
+                    for i in range(0, x.shape[0], 8)
+                ]
+            )
         return op(weight, x, weight_type, weight.shape[0], x_q8)
     if x.shape[0] <= mmvq_safe and weight_type in MMVQ_QUANT_TYPES:
         y = ops.ggml_mul_mat_vec_a8(weight, x, weight_type, weight.shape[0])
@@ -165,7 +191,7 @@ def _quantize_x_q8_1(
         t
         for t, rows in zip(weight_types, weight_rows)
         if t in ops.LCPP_QUANT_TYPES
-        and _lcpp_op(n, t, rows, k, packed) not in _OWN_QUANTIZE_OPS
+        and _lcpp_op(n, t, rows, k, packed) not in (None, *_OWN_QUANTIZE_OPS)
     ]
     if n and q8_1:
         return torch.ops._C_gguf.lcpp_quantize_q8_1(x, q8_1[0], False, False)

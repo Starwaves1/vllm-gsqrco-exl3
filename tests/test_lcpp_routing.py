@@ -67,6 +67,12 @@ CASES = [
         for t in (T.Q2_K, T.Q6_K, T.IQ2_XXS, T.IQ2_XS)
         for n, want in ((1, MMVQ), (7, MMVQ), (8, MMQ), (9, MMQ), (32, MMQ))
     ],
+    # IQ1_M (no MMQ upstream): MMVQ up to 32 rows (8 per call), then none
+    *[
+        (T.IQ1_M, n, rows, want)
+        for rows in (1024, BIG)
+        for n, want in ((1, MMVQ), (8, MMVQ), (9, MMVQ), (32, MMVQ), (33, None))
+    ],
 ]
 
 
@@ -104,6 +110,7 @@ PACKED_CASES = [
     (T.Q4_K, 3, BIG, OWN),
     (T.Q4_K, 9, BIG, MMA_K),
     (T.IQ4_XS, 8, BIG, MMQ),
+    (T.IQ1_M, 9, BIG, MMVQ),
 ]
 
 
@@ -144,6 +151,9 @@ FILLS = [
     (8, [T.Q4_K, T.IQ3_S], [2048, BIG], T.IQ3_S),  # MMQ beside the IQ3 mma kernel
     (9, [T.IQ3_S, T.Q4_K], [BIG, BIG], None),  # MMQ and mma_k quantize for themselves
     (0, [T.IQ3_S], [BIG], None),  # no rows: nothing to quantize
+    (16, [T.Q4_K, T.IQ1_M], [BIG, BIG], T.IQ1_M),  # mma_k beside IQ1_M's MMVQ
+    (4, [T.IQ1_M], [BIG], T.IQ1_M),  # IQ1_M on MMVQ
+    (33, [T.IQ1_M, T.Q4_K], [BIG, BIG], None),  # stock dequantize beside MMQ
 ]
 
 
@@ -170,6 +180,7 @@ def test_quantize_x_q8_1_fills(monkeypatch, n, types, rows, want, packed=False):
 PACKED_FILLS = [
     (4, [T.IQ3_S, T.Q4_K], [BIG, BIG], T.IQ3_S),  # the packed mma kernel reads it
     (9, [T.IQ3_XXS, T.Q4_K], [BIG, BIG], None),  # tiled + mma_k
+    (9, [T.IQ3_S, T.IQ1_M], [BIG, BIG], T.IQ1_M),  # the tiled one quantizes itself
 ]
 
 
