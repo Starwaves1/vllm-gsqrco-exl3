@@ -14,12 +14,15 @@ import os
 import sys
 
 if os.environ.get("R3_PTRACE_ANY") == "1":
-    try:
-        import ctypes
+    def _ptracer_any():
+        try:
+            import ctypes
 
-        ctypes.CDLL(None, use_errno=True).prctl(0x59616D61, ctypes.c_ulong(-1 & 0xFFFFFFFFFFFFFFFF), 0, 0, 0)
-    except Exception:  # noqa: BLE001
-        pass
+            ctypes.CDLL(None, use_errno=True).prctl(0x59616D61, ctypes.c_ulong(-1 & 0xFFFFFFFFFFFFFFFF), 0, 0, 0)
+        except Exception:  # noqa: BLE001
+            pass
+    _ptracer_any()
+    os.register_at_fork(after_in_child=_ptracer_any)  # yama exceptions are per process
 
 if os.environ.get("R3_INSTR_DIR"):
     import functools
