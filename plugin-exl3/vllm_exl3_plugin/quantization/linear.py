@@ -199,7 +199,10 @@ class EXL3LinearMethod(LinearMethodBase):
         # strided view; the compiled graph asserts the custom op's input strides). Single-part
         # layers only: a bare cat of custom-op outputs lets inductor hand a split of it (GDN's z)
         # back as the part's own buffer, against the stride the next piece was traced with
-        glue = ops.MR_GLUE and x.dtype == torch.bfloat16 and layer.exl3_num_parts == 1
+        # A wide single-part layer (the lm_head) always: a bf16 result, no fp32 copy of the full-vocab
+        # logits when prompt_logprobs sends whole prompt chunks
+        wide = layer.exl3_num_parts == 1 and ops.out_features(layer.exl3_trellis_0) > ops.RECON_SLICE_N
+        glue = x.dtype == torch.bfloat16 and layer.exl3_num_parts == 1 and (ops.MR_GLUE or wide)
         xh = xh.contiguous() if glue else xh.to(torch.half)
         out_fp32 = x.dtype != torch.half
         outs = [
