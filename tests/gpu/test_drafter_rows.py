@@ -226,3 +226,58 @@ def test_rows_exact_mixed_qkv(gguf_reader, n):
     torch.cuda.synchronize()
     for (w, qt), y, a in zip(runs, ys, alone):
         assert torch.isfinite(y).all() and torch.equal(y, a), f"n={n} type {qt}: shared x_q8 != own quantize"
+
+
+def _fill_free(byte):
+    """Fill the caching allocator's free blocks with one byte value (0xFF: NaN in bf16/fp32)."""
+    import torch
+
+    keep = [torch.full((1 << p,), byte, dtype=torch.uint8, device="cuda") for p in range(9, 28) for _ in range(2)]
+    del keep
+
+
+@pytest.mark.parametrize("n", list(range(1, 65)))
+def test_embedding_rows(gguf_reader, n):
+    """The token embedding (IQ2_S token_embd, gathered rows -> ggml_dequantize into an uninitialised
+    output, no zero fill since 58be3e1) at every row count 1..64: the output must not depend on what
+    the allocator handed out (0xFF-poisoned vs zero-filled free memory), must match gguf-py's CPU
+    dequantization of the same rows, and a captured graph must replay it for new ids."""
+    import gguf
+    import numpy as np
+    import torch
+
+    from vllm_gguf_plugin.quantization.vocal_embeds import _apply_gguf_embedding
+
+    t = next(t for t in gguf_reader.tensors if t.name == "token_embd.weight")
+    qt, hidden = int(t.tensor_type), int(t.shape[0])
+    if "emb" not in _W:
+        _W.clear()
+        _W["emb"] = torch.from_numpy(np.ascontiguousarray(t.data)).cuda()
+    w = _W["emb"]
+    g = torch.Generator().manual_seed(n)
+    ids = torch.randint(0, w.shape[0], (n,), generator=g).cuda()
+    _fill_free(0xFF)
+    y_poison = _apply_gguf_embedding(ids, w, qt, hidden, torch.bfloat16).clone()
+    _fill_free(0x00)
+    y_zero = _apply_gguf_embedding(ids, w, qt, hidden, torch.bfloat16).clone()
+    torch.cuda.synchronize()
+    assert torch.isfinite(y_poison).all(), f"n={n}: non-finite rows {(~torch.isfinite(y_poison)).any(-1).nonzero().flatten().tolist()[:8]}"
+    assert torch.equal(y_poison, y_zero), f"n={n}: output depends on uninitialised memory"
+    ref = torch.from_numpy(gguf.quants.dequantize(np.asarray(t.data)[ids.cpu().numpy()], t.tensor_type).astype(np.float32))
+    err = float(((y_poison.float().cpu() - ref).abs().max(-1).values / ref.abs().max(-1).values.clamp_min(1e-30)).max())
+    assert err < 1e-2, f"n={n}: vs gguf-py rel err {err:.3g}"
+    # graph: capture at n, replay with new ids on poisoned memory
+    static_ids = ids.clone()
+    _apply_gguf_embedding(static_ids, w, qt, hidden, torch.bfloat16)
+    torch.cuda.synchronize()
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        static_y = _apply_gguf_embedding(static_ids, w, qt, hidden, torch.bfloat16)
+    ids2 = torch.randint(0, w.shape[0], (n,), generator=g).cuda()
+    static_ids.copy_(ids2)
+    _fill_free(0xFF)
+    graph.replay()
+    ref2 = _apply_gguf_embedding(ids2, w, qt, hidden, torch.bfloat16)
+    torch.cuda.synchronize()
+    assert torch.equal(static_y, ref2), f"n={n}: graph replay differs from eager"
+    del graph
