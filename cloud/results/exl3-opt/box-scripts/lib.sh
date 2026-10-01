@@ -43,9 +43,9 @@ serve_mr() {
   [[ $mode == *g* ]] && glue=1; [[ $mode == *a* ]] && mrmin=1; [[ $mode == *h* ]] && host=1
   export EXL3_MR=$mr EXL3_MR_GLUE=$glue EXL3_MR_MIN=$mrmin EXL3_EMBED_HOST=$host
   # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
-  # apply()/embedding(), so a graph traced with glue or the host embedding must never be loaded by
-  # a run without it (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-g$glue-h$host
+  # apply()/embedding() or its parameter layouts (EXL3_MR=2 stores K4 as int32 4-D), so a graph
+  # traced under one variant must never be loaded by another (or by phase 1)
+  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-g$glue-h$host
   scripts/serve-exl3.sh --dry-run "$@" > "$out/argv.txt" 2>&1
   rm -rf "$GSQ_KV_TIER_ROOT"; box_clean_shm || true
   t0=$(date +%s)

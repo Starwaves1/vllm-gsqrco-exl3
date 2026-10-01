@@ -22,6 +22,10 @@ gsq_assert_tier_root
 [ "$(sha256sum "$GSQ_HF_CONFIG/chat_template.jinja" | cut -d' ' -f1)" = "$GSQ_PROD_CHAT_TEMPLATE_SHA256" ] \
   || gsq_die "chat template copy differs from production's"
 
+# vLLM's torch.compile cache key does not cover the EXL3 plugin's apply()/embedding() or its
+# parameter layouts: one cache root per variant (EXL3_MR, EXL3_MR_GLUE, EXL3_EMBED_HOST; plugin
+# defaults 2/1/1) unless the caller set one
+export VLLM_CACHE_ROOT=${VLLM_CACHE_ROOT:-$HOME/.cache/vllm/exl3-mr${EXL3_MR:-2}-g${EXL3_MR_GLUE:-1}-h${EXL3_EMBED_HOST:-1}}
 gsq_load_prod_argv
 gsq_rewrite_argv "$GSQ_EXL3_MODEL" "$@"
 gsq_print_argv_diff serve-exl3 "$GSQ_PLUGINS_EXL3"
