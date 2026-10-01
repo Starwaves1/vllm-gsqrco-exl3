@@ -104,6 +104,47 @@ custom-op outputs (glue on fused layers) trips inductor's split-of-cat simplific
 comes back with the part's own stride): glue is on single-part layers only.
 
 
+## Phase 3 (2026-10-01, from 10:00 UTC)
+
+**Review fixes validated on the GPU** (VERIFIED): job 10 at 579eb15, 294/294; job 14 at 200,000
+tokens with the defaults (host embedding by registration id), KV 265,369 tokens (1.33x), the ~195k
+request completes, VRAM 23.85 / 24.58 GB after it.
+
+**The 16 -> 17-row cliff** (job 11: target pass 23.3 ms at 16 rows, 31.6-35.3 at 17-32 under every
+launch config): not occupancy (both families at 8 warps per SM: 16-row kernels 134-156 registers,
+32-row 209-224, no spills; `ptxas -v`), not a second weight pass (one launch, the decoded weight is
+reused across m-blocks). Static SASS of one pipeline pass (K3, 256 threads, 128x128): the decode ALU
+work (IMAD/LOP3/SHF/PRMT/HFMA2, about 3k instructions per warp) is the same in both families, HMMA
+doubles from 64 to 128. With fp32 accumulation an m16n8k16 HMMA costs about 32 tensor cycles per
+sub-partition on GA102, so the 16-row kernel is issue-bound (~5k cycles vs 4k tensor) and the
+32-row kernel tensor-bound (8k vs ~6k): MMA work alone at 32 rows is 1.65 TFLOP per pass, 21.8 ms at
+the 75 TFLOPS fp32-accumulate peak (INFERRED from counts and peak rates; Nsight Compute has no
+counter access in the container, job 16: ERR_NVGPUCTRPERM; job 17's timing probes split the kernel
+phases when it runs). fp16 accumulation halves the tensor time and leaves the 32-row kernel
+issue-bound: the owned patch `exl3_marlin_h16.patch` (fp16 partials folded into fp32 per k-stage,
+on a generated copy of the vendored template) measured 29.7 / 30.5 / 31.2 ms at 17 / 24 / 32 rows
+against 31.6 / 31.7 / 32.3 (fp32, forced 128x128), parity 294/294; on all m-blocks it spills at 48+
+rows and loses at 12-16, so it is now limited to the 17-32-row kernels (branch `exl3-opt-h16`,
+measuring). The rest of the cliff is the decode's instruction count at 8 warps per SM: an owned
+kernel (cheaper decode or more warps) is the remaining lever, a multi-day item.
+
+**Fused layers**: the torch.compile stride bug was inductor's split-of-cat pass returning a part's own
+output for the model's split of the concatenation (GDN's z, 6144 wide, expected as a view of the 16384
+qkvz concat) across a piecewise-graph boundary whose strides vLLM asserts. Fix (branch
+`exl3-opt-parts`, measuring): one opaque op per layer (`_exl3_linear_parts`, the parts and the cat
+inside), which also lets the bf16 glue cover fused layers. Same bits (job 10 parts: 299/301, the two
+misses an fp8 test bound since fixed).
+
+**Draft head** (`exl3-opt-parts`, `EXL3_DRAFT_FP8`, measuring): per-row e4m3 weights through vLLM's
+fp8 Marlin (0.21 instead of 0.42 GB per draft step); logits rel. rms 2.7 % vs the bf16 head.
+
+**GSQ side**: main 32ae6ec, IQ3 repack GPU tests after 62f27c0 (`-k "pack or packed"`,
+`VLLM_GGUF_LCPP=1`): 1462 passed, 0 skipped (`/workspace/logs/gsq-pack-32ae6ec-lcpp/test.log`).
+
+**exllamav3 reference** (phase 1's 04, all 11 sequences, 1k-120k tokens, ok): its own spread (fp16-
+vs fp32-accumulate reconstruct GEMM) KLD mean 7.3e-5, top-1 0.9997, long (>=32k) KLD 4.4e-5, top-1
+1.0: the scale for 05's vLLM-vs-exllamav3 numbers (running).
+
 ## What is here
 
 | path | what |
