@@ -20,7 +20,7 @@ echo "draft head rows: ${rows:-none} (want 40960)" | tee "$O/draft.txt"
 "$GSQ_VENV/bin/python" cloud/results/phase1/box-scripts/smoke_chat.py "$GSQ_URL" > "$O/smoke.json" 2>&1 || true
 tail -1 "$O/smoke.json"
 curl -s "$GSQ_URL/metrics" -H "Authorization: Bearer $GSQ_API_KEY" | grep -E '^vllm:(spec_decode|kv_cache_usage|prefix_cache)' > "$O/metrics.prom" || true
-drafts=$(awk '/^vllm:spec_decode_num_drafts/ {s += $NF} END {print s + 0}' "$O/metrics.prom")
+drafts=$(awk '/^vllm:spec_decode_num_drafts_total/ {s += $NF} END {print s + 0}' "$O/metrics.prom")
 acc=$(awk '/^vllm:spec_decode_num_accepted_tokens_total/ {a += $NF} /^vllm:spec_decode_num_draft_tokens_total/ {d += $NF} END {if (d) printf "%.3f", a / d; else print "n/a"}' "$O/metrics.prom")
 { echo "03-smoke $(date -u +%FT%TZ)"; cat "$O/load.txt"; cat "$O/draft.txt"
   echo "smoke: $(tail -1 "$O/smoke.json")"; echo "MTP drafts $drafts, draft-token acceptance $acc"; } > "$O/summary.txt"
