@@ -119,4 +119,6 @@ def test_routing_whole_tensor(name, n, rows):
     y = _fused_mul_mat_gguf(x, w, _qt(name))
     W = ops.ggml_dequantize(w, _qt(name), rows, BLOCKS * 256, torch.float32)
     ref = (x.double() @ W.double().T).cpu()
-    assert rel_err(y, ref) <= (LOOSE_XSUM if name in ("Q4_K", "Q5_K") else LOOSE)
+    # the MMQ min-term types; with VLLM_GGUF_LCPP=1 also Q2_K (llama.cpp's D2S6)
+    min_term = name in ("Q4_K", "Q5_K") or (name == "Q2_K" and ops.LCPP_ENABLED)
+    assert rel_err(y, ref) <= (LOOSE_XSUM if min_term else LOOSE)

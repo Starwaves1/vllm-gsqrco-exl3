@@ -32,7 +32,9 @@ from tests.utils import get_gguf_sample_tensors  # noqa: E402
 from vllm_gguf_plugin import ops  # noqa: E402, F401  (loads _C_gguf)
 
 ROWS = 256
-N = {"ggml_mul_mat_a8": 64}  # activation rows per op; 4 otherwise
+# activation rows per op (4 otherwise); lcpp MMQ at 5 rows is below upstream's
+# J_max read tail, where only the shim's zeroed tail keeps the reads defined
+N = {"ggml_mul_mat_a8": 64, "lcpp_mul_mat_q": 5}
 
 
 def main() -> None:
@@ -41,7 +43,9 @@ def main() -> None:
     t = get_gguf_sample_tensors(1024, qt)[0]
     raw = np.ascontiguousarray(t.data[:ROWS])
     k = raw.shape[1] // gguf.GGML_QUANT_SIZES[qt][1] * gguf.GGML_QUANT_SIZES[qt][0]
-    fn = getattr(torch.ops._C_gguf, op)
+    fn = getattr(torch.ops._C_gguf, op, None)
+    if fn is None:
+        raise SystemExit(f"{op}: not built")
     n = N.get(op, 4)
     g = torch.Generator().manual_seed(0)
     x = torch.randn(n, k, generator=g).to(torch.bfloat16).cuda()

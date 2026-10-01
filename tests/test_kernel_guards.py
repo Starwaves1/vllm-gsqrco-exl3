@@ -5,7 +5,8 @@ so that a sticky CUDA error cannot take the rest of the suite with it.
 
 Pass: the op rejects the input with a clean exception, or runs and returns what
 it returns on clean inputs. Fail: a device fault, a crash, or a silently wrong
-result.
+result. The lcpp ops (built with VLLM_GGUF_BUILD_LCPP=1, skipped
+otherwise) check all of these before launching, so every case must pass.
 
 GGUF_COMPUTE_SANITIZER=/path/to/compute-sanitizer also runs each case under
 memcheck, which catches out-of-bounds reads that happen not to fault. Memcheck
@@ -41,6 +42,14 @@ TYPES_OPS = [
     ("Q4_K", "ggml_mul_mat_vec_a8"),
     ("Q4_K", "ggml_mul_mat_a8"),
     ("Q6_K", "ggml_mul_mat_a8"),
+    ("IQ3_S", "lcpp_mul_mat_vec_q"),
+    ("IQ4_XS", "lcpp_mul_mat_vec_q"),
+    ("Q4_K", "lcpp_mul_mat_vec_q"),
+    ("IQ3_S", "lcpp_mul_mat_q"),
+    ("IQ3_XXS", "lcpp_mul_mat_q"),
+    ("Q2_K", "lcpp_mul_mat_q"),
+    ("Q4_K", "lcpp_mul_mat_q"),
+    ("Q6_K", "lcpp_mul_mat_q"),
 ]
 FAULT = (
     "illegal memory access",
@@ -67,6 +76,8 @@ def run_case(case: str, name: str, op: str) -> dict:
             env["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
     tail = (p.stdout + p.stderr)[-2000:]
+    if "not built" in p.stderr:
+        pytest.skip(f"{op} not built (VLLM_GGUF_BUILD_LCPP=1)")
     assert not any(f in p.stderr for f in FAULT), f"device fault:\n{tail}"
     assert p.returncode == 0, f"exit {p.returncode}:\n{tail}"
     line = next(ln for ln in reversed(p.stdout.splitlines()) if ln.startswith("{"))

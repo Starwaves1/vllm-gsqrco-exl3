@@ -11,7 +11,15 @@ least one of them tightly and full precision loosely:
   q81     y = dequant(q8_1(x)) @ W.T                           MMVQ, most MMQ
   xsum    as q81, but the K-quant min term uses half(sum x)     MMQ Q4_K / Q5_K
   wround  y = x @ round_to_act_dtype(W).T                       dequant + matmul
+  d2s6    llama.cpp b11211 MMQ Q2_K (the lcpp ops): q8 scale per 64 values,
+          min term from half(sum x) per 16 for the first 96 of every 128
+          values and from the quantized sum for the last 32 (quantize.cu
+          MMQ_Q8_1_DS_LAYOUT_D2S6, vecdotq.cuh vec_dot_q2_K_q8_1_impl_mmq)
   full    y = x @ W.T
+
+Not modelled, all far below the tolerances: b11211's MMQ quantizes with
+x * (127 / amax) and keeps d in float for most types, and its tile loaders
+round K-quant sub-block scales to half (mmq-load-tiles.cuh).
 
 With --use_fast_math a rare q can be one off, which the tolerances absorb. An x
 on a rounding tie (x / d = j + 0.5) may round either way on the GPU, so the
@@ -25,7 +33,11 @@ QK8_1 = 32
 # K-quant blocks: (first, end) byte of the quant bits and the block size.
 # Zeroing the quant bits makes gguf-py dequantize to -(dmin * m) per sub-block,
 # which isolates the min term.
-KQUANT_MIN_SPLIT = {"Q4_K": (16, 144, 144), "Q5_K": (16, 176, 176)}
+KQUANT_MIN_SPLIT = {
+    "Q4_K": (16, 144, 144),
+    "Q5_K": (16, 176, 176),
+    "Q2_K": (16, 80, 84),
+}
 
 # Relative errors (max over rows of ||y - ref|| / ||ref||), calibrated on an
 # RTX 3090: worst reference-model error 2.5e-3 (bf16) / 1.24e-3 (fp16), worst
@@ -73,7 +85,23 @@ def _min_part(raw: np.ndarray, type_name: str) -> torch.Tensor:
     return -dequant(z, type_name)
 
 
-def refs(raw: np.ndarray, type_name: str, x: torch.Tensor, mmq: bool) -> dict:
+def _d2s6_sums(x: torch.Tensor, xq: torch.Tensor) -> torch.Tensor:
+    """Per-value stand-in for D2S6's partial sums: half(sum x) / 16 per 16
+    values for positions 0-95 of every 128, the quantized mean for 96-127."""
+    n, k = x.shape
+    s = x.to(torch.float32).view(n, k // 16, 16).to(torch.float64).sum(-1, keepdim=True)
+    s = (s.to(torch.float16).to(torch.float64) / 16).expand(-1, -1, 16)
+    s = s.reshape(n, k // 128, 128)
+    q = xq.view(n, k // 128, 128).clone()
+    q[:, :, :96] = s[:, :, :96]
+    qm = q[:, :, 96:].reshape(n, k // 128, 2, 16).mean(-1, keepdim=True)
+    q[:, :, 96:] = qm.expand(-1, -1, -1, 16).reshape(n, k // 128, 32)
+    return q.view(n, k)
+
+
+def refs(
+    raw: np.ndarray, type_name: str, x: torch.Tensor, mmq: bool, lcpp: bool = False
+) -> dict:
     W = dequant(raw, type_name)
     x64 = x.to(torch.float64)
     xq, xavg = q8_1(x)
@@ -82,9 +110,13 @@ def refs(raw: np.ndarray, type_name: str, x: torch.Tensor, mmq: bool) -> dict:
         "q81": xq @ W.T,
         "wround": x64 @ W.to(x.dtype).to(torch.float64).T,
     }
-    if mmq and type_name in KQUANT_MIN_SPLIT:
+    if mmq and type_name in ("Q4_K", "Q5_K"):
         Wmin = _min_part(raw, type_name)  # constant within each 32-value block
         out["xsum"] = xq @ (W + Wmin).T - xavg @ Wmin.T
+    if mmq and lcpp and type_name == "Q2_K":  # mmq.cuh: D2S6 layout
+        Wmin = _min_part(raw, type_name)  # constant within each 16-value block
+        xq64, _ = q8_1(x, 64)
+        out["d2s6"] = xq64 @ (W + Wmin).T - _d2s6_sums(x, xq64) @ Wmin.T
     return out
 
 
@@ -96,13 +128,21 @@ def rel_err(y: torch.Tensor, ref: torch.Tensor) -> float:
     return float((num / den).max())
 
 
-def check(y: torch.Tensor, raw: np.ndarray, type_name: str, x: torch.Tensor, mmq: bool):
+def check(
+    y: torch.Tensor,
+    raw: np.ndarray,
+    type_name: str,
+    x: torch.Tensor,
+    mmq: bool,
+    lcpp: bool = False,
+):
     """y within TIGHT of some reference model and LOOSE of full precision."""
-    errs = {k: rel_err(y, v) for k, v in refs(raw, type_name, x.cpu(), mmq).items()}
+    r = refs(raw, type_name, x.cpu(), mmq, lcpp)
+    errs = {k: rel_err(y, v) for k, v in r.items()}
     tight = TIGHT[x.dtype]
     best = min(v for k, v in errs.items() if k != "full")
     assert best <= tight, f"no reference model within {tight}: {errs}"
-    loose = LOOSE_XSUM if "xsum" in errs else LOOSE
+    loose = LOOSE_XSUM if "xsum" in errs or "d2s6" in errs else LOOSE
     assert errs["full"] <= loose, f"too far from full precision: {errs}"
 
 
