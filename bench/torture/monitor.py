@@ -1,7 +1,7 @@
 """Server side of the torture harness (standard library only): the 60 s monitor, and for the serve
 and switch modes the server's lifecycle and the leftover checks.
 
-Monitor rows (monitor.csv), the same columns as bench/soak.sh plus the restart detector:
+Monitor rows (monitor.csv; bench/soak.sh's quantities, plus the restart detector):
   t, server_alive (pid given: 1/0, else empty), health (/health HTTP code), gpu_mib (nvidia-smi, the
   server pid's process tree), rss_kib / rss_anon_kib / shmem_kib (/proc of that tree; shmem = CPU KV
   tier), running, waiting, kv_usage, preemptions, cpu_tier_perc, fs_tier_bytes (/metrics),
@@ -9,6 +9,7 @@ Monitor rows (monitor.csv), the same columns as bench/soak.sh plus the restart d
 Fault lines go to faults.log: new server-log lines matching FAULTS (--server-log), "server exited"
 (pid gone), "server restarted" (start_time changed), "server unhealthy" (3 rows without /health
 200). Any of the last three sets `dead`: the run stops and is reported. Nothing is ever restarted.
+A row that raises (the monitor's own bug) goes to monitor-errors.log; the monitor keeps going.
 """
 
 import hashlib
@@ -75,17 +76,25 @@ def memory(pids: list[int]) -> tuple[int, int, int]:
 
 
 def gpu_mib(pids: list[int] | None = None) -> int | None:
-    """MiB used by pids (compute apps), or by the whole GPU 0 when pids is None; None without nvidia-smi."""
+    """MiB used by pids (compute apps), or by all GPUs when pids is None; None without nvidia-smi."""
     if not shutil.which("nvidia-smi"):
         return None
-    q = ["--query-compute-apps=pid,used_memory"] if pids is not None else ["--query-gpu=memory.used"]
+    q = "--query-compute-apps=pid,used_memory" if pids is not None else "--query-gpu=index,memory.used"
     try:
-        out = subprocess.run(["nvidia-smi", *q, "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=30).stdout
+        out = subprocess.run(["nvidia-smi", q, "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=30).stdout
     except (OSError, subprocess.SubprocessError):
         return None
-    if pids is None:
-        return int(out.split()[0]) if out.split() else None
-    return sum(int(m) for p, m in (line.split(", ") for line in out.splitlines() if ", " in line) if int(p) in pids)
+    rows = [line.split(", ") for line in out.splitlines() if ", " in line]
+    return sum(int(m) for k, m in rows if m.strip().isdigit() and (pids is None or int(k) in pids))  # "[N/A]" cells skipped
+
+
+def pid_alive(pid: int) -> bool:
+    """Exists and is not a zombie (a dead child of ours stays in /proc until reaped)."""
+    try:
+        s = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    return s[s.rindex(")") + 2] != "Z"
 
 
 class Monitor(threading.Thread):
@@ -93,17 +102,16 @@ class Monitor(threading.Thread):
         super().__init__(daemon=True)
         self.api, self.out, self.pid, self.log, self.interval = api, out, server_pid, server_log, interval
         self.dead, self.finished = threading.Event(), threading.Event()
-        self.restarts, self.logpos = 0, (os.path.getsize(server_log) if server_log and os.path.exists(server_log) else 0)
+        self.restarts, self.start0, self.bad_health = 0, None, 0
+        self.logpos = os.path.getsize(server_log) if server_log and os.path.exists(server_log) else 0
 
-    def fault(self, line: str) -> None:
-        with open(self.out / "faults.log", "a") as f:
+    def fault(self, line: str, name: str = "faults.log") -> None:
+        with open(self.out / name, "a") as f:
             f.write(line.rstrip("\n") + "\n")
 
-    def row(self, start0, bad_health) -> tuple:
+    def row(self) -> None:
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        alive = ""
-        if self.pid:
-            alive = int(os.path.exists(f"/proc/{self.pid}"))
+        alive = int(pid_alive(self.pid)) if self.pid else ""
         health = self.api.call("GET", self.api.root + "/health", timeout=10)[0]
         met = self.api.call("GET", self.api.root + "/metrics", timeout=10)[1] if health else ""
         g = {}
@@ -119,12 +127,12 @@ class Monitor(threading.Thread):
             pids = tree(self.pid)
             r["rss_kib"], r["rss_anon_kib"], r["shmem_kib"] = memory(pids)
             r["gpu_mib"] = gpu_mib(pids)
-        if start0 is None and r["start_time"] != "":
-            start0 = r["start_time"]
-        if start0 is not None and r["start_time"] not in ("", start0):
+        if self.start0 is None:
+            self.start0 = r["start_time"] if r["start_time"] != "" else None
+        elif r["start_time"] not in ("", self.start0):
             self.restarts += 1
-            self.fault(f"{now} server restarted (process_start_time_seconds {start0} -> {r['start_time']})")
-            start0 = r["start_time"]
+            self.fault(f"{now} server restarted (process_start_time_seconds {self.start0} -> {r['start_time']})")
+            self.start0 = r["start_time"]
             self.dead.set()
         r["restarts"] = self.restarts
         with open(self.out / "monitor.csv", "a") as f:
@@ -140,19 +148,18 @@ class Monitor(threading.Thread):
         if alive == 0:
             self.fault(f"{now} server exited")
             self.dead.set()
-        bad_health = 0 if health == 200 else bad_health + 1
-        if bad_health >= 3:
+        self.bad_health = 0 if health == 200 else self.bad_health + 1
+        if self.bad_health >= 3:
             self.fault(f"{now} server unhealthy: no /health 200 for 3 rows")
             self.dead.set()
-        return start0, bad_health
 
     def run(self) -> None:
         (self.out / "monitor.csv").write_text(",".join(COLUMNS) + "\n")
-        state = (None, 0)
-        while not self.finished.is_set():
-            state = self.row(*state)
-            if self.dead.is_set():
-                break
+        while not self.finished.is_set() and not self.dead.is_set():
+            try:
+                self.row()
+            except Exception as e:  # noqa: BLE001
+                self.fault(f"{time.strftime('%FT%TZ', time.gmtime())} {e!r}", "monitor-errors.log")
             self.finished.wait(self.interval)
 
     def stop(self) -> None:

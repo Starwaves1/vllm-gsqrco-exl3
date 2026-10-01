@@ -145,6 +145,26 @@ def test_report_injected_failures(tmp_path, kw, crit):
     assert not ok and failed == {crit}
 
 
+def test_report_health_misses_and_blank_cells(tmp_path):
+    d = write_run(tmp_path)
+    lines = (d / "monitor.csv").read_text().splitlines()
+    cells = [x.split(",") for x in lines[1:]]
+    cells[100][2] = "0"  # one /health timeout: tolerated
+    cells[200][3] = ""   # one blank GPU cell: skipped, the column is still judged
+    (d / "monitor.csv").write_text("\n".join([lines[0]] + [",".join(c) for c in cells]) + "\n")
+    rep = tr.run_report(d)
+    assert rep["pass"] and rep["criteria"]["memory"]["value"]["gpu_mib_growth"] is not None
+    cells[101][2] = "0"  # two in a row: not tolerated
+    (d / "monitor.csv").write_text("\n".join([lines[0]] + [",".join(c) for c in cells]) + "\n")
+    assert verdict(d) == (False, {"alive"})
+
+
+def test_api_takes_plain_http_with_a_port_only():
+    for bad in ("https://127.0.0.1:8000/v1", "http://127.0.0.1/v1"):
+        with pytest.raises(SystemExit):
+            tl.Api(bad, model="m")
+
+
 def test_report_server_death_fails_alive(tmp_path):
     d = write_run(tmp_path)
     lines = (d / "monitor.csv").read_text().splitlines()
@@ -247,6 +267,8 @@ def test_run_with_monitor_end_to_end(mock, tmp_path):
     assert rows[0].split(",") == tm.COLUMNS and len(rows) >= 3 and int(rows[1].split(",")[4]) > 0  # rss of this process
     assert (tmp_path / "faults.log").read_text().splitlines() == [
         "(EngineCore pid=1) RuntimeError: CUDA error: an illegal memory access was encountered"]
+    plan = json.loads((tmp_path / "plan.json").read_text())
+    assert (plan["kv_tokens"], plan["token_budget"], plan["max_conc"]) == (160000, 80000, 12)  # half the KV by default
     rep = tr.write(tmp_path)
     assert rep["criteria"]["errors"]["pass"] and not rep["criteria"]["faults"]["pass"]
 

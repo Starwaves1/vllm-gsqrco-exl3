@@ -36,23 +36,38 @@ Canonical source: this directory (`bench/torture/` on branch `torture`). The ins
 The model comes from `/v1/models` (or `--model`). The API key comes from `--api-key` or
 `VLLM_API_KEY` / `OPENAI_API_KEY`. Only the given host:port is ever contacted.
 
+Ctrl-C, or the server dying or restarting, stops the run at once: requests in flight are
+cut, and the report is still written.
+
 ### Politeness (default)
 
-- Every request carries vLLM's `priority` field: `--priority` P (default 100000) plus 0-20. The spread
-  still exercises priority ordering and preemption among the torture's own requests, and every one of
-  them stays behind real traffic, which sends priority 0. This takes effect only when the server runs
-  `--scheduling-policy priority`, as production does. Under the default FCFS policy, vLLM main ignores
-  the field.
-- At most `--max-conc` requests are in flight (16), with at most `--token-budget` tokens (262,144) of
-  prompt + n × max_tokens among them. A request bigger than the budget waits until it can run alone.
-- `--brutal` drops both throttles. Against ports 18080/18081 (production) it also needs `--i-know`.
+Torture traffic shares the server with real users. vLLM gives them only limited protection, so the
+harness throttles itself:
+- Priority. Every request carries vLLM's `priority` field: `--priority` P (default 100000) plus 0-20.
+  The spread exercises priority ordering among the torture's own requests. Under
+  `--scheduling-policy priority` (production's argv), vLLM admits *waiting* requests in priority
+  order, so a user's request (priority 0) goes ahead of queued torture requests. It never preempts a
+  *running* request to admit one: a user still waits for a seat or for KV blocks. Under FCFS, vLLM
+  main ignores the field. Older vLLM rejects non-zero priority with HTTP 400; pass `--priority 0`
+  there.
+- Seats. At most `--max-conc` torture requests are in flight (default 12). Production's 16 seqs
+  then leave 4 seats for users.
+- KV. Torture requests in flight hold at most `--token-budget` tokens of prompt + n × max_tokens.
+  The default is half the server's KV cache, read from `vllm:cache_config_info` (num_gpu_blocks ×
+  block_size), or 65,536 when the metric is missing. A request bigger than the budget runs alone.
+  A 196k prompt still runs, alone, and holds most of the KV while it does.
+- `--brutal` drops the seat and KV throttles. Against ports 18080/18081 it also needs `--i-know`.
+
+The prefix and long-context phases write tens of GB through the CPU and fs KV tiers. On production
+that wears the KV drive (the used 660p, where wear is the limit) and evicts users' cached prefixes
+from the GPU and CPU tiers. Expect slower first tokens for real users during and after the run.
 
 ### On ms4, against production
 
 ```bash
 cd ~/tools/torture-harness
 ./torture --base-url http://127.0.0.1:18081/v1 --minutes 20 --priority 100000    # smoke first
-journalctl -u qwen-vllm -f -o cat > /tmp/qwen-vllm.log &                          # optional: fault grep
+journalctl -u qwen-vllm -f -n 0 -o cat > /tmp/qwen-vllm.log &                     # optional: fault grep, new lines only
 ./torture --base-url http://127.0.0.1:18081/v1 --hours 12 --priority 100000 \
   --server-pid "$(systemctl show -p MainPID --value qwen-vllm)" --server-log /tmp/qwen-vllm.log
 ```
@@ -110,11 +125,11 @@ durations down (floor 20 s, idle 5 s), so a 20-minute smoke still reaches every 
 | ramp | concurrency 1 → 16 → 1 across the phase, mixed requests |
 | burst | waves of 16 requests sent at the same instant |
 | long_ctx | one lane of 32k/96k/196k raw prompts (30% prefix hits) beside two chat lanes |
-| prefix | six lanes of 1k/8k/32k prompts, 70% prefix hits, half on recent prompts (GPU cache), half on old ones (CPU/fs tier) |
+| prefix | six lanes of 1k/8k/32k prompts, 70% prefix hits: half reuse one of the last four prompts of that length, half any earlier one (older ones are likelier to come back from the CPU/fs tiers) |
 | cancel | eight streaming lanes: 30% cancelled mid-stream (after 1-64 chunks or 0.05-5 s), 10% client timeouts |
 | tools | qwen3_coder tool calls; tool_choice absent / auto / required / named / none |
 | structured | `response_format` json_schema and json_object (vLLM serves both by default; production's `bench/api_smoke.py` uses json_schema) |
-| plogprobs | `prompt_logprobs=1` on 2k-4k prompts. First alone, where vLLM drops the 128-token prefill cap, so the lm_head sees 2048-row chunks (the EXL3 >144-row reconstruct path). Then beside two chat lanes. |
+| plogprobs | `prompt_logprobs=1` on 2k-4k prompts. For the first half of the phase it is the harness's only lane. When it is also the server's only request, vLLM drops the 128-token prefill cap and the lm_head sees 2048-row chunks (the EXL3 >144-row reconstruct path); real traffic on a shared server prevents that. Then beside two chat lanes. |
 | repeat | eight lanes resending identical requests (exact prefix hits) |
 | api | n=2, stop strings, seed, logprobs + top_logprobs, min_tokens + penalties, completions echo |
 | full | sixteen lanes of everything up to 32k prompts (KV pressure, preemptions) |
@@ -140,7 +155,7 @@ that read it go to `plan.json`.
 
 Each response gets one of these classes:
 - `ok`
-- `reasoning_only`: max_tokens ended inside the thinking.
+- `reasoning_only`: no content but some reasoning, usually because max_tokens ended inside the thinking.
 - `eos_first`: the first token was EOS. The soak traced this to the model's own distribution at T>0.
 - `short_empty`: under 8 tokens with no text.
 - `truncated_json`: a structured output cut off by max_tokens.
@@ -176,15 +191,18 @@ The run passes only if every criterion holds:
 | criterion | rule |
 |---|---|
 | faults | `faults.log` is empty: server-log lines matching illegal memory access, misaligned address, launch failure, CUDA error, EngineDeadError, engine core died, Traceback, segfault, out of memory; or server exited / restarted / unhealthy for 3 rows / never came up |
-| alive | every 60 s row shows `/health` 200 and, with a pid, the server alive; 0 restarts; monitored ≥ 98% of the plan (less 2 min) |
+| alive | every 60 s row shows the server alive (with a pid); `/health` 200 except isolated single misses (never two rows in a row; three end the run); 0 restarts; monitored ≥ 98% of the plan (less 2 min) |
 | errors | every response is in the OK classes above |
 | memory | with `--server-pid`, after warm-up (first hour, or first quarter of a shorter run), measured as trend (least-squares slope × span): server GPU MiB grows ≤ 256 and host **anon** RSS grows ≤ 1 GiB. Shmem is the CPU KV tier filling up, bounded by its size, and is reported but not judged. |
-| drift | greedy-probe TPOT median, last hour vs first hour: ≤ +15%. The probes run at c=1 on a drained harness, so the load is equal. Applies to runs ≥ 3 h. On a shared production server, real traffic adds noise. |
-| idle | probe TPOT right after idle gaps ≤ +15% over the other probes (lost CUDA graphs would show); needs ≥ 3 such probes |
+| drift | greedy-probe TPOT, 25th percentile, last hour vs first hour: ≤ +15%. The probes run at c=1 on a drained harness, so the load is equal. The 25th percentile keeps real traffic on a shared server from deciding it. Applies to runs ≥ 3 h. |
+| idle | probe TPOT p25 right after idle gaps ≤ +15% over the other probes (lost CUDA graphs would show); needs ≥ 3 such probes |
+| lifecycle | serve mode: came up healthy; stopped without SIGKILL; no process left in its session after 60 s; port free after 30 s |
 | coverage | every phase type ran (runs ≥ 6 h) |
-| switch | per leg: came up healthy; stopped without SIGKILL; no process left in its session after 60 s; port free after 30 s; GPU back within 256 MiB of its idle level after 60 s; no new `/dev/shm` files (CPU-tier `vllm_offload_*.mmap`, `sem.mp-*`); the leg's own run passes faults/alive/errors/memory. Across legs: the KV fs-tier namespace dirs (`--tier-root`) changed by A and by B are disjoint. |
+| switch | per leg: lifecycle as above; GPU back within 256 MiB of its idle level after 60 s (all GPUs summed); no new vLLM `/dev/shm` files (`vllm_*`, `sem.mp-*`, `torch_*`, `psm_*`); the leg's own run passes faults/alive/errors/memory. Across legs: the KV fs-tier namespace dirs (`--tier-root`) changed by A and by B are disjoint. Each side keeps its seed across rounds, so round 2 re-sends round 1's prompts and reads back what its tier stored. The tier check sees writes only, not reads. |
 
-T=0 repeatability is recorded (distinct probe outputs, share of the most common one) but never judged.
+T=0 repeatability is recorded but never judged: distinct probe outputs and the share of the most
+common one, plus, for every T=0 request body sent more than once in a phase (mostly the repeat
+phase), whether the outputs differed.
 Under concurrent MTP, T=0 is not batch-invariant (soak finding).
 
 `REPORT.md` has one row per phase:

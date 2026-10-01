@@ -4,18 +4,19 @@ A run dir holds plan.json, load.jsonl, phases.jsonl, monitor.csv and faults.log;
 switch.jsonl plus one such dir per leg. The verdict passes only if every criterion holds:
   faults    faults.log is empty (device faults, EngineDeadError, Traceback, OOM, server exited,
             restarted, unhealthy or never came up)
-  alive     every monitor row: /health 200 and (server pid given) alive; 0 restarts; monitored
-            >= 98% of the plan (less 2 min, the monitor's 60 s granularity)
+  alive     every monitor row: server alive (pid given); /health 200 except isolated single misses
+            (never two rows in a row); 0 restarts; monitored >= 98% of the plan (less 2 min)
   errors    every response is in OK_CLASSES (client cancels and planned client timeouts are fine;
             reasoning-only, EOS-first and short whitespace outputs are counted, not failed)
   memory    after warm-up (first hour, or first quarter of shorter runs): server GPU MiB grows
             <= 256 and host anon RSS <= 1 GiB (shmem is the CPU KV tier, bounded by its size);
             only with --server-pid
-  drift     greedy probe TPOT median, last hour vs first hour, <= +15% (runs >= 3 h)
-  idle      probe TPOT right after idle gaps <= +15% over the other probes (>= 3 such probes)
+  drift     greedy probe TPOT, 25th percentile, last hour vs first hour, <= +15% (runs >= 3 h)
+  idle      probe TPOT p25 right after idle gaps <= +15% over the other probes (>= 3 such probes)
   coverage  every phase type ran (runs >= 6 h)
-  switch    per leg (switch mode): healthy, stopped without SIGKILL, no process left, port free,
-            GPU back to idle (+256 MiB), no new /dev/shm files; the two models' KV-tier dirs disjoint
+  lifecycle serve mode: came up, stopped without SIGKILL, no process left, port freed
+  switch    per leg: lifecycle as above, GPU back to idle (+256 MiB), no new vLLM /dev/shm files,
+            its run passes faults/alive/errors/memory; the two models' KV-tier dirs disjoint
 """
 
 import json
@@ -53,9 +54,12 @@ def ms(x):
 
 
 def phase_rows(recs: list[dict], phases: list[dict]) -> list[dict]:
+    by: dict[int, list[dict]] = {}
+    for r in recs:
+        by.setdefault(r.get("phase"), []).append(r)
     rows = []
     for ph in phases:
-        rs = [r for r in recs if r.get("phase") == ph["i"] and r["kind"] not in ("tokenize", "metrics", "probe")]
+        rs = [r for r in by.get(ph["i"], []) if r["kind"] not in ("tokenize", "metrics", "probe")]
         ttft = [r["ttft"] for r in rs if r.get("ttft") is not None and r["class"] in OK_CLASSES]
         tpot = [r["tpot"] for r in rs if r.get("tpot") is not None and r["class"] in OK_CLASSES]
         m0, m1 = ph.get("metrics0", {}), ph.get("metrics1", {})
@@ -63,8 +67,8 @@ def phase_rows(recs: list[dict], phases: list[dict]) -> list[dict]:
         hit = lambda p: round(d[p + "hits"] / d[p + "queries"], 3) if d.get(p + "queries") else None  # noqa: E731
         longs = [r for r in rs if r["kind"] == "long"]
         fails: dict[str, int] = {}
-        for r in recs:
-            if r.get("phase") == ph["i"] and r["class"] not in OK_CLASSES:
+        for r in by.get(ph["i"], []):
+            if r["class"] not in OK_CLASSES:
                 fails[r["class"]] = fails.get(r["class"], 0) + 1
         rows.append({
             "i": ph["i"], "type": ph["type"], "minutes": round(ph["dur"] / 60, 1),
@@ -86,11 +90,16 @@ def phase_rows(recs: list[dict], phases: list[dict]) -> list[dict]:
 def monitor_stats(mon: list[dict], warm_from: float) -> dict:
     out = {}
     for col in (c for c in (mon[0] if mon else {}) if c != "t"):
-        try:
-            ys = [float(r[col]) for r in mon]
-        except ValueError:
+        pts = []
+        for r in mon:
+            try:
+                pts.append((float(r["t"]), float(r[col])))
+            except ValueError:  # a blank cell (not measured that minute)
+                pass
+        if not pts:
             continue
-        w = [(float(r["t"]) / 3600, float(r[col])) for r in mon if float(r["t"]) >= warm_from]
+        ys = [y for _, y in pts]
+        w = [(t / 3600, y) for t, y in pts if t >= warm_from]
         g = growth([t for t, _ in w], [y for _, y in w])
         out[col] = {"min": min(ys), "max": max(ys), "growth_after_warmup": None if g is None else round(g, 3)}
     return out
@@ -98,6 +107,11 @@ def monitor_stats(mon: list[dict], warm_from: float) -> dict:
 
 def crit(ok: bool, value, limit=None, applies=True) -> dict:
     return {"pass": bool(ok) or not applies, "applies": applies, "value": value, "limit": limit}
+
+
+def lifecycle_ok(x: dict) -> bool:
+    """A served leg came up, stopped without SIGKILL, left no process behind and freed its port."""
+    return x.get("healthy_s") is not None and x.get("killed") == 0 and x.get("leftover_procs") == 0 and x.get("port_free") == 1
 
 
 def run_report(d: Path) -> dict:
@@ -117,26 +131,37 @@ def run_report(d: Path) -> dict:
         classes[r["class"]] = classes.get(r["class"], 0) + 1
     bad = [r for r in recs if r["class"] not in OK_CLASSES]
 
+    # probe windows compare their 25th percentiles: robust to other (real) traffic on a shared server
     probes = [r for r in recs if r["kind"] == "probe" and r["class"] == "ok" and r.get("tpot")]
     r0 = min((r["t"] for r in recs), default=0.0)
     r1 = max((r["t"] for r in recs), default=0.0)
     first = [r["tpot"] for r in probes if r["t"] - r0 < 3600]
     last = [r["tpot"] for r in probes if r1 - r["t"] < 3600]
-    drift = statistics.median(last) / statistics.median(first) - 1 if first and last else None
+    drift = pct(last, 0.25) / pct(first, 0.25) - 1 if first and last else None
     after = [r["tpot"] for r in probes if r.get("after_idle")]
     other = [r["tpot"] for r in probes if not r.get("after_idle")]
-    idle_ratio = statistics.median(after) / statistics.median(other) - 1 if after and other else None
+    idle_ratio = pct(after, 0.25) / pct(other, 0.25) - 1 if after and other else None
+    # T=0 repeatability (recorded, not judged): identical bodies within a phase, distinct outputs
+    same: dict[tuple, list] = {}
+    for r in recs:
+        if r.get("body_sha") and r["class"] in ("ok", "reasoning_only"):
+            same.setdefault((r["phase"], r["body_sha"]), []).append(r["text_sha"])
+    groups = [g for g in same.values() if len(g) > 1]
     shas = [r.get("text_sha") for r in recs if r["kind"] == "probe" and r["class"] == "ok"]
     mode = max(set(shas), key=shas.count) if shas else None
+
+    unhealthy = [i for i, r in enumerate(mon) if r["health"] != "200"]
+    serve = json.loads((d / "serve.json").read_text()) if (d / "serve.json").exists() else None
 
     g_gpu = (stats.get("gpu_mib") or {}).get("growth_after_warmup")
     g_anon = (stats.get("rss_anon_kib") or {}).get("growth_after_warmup")
     ran = {p["type"] for p in phases}
     criteria = {
         "faults": crit(not faults, len(faults), 0),
-        "alive": crit(bool(mon) and all(r["server_alive"] in ("1", "") and r["health"] == "200" for r in mon)
+        # an isolated /health miss (one 10 s timeout under load) is tolerated; two in a row are not
+        "alive": crit(bool(mon) and all(r["server_alive"] != "0" for r in mon) and not any(b - a == 1 for a, b in zip(unhealthy, unhealthy[1:]))
                       and int(float(mon[-1]["restarts"])) == 0 and span >= LIMITS["monitored_fraction"] * plan["total_s"] - 120,
-                      {"rows": len(mon), "rows_not_alive_or_healthy": sum(r["server_alive"] not in ("1", "") or r["health"] != "200" for r in mon),
+                      {"rows": len(mon), "rows_dead": sum(r["server_alive"] == "0" for r in mon), "rows_unhealthy": len(unhealthy),
                        "restarts": int(float(mon[-1]["restarts"])) if mon else None, "hours": round(span / 3600, 2), "planned_hours": round(planned_h, 2)}),
         "errors": crit(not bad, {c: n for c, n in classes.items() if c not in OK_CLASSES}, 0),
         "memory": crit((g_gpu or 0) <= LIMITS["gpu_mib_growth"] and (g_anon or 0) <= LIMITS["anon_rss_kib_growth"],
@@ -148,13 +173,15 @@ def run_report(d: Path) -> dict:
                      LIMITS["idle_tpot_ratio"], applies=len(after) >= 3),
         "coverage": crit(set(TYPES) | {"idle"} <= ran, sorted((set(TYPES) | {"idle"}) - ran), [],
                          applies=planned_h >= LIMITS["coverage_min_hours"]),
+        "lifecycle": crit(bool(serve) and lifecycle_ok(serve), serve, None, applies=serve is not None),
     }
     return {
         "mode": "run", "dir": str(d), "seed": plan.get("seed"), "planned_hours": round(planned_h, 2), "hours_monitored": round(span / 3600, 2),
         "requests": len(recs), "classes": classes, "phases_run": len(phases), "phase_types_run": sorted(ran),
-        "probe": {"n": len(probes), "tpot_ms_first_hour": ms(statistics.median(first)) if first else None,
-                  "tpot_ms_last_hour": ms(statistics.median(last)) if last else None, "after_idle_n": len(after),
-                  "greedy_distinct_outputs": len(set(shas)), "greedy_mode_fraction": round(shas.count(mode) / len(shas), 3) if shas else None},
+        "probe": {"n": len(probes), "tpot_ms_p25_first_hour": ms(pct(first, 0.25)), "tpot_ms_p25_last_hour": ms(pct(last, 0.25)),
+                  "after_idle_n": len(after), "greedy_distinct_outputs": len(set(shas)),
+                  "greedy_mode_fraction": round(shas.count(mode) / len(shas), 3) if shas else None},
+        "t0_repeats": {"groups": len(groups), "groups_with_varied_output": sum(len(set(g)) > 1 for g in groups)},
         "monitor": stats, "faults": faults[:50], "fail_samples": bad[:20],
         "phases": phase_rows(recs, phases), "criteria": criteria, "limits": LIMITS,
         "pass": all(c["pass"] for c in criteria.values()),
@@ -174,8 +201,7 @@ def switch_report(d: Path) -> dict:
     rows = []
     for leg in legs:
         r = runs.get(leg["dir"])
-        checks = {"healthy": leg.get("healthy_s") is not None, "clean_stop": leg.get("killed") == 0,
-                  "no_leftover_procs": leg.get("leftover_procs") == 0, "port_free": leg.get("port_free") == 1,
+        checks = {"lifecycle": lifecycle_ok(leg),
                   "gpu_idle": None in (leg.get("gpu_mib_after"), leg.get("gpu_idle_mib"))  # no nvidia-smi: not measured
                   or leg["gpu_mib_after"] <= leg["gpu_idle_mib"] + LIMITS["gpu_idle_slack_mib"],
                   "no_shm_left": not leg.get("shm_left"),
@@ -207,8 +233,9 @@ def markdown(rep: dict) -> str:
     p = rep["probe"]
     out += ["", f"{rep['requests']} responses over {rep['hours_monitored']} h ({rep['phases_run']} phases). Classes: "
             + ", ".join(f"{k} {v}" for k, v in sorted(rep["classes"].items())),
-            f"Greedy probe: TPOT {fmt(p['tpot_ms_first_hour'])} ms first hour, {fmt(p['tpot_ms_last_hour'])} ms last hour; "
-            f"{p['greedy_distinct_outputs']} distinct outputs, mode {fmt(p['greedy_mode_fraction'])} (T=0 is not batch-invariant under MTP: recorded only).",
+            f"Greedy probe TPOT p25: {fmt(p['tpot_ms_p25_first_hour'])} ms first hour, {fmt(p['tpot_ms_p25_last_hour'])} ms last hour; "
+            f"{p['greedy_distinct_outputs']} distinct probe outputs, mode {fmt(p['greedy_mode_fraction'])}; repeated T=0 bodies: "
+            f"{rep['t0_repeats']['groups_with_varied_output']} of {rep['t0_repeats']['groups']} varied (T=0 is not batch-invariant under MTP: recorded only).",
             "", "| # | type | min | drain s | req | fails | cancel | timeout | TTFT p50/95/99 s | TPOT p50/95/99 ms | prefix hit (ext) | planned hit | preempt | MTP len |",
             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rep["phases"]:

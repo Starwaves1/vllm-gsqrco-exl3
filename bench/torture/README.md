@@ -1,6 +1,6 @@
 # torture-harness
 
-Torture soak for any OpenAI-compatible vLLM server: Python 3.12+ standard library only, polite by default (priority 100000, ≤16 requests and ≤256k tokens in flight). Full doc: `TORTURE.md`. Source: gsq-vllm branch `torture`, `bench/torture/`; refresh with `./sync-from-repo.sh`.
+Torture soak for any OpenAI-compatible vLLM server: Python 3.12+ standard library only, polite by default (priority 100000, ≤12 requests and ≤ half the server's KV cache in flight). Full doc: `TORTURE.md`. Source: gsq-vllm branch `torture`, `bench/torture/`; refresh with `./sync-from-repo.sh`.
 
 ```bash
 ./torture --plan --minutes 20                                                    # print the schedule only

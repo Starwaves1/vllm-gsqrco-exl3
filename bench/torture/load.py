@@ -187,7 +187,9 @@ class Api:
 
     def __init__(self, base_url: str, key: str = "", model: str | None = None):
         u = urllib.parse.urlsplit(base_url.rstrip("/"))
-        self.host, self.port, self.path = u.hostname, u.port or 80, u.path
+        if u.scheme != "http" or not u.port:
+            raise SystemExit(f"--base-url must be http://HOST:PORT/v1, got {base_url}")
+        self.host, self.port, self.path = u.hostname, u.port, u.path
         self.root = self.path[: -len("/v1")] if self.path.endswith("/v1") else self.path
         self.key = key
         self.model, self.mml = model, 200000
@@ -215,6 +217,15 @@ class Api:
         finally:
             c.close()
 
+    def kv_tokens(self) -> int | None:
+        """KV cache capacity in tokens (num_gpu_blocks * block_size of vllm:cache_config_info), if exported."""
+        m = re.search(r'^vllm:cache_config_info\{[^}]*\}', self.call("GET", self.root + "/metrics")[1], re.M)
+        lab = dict(re.findall(r'(\w+)="([^"]*)"', m.group(0))) if m else {}
+        try:
+            return int(lab["num_gpu_blocks"]) * int(lab["block_size"])
+        except (KeyError, ValueError):
+            return None
+
     def tokenize(self, text: str) -> list[int]:
         st, body = self.call("POST", self.root + "/tokenize", {"model": self.model, "prompt": text, "add_special_tokens": False})
         if st != 200:
@@ -223,18 +234,21 @@ class Api:
 
 
 class Corpus:
-    """Token ids of shuffled stdlib sources (tokenized per file by the server: each call stays
-    under max_model_len) and the pieces of salts and follow-up tails."""
+    """Token ids of shuffled stdlib sources, tokenized by the server in pieces of max_model_len/2
+    characters (a token is at least one character, so no call exceeds max_model_len), and the pieces
+    of salts and follow-up tails."""
 
     def __init__(self, api: Api, seed: int, n_tokens: int):
         stdlib = Path(sysconfig.get_path("stdlib"))
-        files = sorted(p for p in stdlib.rglob("*.py") if "site-packages" not in p.parts and p.stat().st_size < 200_000)
+        files = sorted(p for p in stdlib.rglob("*.py") if "site-packages" not in p.parts)
         random.Random(seed).shuffle(files)
         self.body: list[int] = []
         for f in files:
             if len(self.body) >= n_tokens:
                 break
-            self.body += api.tokenize(f"\n# ---- {f.name} ----\n" + f.read_text(errors="replace"))
+            text, step = f"\n# ---- {f.name} ----\n" + f.read_text(errors="replace"), api.mml // 2
+            for i in range(0, len(text), step):
+                self.body += api.tokenize(text[i:i + step])
         self.body = self.body[:n_tokens]
         self.sha = hashlib.sha256(json.dumps(self.body).encode()).hexdigest()[:16]
         self.hex = {c: api.tokenize(c) for c in "0123456789abcdef"}
@@ -280,19 +294,20 @@ class Gen:
 
     def next(self, mix: str) -> dict:
         with self.lock:
-            r, sp = self.rng, self.spec
+            r = self.rng
             kind = mix if mix != "mixed" else r.choices(list(MIXED), list(MIXED.values()))[0]
             if kind == "repeat":
                 if self.repeat_pool is None:
-                    self.repeat_pool = [self._make(k, r, sp) for k in ("chat", "long", "tool")]
+                    self.repeat_pool = [self._make(k) for k in ("chat", "long", "tool")]
                     for q in self.repeat_pool:
                         q["body"].update(temperature=0.0, priority=self.priority)
                 q = copy.deepcopy(r.choice(self.repeat_pool))
                 q.update(kind="repeat", cancel=None, timeout=LONG_TIMEOUT, planned_timeout=False)
                 return q
-            return self._make(kind, r, sp)
+            return self._make(kind)
 
-    def _make(self, kind: str, r: random.Random, sp: dict) -> dict:
+    def _make(self, kind: str) -> dict:  # called under self.lock
+        r, sp = self.rng, self.spec
         mt = r.choices(*MAX_TOKENS)[0]
         think = r.random() < 0.5
         base = {"model": self.model, "max_tokens": mt, "priority": self.priority + r.randint(0, 20)}
@@ -403,6 +418,14 @@ def _choice(c: dict) -> dict:
             "lp_ok": _finite_lp(vals)}
 
 
+LIVE: dict[int, object] = {}  # in-flight requests: id -> cut(flag), so a stopped run drops them at once
+
+
+def cut_all() -> None:
+    for c in list(LIVE.values()):
+        c("cancelled")
+
+
 def send(api: Api, req: dict) -> dict:
     """POST req; returns res: http, choices, usage, ttft/tpot (streams), cancelled/timed_out/error."""
     conn = api.conn(req["timeout"] + 30)
@@ -413,6 +436,8 @@ def send(api: Api, req: dict) -> dict:
     t0 = time.monotonic()
 
     def cut(flag):  # client-side cancel/timeout: drop the connection under the reader
+        if res.get("done"):
+            return  # the response is already complete
         res[flag] = True
         try:
             conn.sock and conn.sock.shutdown(socket.SHUT_RDWR)
@@ -425,14 +450,18 @@ def send(api: Api, req: dict) -> dict:
     for tm in timers:
         tm.daemon = True
         tm.start()
+    LIVE[id(res)] = cut
     try:
         conn.request("POST", api.path + req["path"], json.dumps(body), api.headers())
+        if res.get("cancelled") or res.get("timed_out"):
+            raise ConnectionAbortedError("cut before the request was sent")
         r = conn.getresponse()
         res["http"] = r.status
         if r.status != 200:
             res["body"] = r.read()[:1000].decode(errors="replace")
         elif not req["stream"]:
             d = json.loads(r.read())
+            res["done"] = True
             res["choices"] = [_choice(c) for c in d.get("choices", [])]
             res["usage"] = d.get("usage")
             plp = (d.get("choices") or [{}])[0].get("prompt_logprobs")
@@ -480,6 +509,7 @@ def send(api: Api, req: dict) -> dict:
                 if req.get("cancel") and req["cancel"][0] == "chunks" and n >= req["cancel"][1]:
                     res["cancelled"] = True
                     break
+            res["done"] = not (res.get("cancelled") or res.get("timed_out"))
             res["chunks"] = n
             res["choices"] = [{**o, "tools": [tuple(t) for _, t in sorted(o["tools"].items())]} for _, o in sorted(chs.items())]
             ct = (res.get("usage") or {}).get("completion_tokens", 0)
@@ -489,11 +519,16 @@ def send(api: Api, req: dict) -> dict:
         if not (res.get("cancelled") or res.get("timed_out")):
             res["error"] = repr(e)[:300]
     finally:
+        LIVE.pop(id(res), None)
         for tm in timers:
             tm.cancel()
         conn.close()
     res["latency"] = time.monotonic() - t0
     return res
+
+
+def sha(x) -> str:
+    return hashlib.sha1(json.dumps(x, sort_keys=True).encode()).hexdigest()[:12]
 
 
 def record(req: dict, res: dict, phase: dict) -> dict:
@@ -520,8 +555,9 @@ def record(req: dict, res: dict, phase: dict) -> dict:
     keep = 300 if cls in OK_CLASSES else 8000  # keep whole text of anything suspicious
     rec["text"] = [c["text"][:keep] for c in ch]
     rec["reasoning"] = [c["reasoning"][:keep] for c in ch]
-    if req["kind"] == "probe" and ch:
-        rec["text_sha"] = hashlib.sha1(ch[0]["text"].encode()).hexdigest()[:12]
+    if b.get("temperature") == 0 and ch:  # T=0 repeatability: same body, same output?
+        rec["body_sha"] = sha({k: v for k, v in b.items() if k != "priority"})
+        rec["text_sha"] = sha([c["text"] + "\0" + c["reasoning"] for c in ch])
     return rec
 
 
@@ -541,16 +577,19 @@ def snapshot(api: Api) -> dict:
     return out
 
 
-def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, max_conc: int = 16,
-        budget: int = 262144, brutal: bool = False, stop: threading.Event | None = None) -> None:
-    """The whole schedule against api. stop (set by the server monitor on death) ends it early."""
+def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, max_conc: int = 12,
+        budget: int | None = None, brutal: bool = False, stop: threading.Event | None = None) -> None:
+    """The whole schedule against api. stop (server death, Ctrl-C) ends it early and cuts what is in
+    flight. budget None = half the server's KV cache (vllm:cache_config_info), else 65,536."""
     stop = stop or threading.Event()
+    kv = api.kv_tokens()
+    budget = budget or (kv // 2 if kv else 65536)
     out.mkdir(parents=True, exist_ok=True)
     plan = make_plan(total_s, seed)
     lengths = max(n for s in PHASES.values() for n in s.get("lengths", DEFAULTS["lengths"]))
     corpus = Corpus(api, seed, min(lengths + 64, api.mml))
     (out / "plan.json").write_text(json.dumps({"seed": seed, "total_s": total_s, "model": api.model, "max_model_len": api.mml,
-                                               "priority": priority, "max_conc": max_conc, "token_budget": budget, "brutal": brutal,
+                                               "priority": priority, "max_conc": max_conc, "kv_tokens": kv, "token_budget": budget, "brutal": brutal,
                                                "corpus_sha": corpus.sha, "python": platform.python_version(), "phases": plan}, indent=1))
     gen = Gen(corpus, seed, api.model, api.mml, priority)
     throttle = Throttle(max_conc, budget, brutal)
@@ -609,13 +648,20 @@ def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, 
 
     def burst_lane(mix, t_end, ph):
         while time.time() < t_end and not stop.is_set():
-            wave = [threading.Thread(target=one, args=(lambda: gen.next(mix), ph)) for _ in range(BURST)]
+            wave = [threading.Thread(target=one, args=(lambda: gen.next(mix), ph), daemon=True) for _ in range(BURST)]
             for th in wave:
                 th.start()
             for th in wave:
                 th.join()
 
     threading.Thread(target=poller, daemon=True).start()
+
+    def cutter():  # a stopped run drops its in-flight requests at once
+        while not done.wait(1):
+            if stop.is_set():
+                return cut_all()
+
+    threading.Thread(target=cutter, daemon=True).start()
     t_run, prev = time.time(), None
     for ph in plan:
         if time.time() - t_run >= total_s or stop.is_set():
@@ -631,10 +677,10 @@ def run(api: Api, out: Path, total_s: float, seed: int, priority: int = 100000, 
         threads = []
         for mix, conc in spec["lanes"]:
             if conc == "burst":
-                threads.append(threading.Thread(target=burst_lane, args=(mix, t0 + ph["dur"], ph)))
+                threads.append(threading.Thread(target=burst_lane, args=(mix, t0 + ph["dur"], ph), daemon=True))
                 continue
             for slot in range({"ramp": max(RAMP), "half": 2}.get(conc, conc)):
-                threads.append(threading.Thread(target=lane, args=(mix, conc, slot, t0, ph["dur"], ph)))
+                threads.append(threading.Thread(target=lane, args=(mix, conc, slot, t0, ph["dur"], ph), daemon=True))
         for th in threads:
             th.start()
         while time.time() < t0 + ph["dur"] and not threads and not stop.is_set():

@@ -39,7 +39,8 @@ class Mock:
                 if self.path == "/health":
                     return self.reply(200, b"", "text/plain")
                 self.reply(200, (f"vllm:num_requests_running 0\nvllm:prefix_cache_hits_total 5\nvllm:prefix_cache_queries_total 10\n"
-                                 f"process_start_time_seconds {mock.start_time}\n").encode(), "text/plain")
+                                 f"process_start_time_seconds {mock.start_time}\n"
+                                 'vllm:cache_config_info{block_size="16",engine="0",num_gpu_blocks="10000"} 1.0\n').encode(), "text/plain")
 
             def do_POST(self):
                 q = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
