@@ -166,6 +166,24 @@ def test_linear_parts_same_bits(ops, m):
     assert y.dtype == torch.bfloat16 and torch.equal(y, want)
 
 
+@pytest.mark.parametrize("m", [1, 6, 24, 48, 144])
+def test_gemm_mr_multi(ops, m):
+    """A concatenated fused group (two tensors of one K, k=5120) in one exl3_gemm_mr_multi call ==
+    the parts one by one, up to accumulation order (rel. rms <= 1e-3)."""
+    import torch
+
+    ws = [C.load(torch, t) for t in ("K3-up", "K3-up")]
+    ws[1] = {**ws[1], "suh": ws[1]["suh"].flip(0).contiguous(), "svh": ws[1]["svh"].flip(0).contiguous()}
+    x = C.make_x(torch, "K3-up", m)
+    parts = [torch.ops._C_exl3.exl3_gemm_mr(x, w["trellis"], w["suh"], w["svh"], False, True, True) for w in ws]
+    t = torch.cat([w["trellis"] for w in ws], dim=1)
+    n = ws[0]["svh"].numel()
+    y = torch.ops._C_exl3.exl3_gemm_mr_multi(x, t, torch.cat([w["suh"] for w in ws]), torch.cat([w["svh"] for w in ws]),
+                                             [n], False, True, True)
+    d = C.err_stats(torch, y, torch.cat(parts, 1).double())
+    assert d["finite"] and d["rel_rms"] <= 1e-3, d
+
+
 @pytest.mark.parametrize("tid", MR_TIDS)
 def test_deterministic(ops, tid):
     import torch

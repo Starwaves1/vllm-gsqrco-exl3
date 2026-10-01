@@ -347,6 +347,55 @@ def test_draft_head_fp8_method(monkeypatch, on):
     assert not isinstance(cfg.get_quant_method(head, "lm_head"), EXL3DraftHeadFp8Method)
 
 
+@pytest.mark.parametrize("bits,cat", [(3, True), (4, True), (2, False)])
+def test_mr_concat_prepare(mr_mode, method, monkeypatch, bits, cat):
+    """EXL3_MR_CONCAT: an equal-K fused layer on the multi-row kernel is stored concatenated (parts
+    dropped), its K4 parts repacked first; K2 (not on the kernel) keeps its parts."""
+    ops = mr_mode(2)
+    monkeypatch.setattr(ops, "MR_AVAILABLE", True)
+    monkeypatch.setattr(ops, "MR_CONCAT", True)
+    layer = torch.nn.Module()
+    layer.prefix = "gate_up"
+    method.create_weights(layer, 128, [256, 256], 128, 512, torch.bfloat16, weight_loader=None)
+    g = torch.Generator().manual_seed(bits)
+    raw = []
+    for sid in (0, 1):
+        tr = torch.randint(-32768, 32767, (8, 16, WIDTH[bits]), dtype=torch.int16, generator=g)
+        raw.append(tr.clone())
+        ts = {"trellis": tr, "suh": torch.full((128,), sid + 1.0, dtype=torch.half),
+              "svh": torch.full((256,), sid + 3.0, dtype=torch.half),
+              "mul1": torch.tensor(0x83DCD12D, dtype=torch.int64).to(torch.int32)}
+        for name, t in ts.items():
+            p = getattr(layer, name)
+            p.weight_loader(p, t, sid)
+    method.process_weights_after_loading(layer)
+    if not cat:
+        assert not hasattr(layer, "exl3_cat_widths") and layer.exl3_trellis_0.dtype == torch.int16
+        return
+    assert layer.exl3_cat_widths == [256, 256] and not hasattr(layer, "exl3_trellis_0")
+    t = layer.exl3_cat_trellis
+    want = torch.cat([ref_repack(r) if bits == 4 else r for r in raw], dim=1)
+    assert torch.equal(t, want)
+    assert layer.exl3_cat_suh.tolist() == [1.0] * 128 + [2.0] * 128 and layer.exl3_cat_svh.shape == (512,)
+
+
+@pytest.mark.parametrize("rows,want", [(24, [("multi", [256])]),
+                                       (385, [("dequant", False), ("dequant", False)])])
+def test_linear_cat_dispatch(mr_mode, fake, monkeypatch, rows, want):
+    ops = mr_mode(2)
+    calls = fake.calls
+    monkeypatch.setattr(torch.ops._C_exl3, "exl3_gemm_mr_multi",
+                        lambda x, t, s, v, ends, *a: calls.append(("multi", ends)) or torch.zeros(x.shape[0], 512),
+                        raising=False)
+    t = torch.zeros(8, 512 // 16, 48, dtype=torch.int16)  # two K3 parts of 256
+    x = torch.zeros(rows, 128, dtype=torch.half)
+    y = ops.exl3_linear_cat(x, t, torch.zeros(256, dtype=torch.half), torch.zeros(512, dtype=torch.half),
+                            [256, 256], False, True, True)
+    assert y.shape[0] == rows and fake.calls == want
+    f = ops.exl3_linear_cat_fake(x, t, None, None, [256, 256], False, True, True)
+    assert f.shape == (rows, 512)
+
+
 def test_fake_impl_repacked():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 
@@ -413,7 +462,7 @@ def test_mr_prepare_needs_library(mr_mode, method, monkeypatch):
 # The shim: registration, guards, repack (needs _C_exl3_mr)
 
 OPS = ("exl3_gemm_mr", "exl3_mr_repack", "exl3_mr_unpack", "exl3_mr_warmup", "exl3_embed_host",
-       "exl3_embed_host_register")
+       "exl3_embed_host_register", "exl3_gemm_mr_multi", "exl3_mr_warmup_multi")
 K_IN, N_OUT = 5120, 1024
 
 _CHILD = r"""
@@ -446,6 +495,10 @@ for name, c in cases.items():
     try:
         if c["op"] == "exl3_gemm_mr":
             ops.exl3_gemm_mr(t(a["x"]), t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["mcg"], a["mul1"], a["out_fp32"])
+        elif c["op"] == "exl3_gemm_mr_multi":
+            ops.exl3_gemm_mr_multi(t(a["x"]), t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["ends"], False, True, True)
+        elif c["op"] == "exl3_mr_warmup_multi":
+            ops.exl3_mr_warmup_multi(t(a["trellis"]), t(a["suh"]), t(a["svh"]), a["ends"], False, True, [24], True)
         elif c["op"] == "exl3_mr_warmup":
             ops.exl3_mr_warmup(t(a["trellis"]), t(a["suh"]), t(a["svh"]), False, True, a["rows"], True)
         elif c["op"] == "exl3_mr_repack":
@@ -542,6 +595,20 @@ CASES = {
     "repack-noncontig": (dict(op="exl3_mr_repack", args=dict(trellis=tr(width=64, t=True))), "must be contiguous"),
     "repack-n-not-128": (dict(op="exl3_mr_repack", args=dict(trellis=tr(n=64, width=64))), "multiples of 128"),
     "unpack-valid": (dict(op="exl3_mr_unpack", args=dict(trellis=rp())), "no error"),
+    "multi-valid": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=tr(), suh=T(2 * K_IN), svh=T(N_OUT),
+                                                            ends=[512])), CUDA),
+    "multi-valid-3": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=rp(), suh=T(3 * K_IN),
+                                                              svh=T(N_OUT), ends=[256, 640])), CUDA),
+    "multi-suh-size": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=tr(), suh=T(K_IN), svh=T(N_OUT),
+                                                               ends=[512])), "suh must be 1-D of size 10240"),
+    "multi-end-not-128": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=tr(), suh=T(2 * K_IN),
+                                                                  svh=T(N_OUT), ends=[500])), "multiples of 128"),
+    "multi-end-past-n": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=tr(), suh=T(2 * K_IN),
+                                                                 svh=T(N_OUT), ends=[1024])), "multiples of 128"),
+    "multi-no-ends": (dict(op="exl3_gemm_mr_multi", args=dict(x=T(24, K_IN), trellis=tr(), suh=T(K_IN), svh=T(N_OUT),
+                                                              ends=[])), "needs at least one shard end"),
+    "warmup-multi-valid": (dict(op="exl3_mr_warmup_multi", args=dict(trellis=tr(), suh=T(2 * K_IN), svh=T(N_OUT),
+                                                                     ends=[512])), CUDA),
     "unpack-int16": (dict(op="exl3_mr_unpack", args=dict(trellis=tr(width=64))), "b must be exl3_mr_repack's"),
     "unpack-bad-inner": (dict(op="exl3_mr_unpack", args=dict(trellis=T(320, 16, 4, 32, dtype="int32"))),
                          "b must be exl3_mr_repack's"),

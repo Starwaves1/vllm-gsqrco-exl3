@@ -215,6 +215,54 @@ def exl3_linear_parts_fake(
     return x.new_empty(x.shape[0], sum(out_features(t) for t in trellis), dtype=dtype)
 
 
+# EXL3_MR_CONCAT (A/B while measured, with EXL3_MR=2): a fused layer whose parts all take
+# exl3_gemm_mr at the same K is stored concatenated along n (linear._mr_prepare) and runs as one
+# input-Hadamard launch for all shards and one GEMM writing the fused output (exl3_gemm_mr_multi).
+MR_CONCAT = MR_MODE == 2 and os.environ.get("EXL3_MR_CONCAT", "0") == "1"
+
+
+def _dim1_unit(trellis: torch.Tensor) -> int:
+    """Output columns per index of dim 1 (16 stored, 64 repacked)."""
+    return 64 if trellis.dtype == torch.int32 else 16
+
+
+def exl3_linear_cat(
+    x: torch.Tensor,
+    trellis: torch.Tensor,
+    suh: torch.Tensor,
+    svh: torch.Tensor,
+    widths: list[int],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    """A fused group of equal-K tensors concatenated along n (EXL3_MR_CONCAT): exl3_gemm_mr_multi to
+    MULTI_ROW_MAX rows; above, each part (its column slice, copied) on its own route."""
+    if x.shape[0] <= MULTI_ROW_MAX:
+        ends = [sum(widths[:i + 1]) for i in range(len(widths) - 1)]
+        return torch.ops._C_exl3.exl3_gemm_mr_multi(x.contiguous(), trellis, suh, svh, ends, mcg, mul1, out_fp32)
+    k, u, c0, ys = suh.numel() // len(widths), _dim1_unit(trellis), 0, []
+    for i, w in enumerate(widths):
+        t = trellis[:, c0 // u:(c0 + w) // u].contiguous()
+        ys.append(exl3_linear(x, t, suh[i * k:(i + 1) * k], svh[c0:c0 + w], mcg, mul1, out_fp32))
+        c0 += w
+    return torch.cat(ys, dim=1)
+
+
+def exl3_linear_cat_fake(
+    x: torch.Tensor,
+    trellis: torch.Tensor,
+    suh: torch.Tensor,
+    svh: torch.Tensor,
+    widths: list[int],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+    return x.new_empty(x.shape[0], sum(widths), dtype=dtype)
+
+
 # EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in page-locked host memory
 # (quantization/embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12:
 # no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
@@ -241,6 +289,9 @@ def _register() -> None:
     )
     direct_register_custom_op(
         op_name="_exl3_linear_parts", op_func=exl3_linear_parts, fake_impl=exl3_linear_parts_fake
+    )
+    direct_register_custom_op(
+        op_name="_exl3_linear_cat", op_func=exl3_linear_cat, fake_impl=exl3_linear_cat_fake
     )
     direct_register_custom_op(
         op_name="_exl3_embed_host", op_func=exl3_embed_host, fake_impl=exl3_embed_host_fake
