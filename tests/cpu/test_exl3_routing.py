@@ -39,7 +39,8 @@ def test_capture_sizes_stay_on_gemm():
 
 
 @pytest.mark.parametrize("n,want", [(1, GEMM), (16, GEMM), (17, "exl3_multi_row"), (64, "exl3_multi_row"),
-                                    (144, "exl3_multi_row"), (145, RECON)])
+                                    (144, "exl3_multi_row"), (145, "exl3_multi_row"), (384, "exl3_multi_row"),
+                                    (385, RECON)])
 def test_multi_row_hook(monkeypatch, n, want):
     from vllm_exl3_plugin import ops
 

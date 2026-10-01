@@ -47,7 +47,7 @@ def test_default_is_off():
 
 
 # rows -> route, for a stored K3/K5 tensor (mr_ok) under EXL3_MR=1 or 2
-ROWS = [16, 17, 32, 64, 144, 145]
+ROWS = [16, 17, 32, 64, 144, 145, 384, 385]
 
 
 @pytest.mark.parametrize("mode", [0, 1, 2])
@@ -59,12 +59,12 @@ def test_routing_table(mr_mode, mode, bits):
     mr_ok = not repacked and ops.mr_takes(width, True)
     got = [ops._exl3_op(n, mr_ok, repacked) for n in ROWS]
     if mode == 0 or bits in (2, 6) or (bits == 4 and mode == 1):
-        want = [GEMM, GEMM, GEMM, GEMM, GEMM, RECON]
-    elif bits == 4:  # mode 2: repacked, every row count up to 144 on the multi-row kernel
-        want = [MR, MR, MR, MR, MR, RECON]
+        want = [GEMM, GEMM, GEMM, GEMM, GEMM, RECON, RECON, RECON]
+    elif bits == 4:  # mode 2: repacked, every row count up to 384 on the multi-row kernel
+        want = [MR, MR, MR, MR, MR, MR, MR, RECON]
         assert [ops._exl3_op(n, False, True) for n in (1, 2, 8)] == [MR] * 3
     else:  # K3/K5, modes 1 and 2
-        want = [GEMM, MR, MR, MR, MR, RECON]
+        want = [GEMM, MR, MR, MR, MR, MR, MR, RECON]
     assert got == want
     assert ops._exl3_op(1024, mr_ok, repacked) == RECON_HAD
 
@@ -171,7 +171,9 @@ def fake(monkeypatch):
     (1, 5, 144, [("mr", 144, torch.int16)]),
     (1, 4, 64, [("gemm", 64)]),
     (1, 2, 64, [("gemm", 64)]),
-    (1, 3, 145, [("dequant", False)]),
+    (1, 3, 145, [("mr", 145, torch.int16)]),
+    (1, 3, 385, [("dequant", False)]),
+    (1, 2, 145, [("dequant", False)]),
 ])
 def test_linear_dispatch_stored(mr_mode, fake, mode, bits, rows, want):
     ops = mr_mode(mode)
@@ -185,7 +187,8 @@ def test_linear_dispatch_stored(mr_mode, fake, mode, bits, rows, want):
 
 @pytest.mark.parametrize("rows,want", [
     (1, [("mr", 1, torch.int32)]), (16, [("mr", 16, torch.int32)]), (144, [("mr", 144, torch.int32)]),
-    (145, [("unpack",), ("dequant", False)]), (1024, [("unpack",), ("dequant", True)]),
+    (145, [("mr", 145, torch.int32)]), (385, [("unpack",), ("dequant", False)]),
+    (1024, [("unpack",), ("dequant", True)]),
 ])
 def test_linear_dispatch_repacked(mr_mode, fake, rows, want):
     ops = mr_mode(2)
@@ -199,7 +202,7 @@ def test_linear_dispatch_repacked(mr_mode, fake, rows, want):
 
 @pytest.mark.parametrize("bits,rows,want", [
     (3, 32, [("mr", 32, torch.int16)]), (2, 32, [("gemm", 32)]), (3, 8, [("gemm", 8)]),
-    (3, 145, [("dequant", False)]),
+    (3, 385, [("dequant", False)]),
 ])
 def test_linear_bf16_contract(mr_mode, fake, bits, rows, want):
     """bf16 x (EXL3_MR_GLUE): bf16 out on every route; only exl3_gemm_mr sees bf16 x."""

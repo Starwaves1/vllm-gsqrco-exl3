@@ -18,16 +18,8 @@ tools/pytest $T -q -rsX -s --junitxml="$O/mr.xml" > "$O/mr.log" 2>&1 || rc=1
 echo "mr parity: $(junit_line "$O/mr.xml")"; tail -3 "$O/mr.log"
 grep -E "^(FAILED|ERROR)" "$O/mr.log" | head -40 || true
 # error table: one line per (tensor, rows, dtype): mr vs exl3_gemm vs dequant+GEMM, rel_rms / max_rel
-grep -E "^K[0-9]-.* m=[0-9]+ (bf16|fp16) mr " "$O/mr.log" | python3 -c '
-import re, sys
-print(f"{\"tensor\":10} {\"rows\":>4} {\"out\":4} {\"mr rms\":>9} {\"gemm rms\":>9} {\"dq rms\":>9} {\"mr max\":>8} {\"gemm max\":>8}")
-for ln in sys.stdin:
-    t, m, d = re.match(r"(\S+) m=(\d+) (\w+)", ln).groups()
-    v = [(float(a), float(b)) for a, b in re.findall(r"rel_rms.: ([0-9.e+-]+), .max_rel.: ([0-9.e+-]+)", ln)]
-    if len(v) == 3:
-        print(f"{t:10} {m:>4} {d:4} {v[0][0]:9.2e} {v[1][0]:9.2e} {v[2][0]:9.2e} {v[0][1]:8.2e} {v[1][1]:8.2e}")
-' > "$O/errors.txt" || true
-head -5 "$O/errors.txt"
+"$GSQ_VENV/bin/python" "$S/errtab.py" "$O/mr.log" > "$O/errors.txt" || true
+tail -1 "$O/errors.txt"
 RE="^$T::(test_decode_exact\[(K4-kproj|K5-kproj)\]|test_gemm_vs_fp64\[(K3-down|K4-kproj|K5-kproj|K4-oproj)-(1|17|48|64|144)-bf16model\]|test_routing_mr1\[(K2-up|K3-down|K5-kproj)-.*\]|test_routing_repacked\[K4-kproj-.*\]|test_deterministic\[(K3-down|K4-kproj|K5-kproj)\])$"  # no lm_head under the sanitizers (0.6 GB per pass)
 ids=$(tools/pytest $T --collect-only -q 2>/dev/null | grep -E "$RE" || true)
 printf '%s\n' "$ids" > "$O/sanitizer-ids.txt"; echo "sanitizer cases: $(printf '%s\n' "$ids" | grep -c .)"

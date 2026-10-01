@@ -11,6 +11,8 @@
 # _C_exl3_mr built in place (box: compile-only build, VLLM_EXL3_BUILD=1 setup.py build_ext
 # --inplace with the phase-1 toolchain).
 export WT=/workspace/wt-exl3-opt
+# the box clone belongs to another uid than root's git expects: let job_log's rev-parse work
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=$WT
 source "$WT/cloud/results/exl3/box-scripts/lib.sh"
 S=$WT/cloud/results/exl3-opt/box-scripts
 export R=/workspace/runs/exl3-opt$ALT L=/workspace/logs/exl3-opt$ALT RES=$WT/cloud/results/exl3-opt$ALT

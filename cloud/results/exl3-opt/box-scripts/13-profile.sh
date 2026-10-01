@@ -1,6 +1,6 @@
 #!/bin/bash
 # EXL3 opt, job 13 (~15 min per mode): where one decode step goes, so the next levers are named
-# by data. Per EXL3_MR mode (EXL3_OPT_PROFILE_MODES, default "0 2g"): one server on production's
+# by data. Per EXL3_MR mode (EXL3_OPT_PROFILE_MODES, default "0 2ga"): one server on production's
 # main argv with vLLM's torch profiler (6 iterations after 60), greedy chat requests at c=1 and
 # c=4 (6 / 24 rows per verify pass at MTP k=5), then per complete step (exl3_pstep.py): GPU
 # activities and ms per class (exl3_gemm, exl3_gemm_mr, its input Hadamard, dequant, hgemm,
@@ -16,7 +16,7 @@ O=$R/13-profile; rm -rf "$O"; mkdir -p "$O"
 H=(-H "Authorization: Bearer $GSQ_API_KEY" -H "Content-Type: application/json")
 req() { curl -s "$GSQ_URL/v1/chat/completions" "${H[@]}" -d "{\"model\":\"qwen3.8-27b\",\"messages\":[{\"role\":\"user\",\"content\":\"Write a detailed essay about the history of the printing press, part $2.\"}],\"max_tokens\":$1,\"temperature\":0}" > /dev/null; }
 rc=0
-for mr in ${EXL3_OPT_PROFILE_MODES:-0 2g}; do
+for mr in ${EXL3_OPT_PROFILE_MODES:-0 2ga}; do
   D=$O/mr$mr; mkdir -p "$D/trace"
   echo "=== EXL3_MR=$mr $(date -u +%FT%TZ)"
   serve_mr "$mr" "$D" --profiler-config "{\"profiler\":\"torch\",\"torch_profiler_dir\":\"$D/trace\",\"torch_profiler_with_stack\":false,\"torch_profiler_use_gzip\":false,\"ignore_frontend\":true,\"delay_iterations\":60,\"max_iterations\":6}" \

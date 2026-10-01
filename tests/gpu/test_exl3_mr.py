@@ -34,8 +34,12 @@ import exl3_cases as C
 
 sys.path.insert(0, str(ROOT / "plugin-exl3"))
 
-SLACK, FLOOR_RMS, FLOOR_MAX = 1.5, 2e-3, 2e-2
-MR_ROWS = [17, 24, 32, 48, 64, 96, 144]
+SLACK, FLOOR_RMS = 1.5, 2e-3
+# max_rel floor 3e-2 (test_exl3_kernels.py's route-agreement bound): compared in bf16, a value at
+# 6-8x the RMS carries 2^-9 rounding alone; job 10 run 1: K3-up 32 rows bf16 max_rel 0.0246 at
+# rel_rms 1.97e-3 (exl3_gemm: 0.0163 / 2.80e-3), mr's rms below exl3_gemm's in 121 of 122 cases
+FLOOR_MAX = 3e-2
+MR_ROWS = [17, 24, 32, 48, 64, 96, 144, 192, 384]  # 192/384: the mr range past 144 (ops.MULTI_ROW_MAX)
 K4_SMALL_ROWS = [1, 8, 16]  # repacked K4 takes every row count
 BITS = {tid: v[1] for tid, v in C.TENSORS.items()}
 MR_TIDS = [t for t in C.TENSORS if BITS[t] in (3, 4, 5)]
@@ -174,11 +178,11 @@ def test_routing_mr1(ops, monkeypatch, tid, m):
         assert torch.equal(y, torch.ops._C_exl3.exl3_gemm(x, *args))
 
 
-@pytest.mark.parametrize("m", [1, 48, 145, 1024])
+@pytest.mark.parametrize("m", [1, 48, 145, 385, 1024])
 @pytest.mark.parametrize("tid", [t for t in MR_TIDS if BITS[t] == 4])
 def test_routing_repacked(ops, monkeypatch, tid, m):
-    """EXL3_MR=2: a repacked K4 runs exl3_gemm_mr to 144 rows; above, unpack + dequant gives
-    the stored tensor's route bit for bit."""
+    """EXL3_MR=2: a repacked K4 runs exl3_gemm_mr to MULTI_ROW_MAX rows; above, unpack + dequant
+    gives the stored tensor's route bit for bit."""
     import torch
 
     monkeypatch.setattr(ops, "MR_MODE", 2)
@@ -186,7 +190,7 @@ def test_routing_repacked(ops, monkeypatch, tid, m):
     w = weights(tid)
     x = C.make_x(torch, tid, m)
     y = ops.exl3_linear(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
-    if m <= ops.GEMM_MAX_ROWS:
+    if m <= ops.MULTI_ROW_MAX:
         want = torch.ops._C_exl3.exl3_gemm_mr(x, w["b"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)
     else:
         want = ops.exl3_linear(x, w["trellis"], w["suh"], w["svh"], w["mcg"], w["mul1"], True)

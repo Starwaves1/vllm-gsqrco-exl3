@@ -173,9 +173,9 @@ class EXL3LinearMethod(LinearMethodBase):
             if ops.mr_repacks(trellis.shape[2], quant.mul1):
                 trellis = mr.exl3_mr_repack(trellis)
                 setattr(layer, f"exl3_trellis_{i}", Parameter(trellis, requires_grad=False))
-                rows = range(1, ops.GEMM_MAX_ROWS + 1)
+                rows = range(1, ops.GEMM_MAX_ROWS + 1)  # graphs stop at 48 rows; above 144 eager
             elif ops.mr_takes(trellis.shape[2], quant.mul1):
-                rows = range(ops.MULTI_ROW_MIN, ops.MULTI_ROW_MAX + 1)
+                rows = range(ops.MULTI_ROW_MIN, ops.GEMM_MAX_ROWS + 1)
             else:
                 continue
             key = ("mr", trellis.device.index, tuple(trellis.shape), trellis.dtype, out_fp32)
