@@ -148,6 +148,9 @@ def _recon_hgemm(x, trellis, suh, svh, mcg: bool, mul1: bool, fused: bool) -> to
     return y
 
 
+WIDE_CHUNK_ROWS = 256  # rows per call for a wide output (the lm_head) beyond that many rows
+
+
 def exl3_linear(
     x: torch.Tensor,
     trellis: torch.Tensor,
@@ -157,6 +160,14 @@ def exl3_linear(
     mul1: bool,
     out_fp32: bool,
 ) -> torch.Tensor:
+    if x.shape[0] > WIDE_CHUNK_ROWS and out_features(trellis) > RECON_SLICE_N:
+        # the lm_head on many rows (prompt_logprobs: whole prompt chunks): row chunks written into one
+        # output, so the scratch (dequant slices, fp32 products, casts) is bounded by one chunk
+        dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+        out = torch.empty(x.shape[0], out_features(trellis), dtype=dtype, device=x.device)
+        for r in range(0, x.shape[0], WIDE_CHUNK_ROWS):
+            out[r:r + WIDE_CHUNK_ROWS] = exl3_linear(x[r:r + WIDE_CHUNK_ROWS], trellis, suh, svh, mcg, mul1, out_fp32)
+        return out
     repacked = trellis.dtype == torch.int32
     name = _exl3_op(x.shape[0], not repacked and mr_takes(trellis.shape[2], mul1), repacked)
     if repacked and out_features(trellis) > RECON_SLICE_N:

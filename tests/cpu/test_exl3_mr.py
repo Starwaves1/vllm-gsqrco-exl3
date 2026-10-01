@@ -298,7 +298,7 @@ def test_wide_repacked_stays_on_mr(mr_mode, monkeypatch):
     s = torch.zeros(128, dtype=torch.half)
     ops.exl3_linear(torch.zeros(1024, 128, dtype=torch.half), b, s, torch.zeros(shim.n_out, dtype=torch.half),
                     False, True, True)
-    assert shim.calls == [("mr", 1024, torch.int32)]
+    assert shim.calls == [("mr", 256, torch.int32)] * 4  # in WIDE_CHUNK_ROWS chunks
 
 
 def test_fake_impl_repacked():
