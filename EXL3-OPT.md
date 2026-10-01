@@ -104,6 +104,84 @@ custom-op outputs (glue on fused layers) trips inductor's split-of-cat simplific
 comes back with the part's own stride): glue is on single-part layers only.
 
 
+## Phase 3 (2026-10-01, from 10:00 UTC)
+
+**Review fixes validated on the GPU** (VERIFIED): job 10 at 579eb15, 294/294; job 14 at 200,000
+tokens with the defaults (host embedding by registration id), KV 265,369 tokens (1.33x), the ~195k
+request completes, VRAM 23.85 / 24.58 GB after it.
+
+**The 16 -> 17-row cliff** (job 11: target pass 23.3 ms at 16 rows, 31.6-35.3 at 17-32 under every
+launch config): not occupancy (both families at 8 warps per SM: 16-row kernels 134-156 registers,
+32-row 209-224, no spills; `ptxas -v`), not a second weight pass (one launch, the decoded weight is
+reused across m-blocks). Static SASS of one pipeline pass (K3, 256 threads, 128x128): the decode ALU
+work (IMAD/LOP3/SHF/PRMT/HFMA2, about 3k instructions per warp) is the same in both families, HMMA
+doubles from 64 to 128. With fp32 accumulation an m16n8k16 HMMA costs about 32 tensor cycles per
+sub-partition on GA102, so the 16-row kernel is issue-bound (~5k cycles vs 4k tensor) and the
+32-row kernel tensor-bound (8k vs ~6k): MMA work alone at 32 rows is 1.65 TFLOP per pass, 21.8 ms at
+the 75 TFLOPS fp32-accumulate peak (INFERRED from counts and peak rates; Nsight Compute has no
+counter access in the container, job 16: ERR_NVGPUCTRPERM; job 17's timing probes split the kernel
+phases when it runs). fp16 accumulation halves the tensor time and leaves the 32-row kernel
+issue-bound: the owned patch `exl3_marlin_h16.patch` (fp16 partials folded into fp32 per k-stage,
+on a generated copy of the vendored template) measured 29.7 / 30.5 / 31.2 ms at 17 / 24 / 32 rows
+against 31.6 / 31.7 / 32.3 (fp32, forced 128x128), parity 294/294; on all m-blocks it spills at 48+
+rows and loses at 12-16, so it is now limited to the 17-32-row kernels (branch `exl3-opt-h16`,
+measuring). The rest of the cliff is the decode's instruction count at 8 warps per SM: an owned
+kernel (cheaper decode or more warps) is the remaining lever, a multi-day item.
+
+**Fused layers**: the torch.compile stride bug was inductor's split-of-cat pass returning a part's own
+output for the model's split of the concatenation (GDN's z, 6144 wide, expected as a view of the 16384
+qkvz concat) across a piecewise-graph boundary whose strides vLLM asserts. Fix (branch
+`exl3-opt-parts`, measuring): one opaque op per layer (`_exl3_linear_parts`, the parts and the cat
+inside), which also lets the bf16 glue cover fused layers. Same bits (job 10 parts: 299/301, the two
+misses an fp8 test bound since fixed).
+
+**Draft head** (`exl3-opt-parts`, `EXL3_DRAFT_FP8`, measuring): per-row e4m3 weights through vLLM's
+fp8 Marlin (0.21 instead of 0.42 GB per draft step); logits rel. rms 2.7 % vs the bf16 head.
+
+**prompt_logprobs / echo** (VERIFIED, job 18, ~4k-token code prompt, `cloud/results/exl3-opt/18-logprobs/`):
+on the defaults a 4096-token `prompt_logprobs` request kills the engine, but the OOM is vLLM's own
+(`sampler.compute_logprobs` in `_get_prompt_logprobs_dict`, an fp32 log-softmax of 1.57 GiB), as for
+stock W4A16 (GSQ round 3, r3-53); stock vLLM already fails at 512 tokens. With EXL3_MR=0 the plugin
+itself OOMs first, in the lm_head's dequant route. Kept (merged 95e4571): the lm_head on more than 256
+rows runs in 256-row chunks into one bf16 output, the head always takes bf16 (no fp32 full-vocab
+copy); GPU regression test: 2048 rows, 0.95 GiB output, scratch 0.43 GiB (EXL3_MR=0) / 0.12 GiB
+(defaults). With GSQ round 3's vLLM prompt-logprobs patch (`/workspace/venv-r3-plp`) and this fix:
+echo + logprobs on a 6- and a 40-token prompt 200 without NaN (the GGUF route's NaN is not here),
+`prompt_logprobs` at 512 / 2048 / 4096 tokens 200, no NaN / None, healthy after; echo + logprobs at
+4096 still dies in `compute_logprobs` (256 MiB): vLLM materializes the whole chunk's logits (2048 x
+248320 bf16, ~1 GiB, the plugin's output) before its chunked log-softmax, outside the profiled
+budget; the remaining fix is vLLM-side (logits per row chunk in the prompt-logprobs path).
+
+**GSQ side**: main 32ae6ec, IQ3 repack GPU tests after 62f27c0 (`-k "pack or packed"`,
+`VLLM_GGUF_LCPP=1`): 1462 passed, 0 skipped (`/workspace/logs/gsq-pack-32ae6ec-lcpp/test.log`).
+
+**Logit parity vs exllamav3** (VERIFIED, job 05 on the defaults, vLLM without MTP; reference: phase
+1's 04, all 11 sequences 1k-120k ok; exllamav3's own fp16- vs fp32-accumulate spread KLD 7.3e-5,
+top-1 0.9997; `cloud/results/exl3-opt/05-parity/`). Per sequence, KLD mean (top-1):
+
+| seq | kind | tokens | bf16 KV | fp8 KV |
+|---|---|---|---|---|
+| 000 | chat | 1024 | 0.0127 (0.988); 0.0031 without 2 ref glitches | 0.0527 (0.969); 0.0158 without 6 |
+| 001 | chat | 2048 | 0.0224 (0.979); 0.0017 without 2 | 0.0470 (0.979); 0.0058 without 5 |
+| 002 | code | 1536 | 0.00023 (0.997) | 0.00117 (0.997) |
+| 003 | code | 4096 | 0.00068 (1.000) | 0.00131 (1.000) |
+| 004 | code | 8192 | 0.00020 (0.986) | 0.00062 (0.993) |
+| 005 | prose | 8192 | 0.00032 (0.997) | 0.00089 (0.990) |
+| 006 | code | 32768 | 0.00017 (0.993) | 0.00063 (0.993) |
+| 007 | mixed | 32768 | 0.00025 (0.997) | 0.00068 (1.000) |
+| 008 | mixed | 65536 | 0.00019 (0.993) | 0.00056 (0.990) |
+| 009 | code | 102400 | 0.00019 (0.997) | 0.00092 (0.993) |
+| 010 | mixed | 120000 | 0.00071 (0.993) | 0.00128 (1.000) |
+| all | | | 0.0034; 0.00067 without ref glitches | 0.0094; 0.0025 without |
+
+The chat sequences' outliers are the reference's: at seq_001 position 1744 (`hidden_states =
+hidden` -> `_states`) exllamav3 gives the actual token ~0 and predicts ` super` (0.51) / `调用`
+(0.21); at 1823 `<|im_end|>` 0.87 (`parity_glitch.py` excludes positions with KLD > 0.1 where the
+reference gives the actual token < 1 %). Long prompts are not worse than short ones (102k 1.9e-4,
+120k 7.1e-4 at bf16 KV, inside the 1.7e-4-6.8e-4 of the 1.5k-65k sequences): no case for an fp32
+prefill path from these data. fp8 KV costs 2-5x KLD everywhere (as on the GGUF route), most on the
+two short chat sequences (1.6e-2 and 5.8e-3 without glitches): flagged, not investigated.
+
 ## What is here
 
 | path | what |

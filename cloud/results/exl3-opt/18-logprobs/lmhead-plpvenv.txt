@@ -1,0 +1,6 @@
+{"case": "echo-denmark", "http": 200, "n": 5, "none": 0, "nan": 0, "inf": 0, "min": -13.540220260620117, "error": "", "healthy_after": true}
+{"case": "echo-40", "http": 200, "n": 40, "none": 0, "nan": 0, "inf": 0, "min": -22.443572998046875, "error": "", "healthy_after": true}
+{"case": "plp-512", "http": 200, "n": 511, "none": 0, "nan": 0, "inf": 0, "min": -2.2710349559783936, "error": "", "healthy_after": true}
+{"case": "plp-2048", "http": 200, "n": 2047, "none": 0, "nan": 0, "inf": 0, "min": -2.760878801345825, "error": "", "healthy_after": true}
+{"case": "plp-4096", "http": 200, "n": 4095, "none": 0, "nan": 0, "inf": 0, "min": -2.829908609390259, "error": "", "healthy_after": true}
+{"case": "echo-4096", "http": 500, "n": 0, "none": 0, "nan": 0, "inf": 0, "min": null, "error": "{\"error\":{\"message\":\"EngineCore encountered an issue. See stack trace (above) for the root cause.\",\"type\":\"InternalServerError\",\"param\":null,\"code\":500}}", "healthy_after": false}
