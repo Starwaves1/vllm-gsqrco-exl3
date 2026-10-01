@@ -50,14 +50,21 @@ def healthy():
         return False
 
 
-base = {"model": model, "prompt": prompt, "max_tokens": 1, "temperature": 0}
-code, r = post({**base, "prompt_logprobs": 1})
-plp = (r.get("choices") or [{}])[0].get("prompt_logprobs") if code == 200 else None
-vals = [] if not plp else [None if d is None else max(v["logprob"] for v in d.values()) for d in plp[1:]]
-print(json.dumps({"request": "prompt_logprobs", "prompt_tokens": len(ids), "http": code, **stats(vals),
-                  "error": r.get("error"), "healthy_after": healthy()}), flush=True)
-code, r = post({**base, "echo": True, "logprobs": 1})
-lp = (r.get("choices") or [{}])[0].get("logprobs") if code == 200 else None
-vals = [] if not lp else lp.get("token_logprobs", [])[1:]
-print(json.dumps({"request": "echo_logprobs", "prompt_tokens": len(ids), "http": code, **stats(vals),
-                  "error": r.get("error"), "healthy_after": healthy()}), flush=True)
+def case(name, n_or_text, body):
+    text = n_or_text if isinstance(n_or_text, str) else tok.decode(ids[:n_or_text])
+    code, r = post({"model": model, "prompt": text, "max_tokens": 1, "temperature": 0, **body})
+    ch = (r.get("choices") or [{}])[0] if code == 200 else {}
+    if "prompt_logprobs" in body:
+        plp = ch.get("prompt_logprobs") or []
+        vals = [None if d is None else max(v["logprob"] for v in d.values()) for d in plp[1:]]
+    else:
+        vals = ((ch.get("logprobs") or {}).get("token_logprobs") or [])[1:]
+    print(json.dumps({"case": name, "http": code, **stats(vals), "error": (r.get("error") or "")[:200],
+                      "healthy_after": healthy()}), flush=True)
+
+
+case("echo-denmark", "The capital of Denmark is", {"echo": True, "logprobs": 1})
+case("echo-40", 40, {"echo": True, "logprobs": 1})
+for n in (512, 2048, n_tok):
+    case(f"plp-{n}", n, {"prompt_logprobs": 1})
+case(f"echo-{n_tok}", n_tok, {"echo": True, "logprobs": 1})
