@@ -50,8 +50,17 @@ if _should_build_extension():
         "vllm_gguf_plugin/csrc/gguf",
     ]
     # llama.cpp b11211 MMVQ/MMQ (csrc/lcpp, vendored unmodified) behind
-    # csrc/lcpp_shim.cu: the lcpp_* ops. Opt-in; the default build is unchanged.
+    # csrc/lcpp_shim.cu, plus the owned kernels (csrc/lcpp_owned_*.cu): the
+    # lcpp_* ops. Opt-in; the default build is unchanged.
     if os.environ.get("VLLM_GGUF_BUILD_LCPP") == "1" and not is_rocm:
+        # The owned int8 tensor-core kernels need sm_80+ (mma.sync m16n8k32 s8,
+        # cp.async); refuse an explicit arch list with older entries.
+        archs = os.environ.get("TORCH_CUDA_ARCH_LIST", "").replace(";", " ").split()
+        if any(a[0].isdigit() and int(a.split(".")[0]) < 8 for a in archs):
+            raise RuntimeError(
+                "VLLM_GGUF_BUILD_LCPP=1 needs compute capability 8.0 or newer, "
+                f"TORCH_CUDA_ARCH_LIST={os.environ['TORCH_CUDA_ARCH_LIST']!r}"
+            )
         lcpp = pathlib.Path("vllm_gguf_plugin/csrc/lcpp").resolve()
         cuda = lcpp / "ggml/src/ggml-cuda"
         # setup() needs relative sources
@@ -59,6 +68,7 @@ if _should_build_extension():
         sources += (
             [
                 "vllm_gguf_plugin/csrc/lcpp_shim.cu",
+                "vllm_gguf_plugin/csrc/lcpp_owned_iq3_mma.cu",
             ]
             + [f"{cuda_rel}/{f}" for f in ["mmvq.cu", "quantize.cu"]]
             + [

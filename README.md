@@ -78,9 +78,9 @@ loads normally without MTP.
 Built with `VLLM_GGUF_BUILD_LCPP=1`, the extension also contains llama.cpp
 b11211's MMVQ and MMQ kernels (vendored unmodified under
 `vllm_gguf_plugin/csrc/lcpp`, see `VENDORED.md` there) behind
-`csrc/lcpp_shim.cu`, as the `torch.ops._C_gguf.lcpp_*` ops.
+`csrc/lcpp_shim.cu`, and owned kernels beside them, as the `torch.ops._C_gguf.lcpp_*` ops.
 At run time `VLLM_GGUF_LCPP=1` sends the linear layers of Q2_K, Q4_K, Q6_K, IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_XS weights to them. Both are off by default,
-and the default build and behaviour are unchanged.
+and the default build and behaviour are unchanged. This build needs compute capability 8.0 or newer.
 
 ```bash
 VLLM_GGUF_BUILD_LCPP=1 uv pip install -e . --no-build-isolation

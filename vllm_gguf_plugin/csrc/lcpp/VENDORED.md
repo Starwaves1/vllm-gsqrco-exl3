@@ -5,7 +5,8 @@ d7fb90e8e2494b2908934d956a3202fd60152ee0.
 License: MIT, see `LICENSE` (copied verbatim from the same commit).
 
 Files are byte-identical copies at their upstream relative paths. **Do not edit
-them**; all adaptation lives in `../lcpp_shim.cu`. To update, re-copy the same
+them**; all adaptation lives in `../lcpp_shim.cu`, owned kernels in
+`../lcpp_shim.cu` and `../lcpp_owned_*.cu`. To update, re-copy the same
 list from a new commit and rebuild. Check: `sha256sum -c` on the list below, run
 in this directory, or `cmp` each file against a checkout of the commit.
 

@@ -90,8 +90,9 @@ _CUDA_GEMM_QUANT_TYPES = frozenset(
 )
 
 
-# Opt-in (VLLM_GGUF_LCPP=1): llama.cpp b11211 MMVQ/MMQ via csrc/lcpp_shim.cu for
-# these types. Needs the extension built with VLLM_GGUF_BUILD_LCPP=1.
+# Opt-in (VLLM_GGUF_LCPP=1): llama.cpp b11211 MMVQ/MMQ via csrc/lcpp_shim.cu,
+# and the owned kernels beside it, for these types. Needs the extension built
+# with VLLM_GGUF_BUILD_LCPP=1.
 LCPP_ENABLED = os.environ.get("VLLM_GGUF_LCPP") == "1"
 LCPP_QUANT_TYPES = frozenset(
     {
