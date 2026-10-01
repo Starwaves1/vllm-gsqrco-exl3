@@ -192,29 +192,22 @@ class EXL3LinearMethod(LinearMethodBase):
         bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         quant = self.quant_config.quant
-        # the kernels take fp16: cast once per layer, not per part; with a bf16 model the
-        # kernels write fp32 (no second fp16 rounding) and the result is cast once
+        # one opaque op per layer (ops.exl3_linear_parts: the parts and their concatenation). The
+        # kernels take fp16: cast once per layer; with a bf16 model they write fp32 (no second fp16
+        # rounding), cast once. Glue (ops.MR_GLUE): bf16 straight through instead, made contiguous as
+        # the cast did (the compiled graph asserts the op's input strides)
         xh = x.reshape(-1, x.shape[-1])
-        # glue (ops.MR_GLUE): bf16 straight through, made contiguous as the cast did (x can be a
-        # strided view; the compiled graph asserts the custom op's input strides). Single-part
-        # layers only: a bare cat of custom-op outputs lets inductor hand a split of it (GDN's z)
-        # back as the part's own buffer, against the stride the next piece was traced with
-        glue = ops.MR_GLUE and x.dtype == torch.bfloat16 and layer.exl3_num_parts == 1
-        xh = xh.contiguous() if glue else xh.to(torch.half)
-        out_fp32 = x.dtype != torch.half
-        outs = [
-            torch.ops.vllm._exl3_linear(
-                xh,
-                getattr(layer, f"exl3_trellis_{i}"),
-                getattr(layer, f"exl3_suh_{i}"),
-                getattr(layer, f"exl3_svh_{i}"),
-                quant.mcg,
-                quant.mul1,
-                out_fp32,
-            )
-            for i in range(layer.exl3_num_parts)
-        ]
-        out = outs[0] if len(outs) == 1 else torch.cat(outs, dim=-1)
+        xh = xh.contiguous() if ops.MR_GLUE and x.dtype == torch.bfloat16 else xh.to(torch.half)
+        n = range(layer.exl3_num_parts)
+        out = torch.ops.vllm._exl3_linear_parts(
+            xh,
+            [getattr(layer, f"exl3_trellis_{i}") for i in n],
+            [getattr(layer, f"exl3_suh_{i}") for i in n],
+            [getattr(layer, f"exl3_svh_{i}") for i in n],
+            quant.mcg,
+            quant.mul1,
+            x.dtype != torch.half,
+        )
         out = out.to(x.dtype).reshape(*x.shape[:-1], out.shape[-1])
         if bias is not None:
             out = out + bias

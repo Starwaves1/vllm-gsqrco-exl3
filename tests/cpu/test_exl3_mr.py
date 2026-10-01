@@ -301,6 +301,23 @@ def test_wide_repacked_stays_on_mr(mr_mode, monkeypatch):
     assert shim.calls == [("mr", 1024, torch.int32)]
 
 
+@pytest.mark.parametrize("bf16", [False, True])
+def test_linear_parts(mr_mode, fake, bf16):
+    """One op per layer: the parts' products concatenated in order; the fake impl agrees."""
+    ops = mr_mode(2)
+    k = 128
+    parts = [torch.zeros(k // 16, fake.n_out // 16, WIDTH[b], dtype=torch.int16) for b in (3, 2)]
+    x = torch.zeros(32, k, dtype=torch.bfloat16 if bf16 else torch.half)
+    s = [torch.zeros(k, dtype=torch.half)] * 2
+    v = [torch.zeros(fake.n_out, dtype=torch.half)] * 2
+    y = ops.exl3_linear_parts(x, parts, s, v, False, True, True)
+    want = torch.bfloat16 if bf16 else torch.float
+    assert y.shape == (32, 2 * fake.n_out) and y.dtype == want
+    assert fake.calls == [("mr", 32, torch.int16), ("gemm", 32)]
+    f = ops.exl3_linear_parts_fake(x, parts, s, v, False, True, True)
+    assert f.shape == y.shape and f.dtype == y.dtype
+
+
 def test_fake_impl_repacked():
     from vllm_exl3_plugin.ops import exl3_linear_fake
 

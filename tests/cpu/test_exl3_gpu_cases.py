@@ -22,6 +22,7 @@ def _phase1_routing(monkeypatch):
     monkeypatch.setattr(ops, "MR_MODE", 0)
     monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
     monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
+    monkeypatch.setattr(ops, "MR_GLUE", False)
 
 
 @pytest.mark.parametrize("ckpt", list(C.CHECKPOINTS))

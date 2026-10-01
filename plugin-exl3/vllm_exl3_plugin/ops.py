@@ -69,9 +69,8 @@ MR_MODE = int(os.environ.get("EXL3_MR", "2"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
-# glue (with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16 back on single-part
-# layers (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and the fp32 round trip
-# out. Same bits, fewer launches; job 12: no change beyond run-to-run spread (within 0.8 ms/step).
+# glue (with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16 back (exl3_linear's bf16
+# contract), so exl3_gemm_mr skips the cast in and the fp32 round trip out. Same bits, fewer launches.
 MR_GLUE = MR_MODE == 2
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
 # MULTI_ROW_MIN: K3/K5 take exl3_gemm_mr from 1 row (job 12: from 17 rows instead costs +3.3
@@ -186,6 +185,36 @@ def exl3_linear_fake(
     return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
+def exl3_linear_parts(
+    x: torch.Tensor,
+    trellis: list[torch.Tensor],
+    suh: list[torch.Tensor],
+    svh: list[torch.Tensor],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    """One layer: exl3_linear per part, concatenated along the outputs. One opaque op per layer, so
+    torch.compile never sees the cat: inductor's split-of-cat pass would otherwise hand the model's
+    split of it (GDN's z) back as the part's own buffer, with a stride the next compiled piece was
+    not traced with (job 12 run 2: z of qkvz expected stride 16384, got 6144)."""
+    ys = [exl3_linear(x, t, s, v, mcg, mul1, out_fp32) for t, s, v in zip(trellis, suh, svh)]
+    return ys[0] if len(ys) == 1 else torch.cat(ys, dim=1)
+
+
+def exl3_linear_parts_fake(
+    x: torch.Tensor,
+    trellis: list[torch.Tensor],
+    suh: list[torch.Tensor],
+    svh: list[torch.Tensor],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+    return x.new_empty(x.shape[0], sum(out_features(t) for t in trellis), dtype=dtype)
+
+
 # EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in page-locked host memory
 # (quantization/embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12:
 # no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
@@ -207,6 +236,9 @@ def _register() -> None:
 
     direct_register_custom_op(
         op_name="_exl3_linear", op_func=exl3_linear, fake_impl=exl3_linear_fake
+    )
+    direct_register_custom_op(
+        op_name="_exl3_linear_parts", op_func=exl3_linear_parts, fake_impl=exl3_linear_parts_fake
     )
     direct_register_custom_op(
         op_name="_exl3_embed_host", op_func=exl3_embed_host, fake_impl=exl3_embed_host_fake

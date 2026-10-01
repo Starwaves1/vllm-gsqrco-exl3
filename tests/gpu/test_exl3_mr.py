@@ -149,6 +149,23 @@ def test_bf16_io_same_bits(ops, tid, m):
     assert torch.equal(y, torch.ops._C_exl3.exl3_gemm_mr(xb.half(), *args).to(torch.bfloat16))
 
 
+@pytest.mark.parametrize("m", [1, 6, 24, 48])
+def test_linear_parts_same_bits(ops, m):
+    """The per-layer op on bf16 x (glue) == each part's exl3_linear on fp16 x, cast to bf16, concatenated."""
+    import torch
+
+    ws = [C.load(torch, t) for t in ("K4-kproj", "K5-kproj")]  # both k=5120: a k/v-like fused pair
+    for w in ws:
+        if w["trellis"].shape[2] == 64:
+            w["trellis"] = ops.repack_k4_(w["trellis"])
+    x = C.make_x(torch, "K4-kproj", m)
+    args = ([w["trellis"] for w in ws], [w["suh"] for w in ws], [w["svh"] for w in ws], False, True, True)
+    y = ops.exl3_linear_parts(x.to(torch.bfloat16), *args)
+    want = torch.cat([ops.exl3_linear(x.to(torch.bfloat16).half(), w["trellis"], w["suh"], w["svh"], False, True, True)
+                      .to(torch.bfloat16) for w in ws], 1)
+    assert y.dtype == torch.bfloat16 and torch.equal(y, want)
+
+
 @pytest.mark.parametrize("tid", MR_TIDS)
 def test_deterministic(ops, tid):
     import torch
