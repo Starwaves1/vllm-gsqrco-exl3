@@ -125,8 +125,15 @@ issue-bound: the owned patch `exl3_marlin_h16.patch` (fp16 partials folded into 
 on a generated copy of the vendored template) measured 29.7 / 30.5 / 31.2 ms at 17 / 24 / 32 rows
 against 31.6 / 31.7 / 32.3 (fp32, forced 128x128), parity 294/294; on all m-blocks it spills at 48+
 rows and loses at 12-16, so it is now limited to the 17-32-row kernels (branch `exl3-opt-h16`,
-measuring). The rest of the cliff is the decode's instruction count at 8 warps per SM: an owned
-kernel (cheaper decode or more warps) is the remaining lever, a multi-day item.
+"h16b"). Job 17 (trellis-serve's timing probes, VERIFIED): the cliff is all in the main loop: with
+the in-block and global reduce and the write cut (flag 224) K3 5120x17408 still goes 77.9 -> 105.5 us
+from 16 to 17 rows, K4 6144x5120 30.3 -> 39.7; reduce + write cost 3-11 us, setup ~8 us. Same-session
+micro (job 11, target pass ms at 6 / 12 / 16 / 17 / 24 / 32 / 48 rows): main 18.8 / 23.1 / 23.3 /
+34.1 / 34.6 / 34.9 / 48.3; h16b 18.7 / 23.0 / 23.2 / 29.4 / 30.1 / 30.9 / 48.1 (-4.0 to -4.6 ms per
+verify pass at 17-32 rows, parity 294/294); upstream's `TRELLIS_K3_IMAD_SHIFTS` 3 / 6 (K3 shifts on
+the FMA pipe) 0.6-1.8 ms worse everywhere (mul1 decode is IMAD-heavy already), rejected. h16b's
+ladder is queued. The rest of the cliff is the decode's instruction count at 8 warps per SM: an
+owned kernel (cheaper decode or more warps) is the remaining lever, a multi-day item.
 
 **Fused layers**: the torch.compile stride bug was inductor's split-of-cat pass returning a part's own
 output for the model's split of the concatenation (GDN's z, 6144 wide, expected as a view of the 16384
