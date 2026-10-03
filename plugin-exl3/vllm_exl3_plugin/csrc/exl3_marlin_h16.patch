@@ -1,6 +1,19 @@
 --- exl3_marlin_template.h
 +++ exl3_marlin_template_h16.h
-@@ -364,6 +364,14 @@
+@@ -45,6 +45,12 @@
+ #include "exl3_decode.cuh"  // EXL3
+ #include "exl3_had.cuh"     // EXL3
+ #include <cooperative_groups.h>  // EXL3: grid barrier after the in-launch input transform
++#ifndef TRELLIS_H16_FOLD
++  #define TRELLIS_H16_FOLD 1  // exl3-opt h16: k-stages per fp16-partial fold (0 = once per slice)
++#endif
++#ifndef TRELLIS_H16_MB_MASK
++  #define TRELLIS_H16_MB_MASK 4  // exl3-opt h16: bit b = fp16 accumulation in the thread_m_blocks == b kernels
++#endif
+ #ifndef TRELLIS_PROBES
+   #define TRELLIS_PROBES 0  // 1: timing-probe branches (set_debug_flags) compiled in; never in a served build
+ #endif
+@@ -364,6 +370,16 @@
    #else
    constexpr bool use_fp16_accum = false;
    #endif
@@ -10,12 +23,14 @@
 +  // 17..32-row kernels (thread_m_blocks 2): the one family where the tensor pipe, not decode issue, is the
 +  // limit (fp32 accumulate: 128 HMMA x 32 cycles vs ~6k issue cycles per pass); at 3 and 4 the extra
 +  // partial-sum registers spill.
-+  constexpr bool h16 = a_type_id == vllm::kFloat16.id() && !use_fp16_accum && thread_m_blocks == 2 &&
-+                       !m_block_size_8;
++  // TRELLIS_H16_MB_MASK: bit b set = h16 in the thread_m_blocks == b kernels (default 4: b = 2 only);
++  // TRELLIS_H16_FOLD: k-stages per fold (1 = every stage; 0 = once per slice, as exllamav3's EXL3_GEMM_H_ACC)
++  constexpr bool h16 = a_type_id == vllm::kFloat16.id() && !use_fp16_accum &&
++                       ((TRELLIS_H16_MB_MASK >> thread_m_blocks) & 1) && !m_block_size_8;
    using Adtype = MarlinScalarType<a_type_id>;
    using Cdtype = MarlinScalarType<c_type_id>;
    const int4* A = A0;
-@@ -902,6 +910,25 @@
+@@ -902,6 +918,25 @@
    #pragma unroll
      for (int i = 0; i < thread_m_blocks * 4 * 2 * 4; i++)
        reinterpret_cast<float*>(frag_c)[i] = 0;
@@ -41,7 +56,7 @@
    };
  
    int sh_first_group_id = -1;
-@@ -1485,7 +1512,12 @@
+@@ -1485,7 +1520,12 @@
        }
    #pragma unroll
        for (int i = 0; i < thread_m_blocks; i++) {
@@ -55,11 +70,14 @@
            mma_trans<a_type_id, use_fp16_accum>(frag_a[k2][i], frag_b0, frag_b1,
                                                 frag_c[i][j][0]);
          } else {
-@@ -2043,6 +2075,7 @@
+@@ -2043,6 +2083,10 @@
            matmul_a8(k);
          }
        }
-+      fold_h16();  // exl3-opt
++      if constexpr (h16) {  // exl3-opt: fold every TRELLIS_H16_FOLD stages and on the slice's last stage
++        if ((TRELLIS_H16_FOLD > 0 && pipe % (TRELLIS_H16_FOLD > 0 ? TRELLIS_H16_FOLD : 1) == 0) || slice_iters == 1)
++          fold_h16();
++      }
        slice_iters--;
        if (slice_iters == 0) {
          break;

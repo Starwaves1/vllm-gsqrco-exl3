@@ -97,7 +97,9 @@ if _should_build_extension():
                "-DTRELLIS_WRAP_LOAD=1", "-DTRELLIS_PROBES=0", "-DTRELLIS_SLOT_REDUCE=1",
                "-DTRELLIS_MOE_MINBLOCKS_M8=2", "-DTRELLIS_MCG_SELFADD=1",
                # upstream's experiment knob (0 | 3 | 6 of the K3 window shifts on the FMA pipe), bit-exact
-               "-DTRELLIS_K3_IMAD_SHIFTS=" + os.environ.get("TRELLIS_K3_IMAD_SHIFTS", "0")]
+               "-DTRELLIS_K3_IMAD_SHIFTS=" + os.environ.get("TRELLIS_K3_IMAD_SHIFTS", "0"),
+               # exl3_marlin_h16.patch experiments (defaults in the patched template)
+               *[f"-D{v}={os.environ[v]}" for v in ("TRELLIS_H16_FOLD", "TRELLIS_H16_MB_MASK") if v in os.environ]]
     mr_nvcc += wheel_inc
     ext_modules = [
         CUDAExtension(
