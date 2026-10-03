@@ -1,0 +1,868 @@
+[
+  {
+    "slug": "plugin-host-staging-copy",
+    "title": "[BugFix] Copy unsharded and vocab GGUF weights to the device from host memory (bug 1: MTP draft-load OOM under cumem)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "report-drafted",
+    "branch": "upstream/01-host-staging-copy",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#101",
+      "vllm-project/vllm-gguf-plugin#109",
+      "vllm-project/vllm-gguf-plugin#141"
+    ],
+    "loc": {
+      "added": 72,
+      "removed": 2
+    },
+    "report": "docs/upstream/prs/plugin-host-staging-copy/REPORT.md",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "Ready with edits (applied, text only): cites and pool/OOM path verified, 1.06 GiB = staging copies, red/green real, no downside; mechanism now includes max_split_size_mb=20; #141 fixes the linear half independently, not the vocab half.",
+    "updated": "2026-10-03",
+    "why_not": ""
+  },
+  {
+    "slug": "plugin-qwen35-no-mmproj",
+    "title": "[BugFix] qwen3_5: serve a multimodal-config GGUF without mm_proj as text only (bug 2)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "report-drafted",
+    "branch": "pr/plugin-qwen35-no-mmproj",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#120 (closed; text-architecture route, +201/-14; CHANGES_REQUESTED: Qwen3_5ForCausalLM missing in vLLM 0.26.0)"
+    ],
+    "loc": {
+      "added": 93,
+      "removed": 8
+    },
+    "report": "docs/upstream/prs/plugin-qwen35-no-mmproj/REPORT.md",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "Ready with edits (applied): mechanism and cites verified, red/green real, no smaller fix works (architecture fixed in config_parser before the loader; limits cannot be changed at load time); #120 review shows the text-arch route fails on vLLM 0.26.0; stale MTP comment fixed on pr/ branch.",
+    "updated": "2026-10-03",
+    "why_not": ""
+  },
+  {
+    "slug": "plugin-mtp-draft-config",
+    "title": "[BugFix] Build the MTP draft config from the HF config source on vLLM >= 0.29 (bug 16)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "report-drafted",
+    "branch": "upstream/12-mtp-draft-config",
+    "upstream_refs": [
+      "vllm-project/vllm#42079 (cause)",
+      "vllm-project/vllm#53214",
+      "vllm-project/vllm-gguf-plugin#115",
+      "vllm-project/vllm-gguf-plugin#117",
+      "vllm-project/vllm-gguf-plugin#141"
+    ],
+    "loc": {
+      "added": 45,
+      "removed": 8
+    },
+    "report": "docs/upstream/prs/plugin-mtp-draft-config/REPORT.md",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "Ready with edits (applied, text only): cites verified on e2b8ad5/d28795f1a7/main; model_weights read once in SpeculativeConfig; red/green and 105/6 reproduced; no downsides; first affected release is v0.29.0; README MTP example is the failing case.",
+    "updated": "2026-10-03",
+    "why_not": ""
+  },
+  {
+    "slug": "vllm-50021-conv1d-bound",
+    "title": "Review comment on vllm#50021: its causal_conv1d bound zeroes GDN output when the speculative query shrinks (bugs 18, 19: production corruption)",
+    "target_repo": "vllm-project/vllm#50021 review",
+    "status": "candidate",
+    "branch": "r3",
+    "upstream_refs": [
+      "vllm-project/vllm#50021 (open, head 71d7c782ca)"
+    ],
+    "loc": {
+      "added": 5,
+      "removed": 1
+    },
+    "report": "docs/upstream/vllm-issue-dynamic-spec-schedule-corruption.md (branch r3; the r3 agent owns the text)",
+    "base": "vllm#50021 head 71d7c782ca",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": ""
+  },
+  {
+    "slug": "vllm-prompt-logprobs-oom",
+    "title": "[Bugfix] prompt_logprobs: bound the full-vocab logits of a prefill chunk (bug 20)",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "r3",
+    "upstream_refs": [
+      "vllm-project/vllm#52054 (open, same chunking, CHANGES_REQUESTED by njhill: V1 frozen, use V2)",
+      "vllm-project/vllm#5907",
+      "vllm-project/vllm#5355"
+    ],
+    "loc": {
+      "added": 40,
+      "removed": 25
+    },
+    "report": "",
+    "base": "d28795f1a7 + overlay 2a0fe5e1e1 (vLLM site-packages patch)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Same chunking as the open vllm#52054, which a maintainer blocked because the V1 runner is frozen and V2 already chunks (1,024 rows); a V2 variant (byte-bounded chunk) is unproven, we never ran V2, and a profile-run reservation would cost every deployment KV cache."
+  },
+  {
+    "slug": "vllm-prompt-logprobs-after-drafter",
+    "title": "[Bugfix][Spec Decode] echo/prompt_logprobs NaN: drafter overwrites the target's hidden states under CUDA graphs (bug 21)",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "r3",
+    "upstream_refs": [
+      "vllm-project/vllm#53488 (open issue)",
+      "vllm-project/vllm#53520 (open PR, same mechanism, validated on three platforms)"
+    ],
+    "loc": {
+      "added": 7,
+      "removed": 0
+    },
+    "report": "",
+    "base": "d28795f1a7 + overlay 2a0fe5e1e1 (vLLM site-packages patch)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Already reported (#53488) with an open fix (#53520) on the same mechanism, validated by three reporters; ours is 2 lines shorter but no better, and V2 (the default runner) computes prompt logprobs before the drafter and is clean."
+  },
+  {
+    "slug": "vllm-dynamic-k-invariant-issue",
+    "title": "Optional issue against vLLM main: num_accepted_tokens can exceed the next step's query length under dynamic K",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "r3",
+    "upstream_refs": [
+      "vllm-project/vllm#50021"
+    ],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "d28795f1a7 + overlay 2a0fe5e1e1 (vLLM site-packages patch)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Main is correct today (CPU test exact); a request for a test, not a bug; the r3 doc marks it optional."
+  },
+  {
+    "slug": "vllm-tool-choice-none-dropped",
+    "title": "tool_choice none: vLLM main parses the tool call out of content and drops it (bug 22)",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Not root-caused or fixed: 19/960 responses classified by the torture harness only."
+  },
+  {
+    "slug": "vllm-compile-cache-key-plugin-apply",
+    "title": "torch.compile cache key does not cover an out-of-tree quant method's apply() (bug 12)",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Worked around with a per-job VLLM_CACHE_ROOT; no minimal repro or fix written."
+  },
+  {
+    "slug": "inductor-split-of-cat-glue",
+    "title": "Inductor split-of-cat simplification returns a part's own stride across a piecewise boundary (bug 13)",
+    "target_repo": "pytorch/pytorch",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Avoided in our own op (one opaque op per layer); no standalone repro against inductor."
+  },
+  {
+    "slug": "vllm-drafter-host-seq-lens",
+    "title": "[Spec Decode] Follow seq_lens on the host across draft passes",
+    "target_repo": "vllm-project/vllm",
+    "status": "rejected",
+    "branch": "r3",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "d28795f1a7 + overlay 2a0fe5e1e1 (vLLM site-packages patch)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Measured no gain (57.5 vs 57.2 ms/step, inside noise); not kept."
+  },
+  {
+    "slug": "llamacpp-mmq-q8-tail",
+    "title": "CUDA MMQ: q8_1 read tail sized from the rounded-down ne11 (bug 23)",
+    "target_repo": "ggml-org/llama.cpp",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 2,
+      "removed": 2
+    },
+    "report": "docs/upstream/llamacpp-mmq-tail-issue.md",
+    "base": "b11211 (d7fb90e8)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Not observable in llama.cpp: the dense path below 8 columns is unreachable (MMVQ takes ne11 <= 8) and the ids path's over-read (also possible, J up to 128 vs J_max(ne11)) lands in pool padding (legacy pool +5%, VMM granularity) and is masked at write-back, so there is no failing case to prove upstream; the shim workaround stays ours."
+  },
+  {
+    "slug": "plugin-kernel-input-guards",
+    "title": "[BugFix] Check the inputs of the dense GGUF CUDA ops before launching (bug 4, branch 03)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "upstream/03-kernel-input-guards",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#127",
+      "vllm-project/vllm-gguf-plugin#128 (open, int narrowing guards in the same file)"
+    ],
+    "loc": {
+      "added": 482,
+      "removed": 0
+    },
+    "report": "",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Defensive only: apply() passes clean tensors, so no serving path hits these inputs; 482 lines, and #128 already guards the same dispatchers."
+  },
+  {
+    "slug": "plugin-kquant-dequant-ulp",
+    "title": "b2899 fp16 K-quant dequant is 1 ulp off ggml fp32 (bug 3)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Not a bug: fp16 rounding, bounded at 2^-9 of row absmax and documented by the parity harness (04)."
+  },
+  {
+    "slug": "plugin-small-unquantized-gemv",
+    "title": "[Perf] Batched gemv for small unquantized GGUF linears (11a)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "upstream/11a-small-unquantized-gemv",
+    "upstream_refs": [],
+    "loc": {
+      "added": 117,
+      "removed": 6
+    },
+    "report": "",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Performance, not a bug; adds a custom op and method subclass for a cuBLAS heuristic that belongs in vLLM core, as its own description says."
+  },
+  {
+    "slug": "plugin-dequant-no-zero-fill",
+    "title": "[Perf] ggml_dequantize: no zero fill (11b)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "upstream/11b-dequant-no-zero-fill",
+    "upstream_refs": [],
+    "loc": {
+      "added": 14,
+      "removed": 1
+    },
+    "report": "",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Performance claim never measured, and the poisoned-allocator test was never run on a GPU in this form; a candidate only after both."
+  },
+  {
+    "slug": "plugin-mtp-draft-vocab-pruning",
+    "title": "qwen3_5 MTP: row-pruned GGUF draft head (11f)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "upstream/11f-mtp-draft-vocab-pruning",
+    "upstream_refs": [],
+    "loc": {
+      "added": 82,
+      "removed": 6
+    },
+    "report": "",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Feature, not a bug, and its main part needs a vLLM-side draft head; discussion only."
+  },
+  {
+    "slug": "plugin-stock-kernels-nan-under-graphs",
+    "title": "VLLM_GGUF_LCPP=0 (stock b2899 kernels) gives NaN logits under CUDA graphs on vLLM main (bug 15)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Open, not investigated; possibly an upstream-plugin bug worth a diagnosis, but there is no root cause or fix."
+  },
+  {
+    "slug": "plugin-weight-iterator-memmap-copy",
+    "title": "torch.tensor(memmap) full host copy per tensor at load (bug 7)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Inefficiency noted in review, never changed or measured."
+  },
+  {
+    "slug": "plugin-meta-dry-run-vocab-gap",
+    "title": "meta_dry_run forced MTP_DRAFT_VOCAB=0 and missed the silent half of bug 16 (bug 17)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our own test tooling, already fixed here; nothing upstream."
+  },
+  {
+    "slug": "route-l-04-kernel-parity-harness",
+    "title": "Kernel parity tests; documents the fp16 dequant gap",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/04-kernel-parity-harness",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 534,
+      "removed": 0
+    },
+    "report": "docs/upstream/04-kernel-parity-harness.md",
+    "base": "upstream/03-kernel-input-guards",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard; covers groundwork for 05."
+  },
+  {
+    "slug": "route-l-05-lcpp-vendored-mmvq-mmq",
+    "title": "RFC: vendored llama.cpp b11211 MMVQ/MMQ behind a default-off flag",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/05-lcpp-vendored-mmvq-mmq",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 1248,
+      "removed": 46
+    },
+    "report": "docs/upstream/05-lcpp-vendored-mmvq-mmq.md",
+    "base": "upstream/04-kernel-parity-harness",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard; covers bug 5 (whole-weight dequant above the MMVQ cutoff)."
+  },
+  {
+    "slug": "route-l-06-lcpp-q8-quantizer",
+    "title": "Owned q8_1 quantizer, no activation cast",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/06-lcpp-q8-quantizer",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 209,
+      "removed": 23
+    },
+    "report": "docs/upstream/06-lcpp-q8-quantizer.md",
+    "base": "upstream/05-lcpp-vendored-mmvq-mmq",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-07-lcpp-owned-iq3",
+    "title": "Owned IQ3 decode kernel, 1-8 rows",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/07-lcpp-owned-iq3",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 897,
+      "removed": 35
+    },
+    "report": "docs/upstream/07-lcpp-owned-iq3.md",
+    "base": "upstream/06-lcpp-q8-quantizer",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-08-lcpp-owned-q4k-iq2s",
+    "title": "Owned Q4_K / IQ2_S decode kernel, 1-8 rows",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/08-lcpp-owned-q4k-iq2s",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 442,
+      "removed": 23
+    },
+    "report": "docs/upstream/08-lcpp-owned-q4k-iq2s.md",
+    "base": "upstream/07-lcpp-owned-iq3",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-09-lcpp-mma-k",
+    "title": "Owned int8-mma kernel, 9-32 rows",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/09-lcpp-mma-k",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 1076,
+      "removed": 21
+    },
+    "report": "docs/upstream/09-lcpp-mma-k.md",
+    "base": "upstream/08-lcpp-owned-q4k-iq2s",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-10-lcpp-iq3-packed",
+    "title": "IQ3 repack at load + packed kernels",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/10-lcpp-iq3-packed",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 1805,
+      "removed": 25
+    },
+    "report": "docs/upstream/10-lcpp-iq3-packed.md",
+    "base": "upstream/09-lcpp-mma-k",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard; covers bug 8 (bounded-scratch repack)."
+  },
+  {
+    "slug": "route-l-11c-lcpp-shared-q8-input",
+    "title": "One q8_1 quantize per layer input",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/11c-lcpp-shared-q8-input",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 275,
+      "removed": 46
+    },
+    "report": "docs/upstream/11c-lcpp-shared-q8-input.md",
+    "base": "upstream/10-lcpp-iq3-packed",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-11d-lcpp-mmq-tail-fold",
+    "title": "No memset per MMQ call",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/11d-lcpp-mmq-tail-fold",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 37,
+      "removed": 24
+    },
+    "report": "docs/upstream/11d-lcpp-mmq-tail-fold.md",
+    "base": "upstream/11c-lcpp-shared-q8-input",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-11e-lcpp-iq1m-mmvq",
+    "title": "IQ1_M on vendored MMVQ",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "upstream/11e-lcpp-iq1m-mmvq",
+    "upstream_refs": [
+      "vllm-project/vllm-gguf-plugin#141 (Maxwell-Lyu, competing llama.cpp-kernel integration)",
+      "vllm-project/vllm-gguf-plugin#142"
+    ],
+    "loc": {
+      "added": 89,
+      "removed": 11
+    },
+    "report": "docs/upstream/11e-lcpp-iq1m-mmvq.md",
+    "base": "upstream/11d-lcpp-mmq-tail-fold",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L vendoring series, judged as an RFC, not under this standard."
+  },
+  {
+    "slug": "route-l-fused-shard-copies",
+    "title": "Per-forward .contiguous() copy per shard on mixed-type fused layers (bug 6)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Fixed inside the Route L commits, no separate PR."
+  },
+  {
+    "slug": "route-l-prompt-logprobs-fp32-dst",
+    "title": "Route L: bound one call's fp32 dst (lm_head at prompt-logprobs rows) (bug 9)",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "rfc-track",
+    "branch": "hotfix-prompt-logprobs",
+    "upstream_refs": [],
+    "loc": {
+      "added": 26,
+      "removed": 0
+    },
+    "report": "",
+    "base": "main (Route L plugin)",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Route L code only; fold into the series."
+  },
+  {
+    "slug": "exl3-16-17-row-cliff",
+    "title": "EXL3 multi-row kernel 16->17-row cliff (bug 10)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our own EXL3 kernel, partly mitigated; nothing upstream."
+  },
+  {
+    "slug": "exl3-k4-repack-copies",
+    "title": "EXL3 K4 repack left int16 copies live at load (bug 11)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our own EXL3 plugin code, fixed in place."
+  },
+  {
+    "slug": "exl3-pinned-embedding-address",
+    "title": "EXL3 pinned host embedding address baked into graphs (bug 14)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our own EXL3 plugin code, fixed."
+  },
+  {
+    "slug": "exl3-logit-parity-gate",
+    "title": "EXL3 absolute logit-parity gate fails on both KV dtypes (finding 24)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Not a bug: attributed to two prompts (25) and fp8 KV noise (26)."
+  },
+  {
+    "slug": "exl3-chat-kld-outliers",
+    "title": "Chat-prompt KLD outliers traced to the exllamav3 reference (finding 25)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Not a bug: property of two prompts; no code to change."
+  },
+  {
+    "slug": "exl3-fp8-kv-kld",
+    "title": "fp8 KV costs 2-5x KLD of bf16 KV (finding 26)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Expected quantization noise."
+  },
+  {
+    "slug": "exl3-padded-rows-graph-test",
+    "title": "EXL3 padded rows inside a CUDA-graph capture (finding 27)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "A passing test, no bug found."
+  },
+  {
+    "slug": "exl3-corruption-check-harness",
+    "title": "EXL3 generation-corruption harness (finding 28)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Infrastructure, no result yet."
+  },
+  {
+    "slug": "box-power-cap-180w",
+    "title": "First rented box power-capped at 180 W (29)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Environment, not code."
+  },
+  {
+    "slug": "box-flashinfer-jit",
+    "title": "FlashInfer JIT broken without the CUDA 13 toolchain (30)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Deployment constraint, worked around with the prebuilt jit-cache."
+  },
+  {
+    "slug": "tool-py-spy-native",
+    "title": "py-spy --native with --nonblocking (31)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our tooling; flag removed."
+  },
+  {
+    "slug": "tool-gpuq-quoting",
+    "title": "gpuq loses bash -c quoting (32)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Our tooling; wrapper scripts."
+  },
+  {
+    "slug": "box-stale-offload-mmap",
+    "title": "Stale /dev/shm/vllm_offload_*.mmap blocks restart (33)",
+    "target_repo": "Starwaves1/vllm-gsqrco-exl3",
+    "status": "rejected",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "",
+    "base": "",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-03",
+    "why_not": "Box gotcha in the overlay's shared offload region; handled by preflight, no upstream code to change."
+  }
+]
