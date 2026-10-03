@@ -311,3 +311,21 @@ min per mode, 14 about 10 min.
 - The host embedding page-locks 2.37 GiB of host memory per server for the process's life.
 - `set_force_cfg` is a process-wide knob the shim sets on every call: fine with vLLM's single
   model thread, not with two threads in one process.
+
+## Phase 3 gates, recovered 2026-10-03 (merged into exl3-opt: da13787 h16b, d6768f6 parts, 2bb3fb3 fixes)
+
+The box outputs are in `cloud/results/exl3-opt/{20-corruption,19-parity,12-mr-ladder-gates}/` and `exl3-opt-h16b/10-mr-parity/`.
+- **Job 20, corruption.** Severe corruption (early EOS, bad UTF-8, foreign script) appears only in the `hi` config at c=9: 34/152 (22 %, GSQ's rate), with production's k schedule [[1,4,5],[5,8,3],[9,16,2]]. The count is 0 at c=8/12/16 and 0 in asis/asyncon/nospec (1520 requests). "repeat"-only flags run 0-4 % everywhere, spec-off included, so they are detector false positives. Attribution: the schedule's 3->2 K drop at the 8/9 boundary trips #50021's conv1d bound. This is not an EXL3 bug.
+- **h16b.** Parity 294/294, with rms at 17-32 rows of 1.08e-3 against 1.03e-3 for fp32-acc (exllamav3's exl3_gemm: 1.4-3.8e-3). Long-context KLD is 4.4e-4 (gate 7e-4). Caveat: job 19 is prefill (2048-row chunks, dequant route), so it barely exercises the 17-32-row kernel. Decode-path evidence: kernel errors plus MTP acceptance (0.3955 against 0.3926). Ladder (schedule): c=4/8 -2.2/-2.6 ms/step. MERGED.
+- **parts.** Opaque op per layer, glue on fused layers. Ladder: -0.7/-0.9/-0.9/-1.6 ms/step. The fp8 draft head (`EXL3_DRAFT_FP8`) gives another -1.2/-1.3/-1.1/-0.8 at the same acceptance. Parity 306/306. MERGED (fp8 is still opt-in, mode suffix f).
+- **concat** (`EXL3_MR_CONCAT`). rc=1 was an OOM at the drafter's load: the placeholders' `exl3_parts` kept the parts alive beside the concatenated copy. Fixed in 2bb3fb3 (cleared). Not yet measured.
+- All serving jobs now run a **fixed MTP k=3** (`EXL3_SPEC_K`, outputs suffixed `-k3`). The phase-2 numbers above used the schedule (k=5 at c<=4), so they cannot be compared with GGUF's k=3 27.9/31.6/35.7/44.2.
+
+## Where I stopped (2026-10-03 ~22:45 UTC, usage window)
+
+- **Queued on gpuq (box), not running when I stopped:** `1791064632186130-exl3m-10-parity` (merged parity, wt `/workspace/wt-exl3-opt-m` @2bb3fb3, built) and `1791066153615931-exl3m-h16x-micro`. The second runs 11-mr-micro plus 10-mr-parity for the h16 fold/mask variants in `/workspace/wt-exl3-h16x-{f4,f0,f0m6,f0m14}` (@fbb9cfd, built: fold every 4 stages / once per slice / + mb1 / + mb1,3) against `-m`. Results: `/workspace/runs/exl3-opt-{m,h16x-*}/11-mr-micro/summary.txt` and the matching `10-mr-parity`. Both are ahead of or among r3's jobs (r3-61 running, r3-62, r3-61b).
+- **Next, task 1:** read the h16x micro (keep a fold variant only if it beats `-m` at 17-32 rows, does not lose at 1-16, and parity stays within exl3_gemm's error). Then submit via `/workspace/jobs-exl3m/run.sh`: `12-mr-ladder 2h 2hf 2hfc` (k=3, ~66 min) and `20-corruption ref hi` (k=3, c=8/9/12/16; expect 0 severe). Then decide the fp8/concat defaults and run /check (checkpoint 1).
+- **Task 2:** the owned 17-48-row lever is the fold frequency and m-block mask (fbb9cfd knobs). Per-stage folding costs about 128 instructions per k-stage per thread at mb=2, against about 400 for decode. The new kernel structure (transposed m8 MMA) only helps at 17-24 rows, and at k=3 those are only c=5/6.
+- **Task 3:** `box-scripts/21-tier.sh` is written and untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then 4.00/4.50, one at a time (12.2/15.3/16.7 GiB; the disk has 38 GB free).
+- **Task 4:** gpuq is already in `cloud/box/gpuq` with a bootstrap note (a95d257). Merge, ADR and REPORT are not started. **Tasks 5-6:** not started; the soak has not been submitted.
+- Commits used "Claude Opus 5.5" attribution (the model that wrote them), not "Fable 5.1".
