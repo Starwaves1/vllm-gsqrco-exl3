@@ -151,14 +151,11 @@ function renderReport(src) {
   }
   return frag;
 }
-function verdict(fc) {  // fable_comment: string ("Recommendation: X. Confidence: Y. ...") or {recommendation, confidence, text}
+function verdict(fc) {  // "Recommendation: X. Confidence: Y. text": the first two go into the header
   if (!fc) return null;
-  let rec = fc.recommendation, conf = fc.confidence, text = fc.text ?? (typeof fc === 'string' ? fc : '');
-  if (typeof fc === 'string') {  // lift "Recommendation: X." and "Confidence: Y." out of the text into the header
-    const RE = [/recommend\w*\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i, /confidence\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i];
-    [rec, conf] = RE.map(re => (fc.match(re) || [])[1]);
-    text = RE.reduce((t, re) => t.replace(re, ''), fc);
-  }
+  if (typeof fc !== 'string') fc = JSON.stringify(fc);
+  const RE = [/recommend\w*\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i, /confidence\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i];
+  const [rec, conf] = RE.map(re => (fc.match(re) || [])[1]), text = RE.reduce((t, re) => t.replace(re, ''), fc);
   return el('div', {className: 'verdict'},
     el('div', {className: 'h'}, el('span', {className: 'who'}, "Fable's comment"),
       rec ? el('span', {className: 'rec'}, rec.trim()) : null, conf ? el('span', {className: 'conf'}, 'confidence ' + conf.trim()) : null),
@@ -166,7 +163,7 @@ function verdict(fc) {  // fable_comment: string ("Recommendation: X. Confidence
 }
 
 // ---- state ----
-let data = {prs: []}, order = [], sel = location.hash.slice(1) || null, armed = null, cur = null;
+let data = {prs: []}, order = [], sel = location.hash.slice(1) || null, armed = null, cur = null, busy = false;
 async function get(u) { const r = await fetch(u, {cache: 'no-store'}); if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); }
 async function post(u, body) {
   const r = await fetch(u, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
@@ -262,11 +259,13 @@ function arm(k) {
 }
 
 async function send(slug, kind, body) {
+  if (busy) return;  // a held or doubled Enter / click must not post twice
+  busy = true;
   try {
     await post(`/api/prs/${encodeURIComponent(slug)}/${kind}`, {...body, author: 'garrett'});
     armed = null; cur = null;
     await loadList();
-  } catch (e) { showErr(e); }
+  } catch (e) { showErr(e); } finally { busy = false; }
 }
 function showErr(e) { console.error(e); const m = $('barmsg'); if (m) m.textContent = 'error: ' + e.message; else $('src').textContent = 'error: ' + e.message; }
 
