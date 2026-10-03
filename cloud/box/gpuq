@@ -1,0 +1,60 @@
+#!/bin/bash
+# gpuq — minimal FIFO GPU job queue for the rental box (rewrite 2026-10-03; the original lived only in
+# /usr/local/bin on the old instance). One job at a time. State in $GPUQ_ROOT (default /workspace/gpuq):
+#   jobs/<id>-<name>.job   queued job script (line 1 = cwd, line 2 = command)
+#   out/<id>-<name>.log    stdout+stderr;  out/<id>-<name>.status  exit code
+#   running                 "<id>-<name> <pid>" while a job runs;  daemon.pid; dispatcher.log
+# Usage:
+#   gpuq submit [--name N | N] [--cwd DIR] -- CMD ARGS...     (prints the job id; CMD is run via bash, no quoting games: use a script file)
+#   gpuq ls | gpuq wait ID [--max SEC] (exit 124 on timeout) | gpuq log ID | gpuq cancel ID | gpuq daemon [start|stop|status]
+set -u
+GPUQ_ROOT=${GPUQ_ROOT:-/workspace/gpuq}; J=$GPUQ_ROOT/jobs; O=$GPUQ_ROOT/out; mkdir -p "$J" "$O"
+_id() { date +%s%6N; }
+_find() { ls "$J"/"$1"-*.job "$O"/"$1"-*.status 2>/dev/null | head -1 | sed -E 's#.*/##; s#\.(job|status)$##'; }
+preflight() {
+  pgrep -f "VLLM::EngineCore|bin/vllm serve" >/dev/null || rm -f /dev/shm/vllm_offload_*.mmap
+  for p in 8000 8001; do for pid in $(ss -ltnp "sport = :$p" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u); do echo "preflight: killing stray listener pid $pid on :$p"; kill "$pid" 2>/dev/null; done; done
+  sleep 1
+}
+case "${1:-}" in
+  submit)
+    shift; name=job; cwd=$PWD
+    while [ $# -gt 0 ]; do case "$1" in --name) name=$2; shift 2;; --cwd) cwd=$2; shift 2;; --) shift; break;; *) name=$1; shift;; esac; done
+    [ $# -gt 0 ] || { echo "no command" >&2; exit 2; }
+    id=$(_id); printf '%s\n%s\n' "$cwd" "$*" > "$J/$id-$name.job"; echo "$id" ;;
+  ls)
+    echo "daemon: $( [ -f $GPUQ_ROOT/daemon.pid ] && kill -0 $(cat $GPUQ_ROOT/daemon.pid) 2>/dev/null && echo running || echo STOPPED )"
+    [ -f $GPUQ_ROOT/running ] && echo "running: $(cat $GPUQ_ROOT/running)"
+    echo "queued:"; ls "$J" 2>/dev/null | sed 's/\.job$//; s/^/  /'
+    echo "done (last 15):"; for s in $(ls -t "$O"/*.status 2>/dev/null | head -15); do n=$(basename "$s" .status); echo "  $n rc=$(cat "$s")"; done ;;
+  wait)
+    id=$2; max=${4:-100000000}; [ "${3:-}" = "--max" ] || max=100000000; t0=$(date +%s)
+    while :; do s=$(ls "$O"/"$id"-*.status 2>/dev/null | head -1); [ -n "$s" ] && { echo "done rc=$(cat "$s") $(basename "$s" .status)"; exit $(cat "$s"); }
+      [ $(( $(date +%s)-t0 )) -ge "$max" ] && exit 124; sleep 10; done ;;
+  log) f=$(ls "$O"/"$2"-*.log 2>/dev/null | head -1); [ -n "$f" ] && cat "$f" || echo "no log for $2" >&2 ;;
+  cancel)
+    f=$(ls "$J"/"$2"-*.job 2>/dev/null | head -1); [ -n "$f" ] && { rm -f "$f"; echo "removed queued $2"; exit 0; }
+    if [ -f $GPUQ_ROOT/running ] && grep -q "^$2-" $GPUQ_ROOT/running; then pid=$(awk '{print $2}' $GPUQ_ROOT/running); pkill -TERM -P "$pid"; kill -TERM "$pid" 2>/dev/null; echo "signalled running $2"; else echo "not found" >&2; exit 1; fi ;;
+  daemon)
+    case "${2:-start}" in
+      status) "$0" ls | head -1 ;;
+      stop) kill $(cat $GPUQ_ROOT/daemon.pid 2>/dev/null) 2>/dev/null; rm -f $GPUQ_ROOT/daemon.pid; echo stopped ;;
+      start)
+        [ -f $GPUQ_ROOT/daemon.pid ] && kill -0 $(cat $GPUQ_ROOT/daemon.pid) 2>/dev/null && { echo "already running"; exit 0; }
+        setsid nohup bash -c '
+          echo $$ > '"$GPUQ_ROOT"'/daemon.pid; rm -f '"$GPUQ_ROOT"'/running
+          while :; do
+            f=$(ls '"$J"'/*.job 2>/dev/null | sort | head -1); [ -z "$f" ] && { sleep 5; continue; }
+            n=$(basename "$f" .job); cwd=$(sed -n 1p "$f"); cmd=$(sed -n 2p "$f"); rm -f "$f"
+            echo "$(date -Is) start $n cwd=$cwd cmd=$cmd" >> '"$GPUQ_ROOT"'/dispatcher.log
+            '"$0"' __preflight >> '"$O"'/$n.log 2>&1
+            ( cd "$cwd" && exec bash -c "$cmd" ) >> '"$O"'/$n.log 2>&1 & pid=$!
+            echo "$n $pid" > '"$GPUQ_ROOT"'/running; wait $pid; rc=$?
+            echo $rc > '"$O"'/$n.status; rm -f '"$GPUQ_ROOT"'/running
+            echo "$(date -Is) done $n rc=$rc" >> '"$GPUQ_ROOT"'/dispatcher.log
+          done' >/dev/null 2>&1 < /dev/null &
+        sleep 1; echo "daemon started" ;;
+    esac ;;
+  __preflight) preflight ;;
+  *) sed -n '2,12p' "$0" ;;
+esac

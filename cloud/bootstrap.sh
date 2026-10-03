@@ -24,6 +24,9 @@
 # Downloads are public (the GGUF API answered without auth on 2026-09-27); an HF_TOKEN in
 # the environment is used if set.
 # Nothing here uses sudo or system packages. uv is installed per-user if missing.
+# GPU job queue: cloud/box/gpuq (one job at a time, FIFO) is not installed by this script; copy it to
+# /usr/local/bin/gpuq on a shared box and start it with `gpuq daemon start` before submitting jobs
+# (`gpuq submit NAME -- bash script.sh`, `gpuq ls`, `gpuq wait ID --max SEC`; header has the rest).
 set -euo pipefail
 
 PINNED_COMMIT=${GSQ_COMMIT:-b16541fb4dac8932a5f47d72bf01ee4f96ae54fe} # gsq-vllm main with the Phase B harnesses
