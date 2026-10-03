@@ -73,4 +73,8 @@ per weight" corrected to one per distinct shape; #141's overlap stated precisely
 
 ## Fable's comment
 
-pending
+**Recommendation:** approve. **Confidence:** high.
+
+The mechanism is real and now complete: inside vLLM's cumem weights pool, segments are never returned until the pool closes and `max_split_size_mb=20` stops a freed block from serving any request outside its own size band, so one dead block per distinct unsharded shape is exactly what the 1.06 GiB gap between 18.42 and 17.36 GiB reserved measures. The draft's two 2.37 GiB vocab placeholders then have nowhere to go. The fix removes the only thing that created those blocks, a device staging copy that was never needed because the materialized parameter can take a host-to-device `copy_` directly. Three changed lines, the sharded path untouched for the stated reason, red/green test, and the plugin's own CPU suite green.
+
+Residual points, none blocking: the test patches `torch.Tensor.to` globally for its duration, which is fine in a unit test but should stay the only test doing so; load time was not measured, and I expect it unchanged or better since one copy replaces two. Open PR #141 rewrites the linear half of this path, so whichever lands second rebases one hunk. I would open this one first.

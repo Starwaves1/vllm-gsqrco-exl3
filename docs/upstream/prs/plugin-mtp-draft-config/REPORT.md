@@ -72,4 +72,8 @@ failing case; the branch description no longer says "not served on GPU"; the #70
 
 ## Fable's comment
 
-pending
+**Recommendation:** approve. **Confidence:** medium-high.
+
+The break is precisely located: since vLLM #42079 (first in v0.29.0) the MTP draft takes `target.model_weights or target.model`, the plugin sets `model_weights` to the `.gguf`, and the draft's config parser then looks for a `config.json` next to a file that has none. The README's own MTP example is the failing case, which makes this easy for maintainers to confirm. The fix blanks `model_weights` only while vLLM builds the speculative config and only for a GGUF target with no explicit draft, restores it in a `finally`, and lets the existing line point the draft's weights back at the `.gguf`. On 0.27.1 it is a no-op. The alternative of setting the draft `model` directly was correctly rejected because it skips vLLM's quantization-alignment step. Red/green test, CPU suite green, and the reviewer confirmed `model_weights` is read exactly once in that code.
+
+The residual risk is version fragility of the wrapper signature: it now names `target_model_config` positionally, which is safe for every vLLM version checked but would break with a TypeError if vLLM renamed that parameter. That is visible and loud, not silent, so I accept it. The right long-term home for this is vLLM core, as the branch description says; this PR is the correct plugin-side scope until then. Note the interaction with open plugin #70 in the PR text so maintainers sequence them.

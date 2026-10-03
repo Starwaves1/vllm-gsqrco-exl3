@@ -75,4 +75,8 @@ code comment and the motivation were replaced (new branch `pr/plugin-qwen35-no-m
 
 ## Fable's comment
 
-pending
+**Recommendation:** approve. **Confidence:** medium-high.
+
+The diagnosis is sound and the reviewer closed the gaps that mattered. Deleting the raise alone would silently load nothing, because the text prefix was keyed on the presence of an mm_proj file while the model class is keyed on the config, and `Qwen3_5ForConditionalGeneration` has no mapping for bare `model.*` names. Taking the prefix from `vision_config` aligns the two, and requiring image and video limits of 0 is the one condition under which vLLM itself replaces the tower with a stage-missing layer, so nothing is left uninitialized. The closed alternative #120 needed a text-architecture rebuild and failed on 0.26.0 for lack of `Qwen3_5ForCausalLM`; this route uses classes 0.26.0 already has. Twenty-three lines plus a test with a 5-fail/6-pass red/green.
+
+Two things to say in the PR rather than hide: the error for the unsupported case now fires at weight load instead of at config patching, which is later in the startup than before but with a message that names both flags; and `is_multimodal` changes meaning from "an mm_proj file exists" to "the config has a vision block", which is the correct key and is why the mm_proj-with-text-config path still works. Confidence is medium-high rather than high only because the proof of correct serving is our own production run, not an upstream test on GPU.
