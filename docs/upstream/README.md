@@ -105,18 +105,22 @@ in `cloud/results/r3/patches/` (overlay-style, against the installed tree):
 
 - `vllm-issue-prompt-logprobs-oom.md`: prompt_logprobs allocates full-vocab logits for a whole chunk.
 - `vllm-issue-prompt-logprobs-after-drafter.md`: prompt logprobs read after the MTP drafter, NaN under CUDA graphs.
-- `vllm-issue-dynamic-spec-schedule-corruption.md`: PR #50021's conv1d bound (carried by our overlay)
-  zeroes GDN output when the speculative query length shrinks between steps; meant as a review
-  comment on #50021 (upstream main does not have the bug), not as an issue against main. Not posted.
+- `vllm-issue-dynamic-spec-schedule-corruption.md` (the "#50021 review text"): PR #50021's conv1d
+  bound (carried by our overlay) zeroes GDN output when the speculative query length shrinks between
+  steps. Part 1 is a review comment for #50021, the deliverable (the bug is in the PR as proposed;
+  merged main does not have it). Part 2 is an optional short issue against main asking for a test of
+  the dynamic-K invariant (main is correct today). Fix: `cloud/results/r3/patches/conv1d-accepted-bound.patch`.
+  Neither posted.
 
-## HOLD (2026-10-01)
+## HOLD (2026-10-01; reason gone 2026-10-03, HOLD lifted pending Garrett's go)
 
 Do not open PRs 09 (9-32-row int8-mma kernel), 10 (IQ3 repack + packed kernels) or 11c-11e (shared q8 input, MMQ tail fold, IQ1_M chunking) until the production incident is resolved: GSQ-RCO corrupts generations only when ≥9 requests run at once (the MTP drafter's 9-16-row matmuls through these kernel paths inside CUDA graphs), 26% of answers at 9+ vs 0.1% at ≤8; see cloud/results/prod-garbled-tokens-20261001.md. PRs 01-08, 11a, 11b and 12 are unaffected but should wait for the root cause in case it touches the quantizer or routing they share.
 
-**Update 2026-10-03: the reason for this HOLD is gone; lifting it is Garrett's call (not done here).**
-The incident is not in these kernels. Stock W4A16 (Marlin, no plugin) corrupts the same way on the same
+**Update 2026-10-03: the reason for this HOLD is gone. HOLD lifted pending Garrett's go** (until he
+says go, treat 09/10/11c-11e as held). The incident is not in these kernels. Stock W4A16 (Marlin, no plugin) corrupts the same way on the same
 vLLM, turning the plugin's routing off changes nothing, and the 9-32-row kernels pass their unit tests
 at the production row counts. The cause is PR #50021's conv1d bound in our vLLM overlay, which fires
 when the per-batch-size MTP schedule lowers K between steps (`cloud/results/r3/incident-root-cause.md`).
-The GPU rerun with the one-line fix is the last confirmation; nothing in the root cause touches the
+The GPU rerun with the one-line fix is the last confirmation (the root cause is PROVEN at kernel
+level on CPU, INFERRED end to end until that rerun); nothing in the root cause touches the
 quantizer or routing that PRs 01-08, 11a, 11b and 12 share.

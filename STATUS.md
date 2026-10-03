@@ -4,8 +4,8 @@ Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark repo
 
 ## Round 3 (2026-10-01 to 10-03): incident root cause, perf inputs
 
-**Incident closed with a root cause (GPU confirmation pending, Task B).** Full write-up:
-`cloud/results/r3/incident-root-cause.md`. The corrupted generations come from our vLLM overlay, not
+**Incident root cause found: PROVEN at kernel level (CPU), INFERRED end to end until the GPU rerun (Task B).** Full write-up:
+`cloud/results/r3/incident-root-cause.md`. The corrupted generations point to our vLLM overlay, not
 from the GSQ-RCO kernels: overlay commit 46ba368c70 backports the open upstream PR #50021, whose
 `causal_conv1d_update` hunk rejects `num_accepted > seqlen` with `seqlen` = this step's query length.
 Under the per-batch-size MTP schedule (`[[1,4,5],[5,8,3],[9,16,2]]`) K drops between steps whenever the
@@ -16,12 +16,12 @@ is exact for every K change, the overlay's is wrong for the two steps after a de
 acceptance. Box evidence (jobs 58/60/28b/28d): stock W4A16 corrupts like GSQ, eager/no connector/
 mamba-cache none all corrupt, fixed k=3 and no-spec are clean, a flat K=2 schedule is clean.
 Fix: `cloud/results/r3/patches/conv1d-accepted-bound.patch` (bound by the state row width).
-Upstream text: `docs/upstream/vllm-issue-dynamic-spec-schedule-corruption.md` (a review comment for
-#50021; not posted). One production run is not explained: W4A16 on 0.27.1 with the same schedule
+Upstream text: `docs/upstream/vllm-issue-dynamic-spec-schedule-corruption.md` (Part 1: review comment
+for #50021, where the bug is; Part 2: optional issue against main asking for a test; neither posted). One production run is not explained: W4A16 on 0.27.1 with the same schedule
 and check (knowledge-bench runs 13-16) shows no corruption signature.
 
-- **HOLD on upstream 09/10/11c-e can be lifted: the bug is not in the kernels.** Lifting is Garrett's
-  call; not done here (`docs/upstream/README.md` "HOLD").
+- **HOLD on upstream 09/10/11c-e: reason gone (the bug is not in the kernels); HOLD lifted pending
+  Garrett's go** (`docs/upstream/README.md` "HOLD").
 - Production today (W4A16, fixed k=3, no schedule) is off the schedule path but still carries the
   check; by the same rule, structured-output requests whose drafts get truncated by the grammar can
   hit it. Not observed; needs Garrett (deploy of the one-line overlay fix).

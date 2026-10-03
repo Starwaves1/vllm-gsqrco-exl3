@@ -7,8 +7,8 @@ INFERRED (reasoned from the two). Source paths are in `.venv-main/lib/python3.12
 
 ## Verdict
 
-The corruption is not in the GSQ-RCO kernels and not in vLLM main's dynamic schedule code as merged.
-It comes from the interaction of two things:
+The evidence points away from the GSQ-RCO kernels and from vLLM main's dynamic schedule code as
+merged, and at the interaction of two things:
 
 1. vLLM's dynamic speculative decoding (`num_speculative_tokens_per_batch_size`) changes the number
    of draft tokens K between steps whenever the batch size crosses a tier boundary. A smaller K in
@@ -21,7 +21,9 @@ It comes from the interaction of two things:
    The kernel then writes zeros for the request's whole conv output and returns without updating
    its conv state. Every GDN layer (48 of 64) gets zero input for that request for that step, and a
    stale conv window for the next one or two steps. The token sampled from that step is garbage,
-   and the context it leaves behind makes the model repeat or drift.
+   and the context it leaves behind makes the model repeat or drift (zeroed output and stale state:
+   PROVEN on CPU; the token-level effect: INFERRED from what the box answers look like, not traced
+   step by step).
 
 PROVEN at kernel level here (CPU, Triton interpreter, `box-scripts/r3conv_kchange.py`): upstream
 main's kernel is exact for every K change; the overlay's kernel is wrong for the two steps after a
@@ -30,8 +32,10 @@ otherwise. INFERRED end to end: every box result and the production pattern foll
 (section "Why the pattern looks the way it does"). The GPU run that applies only the one-line fix
 and reruns job 60 is Task B (below); until it is green, the end-to-end attribution is inference.
 
-So the answer to "is it the overlay's bug?" is yes: the overlay (via a still-open upstream PR)
-introduced the check; upstream main's kernel has no such check and is correct for K changes.
+So the answer to "is it the overlay's bug?" is: at kernel level yes (PROVEN on CPU). The overlay, via
+the still-open upstream PR, introduced the check; upstream main's kernel has no such check and is
+correct for K changes. That this check is the whole of the box and production corruption is INFERRED
+until Task B.
 
 ## Timeline
 
@@ -39,8 +43,8 @@ introduced the check; upstream main's kernel has no such check and is correct fo
 |---|---|---|
 | before 2026-09-23 | PR #50021's conv1d hunk is in prod's 0.27.1 venv (`venv-0271/.../causal_conv1d.py:875`) | CODE |
 | 09-23 | overlay commit 46ba368c70 ports it to main (verbatim from the PR head 71d7c782ca) | CODE |
-| 09-29 12:55 | prod starts using `SPEC_SCHEDULE=[[1,4,5],[5,8,3],[9,16,2]]` (journal: logged speculative_config) | PROVEN |
 | 09-28 22:37 | overlay 2a0fe5e1e1 deployed into venv-main (deploy-vllm history, 2026-09-29T02:37Z) | PROVEN |
+| 09-29 12:55 | prod starts using `SPEC_SCHEDULE=[[1,4,5],[5,8,3],[9,16,2]]` (journal: logged speculative_config) | PROVEN |
 | 09-30 16:42 | prod cuts over to vLLM main (venv-main) | DOCUMENTED (vllm-main-compat.md) |
 | 10-01 02:55-12:50 | GSQ-RCO live with the schedule; knowledge-bench runs 17-19 corrupted | PROVEN |
 | 10-01 12:28 | cap-8 mitigation (`[[1,4,5],[5,8,3]]`, MAX_SEQS 8) | PROVEN |
@@ -49,6 +53,11 @@ introduced the check; upstream main's kernel has no such check and is correct fo
 | 10-03 | mechanism found in code, kernel-level CPU proof, fix patch | this doc |
 
 ## Evidence (quoted from the raw logs in /tmp/gpuq-out, box `/workspace/logs/r3/*/summary.txt`)
+
+Raw logs on Garrett's machine (`/tmp/gpuq-out/`): job 60 `1790847241760000-r3-60-churn.log`, job 58
+`1790847241900000-` and `1790875263931040-r3-58-side-client.log`, job 28b
+`1790847241000000-r3-28b-token-corruption.log`, 28c `1790847243000000-r3-28c-token-corruption.log`,
+28d `1790847241800000-r3-28d-parity.log`. Each ends with r3tok's table and per-answer details.
 
 All box servers ran production's main argv (`env/prod-main-serve-argv.txt`), GSQ-RCO IQ3_S-mtp GGUF
 unless noted, plugin 32ae6ec, T=0 unless noted. "flagged" = r3tok.py's per-answer flags (HTTP/UTF-8
@@ -98,6 +107,10 @@ gsq-patched  side-plain1 0.0  4  30       25    13          12          15      
 (gsq-patched plain/lp/plp/echo: 26/26/26/20)
 ```
 
+The table is the second of two runs of the same job (wt 29d3761): raw logs
+`/tmp/gpuq-out/1790875263931040-r3-58-side-client.log` (this table) and
+`1790847241900000-r3-58-side-client.log` (first run, 2026-10-01 17:44 UTC: gsq plain1 24, w4a16
+plain1 16, gsq plain/lp/plp/echo 26/22/26/25, w4a16 14/15/14/14, side-none 0 on all three servers).
 `w4a16` = production's dense W4A16 AutoRound checkpoint (Marlin), same venv, same argv. Any side
 client corrupts, including plain 4-token completions; the job summary's "only logprobs/echo requests
 corrupt" is wrong.
@@ -109,20 +122,23 @@ prod main c=8  T=1.0: 0/32    c=8  T=0: 1/32
 prod main c=9  T=1.0: 8/36    c=9  T=0: 16/36
 prod main c=12 T=1.0: 3/48    c=12 T=0: 3/48
 prod main c=16 T=1.0: 1/64    c=16 T=0: 3/64
+(rows below: main c=9 / c=12 at T=1.0; plp c=4 = prompt_logprobs side client, T=0)
 g-mmq-k2      (VLLM_GGUF_MMA_K=0)              main c=9: 13/36  c=12: 3/48  plp c=4: 26/30
 e-ours-k2     (--enforce-eager)                main c=9:  5/36  c=12: 3/48  plp c=4: 21/30
 g-ours-k3at9  (schedule [[1,4,5],[5,16,3]])    main c=9:  3/36  c=12: 3/48  plp c=4: 23/30
 g-ours-cap8   (max-num-seqs 8, [[1,4,5],[5,8,3]]) main c=9: 2/36  c=12: 1/48  plp c=4: 23/30
 ```
 
-**Job 28c (2026-10-01 19:25-19:48 UTC), production schedule, plugin routing toggles:** `alloff`
+**Job 28c (2026-10-01 19:25-19:48 UTC), production schedule, plugin routing toggles (main at T=1.0):** `alloff`
 7/36 at c=9, 1/48 at c=12, plp 23/30; `noiq1m` 10/36, 2/48, 21/30; `notiled` 8/36, 1/48, 25/30.
 The "-k2" in these tags names the tier under test; the argv kept production's schedule.
 
 **Job 28d (2026-10-01 19:03-19:24 UTC).** `k2-small`: schedule `[[1,16,2]]` (K=2 at every batch
-size): c=3..8 at T=0: 1, 0, 0, 1, 0, 0 flagged of 30-32. `k2-parity`: production's schedule unchanged
+size): c=3..8 at T=0: 1, 0, 0, 1, 0, 0 flagged of 30-32; both flags are prompt 15 with U+0304 (combining
+macron, math notation) as the only odd character, a false positive of the odd-script rule. `k2-parity`: production's schedule unchanged
 (argv diff shows no `--speculative-config` change; the job summary calls it a flat k=2 schedule,
-which it was not), c=10/11/13/14/15: 2/40, 2/44, 1/52, 2/56, 2/60.
+which it was not), c=10/11/13/14/15: 2/40, 2/44, 1/52, 2/56, 2/60 (6 with U+FFFD, a real corruption
+sign; 3 are the same U+0304 false positive on prompt 15).
 
 **Units.** Job 56: draft_head 61440x5120 at n=9..16 and lm_head 248320x5120 at n=20..32 through
 `lcpp_mul_mat_mma_k`, rel err <= 6.2e-2, 29 passed. Job 59: embedding rows 1..64, 64 passed.
@@ -143,7 +159,7 @@ corruption concentrated in requests whose max running was exactly 9 (587/2,265) 
 
 ## Exclusions
 
-| candidate | excluded by | label |
+| candidate (as a necessary cause) | excluded by | label |
 |---|---|---|
 | GSQ-RCO / GGUF plugin kernels | W4A16 (Marlin) corrupts the same way (58); routing toggles change nothing (28b mmq, 28c); units 56/59 pass | PROVEN |
 | CUDA graphs / graph-pool overlap | `--enforce-eager` corrupts (60: 25/30; 28b) | PROVEN |
@@ -151,7 +167,7 @@ corruption concentrated in requests whose max running was exactly 9 (587/2,265) 
 | mamba prefix-cache align mode | `mambanone` 24/30 (60) | PROVEN |
 | prompt-logprobs / echo hotfix paths | plain 1-token neighbour corrupts; `gsq-patched` corrupts (58) | PROVEN |
 | request shape / prefill mixing as such | `k3fixed` with the same neighbour: 0/30 (60) | PROVEN |
-| spec decode as such, or K < num_speculative_tokens | `k3fixed` 0/30; flat `[[1,16,2]]` with num_speculative_tokens 5: <= 1/30 at c=3..8 (28d) | PROVEN |
+| spec decode as such, or K < num_speculative_tokens | `k3fixed` 0/30; flat `[[1,16,2]]` with num_speculative_tokens 5: <= 1/30 at c=3..8, both flags false positives (28d) | PROVEN |
 | async scheduling | argv has `--no-async-scheduling` | PROVEN |
 | prefix caching | NOT excluded by a run (`noprefix` never booted); excluded only by inference (k3fixed keeps prefix caching on and is clean) | INFERRED |
 | OOB writes elsewhere | NOT tooled: job 57's memcheck and initcheck both exited rc=255 before reporting | open |
@@ -211,7 +227,10 @@ state_indices_width`), so only the conv1d hunk uses the wrong bound. CODE
 - c=12/16: running stays above 9 except at ramp-up/down, so few decreases: 1-3 of 48-64.
 - c=8 with the production schedule: K is 3 throughout (decreases only at ramp-up from <= 4): 0-1/32.
 - Flat `[[1,16,2]]`, fixed k=3, no spec: K never changes: clean.
-- `[[1,4,5],[5,16,3]]` and cap 8 cure c=9 (no 3->2 tier) but not the neighbour at c=4 (5->3 remains).
+- `[[1,4,5],[5,16,3]]` and cap 8 (no 3->2 tier) cut c=9 at T=1.0 from 8/36 to 3/36 and 2/36, not to
+  zero, and leave the c=4 prompt_logprobs neighbour at 23/30 (5->3 remains). The residual 1-3 per 36-48
+  at T=1.0 (also c=12 under every schedule in 28b/28c) has no T=1.0 fixed-K control to compare with;
+  ramp-up at the start of each level crosses the tier boundaries too. Task B's `fix-c9` cell measures it.
 - Production GSQ: the bench saturated KV at 8-9 running, so it crossed the 8/9 boundary constantly.
 
 Not explained: W4A16 runs 13-16 on 0.27.1 used the same schedule and the same conv1d check
