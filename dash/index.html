@@ -71,7 +71,7 @@ async function loadNow() {
   $('meta').textContent = [
     s ? `sample ${fmtT(s.ts)}` : 'no samples yet',
     !n.online && n.error ? `ssh: ${n.error}` : '',
-    n.hours != null ? `${n.hours.toFixed(1)} h since first sample, ~$${n.cost.toFixed(2)} at $${n.rate}/h` : ''
+    n.hours != null ? `${n.hours.toFixed(1)} h on this box, ~$${n.cost.toFixed(2)} at $${n.rate}/h` : ''
   ].filter(Boolean).join(' · ');
   if (!s) return $('tiles').replaceChildren();
   $('tiles').replaceChildren(

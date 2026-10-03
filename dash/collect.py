@@ -58,7 +58,7 @@ def poll():
         raise RuntimeError((r.stderr.strip() or "no output")[-300:])
     g = [x.strip() for x in s["gpu"][0].split(",")]
     keys = ["util", "vram_used", "vram_total", "power", "power_limit", "sm_clock", "mem_clock", "temp"]
-    sample = {"ts": round(now), **{k: num(v) for k, v in zip(keys, g[1:])}}
+    sample = {"ts": round(now), "box": f"{box['host']}:{box['port']}", **{k: num(v) for k, v in zip(keys, g[1:])}}
     mem = (s.get("mem") or ["0 0"])[0].split()
     disk = (s.get("disk") or ["0 0"])[0].split()
     sample.update(ram_used=int(mem[0]), ram_avail=int(mem[1]), disk_used=int(disk[0]),

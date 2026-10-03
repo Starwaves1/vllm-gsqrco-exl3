@@ -13,7 +13,6 @@ GITHUB = "https://github.com/Starwaves1/vllm-gsqrco-exl3"
 DECISIONS = ("none", "approved", "rejected", "changes-requested")
 SLUG = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 lock = threading.Lock()
-RATE = 0.20  # $/h (box 2, 350 W host)
 MAX_POINTS = 1500
 
 
@@ -39,10 +38,12 @@ def jsonl(name):
     return rows
 
 
-def first_ts():
+def first_ts(box):
+    """ts of the first sample taken from this box address (collect.py tags each sample with it)."""
+    tag = json.dumps({"box": box})[1:-1]
     try:
         with open(os.path.join(DATA, "samples.jsonl")) as f:
-            return json.loads(f.readline())["ts"]
+            return next((json.loads(l)["ts"] for l in f if tag in l), None)
     except (OSError, ValueError, KeyError):
         return None
 
@@ -50,10 +51,11 @@ def first_ts():
 def api_now(q):
     now = load("now.json", {"online": False})
     now.pop("running", None), now.pop("queued", None), now.pop("gpuq", None)
-    t0 = first_ts()
-    if t0:
+    box = load("box.json", {})  # {"host", "port", "rate_per_hour"}
+    rate, t0 = box.get("rate_per_hour"), first_ts(f"{box.get('host')}:{box.get('port')}")
+    if t0 and rate is not None:
         hours = (time.time() - t0) / 3600
-        now.update(first_ts=t0, hours=round(hours, 2), cost=round(hours * RATE, 2), rate=RATE)
+        now.update(first_ts=t0, hours=round(hours, 2), cost=round(hours * rate, 2), rate=rate)
     return now
 
 
