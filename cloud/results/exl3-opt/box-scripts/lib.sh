@@ -62,7 +62,7 @@ mode_env() {  # mode_env <mode>: the plugin's switches for a mode (serve_mr, off
   # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
   # apply()/embedding() or its parameter layouts (EXL3_MR=2 stores K4 as int32 4-D), so a graph
   # traced under one variant must never be loaded by another (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-h$host-f$fp8-c$cat
+  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-h$host-f$fp8-c$cat${EXL3_CACHE_SUFFIX:-}   # suffix: another checkpoint (21-tier)
 }
 serve_mr() {
   local mode=$1 mr=${1:0:1} out=$2 t0; shift 2; mkdir -p "$out"
