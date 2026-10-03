@@ -14,12 +14,13 @@
 #                schedule, c=4 + side client) on the patched venv -> expect clean
 #   fix-w4a16    the same for production's W4A16 checkpoint        -> expect clean
 #   fix-c9       production schedule, no side client, c=8/9/12 T=0 and T=1 (job 28b's regime)
+#   k3-c9        the same load, fixed k=3 on venv-main: background flag rate (not in the default list)
 # First: the CPU kernel test on venv-main's and the patched causal_conv1d.py.
 # Output: /workspace/logs/r3/61-kchange-fix/. GPU time ~75 min. R3_61_ONLY picks variants.
 #   bash 61-kchange-fix.sh [--plan]
 source "$(dirname "$0")/lib.sh"
 r3_init 61-kchange-fix "$@"
-if [ "$R3_PLAN" = 1 ]; then sed -n '2,19p' "$0"; exit 0; fi
+if [ "$R3_PLAN" = 1 ]; then sed -n '2,20p' "$0"; exit 0; fi
 r3_env
 r3_preflight
 FIXV=/workspace/venv-r3-convfix
@@ -58,11 +59,13 @@ v_fix_eager()     { fixed; R3_MUT=("flag|--enforce-eager"); c4 fix-eager; }
 v_fix_mambanone() { fixed; R3_MUT=("set|--mamba-cache-mode|none"); c4 fix-mambanone; }
 v_fix_noconn()    { fixed; R3_MUT=("drop|--kv-transfer-config"); c4 fix-noconn; }
 v_fix_w4a16()     { fixed; export R3_MODEL_KIND=baseline; c4 fix-w4a16; }
-v_fix_c9() {
-  fixed; r3_serve fix-c9; "${LOAD[@]}" warm || r3_die warm
+c9() {  # tag
+  r3_serve "$1"; "${LOAD[@]}" warm || r3_die warm
   "$PY" "$R3_S/r3tok.py" run --nonstream --max-tokens 600 --per-conc 4 --conc 8,9,12 --temps 0,1.0 \
-    --out "$L/runs" --tag fix-c9 || r3_die "r3tok fix-c9"
+    --out "$L/runs" --tag "$1" || r3_die "r3tok $1"
 }
+v_fix_c9() { fixed; c9 fix-c9; }
+v_k3_c9()  { R3_MUT=("${K3[@]}"); c9 k3-c9; }
 report() {
   "$PY" "$R3_S/r3tok.py" report "$L/runs" --ref none --details 12 > "$L/report.txt" 2>&1
   { grep -v -i warn "$L/kernel-test.txt"; echo; cat "$L/report.txt"
