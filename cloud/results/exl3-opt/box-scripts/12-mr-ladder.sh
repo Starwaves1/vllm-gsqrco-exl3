@@ -11,7 +11,7 @@ job_log 12-mr-ladder
 require_idle_gpu
 require_mr_build
 [ -f "$EXL3_MODEL/mtp_draft_head.safetensors" ] || die "no draft head (phase 1's 02-draft-head)"
-O=$R/12-mr-ladder; mkdir -p "$O"   # per-mode dirs are replaced, other modes' results kept
+O=$R/12-mr-ladder$KS; mkdir -p "$O"   # per-mode dirs are replaced, other modes' results kept
 rc=0
 modes=("${MODES_ARGS[@]}"); [ ${#modes[@]} = 0 ] && modes=(${EXL3_OPT_MR_MODES:-2h 2})
 for mr in "${modes[@]}"; do
@@ -25,9 +25,9 @@ for mr in "${modes[@]}"; do
   fi
   stopall
   [ -f "$D/server.log" ] && gzip -kf "$D/server.log"
-  keep "$D" "12-mr-ladder/mr$mr" "$D/summary.txt" "$D/load.txt" "$D/argv.txt" "$D"/clocks-*.csv "$D/server.log.gz"
+  keep "$D" "12-mr-ladder$KS/mr$mr" "$D/summary.txt" "$D/load.txt" "$D/argv.txt" "$D"/clocks-*.csv "$D/server.log.gz"
 done
-base=; [ -s /workspace/runs/exl3/06-ladder/summary.txt ] && [ ! -d "$O/mr0" ] && base=/workspace/runs/exl3/06-ladder
+base=; [ -z "$KS" ] && [ -s /workspace/runs/exl3/06-ladder/summary.txt ] && [ ! -d "$O/mr0" ] && base=/workspace/runs/exl3/06-ladder
 "$GSQ_VENV/bin/python" "$S/ladder_summ.py" $base "$O"/mr* | tee "$O/summary.txt"
-keep "$O" 12-mr-ladder "$O/summary.txt"
+keep "$O" "12-mr-ladder$KS" "$O/summary.txt"
 exit $rc

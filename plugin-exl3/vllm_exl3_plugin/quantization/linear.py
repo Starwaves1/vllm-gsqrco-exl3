@@ -135,7 +135,10 @@ class EXL3LinearMethod(LinearMethodBase):
                                      f"expected fp16 [{size}]")
             parts.append((trellis, suh, svh))
 
-        for name in placeholders:
+        for name, p in placeholders.items():
+            # the loader may still hold the placeholders (vLLM's params_dict): drop their references,
+            # or a concatenated layer (EXL3_MR_CONCAT) keeps its parts alive beside the copy
+            p.exl3_parts.clear()
             delattr(layer, name)
         for i, tensors in enumerate(parts):
             for name, t in zip(_TENSORS, tensors):

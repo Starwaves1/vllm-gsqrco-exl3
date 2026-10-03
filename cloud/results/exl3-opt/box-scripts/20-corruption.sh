@@ -13,7 +13,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 20-corruption
 require_idle_gpu
 require_mr_build
-O=$R/20-corruption; mkdir -p "$O"
+O=$R/20-corruption$KS; mkdir -p "$O"
 modes=("${MODES_ARGS[@]}"); [ ${#modes[@]} = 0 ] && modes=(ref hi asis asyncon nospec)
 PROMPTS=/workspace/deploy/bench/prompts_real.jsonl
 rc=0
@@ -37,11 +37,11 @@ for cfg in "${modes[@]}"; do
   fi
   stopall; unset GSQ_NO_MTP
   gzip -kf "$D/server.log"
-  keep "$D" "20-corruption/$cfg" "$D/run.log" "$D/load.txt" "$D/argv.txt" "$D/server.log.gz"
+  keep "$D" "20-corruption$KS/$cfg" "$D/run.log" "$D/load.txt" "$D/argv.txt" "$D/server.log.gz"
 done
 runs=(); for cfg in hi asis asyncon nospec; do [ -s "$O/$cfg.jsonl" ] && runs+=("$O/$cfg.jsonl"); done
 [ -s "$O/ref.jsonl" ] && [ ${#runs[@]} -gt 0 ] && "$GSQ_VENV/bin/python" bench/corruption_check.py compare \
   --ref "$O/ref.jsonl" "${runs[@]}" | tee "$O/summary.txt"
 gzip -kf "$O"/*.jsonl
-keep "$O" 20-corruption "$O/summary.txt" "$O"/*.jsonl.gz
+keep "$O" "20-corruption$KS" "$O/summary.txt" "$O"/*.jsonl.gz
 exit $rc

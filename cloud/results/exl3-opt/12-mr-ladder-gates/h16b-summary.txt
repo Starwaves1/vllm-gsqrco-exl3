@@ -1,0 +1,2 @@
+mr0(06)  c=1   74.7 tok/s (  75.5) 2.98 tok/step 39.89 ms | c=2  136.6 tok/s ( 136.6) 2.94 tok/step 43.05 ms | c=4  171.2 tok/s ( 171.2) 2.99 tok/step 69.86 ms | c=8  308.6 tok/s ( 289.3) 2.78 tok/step 72.07 ms | acc 0.4062
+mr2h     c=1   88.4 tok/s (  88.3) 2.96 tok/step 33.48 ms -6.41 | c=2  152.3 tok/s ( 151.9) 2.94 tok/step 38.61 ms -4.44 | c=4  251.1 tok/s ( 239.1) 3.01 tok/step 47.95 ms -21.91 | c=8  439.1 tok/s ( 435.0) 2.67 tok/step 48.64 ms -23.42 | acc 0.3955

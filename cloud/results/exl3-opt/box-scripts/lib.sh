@@ -22,6 +22,17 @@ export GSQ_VENV=${EXL3_OPT_VENV:-$GSQ_VENV}
 export R=/workspace/runs/exl3-opt$EXL3_OPT_TAG$ALT L=/workspace/logs/exl3-opt$EXL3_OPT_TAG$ALT
 export RES=$WT/cloud/results/exl3-opt$EXL3_OPT_TAG$ALT
 export GSQ_RUNS=$R GSQ_KV_TIER_ROOT=/workspace/kvtier-exl3-opt
+# MTP at a fixed k (EXL3_SPEC_K, default 3; "sched" = production's per-batch-size schedule): the
+# schedule's K drops at batch-size boundaries trip the overlay's #50021 conv1d bound (GSQ round 3's
+# corruption root cause, EXL3 job 20 at c=9), and GSQ-RCO and prod W4A16 are measured at k=3
+if [ "${EXL3_SPEC_K:=3}" != sched ]; then
+  mkdir -p "$R"
+  awk -v spec="{\"method\":\"mtp\",\"num_speculative_tokens\":$EXL3_SPEC_K,\"draft_sample_method\":\"probabilistic\"}" \
+    'p {print spec; p=0; next} {print} $0=="--speculative-config" {p=1}' "$GSQ_PROD_ARGV" > "$R/prod-argv-k$EXL3_SPEC_K.txt"
+  grep -q "\"num_speculative_tokens\":$EXL3_SPEC_K," "$R/prod-argv-k$EXL3_SPEC_K.txt" || die "speculative-config not replaced"
+  export GSQ_PROD_ARGV=$R/prod-argv-k$EXL3_SPEC_K.txt
+fi
+KS=; [ "$EXL3_SPEC_K" = sched ] || KS=-k$EXL3_SPEC_K   # run/result dir suffix of the serving jobs
 # a copy of phase 1's autotune cache: exl3_gemm runs the same tile choices as 01..07, and this
 # job's tuning never writes into phase 1's
 if [ ! -d "$R/tune-cache" ]; then
