@@ -119,8 +119,9 @@ Do not open PRs 09 (9-32-row int8-mma kernel), 10 (IQ3 repack + packed kernels) 
 **Update 2026-10-03: the reason for this HOLD is gone. HOLD lifted pending Garrett's go** (until he
 says go, treat 09/10/11c-11e as held). The incident is not in these kernels. Stock W4A16 (Marlin, no plugin) corrupts the same way on the same
 vLLM, turning the plugin's routing off changes nothing, and the 9-32-row kernels pass their unit tests
-at the production row counts. The cause is PR #50021's conv1d bound in our vLLM overlay, which fires
+at the production row counts; these three facts are PROVEN by box runs and are all the HOLD decision
+needs. The cause (PROVEN at kernel level on CPU, INFERRED end to end until the GPU rerun) is PR
+#50021's conv1d bound in our vLLM overlay, which fires
 when the per-batch-size MTP schedule lowers K between steps (`cloud/results/r3/incident-root-cause.md`).
-The GPU rerun with the one-line fix is the last confirmation (the root cause is PROVEN at kernel
-level on CPU, INFERRED end to end until that rerun); nothing in the root cause touches the
+The GPU rerun with the one-line fix is the last confirmation; nothing in the root cause touches the
 quantizer or routing that PRs 01-08, 11a, 11b and 12 share.

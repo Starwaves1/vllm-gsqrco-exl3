@@ -6,12 +6,12 @@ Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark repo
 
 **Incident root cause found: PROVEN at kernel level (CPU), INFERRED end to end until the GPU rerun (Task B).** Full write-up:
 `cloud/results/r3/incident-root-cause.md`. The corrupted generations point to our vLLM overlay, not
-from the GSQ-RCO kernels: overlay commit 46ba368c70 backports the open upstream PR #50021, whose
+to the GSQ-RCO kernels: overlay commit 46ba368c70 backports the open upstream PR #50021, whose
 `causal_conv1d_update` hunk rejects `num_accepted > seqlen` with `seqlen` = this step's query length.
 Under the per-batch-size MTP schedule (`[[1,4,5],[5,8,3],[9,16,2]]`) K drops between steps whenever the
 batch grows across a tier boundary (4 -> 5 or 8 -> 9 running); after a step that accepted more tokens
 than the next step verifies, the check zeroes that request's GDN conv output and skips its conv-state
-update. VERIFIED on CPU (Triton interpreter, `box-scripts/r3conv_kchange.py`): upstream main's kernel
+update. PROVEN on CPU (Triton interpreter, `box-scripts/r3conv_kchange.py`): upstream main's kernel
 is exact for every K change, the overlay's is wrong for the two steps after a decrease with full
 acceptance. Box evidence (jobs 58/60/28b/28d): stock W4A16 corrupts like GSQ, eager/no connector/
 mamba-cache none all corrupt, fixed k=3 and no-spec are clean, a flat K=2 schedule is clean.

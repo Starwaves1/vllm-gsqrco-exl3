@@ -49,7 +49,7 @@ with fixed K (results below).
 
 The other three kernels in the PR bound the same index by the state row width
 (`i_t < stride_indices_seq` in `fused_recurrent.py` and `fused_sigmoid_gating.py`,
-`init_token_idx < stride_state_indices_batch` in `mamba_ssm.py`), as does the CUDA
+`init_token_idx < stride_state_indices_batch` in `mamba_ssm.py`), as does main's own CUDA
 `fused_gdn_decode_post_conv_mtp` (`accepted <= state_indices_width`). Only the conv1d hunk uses the
 current query length.
 
@@ -64,7 +64,8 @@ current query length.
 
 ## Reproduction
 
-Server (the exact argv we ran, minus host paths and our KV-offload connector, which did not matter):
+Server (abridged: host paths, our KV-offload connector (which did not matter), `--enable-cumem-allocator`,
+`--api-server-count 1`, multimodal, tool-call and served-name flags left out):
 
 ```
 vllm serve <Qwen3.5-arch model with MTP> --max-model-len 200000 --max-num-seqs 16 \
@@ -89,7 +90,7 @@ Load (two clients at once):
 Count answers with U+FFFD, EOS inside the reasoning, characters outside the prompt's scripts, or a
 fragment repeated 4+ times.
 
-## Results (T=0, c=4, 30 answers each)
+## Results (T=0, c=4, 30 answers each, unless noted)
 
 | server | neighbour | corrupted |
 | --- | --- | --- |
@@ -105,8 +106,9 @@ fragment repeated 4+ times.
 | no speculative decoding | 1-token completions | 0 |
 | `[[1,16,2]]` (K=2 at every batch size), c=3..8 | none | 0 (2 flags of 182: a combining macron in math, false positive) |
 
-Without a neighbour, the same schedule corrupts when the running count hovers at a tier boundary:
-c=8: 0-1/32, c=9: 8-16/36 (K flips 3 <-> 2), c=12: 3/48, c=16: 1-3/64.
+Without a neighbour, the same schedule corrupts when the running count hovers at a tier boundary
+(T=1.0 / T=0): c=8: 0/32 and 1/32, c=9: 8/36 and 16/36 (K flips 3 <-> 2), c=12: 3/48 and 3/48,
+c=16: 1/64 and 3/64.
 
 Examples (T=0): `Serbia accepted 7 of the 10 10 demands;`, `1377: JikI377: Jikji printed in Korea`,
 `The old town's main streets:'s.\n- The old town's.\n- The old town's.`, `11111111111...`.
@@ -125,7 +127,7 @@ every output with a plain causal conv over the accepted tokens (width 4, num_spe
 | L=6 a=4, then L=4 | exact | exact | exact |
 | L=4 a=4, then L=3 (K 3 -> 2) | exact | step 2 err 5.1, step 3 err 1.9 | exact |
 | L=4 a=4, then L=6 (K 3 -> 5) | exact | exact | exact |
-| num_accepted 0 or num_spec + 2 | reads out of row | rejected | rejected |
+| num_accepted 0 or num_spec + 2 | not rejected (by the code: reads outside the window) | rejected | rejected |
 
 ## Suggested fix
 

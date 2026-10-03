@@ -6,7 +6,8 @@
 #   fixed3  {"num_speculative_tokens":3} on venv-main
 #   sched   production's [[1,4,5],[5,8,3],[9,16,2]] on venv-main + conv1d-accepted-bound.patch
 #           (the fix only changes which accepted counts the conv kernel rejects; same speed)
-# At c=1/2/4 the schedule runs k=5, at c=8 k=3, so c=8 is a same-config control.
+# At c=1/2/4 the schedule runs k=5, at c=8 k=3, so c=8 is roughly a same-config control (the tail of
+# each c=8 cohort drops below 5 running, where the schedule switches to k=5).
 # Output: /workspace/logs/r3/62-k-cost/. GPU time ~40 min.
 #   bash 62-k-cost.sh [--plan]
 source "$(dirname "$0")/lib.sh"

@@ -4,7 +4,7 @@
 # previous step accepted more tokens than this step verifies, which the per-batch-size MTP schedule
 # causes whenever K drops. Load = job 60's: 30 greedy chat answers beside a 1-token side client.
 #   kstep        schedule [[1,1,5],[2,2,3],[3,16,2]]: at c=1 the side client flips K 5<->3, at c=2
-#                3<->2, nearly every step                          -> expect corruption
+#                3<->2, every few steps                            -> expect corruption
 #   kstep-k3     same traffic, fixed k=3, no schedule              -> expect clean
 #   kstep-fix    kstep on venv-main + patches/conv1d-accepted-bound.patch -> expect clean
 #   base         job 60's base cell again (production schedule, c=4 + side client, venv-main) -> ~23/30
@@ -19,7 +19,7 @@
 #   bash 61-kchange-fix.sh [--plan]
 source "$(dirname "$0")/lib.sh"
 r3_init 61-kchange-fix "$@"
-if [ "$R3_PLAN" = 1 ]; then sed -n '2,21p' "$0"; exit 0; fi
+if [ "$R3_PLAN" = 1 ]; then sed -n '2,19p' "$0"; exit 0; fi
 r3_env
 r3_preflight
 FIXV=/workspace/venv-r3-convfix
