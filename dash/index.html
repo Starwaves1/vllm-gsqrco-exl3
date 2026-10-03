@@ -37,7 +37,7 @@ button.link{font:inherit;background:none;border:none;color:var(--series);cursor:
 <div class="ranges" id="ranges"></div>
 <div class="charts" id="charts"></div>
 
-<h2>GPU queue</h2>
+<h2>GPU queue <span id="daemon" style="font-weight:400;font-size:13px;margin-left:8px"></span></h2>
 <div id="running" class="card"></div>
 <h3 style="font-size:13px;margin:14px 0 6px">Queued</h3><div id="queued"></div>
 <h3 style="font-size:13px;margin:14px 0 6px">History <span class="muted" style="font-weight:400">(last 200)</span></h3><div id="history"></div>
@@ -157,18 +157,22 @@ $('charts').append(...CHARTS.map(c => el('div', {className: 'card chart'}, el('h
 addEventListener('resize', drawCharts);
 
 // ---- queue ----
-let showTail = false;
+let showTail = false, showLs = false;
 const submitted = id => { const p = id.split('-')[0]; return /^\d{16}$/.test(p) ? p / 1e6 : null; };
 async function loadQueue() {
   const q = await get('/api/queue'), r = q.running, now = Date.now() / 1000;
+  const d = (q.gpuq[0] || '').match(/^daemon: (\S+)/);  // first line of `gpuq ls` on the box
+  $('daemon').replaceChildren(d ? (d[1] === 'running' ? status('gpuq daemon running', '--good') : status(`gpuq daemon ${d[1]}`, '--critical')) : '',
+    q.gpuq.length ? el('button', {className: 'link', style: 'margin-left:10px', textContent: showLs ? 'hide gpuq ls' : 'gpuq ls', onclick: () => { showLs = !showLs; loadQueue(); }}) : '');
+  const ls = showLs ? [el('pre', {}, q.gpuq.join('\n'))] : [];
   if (r) {
-    const st = Date.parse(r.started) / 1000;
+    const st = r.started;
     $('running').replaceChildren(
       el('div', {}, status('Running', '--ink2'), ' ', el('b', {}, r.id.split('-').slice(1).join('-')), el('span', {className: 'muted'}, `  ${r.id}`)),
-      el('div', {className: 'ink2'}, `started ${fmtT(st)} · elapsed ${dur(now - st)} · waited ${dur(st - submitted(r.id))}` + (q.online ? '' : ' · box offline, may be stale')),
+      el('div', {className: 'ink2'}, `started ${fmtT(st)} · elapsed ${st ? dur(now - st) : '-'} · waited ${st ? dur(st - submitted(r.id)) : '-'}` + (q.online ? '' : ' · box offline, may be stale')),
       el('button', {className: 'link', textContent: showTail ? 'hide log tail' : 'show log tail', onclick: () => { showTail = !showTail; loadQueue(); }}),
-      ...(showTail ? [el('pre', {}, (r.tail || []).join('\n') || '(empty log)')] : []));
-  } else $('running').replaceChildren(el('span', {className: 'muted'}, 'No job running.'));
+      ...(showTail ? [el('pre', {}, (r.tail || []).join('\n') || '(empty log)')] : []), ...ls);
+  } else $('running').replaceChildren(el('span', {className: 'muted'}, 'No job running.'), ...ls);
   $('queued').replaceChildren(q.queued.length ? el('table', {},
     el('tr', {}, ...['#', 'name', 'submitted', 'waiting', 'command'].map(h => el('th', {}, h))),
     ...q.queued.map((j, i) => el('tr', {}, el('td', {}, i + 1), el('td', {}, j.id.split('-').slice(1).join('-')), el('td', {}, fmtT(submitted(j.id))),
@@ -177,7 +181,7 @@ async function loadQueue() {
   $('history').replaceChildren(el('table', {},
     el('tr', {}, ...['name', 'submitted', 'started', 'ended', 'duration', 'status'].map(h => el('th', {}, h))),
     ...q.history.map(j => el('tr', {title: j.id}, el('td', {}, j.name), el('td', {}, fmtT(j.submitted)), el('td', {}, fmtT(j.started)), el('td', {}, fmtT(j.ended)),
-      el('td', {}, dur(j.ended - j.started)),
+      el('td', {}, j.started ? dur(j.ended - j.started) : '-'),
       el('td', {}, j.status === '0' ? status('✓ ok', '--good') : status(`✗ exit ${j.status}`, '--critical'))))));
 }
 

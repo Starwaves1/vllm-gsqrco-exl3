@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Poll the Vast.ai box once a minute over one ssh call; append to data/."""
+"""Poll the Vast.ai box once a minute over one ssh call; append to DATA."""
 import json, os, subprocess, time
 
-DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-import json as _json, os as _os
-_BOX = _json.load(open(_os.path.join(_os.path.dirname(__file__), "data", "box.json")))  # {"host":..., "port":...}; gitignored
-SSH = ["ssh", "-p", str(_BOX["port"]), "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-       "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@" + _BOX["host"]]
+DATA = os.environ.get("DASH_DATA") or os.path.expanduser("~/tools/dashboard-data")
 Q = "/workspace/gpuq"
 REMOTE = f"""
 echo @@dash:gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
@@ -14,7 +10,8 @@ echo @@dash:mem; free -b | awk 'NR==2{{print $3,$7}}'
 echo @@dash:disk; df -B1 / | awk 'NR==2{{print $3,$4}}'
 echo @@dash:load; cat /proc/loadavg
 echo @@dash:cgmax; cat /sys/fs/cgroup/memory.max
-echo @@dash:running; cat {Q}/running 2>/dev/null
+echo @@dash:gpuq; gpuq ls 2>&1 | head -n 60
+echo @@dash:running; [ -f {Q}/running ] && echo "$(cat {Q}/running) $(stat -c %Y {Q}/running)"
 echo @@dash:queued; for f in {Q}/jobs/*.job; do [ -e "$f" ] && printf '%s\\t%s\\n' "$(basename "$f" .job)" "$(head -c 400 "$f" | tr '\\n\\t' '  ')"; done
 echo @@dash:status; grep -H '' {Q}/out/*.status 2>/dev/null
 echo @@dash:logs; stat -c '%n %W %Y' {Q}/out/*.log 2>/dev/null
@@ -49,7 +46,10 @@ def job_id(path, ext):
 
 def poll():
     now = time.time()
-    r = subprocess.run(SSH + [REMOTE], capture_output=True, text=True, timeout=60)
+    box = json.load(open(os.path.join(DATA, "box.json")))  # {"host":..., "port":...}; kept out of the public tree
+    ssh = ["ssh", "-p", str(box["port"]), "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+           "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "root@" + box["host"]]
+    r = subprocess.run(ssh + [REMOTE], capture_output=True, text=True, timeout=60)
     s = sections(r.stdout)
     if "end" not in s or not s.get("gpu"):
         raise RuntimeError((r.stderr.strip() or "no output")[-300:])
@@ -65,8 +65,8 @@ def poll():
 
     running = None
     if s.get("running") and s["running"][0].strip():
-        rid, rstart = (s["running"][0].split() + [""])[:2]
-        running = {"id": rid, "started": rstart, "tail": s.get("tail", [])}
+        rid, _pid, rstart = (s["running"][0].split() + ["", ""])[:3]  # "<id> <pid> <mtime of running file>"
+        running = {"id": rid, "started": int(rstart) if rstart.isdigit() else None, "tail": s.get("tail", [])}
     queued = [dict(zip(("id", "cmd"), l.split("\t", 1))) for l in s.get("queued", []) if l]
     queued = [q for q in queued if not running or q["id"] != running["id"]]
     status = {}
@@ -77,7 +77,8 @@ def poll():
     for l in s.get("logs", []):
         path, birth, mtime = l.rsplit(" ", 2)
         logs[job_id(path, ".log")] = (int(birth), int(mtime))
-    return sample, running, queued, status, logs
+    gpuq = [l for l in s.get("gpuq", []) if l.strip()]
+    return sample, running, queued, status, logs, gpuq
 
 
 def main():
@@ -90,15 +91,18 @@ def main():
         except ValueError:
             jobs = {}
         try:
-            sample, running, queued, status, logs = poll()
+            sample, running, queued, status, logs, gpuq = poll()
             with open(os.path.join(DATA, "samples.jsonl"), "a") as f:
                 f.write(json.dumps(sample) + "\n")
             # Finished jobs: history is kept locally so it survives the box being destroyed.
+            # A job is recorded once, when its status file first appears; logs copied from an older box have a
+            # birth time after their mtime, so their start is unknown.
             for jid, code in status.items():
-                birth, mtime = logs.get(jid, (0, 0))
-                jobs[jid] = {"status": code, "started": birth or None, "ended": mtime or None}
+                if jid not in jobs:
+                    birth, mtime = logs.get(jid, (0, 0))
+                    jobs[jid] = {"status": code, "started": birth if 0 < birth <= mtime else None, "ended": mtime or None}
             now = {"online": True, "ts": sample["ts"], "sample": sample,
-                   "running": running, "queued": queued}
+                   "running": running, "queued": queued, "gpuq": gpuq}
         except Exception as e:  # ssh down, timeout, parse failure: mark offline, keep last data
             old = {}
             try:

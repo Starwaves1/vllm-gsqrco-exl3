@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Serve the dashboard page and a small JSON API from data/ (written by collect.py and post)."""
+"""Serve the dashboard page and a small JSON API from DATA (written by collect.py and post)."""
 import json, os, socket, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(HERE, "data")
+DATA = os.environ.get("DASH_DATA") or os.path.expanduser("~/tools/dashboard-data")
 RATE = 0.20  # $/h (box 2, 350 W host)
 MAX_POINTS = 1500
 
@@ -42,7 +42,7 @@ def first_ts():
 
 def api_now(q):
     now = load("now.json", {"online": False})
-    now.pop("running", None), now.pop("queued", None)
+    now.pop("running", None), now.pop("queued", None), now.pop("gpuq", None)
     t0 = first_ts()
     if t0:
         hours = (time.time() - t0) / 3600
@@ -67,7 +67,7 @@ def api_queue(q):
         submitted = int(prefix) / 1e6 if prefix.isdigit() else None
         hist.append({"id": jid, "name": jid.split("-", 1)[-1], "submitted": submitted, **j})
     hist.sort(key=lambda j: j["id"], reverse=True)
-    return {"online": now.get("online", False), "ts": now.get("ts"),
+    return {"online": now.get("online", False), "ts": now.get("ts"), "gpuq": now.get("gpuq", []),
             "running": now.get("running"), "queued": now.get("queued", []), "history": hist[:200]}
 
 
@@ -109,4 +109,5 @@ def lan_ip():
 
 if __name__ == "__main__":
     host = sys.argv[1] if len(sys.argv) > 1 else lan_ip()
-    ThreadingHTTPServer((host, 18095), H).serve_forever()
+    port = int(sys.argv[2]) if len(sys.argv) > 2 else 18095  # a second port for testing next to the live one
+    ThreadingHTTPServer((host, port), H).serve_forever()
