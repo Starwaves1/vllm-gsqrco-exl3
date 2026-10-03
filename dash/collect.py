@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Poll the Vast.ai box once a minute over one ssh call; append to DATA."""
+"""Poll the Vast.ai box once a minute over one ssh call and append to DATA; fetch this repo every 5 min
+(the PR page reads its reports from the fetched refs)."""
 import json, os, subprocess, time
 
 DATA = os.environ.get("DASH_DATA") or os.path.expanduser("~/tools/dashboard-data")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FETCH_EVERY = 300
 Q = "/workspace/gpuq"
 REMOTE = f"""
 echo @@dash:gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
@@ -81,11 +84,24 @@ def poll():
     return sample, running, queued, status, logs, gpuq
 
 
+def fetch_repo():
+    r = subprocess.run(["git", "-C", REPO, "fetch", "-q", "--prune", "origin"], capture_output=True, text=True, timeout=120)
+    if r.returncode:
+        print("git fetch:", r.stderr.strip()[-300:], flush=True)
+
+
 def main():
     os.makedirs(DATA, exist_ok=True)
     jobs_path = os.path.join(DATA, "jobs.json")
+    fetched = 0
     while True:
         t0 = time.time()
+        if t0 - fetched >= FETCH_EVERY:
+            fetched = t0
+            try:
+                fetch_repo()
+            except subprocess.TimeoutExpired:
+                print("git fetch: timeout", flush=True)
         try:
             jobs = json.load(open(jobs_path)) if os.path.exists(jobs_path) else {}
         except ValueError:

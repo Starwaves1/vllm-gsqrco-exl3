@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upstream PRs</title>
+<style>
+:root{color-scheme:light;--page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);--series:#2a78d6;
+ --good:#0ca30c;--warning:#fab219;--critical:#d03b3b;--fable:#7b4fd6;--fable-bg:rgba(123,79,214,.07);--mech-bg:rgba(42,120,214,.06)}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--page:#0d0d0d;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);--series:#3987e5;--fable:#a78bfa;--fable-bg:rgba(167,139,250,.08);--mech-bg:rgba(57,135,229,.08)}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;padding:14px 20px 10px;border-bottom:1px solid var(--border)}
+h1{font-size:18px;margin:0}
+a{color:var(--series);text-decoration:none}a:hover{text-decoration:underline}
+.muted{color:var(--muted)}.ink2{color:var(--ink2)}
+.pill{display:inline-flex;gap:6px;align-items:center;font-weight:600;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+main{flex:1;display:grid;grid-template-columns:minmax(320px,420px) 1fr;min-height:0}
+#list{overflow-y:auto;border-right:1px solid var(--border);padding:6px 0 30px}
+#detail{overflow-y:auto;padding:16px 24px 0;position:relative}
+.group{font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;padding:14px 16px 4px}
+.row{padding:7px 16px;cursor:pointer;border-left:3px solid transparent}
+.row:hover{background:var(--surface)}
+.row.sel{background:var(--surface);border-left-color:var(--series)}
+.row .t{font-weight:600}
+.row .m{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:1px}
+.dec{font-size:11px;font-weight:600;border-radius:4px;padding:0 5px;border:1px solid currentColor}
+.dec.approved{color:var(--good)}.dec.rejected{color:var(--critical)}.dec.changes-requested{color:#b07800}
+@media (prefers-color-scheme:dark){.dec.changes-requested{color:var(--warning)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:12px 0}
+h2.title{font-size:19px;margin:0 0 4px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--ink2);font-size:13px}
+.verdict{border:1px solid var(--fable);background:var(--fable-bg);border-radius:8px;padding:10px 14px;margin:12px 0}
+.verdict .h{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.verdict .who{color:var(--fable);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.verdict .rec{font-size:16px;font-weight:700}.verdict .conf{color:var(--ink2)}
+.why{border-left:3px solid var(--warning);padding:4px 10px;margin:10px 0;color:var(--ink2)}
+section.s{margin:18px 0}
+section.s>h3{font-size:14px;margin:0 0 6px;color:var(--ink2)}
+section.mech{background:var(--mech-bg);border:1px solid var(--series);border-radius:8px;padding:12px 16px;font-size:15px;line-height:1.55}
+section.mech>h3{color:var(--series);font-size:15px}
+section.fable{background:var(--fable-bg);border:1px solid var(--fable);border-radius:8px;padding:12px 16px}
+section.fable>h3{color:var(--fable)}
+section.check>h3::before{content:"\2714  ";color:var(--good)}
+.md p{margin:6px 0}.md ul,.md ol{margin:6px 0;padding-left:22px}
+.md code{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--page);border:1px solid var(--border);border-radius:4px;padding:0 3px}
+.md pre{background:var(--page);border:1px solid var(--border);border-radius:6px;padding:8px;overflow-x:auto}
+.md pre code{border:none;padding:0;background:none}
+.md blockquote{margin:6px 0;padding:2px 12px;border-left:3px solid var(--axis);color:var(--ink2)}
+.md table{border-collapse:collapse;margin:6px 0;font-variant-numeric:tabular-nums}
+.md th,.md td{text-align:left;padding:3px 12px 3px 0;border-bottom:1px solid var(--grid)}
+.md th{color:var(--ink2);font-size:12px}
+.md h1,.md h4,.md h5{font-size:14px;margin:10px 0 4px}
+.thread .c{padding:6px 0;border-bottom:1px solid var(--grid)}.thread .c .t{white-space:pre-wrap}
+.bar{position:sticky;bottom:0;background:var(--page);border-top:1px solid var(--border);padding:10px 0 12px;margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar textarea,.thread textarea{flex:1 1 300px;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:6px;padding:6px 8px;resize:vertical;min-height:34px}
+button.b{font:inherit;font-weight:600;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer}
+button.b kbd{font:11px ui-monospace,monospace;color:var(--muted);margin-left:4px}
+button.b.approved{border-color:var(--good)}button.b.rejected{border-color:var(--critical)}button.b.changes-requested{border-color:var(--warning)}
+button.b.armed{outline:2px solid var(--series);outline-offset:1px}
+.help{font-size:12px;color:var(--muted)}
+.empty{padding:40px 24px;color:var(--muted)}
+@media (max-width:820px){main{grid-template-columns:1fr}#list{max-height:40vh;border-right:none;border-bottom:1px solid var(--border)}}
+</style></head><body>
+<header><h1>Upstream PRs</h1><a href="/">box dashboard</a><span id="src" class="muted"></span>
+<span class="help">j/k move · a approve · c request changes · x reject (then Enter) · m comment · r reload · Esc cancel</span></header>
+<main><div id="list"></div><div id="detail"></div></main>
+<script>
+const $ = id => document.getElementById(id);
+function el(tag, props, ...kids) {  // untrusted text only ever goes through textContent (markdown goes through md(), which escapes)
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) k === 'style' ? e.style.cssText = v : e[k] = v;
+  for (const c of kids) if (c != null) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const fmtT = s => s ? new Date(typeof s === 'number' ? s * 1000 : s).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-';
+const STATUSES = ['candidate', 'report-drafted', 'fable-reviewed', 'approved', 'rejected', 'opened', 'merged', 'rfc-track'];
+const PRE = ['candidate', 'report-drafted', 'fable-reviewed'];
+const DEC = {approved: ['Approve', 'a'], 'changes-requested': ['Request changes', 'c'], rejected: ['Reject', 'x']};
+// Garrett's approve/reject moves a PR out of the pre-approval groups at once; the curator then sets the real status.
+const group = p => PRE.includes(p.status) && (p.decision === 'approved' || p.decision === 'rejected') ? p.decision : p.status;
+
+// ---- minimal markdown: headings, paragraphs, lists, code, quotes, tables, links, bold/italic ----
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function inline(s) {
+  return s.split(/(`+[^`]+?`+)/).map((part, i) => {
+    if (i % 2) return '<code>' + esc(part.replace(/^`+|`+$/g, '')) + '</code>';
+    return esc(part)
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => /^(https?:|#|\/)/.test(u) ? `<a href="${u}" target="_blank" rel="noopener">${t}</a>` : t)
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|\W)\*(?!\s)(.+?)\*(?!\w)/g, '$1<em>$2</em>');
+  }).join('');
+}
+function md(src) {
+  const lines = src.replace(/\r/g, '').split('\n'), out = [];
+  const isBlock = l => /^(#{1,6}\s|```|>|\s*([-*+]|\d+\.)\s|\|)/.test(l) || /^(-{3,}|\*{3,})\s*$/.test(l);
+  const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  for (let i = 0; i < lines.length;) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if (l.startsWith('```')) {
+      const code = []; for (i++; i < lines.length && !lines[i].startsWith('```'); i++) code.push(lines[i]);
+      i++; out.push('<pre><code>' + esc(code.join('\n')) + '</code></pre>');
+    } else if ((m = l.match(/^(#{1,6})\s+(.*)/))) {
+      out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++;
+    } else if (/^(-{3,}|\*{3,})\s*$/.test(l)) { out.push('<hr>'); i++; }
+    else if (l.startsWith('>')) {
+      const q = []; for (; i < lines.length && lines[i].startsWith('>'); i++) q.push(lines[i].replace(/^>\s?/, ''));
+      out.push('<blockquote>' + md(q.join('\n')) + '</blockquote>');
+    } else if (l.trim().startsWith('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1] || '')) {
+      const head = cells(l); i += 2; const rows = [];
+      for (; i < lines.length && lines[i].trim().startsWith('|'); i++) rows.push(cells(lines[i]));
+      out.push('<table><tr>' + head.map(c => `<th>${inline(c)}</th>`).join('') + '</tr>' +
+        rows.map(r => '<tr>' + r.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</table>');
+    } else if ((m = l.match(/^(\s*)([-*+]|\d+\.)\s/))) {
+      // one list level per indent; continuation lines (indented, no marker) join the previous item
+      const items = [], ind = m[1].length, ordered = /\d/.test(m[2]);
+      for (; i < lines.length && lines[i].trim(); i++) {
+        const mm = lines[i].match(/^(\s*)([-*+]|\d+\.)\s+(.*)/);
+        if (mm && mm[1].length <= ind) items.push([mm[3]]);
+        else if (items.length) items.at(-1).push(lines[i].replace(new RegExp(`^\\s{0,${ind + 2}}`), ''));
+        else break;
+      }
+      const tag = ordered ? 'ol' : 'ul';
+      out.push(`<${tag}>` + items.map(([first, ...rest]) => '<li>' + inline(first) +
+        (rest.length ? (/^\s*([-*+]|\d+\.)\s/.test(rest[0]) ? md(rest.join('\n')) : ' ' + inline(rest.join(' '))) : '') + '</li>').join('') + `</${tag}>`);
+    } else {
+      const p = []; for (; i < lines.length && lines[i].trim() && !isBlock(lines[i]); i++) p.push(lines[i]);
+      out.push('<p>' + inline(p.join('\n')) + '</p>');
+    }
+  }
+  return out.join('\n');
+}
+function mdEl(src, cls) { const d = el('div', {className: 'md ' + (cls || '')}); d.innerHTML = md(src || ''); return d; }
+
+// ---- report sections: split on "## ", style by heading ----
+function sectionClass(h) {
+  if (/fable/i.test(h)) return 'fable';
+  if (/mechanism/i.test(h)) return 'mech';
+  if (/check/i.test(h)) return 'check';
+  return '';
+}
+function renderReport(src) {
+  const parts = src.replace(/\r/g, '').split(/^## +/m), frag = document.createDocumentFragment();
+  const intro = parts.shift().replace(/^# .*\n?/, '').trim();  // the H1 duplicates the PR title
+  if (intro) frag.append(mdEl(intro));
+  for (const p of parts) {
+    const nl = p.indexOf('\n'), h = nl < 0 ? p : p.slice(0, nl), body = nl < 0 ? '' : p.slice(nl + 1);
+    const sec = el('section', {className: 's ' + sectionClass(h)}, el('h3', {}, h.trim()), mdEl(body));
+    frag.append(sec);
+  }
+  return frag;
+}
+function verdict(fc) {  // fable_comment: string ("Recommendation: X. Confidence: Y. ...") or {recommendation, confidence, text}
+  if (!fc) return null;
+  let rec = fc.recommendation, conf = fc.confidence, text = fc.text ?? (typeof fc === 'string' ? fc : '');
+  if (typeof fc === 'string') {  // lift "Recommendation: X." and "Confidence: Y." out of the text into the header
+    const RE = [/recommend\w*\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i, /confidence\s*\**\s*[:\-]\s*\**\s*([^.\n;]+)[.;]?\s*/i];
+    [rec, conf] = RE.map(re => (fc.match(re) || [])[1]);
+    text = RE.reduce((t, re) => t.replace(re, ''), fc);
+  }
+  return el('div', {className: 'verdict'},
+    el('div', {className: 'h'}, el('span', {className: 'who'}, "Fable's comment"),
+      rec ? el('span', {className: 'rec'}, rec.trim()) : null, conf ? el('span', {className: 'conf'}, 'confidence ' + conf.trim()) : null),
+    mdEl(text));
+}
+
+// ---- state ----
+let data = {prs: []}, order = [], sel = location.hash.slice(1) || null, armed = null, cur = null;
+async function get(u) { const r = await fetch(u, {cache: 'no-store'}); if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); }
+async function post(u, body) {
+  const r = await fetch(u, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json();
+}
+const loc = p => p.loc ? `+${p.loc.added ?? 0} / −${p.loc.removed ?? 0}` : '';
+
+async function loadList() {
+  data = await get('/api/prs');
+  $('src').textContent = [data.source ? `reports from ${data.source}` : 'no report source',
+    data.fetched ? `fetched ${fmtT(data.fetched)}` : '', data.error || ''].filter(Boolean).join(' · ');
+  const groups = {};
+  for (const p of data.prs) (groups[group(p)] ??= []).push(p);
+  const names = [...STATUSES, ...Object.keys(groups).filter(g => !STATUSES.includes(g))];
+  order = [];
+  const kids = [];
+  for (const g of names) {
+    if (!groups[g]) continue;
+    groups[g].sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
+    kids.push(el('div', {className: 'group'}, `${g} (${groups[g].length})`));
+    for (const p of groups[g]) {
+      order.push(p.slug);
+      kids.push(el('div', {className: 'row' + (p.slug === sel ? ' sel' : ''), onclick: () => select(p.slug), title: p.slug},
+        el('div', {className: 't'}, p.title || p.slug, ' ', p.decision !== 'none' ? el('span', {className: 'dec ' + p.decision}, p.decision) : null),
+        el('div', {className: 'm'}, el('span', {}, p.target_repo || ''), el('span', {}, loc(p)),
+          el('span', {}, `${(p.upstream_refs || []).length} refs`), el('span', {}, fmtT(p.updated)))));
+    }
+  }
+  $('list').replaceChildren(...(kids.length ? kids : [el('div', {className: 'empty'}, 'No reports yet.',
+    el('div', {style: 'margin-top:6px;font-size:12px'}, 'Waiting for docs/upstream/prs/index.json on origin/upstream-prs or origin/main.'))]));
+  if (!data.prs.length) return $('detail').replaceChildren(el('div', {className: 'empty'}, 'No reports yet.'));
+  if (!order.includes(sel)) sel = order[0];
+  if (!cur || cur.slug !== sel) await loadDetail();
+}
+
+function select(slug) {
+  sel = slug; armed = null;
+  history.replaceState(null, '', '#' + slug);
+  for (const r of $('list').querySelectorAll('.row')) r.classList.toggle('sel', r.title === slug);
+  $('list').querySelector('.row.sel')?.scrollIntoView({block: 'nearest'});
+  loadDetail().catch(showErr);
+}
+
+async function loadDetail() {
+  const slug = sel, p = await get('/api/prs/' + encodeURIComponent(slug));
+  if (slug !== sel) return;  // a newer selection won
+  cur = p;
+  const refs = (p.upstream_refs || []).map(u => /^https?:/.test(u) ? el('a', {href: u, target: '_blank', rel: 'noopener'}, u.replace(/^https:\/\/github\.com\//, '')) : el('span', {}, u));
+  const d = $('detail');
+  d.replaceChildren(...[
+    el('h2', {className: 'title'}, p.title || p.slug),
+    el('div', {className: 'meta'},
+      el('span', {className: 'pill'}, p.status), el('span', {}, p.target_repo || ''), el('span', {}, loc(p)),
+      p.branch ? el('a', {href: p.compare_url, target: '_blank', rel: 'noopener'}, p.branch) : null,
+      el('span', {}, 'updated ' + fmtT(p.updated)),
+      p.decision !== 'none' ? el('span', {className: 'dec ' + p.decision}, `${p.decision} ${fmtT(p.decided_at)}`) : null),
+    refs.length ? el('div', {className: 'meta', style: 'margin-top:4px'}, 'upstream:', ...refs) : null,
+    p.why_not ? el('div', {className: 'why'}, el('b', {}, 'Why not: '), p.why_not) : null,
+    verdict(p.fable_comment),
+    p.check_opinion ? el('div', {className: 'card'}, el('b', {className: 'ink2'}, 'Check agent: '), p.check_opinion) : null,
+    p.report_md ? el('div', {}, renderReport(p.report_md)) : el('div', {className: 'card muted'}, 'No REPORT.md yet.'),
+    thread(p), bar(p)].filter(Boolean));
+  d.scrollTop = 0;
+}
+
+function thread(p) {
+  const box = el('textarea', {id: 'comment', placeholder: 'Comment (Enter to post, Shift+Enter for a newline)', rows: 1});
+  box.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(p.slug, 'comment', {text: box.value}); } };
+  return el('div', {className: 'thread s'}, el('h3', {style: 'font-size:14px;color:var(--ink2);margin:24px 0 6px'}, 'Thread'),
+    ...(p.comments || []).map(c => el('div', {className: 'c'},
+      el('div', {className: 'muted'}, `${fmtT(c.ts)} · ${c.author}`, c.decision ? el('span', {className: 'dec ' + c.decision, style: 'margin-left:8px'}, c.decision) : null),
+      c.text ? el('div', {className: 't'}, c.text) : null)),
+    el('div', {style: 'display:flex;gap:8px;margin-top:8px'}, box));
+}
+
+function bar(p) {
+  const note = el('textarea', {id: 'note', placeholder: 'Decision note (optional)', rows: 1});
+  note.onkeydown = e => {
+    if (e.key === 'Enter' && !e.shiftKey && armed) { e.preventDefault(); send(p.slug, 'decision', {decision: armed, note: note.value}); }
+    if (e.key === 'Escape') { arm(null); note.blur(); }
+  };
+  return el('div', {className: 'bar'}, note,
+    ...Object.entries(DEC).map(([k, [label, key]]) => el('button', {className: 'b ' + k, id: 'btn-' + k,
+      onclick: () => send(p.slug, 'decision', {decision: k, note: note.value})}, label, el('kbd', {}, key))),
+    el('span', {className: 'muted', id: 'barmsg'}, p.decision !== 'none' ? `current: ${p.decision}` : 'no decision yet'));
+}
+
+function arm(k) {
+  if (k && !$('note')) return;
+  armed = k;
+  for (const b of document.querySelectorAll('.bar button')) b.classList.toggle('armed', b.id === 'btn-' + k);
+  if (k) { $('note').focus(); $('barmsg').textContent = `Enter to ${DEC[k][0].toLowerCase()}, Esc to cancel`; }
+}
+
+async function send(slug, kind, body) {
+  try {
+    await post(`/api/prs/${encodeURIComponent(slug)}/${kind}`, {...body, author: 'garrett'});
+    armed = null; cur = null;
+    await loadList();
+  } catch (e) { showErr(e); }
+}
+function showErr(e) { console.error(e); const m = $('barmsg'); if (m) m.textContent = 'error: ' + e.message; else $('src').textContent = 'error: ' + e.message; }
+
+addEventListener('keydown', e => {
+  if (e.target.closest('textarea,input') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const i = order.indexOf(sel);
+  if ((e.key === 'j' || e.key === 'ArrowDown') && i < order.length - 1) select(order[i + 1]);
+  else if ((e.key === 'k' || e.key === 'ArrowUp') && i > 0) select(order[i - 1]);
+  else if (e.key === 'a') arm('approved');
+  else if (e.key === 'c') arm('changes-requested');
+  else if (e.key === 'x') arm('rejected');
+  else if (e.key === 'm') $('comment')?.focus();
+  else if (e.key === 'r') { cur = null; loadList().catch(showErr); }
+  else if (e.key === 'Escape') arm(null);
+  else return;
+  e.preventDefault();
+});
+addEventListener('hashchange', () => { const s = location.hash.slice(1); if (s && s !== sel) select(s); });
+loadList().catch(showErr);
+setInterval(() => { if (!document.activeElement.closest('textarea')) loadList().catch(showErr); }, 120000);
+</script></body></html>

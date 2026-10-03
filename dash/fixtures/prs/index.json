@@ -1,0 +1,16 @@
+[
+ {"slug": "11b-dequant-no-zero-fill", "title": "FIXTURE: no zero fill in ggml_dequantize", "target_repo": "vllm-project/vllm-gguf-plugin",
+  "status": "fable-reviewed", "branch": "upstream/11b-dequant-no-zero-fill", "base": "e2b8ad5",
+  "upstream_refs": ["https://github.com/vllm-project/vllm-gguf-plugin/issues/1"], "loc": {"added": 14, "removed": 1},
+  "report": "docs/upstream/prs/11b-dequant-no-zero-fill/REPORT.md",
+  "fable_comment": "Recommendation: approve. Confidence: high. The zero fill is dead work: every element is written by the kernel.",
+  "check_opinion": "Mechanism verified against the kernel grid; the test fails before and passes after.", "updated": "2026-10-03T18:00:00-04:00", "why_not": null},
+ {"slug": "05-lcpp-vendored-mmvq-mmq", "title": "FIXTURE: vendored llama.cpp MMVQ / MMQ behind a flag", "target_repo": "vllm-project/vllm-gguf-plugin",
+  "status": "rfc-track", "branch": "upstream/05-lcpp-vendored-mmvq-mmq", "base": "upstream/04-kernel-parity-harness",
+  "upstream_refs": [], "loc": {"added": 1248, "removed": 46}, "report": "docs/upstream/prs/05-lcpp-vendored-mmvq-mmq/REPORT.md",
+  "fable_comment": null, "check_opinion": null, "updated": "2026-10-03T12:00:00-04:00",
+  "why_not": "21k vendored lines: needs an RFC issue first, not a PR."},
+ {"slug": "01-host-staging-copy", "title": "FIXTURE: copy unsharded GGUF weights from host memory", "target_repo": "vllm-project/vllm-gguf-plugin",
+  "status": "candidate", "branch": "upstream/01-host-staging-copy", "upstream_refs": [], "loc": {"added": 72, "removed": 2},
+  "report": null, "fable_comment": null, "check_opinion": null, "updated": "2026-10-02T09:30:00-04:00", "why_not": null}
+]
