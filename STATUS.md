@@ -4,7 +4,7 @@ Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark repo
 
 ## Round 3 (2026-10-01 to 10-03): incident root cause, perf inputs
 
-**Incident root cause found: PROVEN at kernel level (CPU), INFERRED end to end until the GPU rerun (Task B).** Full write-up:
+**Incident root cause PROVEN on the box (job 61, 2026-10-03: the one-line conv1d fix alone takes the c=4 neighbour cell from 26/30 to 0/30; upstream main's kernel clean; W4A16 + fix clean). Production attribution INFERRED (same pattern, not rerun there); see incident-root-cause.md "Task B results" and "Where I stopped".** Full write-up:
 `cloud/results/r3/incident-root-cause.md`. The corrupted generations point to our vLLM overlay, not
 to the GSQ-RCO kernels: overlay commit 46ba368c70 backports the open upstream PR #50021, whose
 `causal_conv1d_update` hunk rejects `num_accepted > seqlen` with `seqlen` = this step's query length.

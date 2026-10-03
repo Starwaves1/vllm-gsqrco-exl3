@@ -31,8 +31,11 @@ PROVEN at kernel level here (CPU, Triton interpreter, `box-scripts/r3conv_kchang
 main's kernel is exact for every K change; the overlay's kernel is wrong for the two steps after a
 decrease with full acceptance (max abs error 9.9 and 7.6 on outputs of magnitude ~1-10), and exact
 otherwise. INFERRED end to end: every box result and the production pattern follow from this rule
-(section "Why the pattern looks the way it does"). The GPU run that applies only the one-line fix
-and reruns job 60 is Task B (below); until it is green, the end-to-end attribution is inference.
+(section "Why the pattern looks the way it does"). **Update 2026-10-03 (job 61, section "Task B
+results"): on the box the end-to-end attribution is now PROVEN**: the one-line fix alone takes job
+60's base cell from 26/30 to 0/30, upstream main's kernel is clean too, and W4A16 with the fix is
+clean. For production it remains INFERRED (same argv and pattern; not rerun there), with the 0.27.1
+hole below still open.
 
 So the answer to "is it the overlay's bug?" is: at kernel level yes (PROVEN on CPU). The overlay, via
 the still-open upstream PR, introduced the check; upstream main's kernel has no such check and is
@@ -286,3 +289,46 @@ but rarely binds at 2048 tokens. The one-line fix closes it too. Flagged for Gar
 - Job 28e: the headcheck server never booted (engine-core init failure), so the live lm_head/draft
   head comparison never ran. Same boot failure for job 60 `noprefix` and job 40 `steady`.
 - The 0.27.1 W4A16 discrepancy above.
+
+## Task B results (job 61, box RTX 3090 350 W, 2026-10-03 21:52-22:45 UTC, wt ca39b18)
+
+Box log `/workspace/logs/r3/61-kchange-fix/` (run.log, report.txt), gpuq job 1791064362987931.
+Load as job 60: 30 non-streamed answers, T=0, 600 tokens, beside the 1-token `plain1` client. GSQ
+GGUF unless noted. Kernel test on the box's own files: venv-main BAD (9.9/7.6, 5.1/1.9), patched and
+main-kernel copies exact (same as the CPU run here).
+
+| cell | venv / kernel | schedule | c | flagged |
+| --- | --- | --- | --- | --- |
+| base | venv-main (overlay, #50021 check) | production | 4 | 26/30 |
+| fix-base | + conv1d-accepted-bound.patch | production | 4 | 0/30 |
+| mainconv | + conv1d-upstream-main.patch (no check) | production | 4 | 1/30* |
+| fix-eager / fix-mambanone / fix-noconn | patched | production | 4 | 1/30* each |
+| fix-w4a16 (W4A16 checkpoint) | patched | production | 4 | 0/30 |
+| kstep | venv-main | `[[1,1,5],[2,2,3],[3,16,2]]` | 1 / 2 | 28/30, 28/30 |
+| kstep-k3 | venv-main | fixed k=3 | 1 / 2 | 0/30, 0/30 |
+| kstep-fix | patched | `[[1,1,5],[2,2,3],[3,16,2]]` | 1 / 2 | 0/30, 0/30 |
+| fix-c9 (no side client) | patched | production | 8/9/12 T=0 | 0/32, 1/36, 0/48 |
+
+\* every one of these single flags is prompt 15 with U+0304 (combining macron in math), the known
+odd-script false positive; no U+FFFD, EOS-in-reasoning or repeat flag in any patched or mainconv cell.
+fix-c9's T=0 c=9 flag and its T=1.0 passes were not inspected before I stopped (job still running).
+
+Labels now: the conv1d bound causing the box corruption is PROVEN (the patch is the only change
+between base and fix-base, 26 -> 0; K changing every step corrupts 28/30 unless K is fixed or the
+patch is in). Upstream main's kernel is clean on the GPU too (PROVEN), so the review comment for
+#50021 holds and Part 2 stays a test request, not a bug report.
+
+## Where I stopped (2026-10-03 ~22:46 UTC, usage window)
+
+- Committed on r3: docs (Task A + /check fixes), job 61 partial results above. Not yet copied into
+  the review comment's "Not yet verified" list or STATUS (do that next: fix-base 26 -> 0, mainconv clean).
+- Running on the box: gpuq 1791064362987931 (job 61; last cell fix-c9 T=1.0 c=9/12). Read its
+  `summary.txt` and the fix-c9 details (`r3tok.py report ... --details 200`).
+- Queued: 1791064362990991 r3-62-k-cost (fixed k=3 vs schedule, prod bench pass 2; ms/step =
+  1000 x tok/step x C / decode), then another agent's exl3m-10-parity, then 1791065864522912
+  r3-61b-k3c9 (fixed k=3 at c=8/9/12, T=0/1: background flag rate; logs 61-kchange-fix-k3c9).
+- Box disk: overlay venvs /workspace/venv-r3-convfix and venv-r3-mainconv are hardlink copies (small),
+  /workspace/kvtier-r3 up to 7 GB; worktrees /workspace/wt-r3-i, wt-r3-j. Delete when done.
+- Needs Garrett: deploy the one-line overlay fix (prod still carries the check; structured output can
+  hit it, INFERRED); go/no-go on lifting the upstream HOLD; whether to post the #50021 review comment;
+  redeploy config (fixed k=3 vs schedule) once job 62 lands.
