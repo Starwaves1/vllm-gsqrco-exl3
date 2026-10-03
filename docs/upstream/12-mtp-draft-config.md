@@ -1,12 +1,12 @@
-# 12: MTP draft config from the HF config source on newer vLLM
+# 12: MTP draft config from the HF config source on vLLM >= 0.29
 
 Branch: `upstream/12-mtp-draft-config` (2 commits, on e2b8ad5). No dependency.
 
-**Title:** [BugFix] Build the MTP draft config from the HF config source on newer vLLM
+**Title:** [BugFix] Build the MTP draft config from the HF config source on vLLM >= 0.29
 
 ## Motivation
 
-For `method == "mtp"` without a draft model, newer vLLM (seen at 0.30.1rc1.dev285,
+For `method == "mtp"` without a draft model, vLLM >= 0.29 (vllm#42079; seen at 0.30.1rc1.dev285,
 `vllm/config/speculative.py`) sets the draft's `model` to `target_model_config.model_weights` when that
 is set, to keep runai_streamer's weight source:
 
@@ -37,7 +37,8 @@ vLLM 0.27.1 used `target_model_config.model`, the HF config source the plugin re
 - Without the fix, a CPU meta-device engine build of a 27B Qwen3.5-architecture GGUF with MTP on vLLM
   main fails in `create_engine_config` ("Unrecognized model"); with it the build passes on 0.27.1 and
   main and the draft loads from the HF config directory with its weights from the `.gguf`. (Those
-  builds had an unrelated out-of-tree vLLM patch set installed.) Not yet served on a GPU with vLLM main.
+  builds had an unrelated out-of-tree vLLM patch set installed.) The same wrapper served the 27B GGUF with MTP on
+  vLLM main in production on 2026-10-01.
 
 ## Alternative: fix it in vLLM core
 
