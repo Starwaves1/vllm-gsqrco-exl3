@@ -2,6 +2,50 @@
 
 Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); soak 19.4 h clean at c=2, stopped early by decision (see "Final phase"). GSQ-RCO went live on production (vLLM main, k=5) on 2026-10-01.
 
+## Round 3 (2026-10-01 to 10-03): incident root cause, perf inputs
+
+**Incident closed with a root cause (GPU confirmation pending, Task B).** Full write-up:
+`cloud/results/r3/incident-root-cause.md`. The corrupted generations come from our vLLM overlay, not
+from the GSQ-RCO kernels: overlay commit 46ba368c70 backports the open upstream PR #50021, whose
+`causal_conv1d_update` hunk rejects `num_accepted > seqlen` with `seqlen` = this step's query length.
+Under the per-batch-size MTP schedule (`[[1,4,5],[5,8,3],[9,16,2]]`) K drops between steps whenever the
+batch grows across a tier boundary (4 -> 5 or 8 -> 9 running); after a step that accepted more tokens
+than the next step verifies, the check zeroes that request's GDN conv output and skips its conv-state
+update. VERIFIED on CPU (Triton interpreter, `box-scripts/r3conv_kchange.py`): upstream main's kernel
+is exact for every K change, the overlay's is wrong for the two steps after a decrease with full
+acceptance. Box evidence (jobs 58/60/28b/28d): stock W4A16 corrupts like GSQ, eager/no connector/
+mamba-cache none all corrupt, fixed k=3 and no-spec are clean, a flat K=2 schedule is clean.
+Fix: `cloud/results/r3/patches/conv1d-accepted-bound.patch` (bound by the state row width).
+Upstream text: `docs/upstream/vllm-issue-dynamic-spec-schedule-corruption.md` (a review comment for
+#50021; not posted). One production run is not explained: W4A16 on 0.27.1 with the same schedule
+and check (knowledge-bench runs 13-16) shows no corruption signature.
+
+- **HOLD on upstream 09/10/11c-e can be lifted: the bug is not in the kernels.** Lifting is Garrett's
+  call; not done here (`docs/upstream/README.md` "HOLD").
+- Production today (W4A16, fixed k=3, no schedule) is off the schedule path but still carries the
+  check; by the same rule, structured-output requests whose drafts get truncated by the grammar can
+  hit it. Not observed; needs Garrett (deploy of the one-line overlay fix).
+- Mitigation until the fix is deployed: fixed K; never enable `num_speculative_tokens_per_batch_size`
+  on a venv with the #50021 conv1d hunk.
+- Still open: job 57's sanitizers exited rc=255 (no OOB check ran); job 28e's headcheck server, job
+  60's `noprefix` and job 40's `steady` never booted (engine-core init failure).
+- Torture smoke 3 PASSED (2026-10-02 01:58-02:23 UTC, commit fbafc28): 0 faults, 21 rows alive, 0
+  errors, GPU growth 27 MiB, full 0.33 h. Smoke 1/2 had failed (connection storm; 8 empty outputs).
+
+**Inputs to the perf round (box, production's main argv, GSQ-RCO, k=5):**
+
+- Attention at long context (job 23): attention reaches 27% of its DRAM-bandwidth floor at 8k ctx
+  (1.37 ms/step vs 0.37 floor) and 45-46% at 100k-195k (10.3-19.6 ms/step vs 4.6-9.0); ms/step 35.6 at
+  c1-8k, 55.6 at c1-195k, 58.8 at c2-96k.
+- Prefill chunk (job 25, c=4 mixed): `--long-prefill-token-threshold` 128 is best for decode (153
+  ms/step, 77 tok/s); 256/512 cut turn TTFT 6.07 -> 5.34/4.50 s but cost 51/126 ms/step; the adaptive
+  variant behaves like 512. Keep 128.
+- Host idle (job 27, c=2, raw/chat/tools/turns): 5.6-6.5 ms idle per step on the box vs 13.2 ms in
+  production at n=2 (63.6 ms/step); request shape does not explain production's extra idle.
+- GEMM routing (job 30, full table in `/workspace/logs/r3/30-gemm-rows/summary.txt`): model-level GEMM
+  per forward vs DRAM floor 12.42 ms: 1.83x at n=6, 2.57x at n=32, 6.29x at n=128, 8.26x at n=160;
+  IQ3_S and IQ3_XXS are furthest from their floor at every n.
+
 ## Current state (2026-10-01)
 
 GSQ-RCO went live on production on 2026-10-01 (vLLM main, MTP k=5). The soak below ran on 0.27.1
