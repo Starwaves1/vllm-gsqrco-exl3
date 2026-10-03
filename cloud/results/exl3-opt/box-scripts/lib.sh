@@ -44,12 +44,14 @@ import vllm_exl3_plugin as p, vllm_exl3_plugin.ops as o; print(p.__file__, o.OPS
 # embedding in host memory); wait for health; load summary in <run dir>/load.txt. (The g/a
 # suffixes of the 2026-10-01 runs, glue and K3/K5 from 1 row, are now the code's constants.)
 mode_env() {  # mode_env <mode>: the plugin's switches for a mode (serve_mr, offline runs)
-  local mode=$1 host=0; [[ $mode == *h* ]] && host=1
-  export EXL3_MR=${mode:0:1} EXL3_EMBED_HOST=$host
+  local mode=$1 mr=${1:0:1} host=0 fp8=0 cat=0
+  [[ $mode == *h* ]] && host=1; [[ $mode == *f* ]] && fp8=1   # f: EXL3_DRAFT_FP8 (fp8 draft head)
+  [[ $mode == *c* ]] && cat=1                                   # c: EXL3_MR_CONCAT (equal-K fused layers concatenated)
+  export EXL3_MR=$mr EXL3_EMBED_HOST=$host EXL3_DRAFT_FP8=$fp8 EXL3_MR_CONCAT=$cat
   # own compile cache per traced-graph variant: vLLM's cache key does not cover the plugin's
   # apply()/embedding() or its parameter layouts (EXL3_MR=2 stores K4 as int32 4-D), so a graph
   # traced under one variant must never be loaded by another (or by phase 1)
-  export VLLM_CACHE_ROOT=$R/vllm-cache-mr${mode:0:1}-h$host
+  export VLLM_CACHE_ROOT=$R/vllm-cache-mr$mr-h$host-f$fp8-c$cat
 }
 serve_mr() {
   local mode=$1 mr=${1:0:1} out=$2 t0; shift 2; mkdir -p "$out"
@@ -61,7 +63,7 @@ serve_mr() {
   SPID=$!
   trap stopall EXIT
   gsq_wait_health 2400 "$SPID" || { echo SERVER_FAILED; tail -80 "$out/server.log"; return 1; }
-  { echo "EXL3_MR=$mr EXL3_EMBED_HOST=$host healthy after $(( $(date +%s) - t0 )) s"
+  { echo "EXL3_MR=$mr EXL3_EMBED_HOST=$host EXL3_DRAFT_FP8=$EXL3_DRAFT_FP8 EXL3_MR_CONCAT=$EXL3_MR_CONCAT healthy after $(( $(date +%s) - t0 )) s"
     grep -E "Loading weights took|Model loading took|model weights|GPU KV cache size|Maximum concurrency|CUDA graph|init engine|exl3|EXL3" "$out/server.log" | cut -c1-260 | head -30
     echo "VRAM after load: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"; } | tee "$out/load.txt"
 }

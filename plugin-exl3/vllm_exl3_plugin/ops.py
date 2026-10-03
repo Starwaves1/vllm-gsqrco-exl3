@@ -69,9 +69,8 @@ MR_MODE = int(os.environ.get("EXL3_MR", "2"))
 if MR_MODE not in (0, 1, 2):
     raise ValueError(f"EXL3_MR={MR_MODE}: 0 (off), 1 (K3/K5) or 2 (K3/K5 and repacked K4)")
 MR_OP = "exl3_gemm_mr"
-# glue (with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16 back on single-part
-# layers (exl3_linear's bf16 contract), so exl3_gemm_mr skips the cast in and the fp32 round trip
-# out. Same bits, fewer launches; job 12: no change beyond run-to-run spread (within 0.8 ms/step).
+# glue (with EXL3_MR=2): a bf16 model passes bf16 activations and gets bf16 back (exl3_linear's bf16
+# contract), so exl3_gemm_mr skips the cast in and the fp32 round trip out. Same bits, fewer launches.
 MR_GLUE = MR_MODE == 2
 MULTI_ROW_OP: str | None = MR_OP if MR_MODE else None
 # MULTI_ROW_MIN: K3/K5 take exl3_gemm_mr from 1 row (job 12: from 17 rows instead costs +3.3
@@ -195,11 +194,91 @@ def exl3_linear_fake(
     return x.new_empty(x.shape[0], out_features(trellis), dtype=dtype)
 
 
+def exl3_linear_parts(
+    x: torch.Tensor,
+    trellis: list[torch.Tensor],
+    suh: list[torch.Tensor],
+    svh: list[torch.Tensor],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    """One layer: exl3_linear per part, concatenated along the outputs. One opaque op per layer, so
+    torch.compile never sees the cat: inductor's split-of-cat pass would otherwise hand the model's
+    split of it (GDN's z) back as the part's own buffer, with a stride the next compiled piece was
+    not traced with (job 12 run 2: z of qkvz expected stride 16384, got 6144)."""
+    ys = [exl3_linear(x, t, s, v, mcg, mul1, out_fp32) for t, s, v in zip(trellis, suh, svh)]
+    return ys[0] if len(ys) == 1 else torch.cat(ys, dim=1)
+
+
+def exl3_linear_parts_fake(
+    x: torch.Tensor,
+    trellis: list[torch.Tensor],
+    suh: list[torch.Tensor],
+    svh: list[torch.Tensor],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+    return x.new_empty(x.shape[0], sum(out_features(t) for t in trellis), dtype=dtype)
+
+
+# EXL3_MR_CONCAT (A/B while measured, with EXL3_MR=2): a fused layer whose parts all take
+# exl3_gemm_mr at the same K is stored concatenated along n (linear._mr_prepare) and runs as one
+# input-Hadamard launch for all shards and one GEMM writing the fused output (exl3_gemm_mr_multi).
+MR_CONCAT = MR_MODE == 2 and os.environ.get("EXL3_MR_CONCAT", "0") == "1"
+
+
+def _dim1_unit(trellis: torch.Tensor) -> int:
+    """Output columns per index of dim 1 (16 stored, 64 repacked)."""
+    return 64 if trellis.dtype == torch.int32 else 16
+
+
+def exl3_linear_cat(
+    x: torch.Tensor,
+    trellis: torch.Tensor,
+    suh: torch.Tensor,
+    svh: torch.Tensor,
+    widths: list[int],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    """A fused group of equal-K tensors concatenated along n (EXL3_MR_CONCAT): exl3_gemm_mr_multi to
+    MULTI_ROW_MAX rows; above, each part (its column slice, copied) on its own route."""
+    if x.shape[0] <= MULTI_ROW_MAX:
+        ends = [sum(widths[:i + 1]) for i in range(len(widths) - 1)]
+        return torch.ops._C_exl3.exl3_gemm_mr_multi(x.contiguous(), trellis, suh, svh, ends, mcg, mul1, out_fp32)
+    k, u, c0, ys = suh.numel() // len(widths), _dim1_unit(trellis), 0, []
+    for i, w in enumerate(widths):
+        t = trellis[:, c0 // u:(c0 + w) // u].contiguous()
+        ys.append(exl3_linear(x, t, suh[i * k:(i + 1) * k], svh[c0:c0 + w], mcg, mul1, out_fp32))
+        c0 += w
+    return torch.cat(ys, dim=1)
+
+
+def exl3_linear_cat_fake(
+    x: torch.Tensor,
+    trellis: torch.Tensor,
+    suh: torch.Tensor,
+    svh: torch.Tensor,
+    widths: list[int],
+    mcg: bool,
+    mul1: bool,
+    out_fp32: bool,
+) -> torch.Tensor:
+    dtype = torch.bfloat16 if x.dtype == torch.bfloat16 else torch.float if out_fp32 else torch.half
+    return x.new_empty(x.shape[0], sum(widths), dtype=dtype)
+
+
 # EXL3_EMBED_HOST (default 1): the bf16 token embedding lives in page-locked host memory
 # (quantization/embedding.py); rows are gathered to the GPU per step by exl3_embed_host. Job 12:
 # no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
 # 196,608; 200,000 fits, job 14).
 EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "1") == "1"
+# EXL3_DRAFT_FP8 (A/B while measured): the MTP draft head as fp8 weights (quantization/draft_head.py)
+DRAFT_FP8 = os.environ.get("EXL3_DRAFT_FP8", "0") == "1"
 
 
 def exl3_embed_host(ids: torch.Tensor, table_id: int, cols: int) -> torch.Tensor:
@@ -216,6 +295,12 @@ def _register() -> None:
 
     direct_register_custom_op(
         op_name="_exl3_linear", op_func=exl3_linear, fake_impl=exl3_linear_fake
+    )
+    direct_register_custom_op(
+        op_name="_exl3_linear_parts", op_func=exl3_linear_parts, fake_impl=exl3_linear_parts_fake
+    )
+    direct_register_custom_op(
+        op_name="_exl3_linear_cat", op_func=exl3_linear_cat, fake_impl=exl3_linear_cat_fake
     )
     direct_register_custom_op(
         op_name="_exl3_embed_host", op_func=exl3_embed_host, fake_impl=exl3_embed_host_fake

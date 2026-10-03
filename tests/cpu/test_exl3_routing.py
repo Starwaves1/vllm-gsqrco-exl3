@@ -28,6 +28,7 @@ def _phase1_routing(monkeypatch):
     monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
     monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
     monkeypatch.setattr(ops, "WIDE_CHUNK_ROWS", 1 << 30)  # phase 1's unchunked routes
+    monkeypatch.setattr(ops, "MR_GLUE", False)
 
 
 @pytest.mark.parametrize("n,want", [

@@ -149,6 +149,41 @@ def test_bf16_io_same_bits(ops, tid, m):
     assert torch.equal(y, torch.ops._C_exl3.exl3_gemm_mr(xb.half(), *args).to(torch.bfloat16))
 
 
+@pytest.mark.parametrize("m", [1, 6, 24, 48])
+def test_linear_parts_same_bits(ops, m):
+    """The per-layer op on bf16 x (glue) == each part's exl3_linear on fp16 x, cast to bf16, concatenated."""
+    import torch
+
+    ws = [C.load(torch, t) for t in ("K4-kproj", "K5-kproj")]  # both k=5120: a k/v-like fused pair
+    for w in ws:
+        if w["trellis"].shape[2] == 64:
+            w["trellis"] = ops.repack_k4_(w["trellis"])
+    x = C.make_x(torch, "K4-kproj", m)
+    args = ([w["trellis"] for w in ws], [w["suh"] for w in ws], [w["svh"] for w in ws], False, True, True)
+    y = ops.exl3_linear_parts(x.to(torch.bfloat16), *args)
+    want = torch.cat([ops.exl3_linear(x.to(torch.bfloat16).half(), w["trellis"], w["suh"], w["svh"], False, True, True)
+                      .to(torch.bfloat16) for w in ws], 1)
+    assert y.dtype == torch.bfloat16 and torch.equal(y, want)
+
+
+@pytest.mark.parametrize("m", [1, 6, 24, 48, 144])
+def test_gemm_mr_multi(ops, m):
+    """A concatenated fused group (two tensors of one K, k=5120) in one exl3_gemm_mr_multi call ==
+    the parts one by one, up to accumulation order (rel. rms <= 1e-3)."""
+    import torch
+
+    ws = [C.load(torch, t) for t in ("K3-up", "K3-up")]
+    ws[1] = {**ws[1], "suh": ws[1]["suh"].flip(0).contiguous(), "svh": ws[1]["svh"].flip(0).contiguous()}
+    x = C.make_x(torch, "K3-up", m)
+    parts = [torch.ops._C_exl3.exl3_gemm_mr(x, w["trellis"], w["suh"], w["svh"], False, True, True) for w in ws]
+    t = torch.cat([w["trellis"] for w in ws], dim=1)
+    n = ws[0]["svh"].numel()
+    y = torch.ops._C_exl3.exl3_gemm_mr_multi(x, t, torch.cat([w["suh"] for w in ws]), torch.cat([w["svh"] for w in ws]),
+                                             [n], False, True, True)
+    d = C.err_stats(torch, y, torch.cat(parts, 1).double())
+    assert d["finite"] and d["rel_rms"] <= 1e-3, d
+
+
 @pytest.mark.parametrize("tid", MR_TIDS)
 def test_deterministic(ops, tid):
     import torch
@@ -347,6 +382,30 @@ def test_padded_rows_in_capture(ops, tid, op, n, pad):
     print(f"\npadded {tid} {op} n={n} pad={pad}: finite={d['finite']} bit-identical={torch.equal(real, eager)} {d}")
     assert d["finite"] and d["rel_rms"] <= 1e-3, d
     del g
+
+
+@pytest.mark.parametrize("rows", [1, 4, 8])
+def test_draft_head_fp8(ops, rows):
+    """The fp8 draft head (Marlin) vs the bf16 head on the same rows: logits within e4m3's error
+    (rel. rms <= 4 %); argmax kept for >= 90 % of rows (random logits have near-ties: 0.94-0.95
+    measured; the real gate is MTP acceptance on the ladder)."""
+    import torch
+
+    from vllm_exl3_plugin.quantization.draft_head import EXL3DraftHeadFp8Method
+
+    torch.manual_seed(rows)
+    w = (torch.randn(40960, 5120, device="cuda") * 0.02).to(torch.bfloat16)
+    layer = torch.nn.Module()
+    layer.weight = torch.nn.Parameter(w.clone(), requires_grad=False)
+    m = EXL3DraftHeadFp8Method()
+    m.process_weights_after_loading(layer)
+    assert m.marlin is not None and layer.weight.shape == (0, 5120)
+    x = torch.randn(rows * 64, 5120, device="cuda").to(torch.bfloat16)
+    y, ref = m.apply(layer, x).float(), (x @ w.T).float()
+    rel = ((y - ref).pow(2).mean().sqrt() / ref.pow(2).mean().sqrt()).item()
+    agree = (y.argmax(1) == ref.argmax(1)).float().mean().item()
+    print(f"\nfp8 draft head rows={rows * 64}: rel rms {rel:.4f}, argmax agree {agree:.3f}")
+    assert rel <= 0.04 and agree >= 0.90
 
 
 _UNWARMED = r"""

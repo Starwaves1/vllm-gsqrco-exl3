@@ -27,6 +27,7 @@ def _phase1_routing(monkeypatch):
     monkeypatch.setattr(ops, "MR_MODE", 0)
     monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
     monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
+    monkeypatch.setattr(ops, "MR_GLUE", False)
 
 
 @pytest.fixture
@@ -175,8 +176,10 @@ def test_apply_concatenates_parts(monkeypatch, method):
         assert (mcg, mul1, out_fp32, x.dtype) == (False, True, True, torch.half)  # bf16 model
         return torch.full((x.shape[0], svh.shape[0]), float(trellis[0, 0, 0]), dtype=torch.float)
 
-    class FakeVllmOps:
-        _exl3_linear = staticmethod(fake_linear)
+    class FakeVllmOps:  # the per-layer op over the per-part op, as ops.exl3_linear_parts
+        @staticmethod
+        def _exl3_linear_parts(x, trellis, suh, svh, mcg, mul1, out_fp32):
+            return torch.cat([fake_linear(x, t, s, v, mcg, mul1, out_fp32) for t, s, v in zip(trellis, suh, svh)], 1)
 
     monkeypatch.setattr(L.torch.ops, "vllm", FakeVllmOps, raising=False)
     x = torch.zeros(2, 3, 256, dtype=torch.bfloat16)

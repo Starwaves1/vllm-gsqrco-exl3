@@ -64,6 +64,9 @@
 // Defined in the vendored trellis_serve/exl3_marlin.cu (no header declares them).
 void exl3_linear_marlin_out(const at::Tensor& x, const at::Tensor& b, const at::Tensor& suh, const at::Tensor& svh,
                             int64_t cb, at::Tensor& xh, at::Tensor& y);
+void exl3_linear_marlin_multi_out(const at::Tensor& x, const at::Tensor& b, const at::Tensor& suh_cat,
+                                  const at::Tensor& svh_cat, std::vector<int64_t> shard_ends, int64_t cb,
+                                  at::Tensor& xh, at::Tensor& y);
 at::Tensor repack_trellis(const at::Tensor& trellis);
 at::Tensor unpack_trellis(const at::Tensor& b);
 void init_device(int64_t device);
@@ -207,12 +210,20 @@ bool capturing(cudaStream_t stream) {
 // ---------------------------------------------------------------------------
 // Ops
 
+// shard_ends empty: one tensor. Else a fused group of equal-K tensors concatenated along n (the vendored
+// exl3_linear_marlin_multi_out): suh = the shards' suh stacked [shards * k], svh [n], shard_ends = column
+// ends of all shards but the last, multiples of 128; one input-Hadamard launch for all shards, one GEMM.
 at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh,
-                        bool mcg, bool mul1, bool out_fp32, bool warming) {
-  const char* op = "exl3_gemm_mr";
+                        at::IntArrayRef shard_ends, bool mcg, bool mul1, bool out_fp32, bool warming) {
+  const char* op = shard_ends.empty() ? "exl3_gemm_mr" : "exl3_gemm_mr_multi";
   const Weight w = check_weight(trellis, mcg, mul1, op);
   const int64_t m = check_x(x, w.k, op);
-  check_scale(suh, w.k, "suh", op);
+  const int64_t shards = (int64_t)shard_ends.size() + 1;
+  TORCH_CHECK(shards <= 4, op, ": at most 4 shards");
+  for (size_t i = 0; i < shard_ends.size(); i++)
+    TORCH_CHECK(shard_ends[i] > (i ? shard_ends[i - 1] : 0) && shard_ends[i] < w.n && shard_ends[i] % 128 == 0, op,
+                ": shard ends must be ascending multiples of 128 inside n=", w.n, ", got ", shard_ends);
+  check_scale(suh, shards * w.k, "suh", op);
   check_scale(svh, w.n, "svh", op);
   check_cuda({&x, &trellis, &suh, &svh}, op);
 
@@ -232,15 +243,25 @@ at::Tensor gemm_mr_impl(const at::Tensor& x, const at::Tensor& trellis, const at
   // A process-wide knob, set on every call: one model thread per process, as vLLM runs it
   const bool wide = m > 16 && m <= 64 && w.n >= 2048;
   set_force_cfg(wide ? 128 : 0, wide ? 128 : 0);
-  at::Tensor xh = at::empty({m, w.k}, x.options().dtype(at::kHalf));
+  at::Tensor xh = at::empty({shards * m, w.k}, x.options().dtype(at::kHalf));
   at::Tensor y = at::empty({m, w.n}, x.options().dtype(bf16_io || out_fp32 ? at::kBFloat16 : at::kHalf));
-  exl3_linear_marlin_out(x, w.b, suh, svh, kCbMul1, xh, y);
+  if (shards == 1) {
+    exl3_linear_marlin_out(x, w.b, suh, svh, kCbMul1, xh, y);
+  } else {
+    exl3_linear_marlin_multi_out(x, w.b, suh, svh, shard_ends.vec(), kCbMul1, xh, y);
+  }
   return out_fp32 && !bf16_io ? y.to(at::kFloat) : y;
 }
 
 at::Tensor exl3_gemm_mr_op(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh,
                            const at::Tensor& svh, bool mcg, bool mul1, bool out_fp32) {
-  return gemm_mr_impl(x, trellis, suh, svh, mcg, mul1, out_fp32, false);
+  return gemm_mr_impl(x, trellis, suh, svh, {}, mcg, mul1, out_fp32, false);
+}
+
+at::Tensor exl3_gemm_mr_multi_op(const at::Tensor& x, const at::Tensor& trellis, const at::Tensor& suh,
+                                 const at::Tensor& svh, at::IntArrayRef shard_ends, bool mcg, bool mul1, bool out_fp32) {
+  TORCH_CHECK(!shard_ends.empty(), "exl3_gemm_mr_multi: needs at least one shard end (else exl3_gemm_mr)");
+  return gemm_mr_impl(x, trellis, suh, svh, shard_ends, mcg, mul1, out_fp32, false);
 }
 
 at::Tensor exl3_mr_repack_op(const at::Tensor& trellis) {
@@ -263,11 +284,11 @@ at::Tensor exl3_mr_unpack_op(const at::Tensor& b) {
   return unpack_trellis(b);
 }
 
-void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg, bool mul1,
-                       at::IntArrayRef rows, bool out_fp32) {
+void mr_warmup_impl(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, at::IntArrayRef shard_ends,
+                    bool mcg, bool mul1, at::IntArrayRef rows, bool out_fp32) {
   const char* op = "exl3_mr_warmup";
   const Weight w = check_weight(trellis, mcg, mul1, op);
-  check_scale(suh, w.k, "suh", op);
+  check_scale(suh, ((int64_t)shard_ends.size() + 1) * w.k, "suh", op);
   check_scale(svh, w.n, "svh", op);
   for (int64_t m : rows) TORCH_CHECK(m >= 1 && m <= INT_MAX, op, ": row counts must be >= 1, got ", m);
   check_cuda({&trellis, &suh, &svh}, op);
@@ -282,7 +303,7 @@ void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const a
   if (max_m > 0) {
     for (at::ScalarType dt : {at::kHalf, at::kBFloat16}) {  // the input Hadamard has an instance per dtype
       at::Tensor x = at::zeros({max_m, w.k}, trellis.options().dtype(dt));
-      for (int64_t m : rows) gemm_mr_impl(x.narrow(0, 0, m), trellis, suh, svh, mcg, mul1, out_fp32, true);
+      for (int64_t m : rows) gemm_mr_impl(x.narrow(0, 0, m), trellis, suh, svh, shard_ends, mcg, mul1, out_fp32, true);
     }
   }
   C10_CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -291,10 +312,24 @@ void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const a
   for (int64_t m : rows) g_warmed.insert({device, w.k, w.n, w.bits, m});
 }
 
+void exl3_mr_warmup_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh, bool mcg, bool mul1,
+                       at::IntArrayRef rows, bool out_fp32) {
+  mr_warmup_impl(trellis, suh, svh, {}, mcg, mul1, rows, out_fp32);
+}
+
+void exl3_mr_warmup_multi_op(const at::Tensor& trellis, const at::Tensor& suh, const at::Tensor& svh,
+                             at::IntArrayRef shard_ends, bool mcg, bool mul1, at::IntArrayRef rows, bool out_fp32) {
+  mr_warmup_impl(trellis, suh, svh, shard_ends, mcg, mul1, rows, out_fp32);
+}
+
 }  // namespace
 
 TORCH_LIBRARY_FRAGMENT(_C_exl3, m) {
   m.def("exl3_gemm_mr(Tensor x, Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, bool out_fp32) -> Tensor");
+  m.def("exl3_gemm_mr_multi(Tensor x, Tensor trellis, Tensor suh, Tensor svh, int[] shard_ends, bool mcg, bool mul1, "
+        "bool out_fp32) -> Tensor");
+  m.def("exl3_mr_warmup_multi(Tensor trellis, Tensor suh, Tensor svh, int[] shard_ends, bool mcg, bool mul1, int[] rows, "
+        "bool out_fp32) -> ()");
   m.def("exl3_mr_repack(Tensor trellis) -> Tensor");
   m.def("exl3_mr_unpack(Tensor b) -> Tensor");
   m.def("exl3_mr_warmup(Tensor trellis, Tensor suh, Tensor svh, bool mcg, bool mul1, int[] rows, bool out_fp32) -> ()");
@@ -303,6 +338,8 @@ TORCH_LIBRARY_FRAGMENT(_C_exl3, m) {
 }
 
 TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
+  m.impl("exl3_gemm_mr_multi", &exl3_gemm_mr_multi_op);
+  m.impl("exl3_mr_warmup_multi", &exl3_mr_warmup_multi_op);
   m.impl("exl3_embed_host", &exl3_embed_host_op);
   m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
   m.impl("exl3_mr_repack", &exl3_mr_repack_op);
@@ -313,6 +350,8 @@ TORCH_LIBRARY_IMPL(_C_exl3, CUDA, m) {
 // CPU: exl3_gemm_mr and exl3_mr_warmup run their guards and stop at "must be CUDA tensors";
 // repack and unpack are plain tensor ops and run.
 TORCH_LIBRARY_IMPL(_C_exl3, CPU, m) {
+  m.impl("exl3_gemm_mr_multi", &exl3_gemm_mr_multi_op);
+  m.impl("exl3_mr_warmup_multi", &exl3_mr_warmup_multi_op);
   m.impl("exl3_embed_host_register", &exl3_embed_host_register_op);
   m.impl("exl3_embed_host", &exl3_embed_host_op);
   m.impl("exl3_gemm_mr", &exl3_gemm_mr_op);
