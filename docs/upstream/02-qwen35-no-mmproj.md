@@ -1,6 +1,7 @@
 # 02: Serve a multimodal-config Qwen3.5 GGUF without mm_proj as text only
 
-Branch: `upstream/02-qwen35-no-mmproj` (2 commits, on e2b8ad5). No dependency.
+Branch: `pr/plugin-qwen35-no-mmproj` (2 commits, on e2b8ad5; supersedes `upstream/02-qwen35-no-mmproj`: code
+comment, error message and commit message corrected). No dependency.
 
 **Title:** [BugFix] qwen3_5: serve a multimodal-config GGUF without mm_proj as text only
 
@@ -13,8 +14,11 @@ is not enough: `build_name_map` chose the text prefix from the presence of mm_pr
 would map to `model.*`, which `Qwen3_5ForConditionalGeneration`'s `hf_to_vllm_mapper`
 (`model.language_model.` to `language_model.model.`) does not translate.
 
-Converting the config to the text-only one is not an option either: vLLM derives the `qwen3_5_mtp`
-draft only from `model_type` `qwen3_5`, so MTP would be lost.
+Converting the config to the text-only one at load time is not an option either: the architecture was
+chosen in the config parser before the loader saw the files, and `Qwen3_5ForConditionalGeneration` needs
+`vision_config`. Switching to the text architecture means choosing it in the config parser (+201/-14 in
+the closed #120), and `Qwen3_5ForCausalLM` is not registered in vLLM 0.26.0. (On vLLM <= 0.27.x a text
+config would also lose the MTP draft; vLLM main derives it from the text model types too.)
 
 ## What changed
 

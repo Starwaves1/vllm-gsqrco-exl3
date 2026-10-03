@@ -13,7 +13,7 @@ lcpp stack (05 ... 11e) is stacked, each branch on the previous one.
 | # | branch | base | commits | lines (+/-) | CPU tests (vLLM 0.27.1 and main) | why here |
 | --- | --- | --- | --- | --- | --- | --- |
 | 01 | `upstream/01-host-staging-copy` | e2b8ad5 | 2 | +72/-2 | 105 passed, 6 skipped | OOM at MTP draft load (cumem pool); 1 file |
-| 02 | `upstream/02-qwen35-no-mmproj` | e2b8ad5 | 2 | +92/-8 | 110 passed, 6 skipped | text-only Qwen3.5 GGUF with the official config |
+| 02 | `pr/plugin-qwen35-no-mmproj` (was `upstream/02-qwen35-no-mmproj`) | e2b8ad5 | 2 | +93/-8 | 110 passed, 6 skipped | text-only Qwen3.5 GGUF with the official config |
 | 03 | `upstream/03-kernel-input-guards` | e2b8ad5 | 3 | +482/-0 | 149 passed, 7 skipped | bad inputs: exceptions instead of wrong results / faults |
 | 04 | `upstream/04-kernel-parity-harness` | 03 | 2 | +534/-0 | 175 passed, 8 skipped, 16 xfailed | tight parity tests; fp16 dequant documented and bounded |
 | 05 | `upstream/05-lcpp-vendored-mmvq-mmq` | 04 | 4 | +1248/-46 | 265 passed, 9 skipped, 16 xfailed | RFC: vendored llama.cpp MMVQ/MMQ, opt-in |
