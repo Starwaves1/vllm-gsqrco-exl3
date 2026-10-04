@@ -56,6 +56,20 @@ and check (knowledge-bench runs 13-16) shows no corruption signature.
   per forward vs DRAM floor 12.42 ms: 1.83x at n=6, 2.57x at n=32, 6.29x at n=128, 8.26x at n=160;
   IQ3_S and IQ3_XXS are furthest from their floor at every n.
 
+**Perf item (a), n>=128 GEMMs, measured (job 30 data + phase3/r2 ablations; no new kernel run):** the
+8.3x is against the DRAM floor, which does not bind at 128+ rows: 128 rows through the 24.7 B quantized
+linear weights are 6.3 Tops, 22.2 ms at the 3090's 284 int8 TOPS. Against that floor, n=128 GEMM time (74.4 ms without the lm_head,
+which prefill steps do not run at 128 rows) is 3.3x, and per type: IQ3_S/IQ3_XXS 34% of int8 peak
+(owned tiled kernel), IQ2_XXS 30%, IQ4_XS 29%, Q4_K/IQ2_S/IQ2_XS 24%, Q6_K 23%, Q2_K 15% (vendored MMQ).
+IQ3 is the most efficient path in the model; it is the largest only because it holds 13.9 of 24.7 B
+weights. Routing cannot help: vendored MMQ is 20-40% slower than the tiled kernel at 128-160 rows on
+every IQ3 shape but the 1024-row one (cnt 9, within 2 us). r2's ablations (n=128, us): base 258, no CTA
+barrier + copies 212, one add instead of the two scaling FMAs 227, no B loads 243, no table 248, no
+weight loads 250; ncu is not permitted in this container. So no single cause, and the largest (the
+per-weight-block CTA barrier, at most 18% of the IQ3 time) needs a barrier-free (mbarrier) pipeline:
+not a small change, at most ~6.6 ms of a ~102 ms 128-token prefill step (8k prefill, r2). Not started; job 63 measures
+the tile-width waste at 132-144 rows (128 + decode rows), the other candidate.
+
 ## Current state (2026-10-01)
 
 GSQ-RCO went live on production on 2026-10-01 (vLLM main, MTP k=5). The soak below ran on 0.27.1
