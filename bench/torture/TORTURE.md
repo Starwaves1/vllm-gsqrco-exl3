@@ -237,7 +237,7 @@ Run dir contents:
 | --- | --- | --- | --- |
 | 2026-10-03 23:47 | torture-gsq-12h 1791071178260540 | 40 s | FAIL: server never healthy (Triton `libcuda.so cannot found`, the box's `/lib`; not the model) |
 | 2026-10-04 02:54 | torture-gsq-smoke15 1791080362921082 | 0.25 h | PASS: 0 faults, 16 rows alive, 0 errors, GPU growth 0 MiB, healthy in 192 s, 782 responses |
-| queued 03:20 | torture-gsq-12h-b 1791083561941447 | 12 h | |
+| 2026-10-04 03:51 | torture-gsq-12h-b 1791083561941447 | 12 h | running (`/workspace/runs/20261004-035152-torture-run`) |
 
 All three ran the same stack (`/workspace/torture-gsq.sh` above):
 - venv `/workspace/venv-r3-convfix`: a hardlink copy of venv-main (vLLM 0.30.1rc1.dev285+gd28795f1a + overlay
