@@ -211,7 +211,7 @@ def tiers(r):
 def api_cards(q):
     boxes, live = load("boxes.json", {}).get("boxes", []), load("cards.json", {})
     results, ref = kit_results()
-    kit_cc, out = {}, []
+    out = []
     for b in boxes:
         lv, meta = live.get(b["id"], {}), b.get("cards", {})
         gpus = {g["index"]: g for g in lv.get("gpus", [])}
@@ -219,20 +219,17 @@ def api_cards(q):
         for i in sorted(gpus.keys() | {int(k) for k in meta}):
             c = {**gpus.get(i, {"index": i}), **meta.get(str(i), {}), "latest": None}
             mine = [(d, r) for d, r in results if c.get("kit") and d.startswith(c["kit"] + "-")]
-            if c.get("kit"):
-                kit_cc[c["kit"]] = c.get("cc")
             if mine:
                 d, r = mine[-1]  # dir names end in the date, so the last one is the latest
-                c["latest"] = {"dir": d, "date": r.get("date") or d[len(c["kit"]) + 1:], "tiers": tiers(r),
+                c["latest"] = {"dir": d, "date": d[len(c["kit"]) + 1:], "tiers": tiers(r),
                                "summary_url": f"{GITHUB}/blob/{ref.split('/', 1)[1]}/kit/results/{d}/summary.md"}
             cards.append(c)
         out.append({"id": b["id"], "name": b.get("name"), "owner": b.get("owner"), "note": b.get("note"),
                     "online": lv.get("online"), "ts": lv.get("ts"), "error": lv.get("error"), "cards": cards})
     # coverage: per compute capability, the newest status of each tier (dir names end in YYYY-MM-DD)
     coverage = {cc: {} for cc in CCS}
-    for d, r in sorted(results, key=lambda x: x[1].get("date") or x[0][-10:]):
-        cc = str(r.get("cc") or next((v for k, v in kit_cc.items() if d.startswith(k + "-")), "") or "?")
-        coverage.setdefault(cc, {}).update(tiers(r))
+    for d, r in sorted(results, key=lambda x: x[0][-10:]):
+        coverage.setdefault(str(r.get("cc") or "?"), {}).update(tiers(r))
     return {"source": ref, "results": len(results), "boxes": out, "coverage": coverage}
 
 

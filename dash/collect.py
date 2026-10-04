@@ -162,7 +162,10 @@ def main():
             with open(path + ".tmp", "w") as f:
                 json.dump(obj, f)
             os.replace(path + ".tmp", path)
-        poll_cards()
+        try:
+            poll_cards()
+        except Exception as e:  # a bad boxes.json must not stop the box poll
+            print("cards:", e, flush=True)
         time.sleep(max(1, 60 - (time.time() - t0)))
 
 
