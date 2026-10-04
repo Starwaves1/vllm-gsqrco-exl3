@@ -2,7 +2,7 @@
 
 A vLLM quantization plugin that serves GSQ-RCO GGUF models on an RTX 3090 at production speed. It is a fork of [vllm-project/vllm-gguf-plugin](https://github.com/vllm-project/vllm-gguf-plugin), plus the build, test, benchmark, parity and soak harnesses used to measure it. vLLM itself is not forked.
 
-Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 support is planned.
+Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 serving (second package, `plugin-exl3/`) is measured on the same GPU with vLLM main; its 12 h soak is still to run (see below).
 
 ## What it does
 
@@ -88,6 +88,26 @@ The absolute target of KLD ≤ 0.001 and top-1 ≥ 99% fails, for the stock kern
 
 Stability. A 24 h soak at c=2 with CUDA graphs is in progress. A 1.19 h partial run on the same build served 621 requests with 0 faults and 0 restarts. GPU memory stayed flat after the first minute. Data is in `cloud/results/soak/`.
 
+## EXL3
+
+A second package, `plugin-exl3/` (`vllm_exl3_plugin`), serves [exllamav3](https://github.com/turboderp-org/exllamav3) EXL3 checkpoints on unpatched vLLM main. It registers quant method `exl3` and nothing else: an EXL3 checkpoint is a normal HF directory, so vLLM's own detection and safetensors loader do the rest. Kernels: exllamav3's dense-linear files (94, MIT) and trellis-serve's Marlin-EXL3 (19, MIT / Apache-2.0), both vendored byte for byte behind one shim each, plus an owned patch for the multi-row MTP verify pass. Target: [erlidev/Swift-1.5-Qwen3.8-27B-EXL3](https://huggingface.co/erlidev/Swift-1.5-Qwen3.8-27B-EXL3) at 3.50bpw.
+
+On a 350 W RTX 3090 with production's vLLM main argv and MTP at a fixed k=3: 27.0 / 27.1 / 32.2 / 38.9 ms per engine step at 1 / 2 / 4 / 8 concurrent requests (98 / 188 / 323 / 539 tok/s greedy), faster per step than the GSQ-RCO GGUF at every concurrency (GGUF measured on vLLM 0.27.1); 200,000 tokens of context fit; kernel errors stay within exllamav3's own. Open: the 12 h soak, the other bit-width tiers, and the raw logit gate on two chat prompts. Full results and the definition-of-done checklist: [cloud/results/exl3/REPORT.md](cloud/results/exl3/REPORT.md).
+
+Serve it from the main checkout with the vLLM-main venv (`.venv-main`, a copy of production's):
+
+    GSQ_VENV=.venv-main GSQ_PLUGIN=plugin-exl3 tools/build-plugin.sh      # editable install, builds the kernels
+    .venv-main/bin/python tools/exl3_draft_head.py /path/to/checkpoint \
+        --ids hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/mtp_draft_vocab_ids.pt   # once, needs a GPU
+    sed '/^--speculative-config$/{n;s/.*/{"method":"mtp","num_speculative_tokens":3,"draft_sample_method":"probabilistic"}/}' \
+        env/prod-main-serve-argv.txt > /tmp/prod-main-argv-k3.txt                      # production's argv at a fixed k=3
+    GSQ_VENV=.venv-main GSQ_PROD_ARGV=/tmp/prod-main-argv-k3.txt GSQ_EXL3_MODEL=/path/to/checkpoint \
+        GSQ_ALLOW_GPU=1 scripts/serve-exl3.sh
+
+The fixed k matters: production's per-batch k schedule drops from 3 to 2 at 9 sequences, which corrupts output on the current overlay (REPORT section 5).
+
+Design and history: [EXL3.md](EXL3.md), [EXL3-OPT.md](EXL3-OPT.md), [docs/adr/0002-exl3-via-plugin.md](docs/adr/0002-exl3-via-plugin.md).
+
 ## Install and build
 
 Requirements: Linux, an sm_86 GPU, a driver that supports CUDA 13, [uv](https://docs.astral.sh/uv/). The CUDA toolkit comes from pip wheels. The build needs no system packages and no sudo.
@@ -165,7 +185,8 @@ The harnesses were written for one setup. Paths and ports are environment overri
 | `plugin/vllm_gguf_plugin/csrc/lcpp/` | vendored llama.cpp b11211 files, unmodified; `VENDORED.md` lists them with sha256 |
 | `plugin/vllm_gguf_plugin/csrc/lcpp_shim.cu`, `lcpp_owned_*.cu` | the shim and the owned kernels |
 | `plugin/vllm_gguf_plugin/quantization/` | routing in `linear.py`, IQ3 repack in `iq3_pack.py` |
-| `hf-config/` | HF config dirs for the tested GGUFs, with `PROVENANCE.json` |
+| `plugin-exl3/` | the EXL3 plugin; vendored exllamav3 and trellis-serve files in `vllm_exl3_plugin/csrc/exl3/` and `csrc/trellis_serve/`, each with `VENDORED.md` |
+| `hf-config/` | HF config dirs for the tested GGUFs, and the EXL3 checkpoint's metadata, with `PROVENANCE.json` |
 | `tests/cpu`, `tests/gpu` | test suites |
 | `bench/`, `scripts/`, `cloud/` | harnesses; `cloud/results/` holds every measurement |
 | `tools/` | build helpers, HF config builder, reference dequantizers |
@@ -177,6 +198,7 @@ Docs:
 - [STATUS.md](STATUS.md), the dated engineering log
 - [docs/adr/0001-vendor-llamacpp-kernels-route-l.md](docs/adr/0001-vendor-llamacpp-kernels-route-l.md), why Route L
 - [ROUTE-L.md](ROUTE-L.md), how the shim, routing and repack work
+- [EXL3.md](EXL3.md), the EXL3 plugin: design, vendored files, ops, routing, GPU plan
 - [CONTEXT.md](CONTEXT.md), project glossary
 
 ## Upstream notes

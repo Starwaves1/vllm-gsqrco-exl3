@@ -1,0 +1,8 @@
+K2-up: K=2 k=5120 n=17408 dq_had 2c4621bfbb39 worst rel_rms 2.47e-03 (2 s)
+K3-down: K=3 k=17408 n=5120 dq_had cb0342cb168b worst rel_rms 2.60e-03 (1 s)
+K3-up: K=3 k=5120 n=17408 dq_had 8deab2d06d0b worst rel_rms 2.49e-03 (2 s)
+K4-kproj: K=4 k=5120 n=1024 dq_had f3d2b85e286d worst rel_rms 1.47e-03 (0 s)
+K4-mtp-up: K=4 k=5120 n=17408 dq_had 4e46523947f2 worst rel_rms 2.48e-03 (2 s)
+K4-oproj: K=4 k=6144 n=5120 dq_had 3ccdd5ec6d20 worst rel_rms 1.75e-03 (1 s)
+K5-kproj: K=5 k=5120 n=1024 dq_had 549e22be8aeb worst rel_rms 1.46e-03 (0 s)
+K4-lmhead: K=4 k=5120 n=248320 dq_had 3e07ea5a7065 worst rel_rms 3.78e-03 (20 s)

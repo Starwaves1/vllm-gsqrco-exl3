@@ -1,0 +1,110 @@
+(EngineCore pid=1364713) INFO 10-01 08:46:35 [default_loader.py:484] Loading weights took 3.12 seconds
+(EngineCore pid=1364713) INFO 10-01 08:46:36 [default_loader.py:484] Loading weights took 0.81 seconds
+(EngineCore pid=1364713) INFO 10-01 08:46:37 [gpu_model_runner.py:5404] Model loading took 13.94 GiB memory and 5.203251 seconds
+(EngineCore pid=1364713) INFO 10-01 08:49:46 [core.py:373] init engine (profile, create kv cache, warmup model) took 188.66 s (compilation: 71.76 s)
+== EXL3_MR=0 c=1
+/workspace/runs/exl3-opt/13-profile/mr0/c1.trace.json
+5 complete steps; per step: 1796 GPU activities, busy 32.63 ms, span 43.25 ms (idle 10.62)
+  gemm exl3            441.0 launches  25.680 ms
+  gemm dense           106.0 launches   2.914 ms
+  other                736.0 launches   2.534 ms
+  attention             63.0 launches   0.547 ms
+  cast/copy            183.0 launches   0.427 ms
+  gdn                   48.0 launches   0.191 ms
+  gpu_memcpy           155.0 launches   0.182 ms
+  cat parts             49.0 launches   0.095 ms
+  sampling               8.0 launches   0.060 ms
+  gpu_memset             7.0 launches   0.004 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   0.725  fused_sigmoid_gating_delta_rule_update_kernel
+    69.0   0.466  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+   144.0   0.330  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    17.0   0.327  void flashinfer::BatchPrefillWithPagedKVCacheKernel<true, flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64
+    48.0   0.191  _causal_conv1d_update_kernel
+    37.0   0.140  triton_red_fused__to_copy_add_fused_add_rms_norm_4
+    69.0   0.133  Memcpy DtoD (Device -> Device)
+    32.0   0.122  triton_red_fused__to_copy_add_fused_add_rms_norm_5
+    37.0   0.122  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    21.0   0.120  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    32.0   0.105  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    48.0   0.092  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq
+    37.0   0.081  triton_poi_fused__to_copy_cat_2
+    32.0   0.078  triton_per_fused_1
+    32.0   0.074  triton_poi_fused__to_copy_cat_3
+5 steps; GPU idle in gaps >= 5.0 us: 10.03 ms/step
+by first vllm/_C op covering the gap (ms/step):
+    4.498  (none)
+    0.662  aten::index
+    0.609  Pregraph bytecode
+    0.531  aten::to
+    0.480  aten::pin_memory
+    0.439  aten::slice
+    0.426  aten::mul
+    0.323  vllm::qwen_gdn_attention_core
+    0.314  aten::sum
+    0.288  aten::eq
+    0.239  aten::copy_
+    0.224  aten::add
+    0.205  aten::fill_
+    0.174  aten::embedding
+    0.117  aten::clamp
+    0.091  vllm::unified_attention_with_output
+    0.076  aten::gather
+    0.071  aten::arange
+Traceback (most recent call last):
+  File "/workspace/wt-exl3-opt/cloud/results/opt-p2/box-scripts/gaps.py", line 30, in <module>
+    print(f"  {v / n / 1e3:7.3f}  {k}")
+BrokenPipeError: [Errno 32] Broken pipe
+== EXL3_MR=0 c=4
+/workspace/runs/exl3-opt/13-profile/mr0/c4.trace.json
+5 complete steps; per step: 1785 GPU activities, busy 63.68 ms, span 74.18 ms (idle 10.50)
+  gemm exl3            441.0 launches  54.066 ms
+  other                730.0 launches   4.899 ms
+  gemm dense           101.0 launches   2.852 ms
+  attention             63.0 launches   0.615 ms
+  cast/copy            183.0 launches   0.537 ms
+  gpu_memcpy           155.0 launches   0.270 ms
+  gdn                   48.0 launches   0.221 ms
+  cat parts             49.0 launches   0.113 ms
+  sampling               8.0 launches   0.104 ms
+  gpu_memset             7.0 launches   0.005 ms
+top non-GEMM kernels per step (launches, ms):
+    48.0   2.784  fused_sigmoid_gating_delta_rule_update_kernel
+    17.0   0.360  void flashinfer::BatchPrefillWithPagedKVCacheKernel<true, flashinfer::KernelTraits<(flashinfer::MaskMode)1, 64
+   144.0   0.359  void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_
+    69.0   0.339  void vllm::act_and_mul_kernel<c10::BFloat16, __nv_bfloat162, &(c10::BFloat16 vllm::silu_kernel<c10::BFloat16>(
+    48.0   0.221  _causal_conv1d_update_kernel
+    69.0   0.211  Memcpy DtoD (Device -> Device)
+    37.0   0.170  triton_poi_fused__to_copy_cat_2
+    37.0   0.165  triton_red_fused__to_copy_add_fused_add_rms_norm_4
+    32.0   0.158  triton_poi_fused__to_copy_cat_3
+    32.0   0.145  triton_red_fused__to_copy_add_fused_add_rms_norm_5
+    37.0   0.129  triton_red_fused__to_copy_add_fused_add_rms_norm_1
+    21.0   0.126  void vllm::reshape_and_cache_flash_kernel<__nv_bfloat16, unsigned char, (vllm::Fp8KVCacheDataType)1>(__nv_bflo
+    32.0   0.112  triton_red_fused__to_copy_add_fused_add_rms_norm_2
+    48.0   0.111  void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::Opaq
+    28.0   0.101  void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{la
+5 steps; GPU idle in gaps >= 5.0 us: 9.91 ms/step
+by first vllm/_C op covering the gap (ms/step):
+    4.642  (none)
+    0.612  Pregraph bytecode
+    0.587  aten::pin_memory
+    0.583  aten::index
+    0.537  aten::slice
+    0.476  aten::mul
+    0.476  aten::to
+    0.398  aten::add
+    0.226  aten::eq
+    0.207  aten::copy_
+    0.203  aten::embedding
+    0.191  aten::sum
+    0.190  vllm::qwen_gdn_attention_core
+    0.094  aten::fill_
+    0.070  aten::arange
+    0.069  aten::floor_divide
+    0.067  aten::gather
+    0.057  aten::is_nonzero
+Traceback (most recent call last):
+  File "/workspace/wt-exl3-opt/cloud/results/opt-p2/box-scripts/gaps.py", line 30, in <module>
+    print(f"  {v / n / 1e3:7.3f}  {k}")
+BrokenPipeError: [Errno 32] Broken pipe

@@ -10,7 +10,7 @@ logprobs=-1 (the distribution of the token after p). With --enable-prefix-cachin
 Writes OUT/NAME.vllm.f32 in the llama_logits format (magic LOG1, n_pos, n_vocab, pos[],
 float32 rows), holding logprobs; tokens absent from the returned dict are -inf.
 
-  GSQ_ALLOW_GPU=1 .venv/bin/python bench/parity/vllm_logprobs.py -d PROMPT_DIR -o OUT_DIR
+  GSQ_ALLOW_GPU=1 .venv/bin/python bench/parity/vllm_logprobs.py -d PROMPT_DIR -o OUT_DIR [--model EXL3_DIR]
       [--kv-cache-dtype auto|fp8] [--mamba-ssm-cache-dtype float16|float32] [--only seq_003,...]
   .venv/bin/python bench/parity/vllm_logprobs.py --dry-run -d PROMPT_DIR   (no GPU: prints plan)
 
@@ -49,6 +49,8 @@ def main() -> None:
     ap.add_argument("-d", "--prompts", type=Path, required=True)
     ap.add_argument("-o", "--out", type=Path)
     ap.add_argument("--gguf", default=os.environ.get("GSQ_GGUF"))
+    ap.add_argument("--model", help="a plain HF model dir instead of --gguf (EXL3: served with the exl3 "
+                                    "plugin, its own config and tokenizer)")
     ap.add_argument("--kv-cache-dtype", default="auto", help="auto = bf16 (reference); fp8 = production")
     ap.add_argument("--mamba-ssm-cache-dtype", default="float16", help="production: float16")
     ap.add_argument("--gpu-memory-utilization", type=float, default=0.94)
@@ -65,21 +67,20 @@ def main() -> None:
         return
     if os.environ.get("GSQ_ALLOW_GPU") != "1":
         raise SystemExit("GPU use is opt-in: GSQ_ALLOW_GPU=1")
-    if not a.gguf or not a.out:
-        raise SystemExit("--gguf (or GSQ_GGUF) and -o are required")
+    if not (a.model or a.gguf) or not a.out:
+        raise SystemExit("--gguf (or GSQ_GGUF) or --model, and -o are required")
     a.out.mkdir(parents=True, exist_ok=True)
 
-    os.environ["VLLM_PLUGINS"] = "lora_filesystem_resolver,lora_hf_hub_resolver,gguf"
+    os.environ["VLLM_PLUGINS"] = "lora_filesystem_resolver,lora_hf_hub_resolver," + ("gguf,exl3" if a.model else "gguf")
     os.environ.setdefault("PYTHONHASHSEED", "0")
     from vllm import LLM, SamplingParams
     from vllm.inputs import TokensPrompt
     from vllm.plugins import load_general_plugins
 
     load_general_plugins()  # the plugin patches EngineArgs before LLM() builds configs
+    src = {"model": a.model} if a.model else {"model": a.gguf, "hf_config_path": str(HF_CONFIG), "tokenizer": str(HF_CONFIG)}
     llm = LLM(
-        model=a.gguf,
-        hf_config_path=str(HF_CONFIG),
-        tokenizer=str(HF_CONFIG),
+        **src,
         served_model_name="qwen3.8-27b",
         max_model_len=max_len,
         gpu_memory_utilization=a.gpu_memory_utilization,

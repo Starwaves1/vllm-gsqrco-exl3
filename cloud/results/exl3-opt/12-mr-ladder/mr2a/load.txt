@@ -1,0 +1,23 @@
+EXL3_MR=2 EXL3_MR_GLUE=0 EXL3_MR_MIN=1 healthy after 251 s
+(APIServer pid=1322707) INFO 10-01 07:04:09 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+(APIServer pid=1322707) INFO 10-01 07:04:09 [api_utils.py:286] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', 'chat_template': '/workspace/wt-exl3-opt/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_temp
+(APIServer pid=1322707) WARNING 10-01 07:04:26 [vllm.py:1074] Dynamic speculative decoding changes the target verification length at runtime. Overriding cudagraph_mode from FULL_AND_PIECEWISE to PIECEWISE for reliability. Use VLLM_USE_V2_MODEL_RUNNER=1 if you 
+(EngineCore pid=1323700) INFO 10-01 07:04:42 [core.py:129] Initializing a V1 LLM engine (v0.30.1rc1.dev285+gd28795f1a) with config: model='/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', speculative_config=SpeculativeConfig(method='mtp', model=
+(EngineCore pid=1323700) INFO 10-01 07:04:50 [gpu_model_runner.py:5305] Starting to load model /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6...
+(EngineCore pid=1323700) INFO 10-01 07:04:54 [default_loader.py:484] Loading weights took 3.06 seconds
+(EngineCore pid=1323700) INFO 10-01 07:04:57 [default_loader.py:484] Loading weights took 0.76 seconds
+(EngineCore pid=1323700) INFO 10-01 07:04:57 [gpu_model_runner.py:5404] Model loading took 13.97 GiB memory and 6.769866 seconds
+(EngineCore pid=1323700) INFO 10-01 07:05:08 [backends.py:1090] Using cache directory: /workspace/runs/exl3-opt/vllm-cache-glue0/torch_compile_cache/d5d1dc0c38/rank_0_0/backbone for vLLM's torch.compile
+(EngineCore pid=1323700) INFO 10-01 07:06:05 [decorators.py:717] saved AOT compiled function to /workspace/runs/exl3-opt/vllm-cache-glue0/torch_compile_cache/torch_aot_compile/22fd73b83a715c2f61c3266708941b76c7716acf82c178c603508c88b56c3bb4/rank_0_0/model
+(EngineCore pid=1323700) INFO 10-01 07:07:10 [backends.py:1090] Using cache directory: /workspace/runs/exl3-opt/vllm-cache-glue0/torch_compile_cache/d5d1dc0c38/rank_0_0/eagle_head for vLLM's torch.compile
+(EngineCore pid=1323700) INFO 10-01 07:07:14 [decorators.py:717] saved AOT compiled function to /workspace/runs/exl3-opt/vllm-cache-glue0/torch_compile_cache/torch_aot_compile/50888f71c698636c108d082ff5ffc31a71359c0f4640a34eb15f8f90fc61f516/rank_0_0/model
+(EngineCore pid=1323700) INFO 10-01 07:07:22 [gpu_model_runner.py:6689] Profiling CUDA graph memory: PIECEWISE=9 (largest=48)
+(EngineCore pid=1323700) INFO 10-01 07:07:23 [gpu_model_runner.py:6794] Estimated CUDA graph memory: 0.22 GiB total
+(EngineCore pid=1323700) INFO 10-01 07:07:23 [gpu_worker.py:707] CUDA graph memory profiling is enabled (default since v0.21.0). The current --gpu-memory-utilization=0.9400 is equivalent to --gpu-memory-utilization=0.9305 without CUDA graph memory profiling. T
+(EngineCore pid=1323700) INFO 10-01 07:07:23 [kv_cache_utils.py:2408] GPU KV cache size: 197,385 tokens, Maximum concurrency for 196,608 tokens per request: 1.00x
+(EngineCore pid=1323700) INFO 10-01 07:08:03 [gpu_model_runner.py:6855] Rank 0: Torch profiler disabled for CUDA graph capture
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/9 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  11%|█         | 1/9 [00:00<00:00,  9.84it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  3
+(EngineCore pid=1323700) INFO 10-01 07:08:04 [gpu_worker.py:887] CUDA graph pool memory: 0.19 GiB (actual), 0.22 GiB (estimated), difference: 0.04 GiB (21.1%).
+(EngineCore pid=1323700) INFO 10-01 07:08:05 [core.py:373] init engine (profile, create kv cache, warmup model) took 188.01 s (compilation: 71.76 s)
+(EngineCore pid=1323700) INFO 10-01 07:08:09 [manager.py:430] fs KV tier 'fs' bounded to 10.0 GB at /workspace/kvtier-exl3-opt/_workspace_models_Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6_48d54d09eb52_r0: 0 block files (0.0 GB) indexed at startup
+VRAM after load: 22439 MiB, 24576 MiB

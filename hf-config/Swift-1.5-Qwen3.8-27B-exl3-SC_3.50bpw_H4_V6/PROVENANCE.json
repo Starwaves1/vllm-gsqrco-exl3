@@ -1,0 +1,27 @@
+{
+  "source_repo": "erlidev/Swift-1.5-Qwen3.8-27B-EXL3@041dc382133c0ac4a3fcf6c400d70fbea1584c51 (branch SC_3.50bpw_H4_V6), fetched 2026-09-30 via the HF API",
+  "weights": "not downloaded: model-00001-of-00002.safetensors (8504550116 bytes, sha256 60c6cb1acaa587658d2482867a716d7ed1d367562e838516c310172bae52b71b) and model-00002-of-00002.safetensors (6166071016 bytes, sha256 8537385d3cdbd917006ec5b28e66c56033dd8cbbfec321aaefcdf6f22a0811bc); index total_size 14670246900",
+  "derived": {
+    "safetensors_headers.json": "each shard's safetensors JSON header read by HTTP range (bytes 0-7, then the header): per shard header_bytes, __metadata__ and {name: {dtype, shape}}; no tensor data"
+  },
+  "changes": "none: every other file is byte-identical to the repo's",
+  "not_copied": {
+    "README.md": "e7c3ec95b71414a5e801dfc14e9c5b0b4d2f1c04948c42223564e93694fd6363",
+    "LICENSE": "1367057bf17041aa1d69286a1400be5f464d2f8b8f54f600088b209eac1850be",
+    "NOTICE": "be30f3d464974990e40e9833bc6f356fd89fe16733c6c1a581d97106b8ae741d"
+  },
+  "sha256": {
+    "chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "config.json": "4ae652d9409f4c7e6d788621457b85fa087569c3a867f2b0289b724aa9f8bf13",
+    "generation_config.json": "e70c136c1b78ddc1fb0905bac8e733a4dc448d4f852a5dd75143fffc70be550e",
+    "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+    "model.safetensors.index.json": "12ef8e40e8687b7bbce621351215ebc496825d93b3347fe1676524175e7a30a2",
+    "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+    "quantization_config.json": "4d89057215ade98f801052541af094a38fcccebc7a96b6a683a009d7d1efeaf3",
+    "safetensors_headers.json": "e2b3992cd47e76acaa64e623755b03cdbc192ff5686a3b0c8b16f8cb7c49d0a6",
+    "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "video_preprocessor_config.json": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13",
+    "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+  }
+}

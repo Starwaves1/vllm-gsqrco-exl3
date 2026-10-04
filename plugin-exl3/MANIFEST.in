@@ -1,0 +1,2 @@
+include LICENSE
+recursive-include vllm_exl3_plugin/csrc *.cu *.cuh *.h *.hpp LICENSE NOTICE* *.md

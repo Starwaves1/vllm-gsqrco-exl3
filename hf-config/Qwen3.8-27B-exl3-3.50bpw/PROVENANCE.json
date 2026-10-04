@@ -1,0 +1,26 @@
+{
+  "source_repo": "turboderp/Qwen3.8-27B-exl3@8351c54ef11a63e38bca978655086d7998b8a7f9 (branch 3.50bpw), fetched 2026-09-30 via the HF API",
+  "weights": "not downloaded: model-00001-of-00002.safetensors and model-00002-of-00002.safetensors (15.34 GB, index total_size 15338106948)",
+  "derived": {
+    "safetensors_headers.json": "each shard's safetensors JSON header read by HTTP range (bytes 0-7, then the header): per shard header_bytes, __metadata__ and {name: {dtype, shape}}; no tensor data"
+  },
+  "changes": "none: every other file is byte-identical to the repo's",
+  "not_copied": {
+    "quantization_config.json": "f5dd155fc6853587e933ad4ee855da3e5ec42efdc37e38af992ccc6ec9e0e198",
+    "README.md": "57e4bdb258ee1a7d2635c5174ebd4e56abe392505cdb5f8bbb356b0dc4293641",
+    "LICENSE": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+  },
+  "sha256": {
+    "chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "config.json": "ce88a73454db939b33904bb9316a4b9bd29254250e729c4c9d6253dd2fe3e8e7",
+    "generation_config.json": "e70c136c1b78ddc1fb0905bac8e733a4dc448d4f852a5dd75143fffc70be550e",
+    "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+    "model.safetensors.index.json": "ee2d5e73b5f8311ad331ce3c94a29d1143225064b278a18fa9966cba54d2802e",
+    "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+    "safetensors_headers.json": "9cf15ed4cb953213e2b8d9a6562b1eaa7bd6197769964b19b1a4a46d386953e8",
+    "tokenizer.json": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+    "tokenizer_config.json": "b11349aafa7cdc6a320767cf7ceb29ed82f7eda5d65e8e0819e76f0ce947bf27",
+    "video_preprocessor_config.json": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13",
+    "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+  }
+}

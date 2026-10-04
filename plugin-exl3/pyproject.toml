@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77.0.3,<81.0.0", "wheel", "torch>=2.9"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vllm-exl3-plugin"
+dynamic = ["version"]
+description = "Out-of-tree EXL3 (exllamav3 trellis) quantization plugin for vLLM"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "vllm",
+    "torch>=2.9",
+    "safetensors",
+]
+
+[project.entry-points."vllm.general_plugins"]
+exl3 = "vllm_exl3_plugin:register"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vllm_exl3_plugin*"]
+
+[tool.vllm_exl3_plugin]
+base_version = "0.0.1"
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "ISC", "SIM", "I", "G"]
+ignore = ["E731", "B905"]
+
+[tool.typos.files]
+extend-exclude = ["vllm_exl3_plugin/csrc/exl3/*"]

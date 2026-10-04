@@ -1,0 +1,399 @@
+NVIDIA GeForce RTX 3090 | Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6 | 17 shapes, 401 target / 8 draft products
+
+mtp.layers.0.self_attn.k_proj k=5120 n=1024 K=4 (2.5 MiB, x0 target, x2 draft, floor 2.8 us)
+  m=  1  gemm    15.0 us  19% | mr    13.2 us  21% | dequant    40.6 us   7%
+  m=  2  gemm    15.3 us  18% | mr    13.4 us  21% | dequant    48.0 us   6%
+  m=  4  gemm    15.4 us  18% | mr    13.5 us  21% | dequant    48.0 us   6%
+  m=  6  gemm    15.5 us  18% | mr    13.6 us  21% | dequant    48.2 us   6%
+  m=  8  gemm    15.7 us  18% | mr    13.7 us  20% | dequant    48.3 us   6%
+  m= 12  gemm    22.8 us  12% | mr    16.5 us  17% | dequant    48.8 us   6%
+  m= 16  gemm    23.9 us  12% | mr    16.7 us  17% | dequant    49.3 us   6%
+  m= 17  gemm    40.8 us   7% | mr    19.6 us  14% | dequant    41.2 us   7%
+  m= 24  gemm    42.2 us   7% | mr    20.0 us  14% | dequant    41.4 us   7%
+  m= 32  gemm    42.6 us   7% | mr    18.8 us  15% | dequant    40.8 us   7%
+  m= 48  gemm    62.6 us   4% | mr    27.2 us  10% | dequant    41.8 us   7%
+  m= 64  gemm    82.3 us   3% | mr    44.0 us   6% | dequant    43.9 us   6%
+  m= 96  gemm   122.1 us   2% | mr    60.7 us   5% | dequant    56.3 us   5%
+  m=128  gemm   161.7 us   2% | mr    56.0 us   5% | dequant    70.5 us   4%
+  m=144  gemm   182.1 us   2% | mr    69.1 us   4% | dequant    70.3 us   4%
+  m=192  mr    74.4 us   4% | dequant    72.9 us   4%
+  m=256  mr    91.4 us   3% | dequant    75.7 us   4%
+  m=384  mr   120.5 us   2% | dequant   105.4 us   3%
+  m=512  mr   142.6 us   2% | dequant   140.3 us   2%
+
+model.language_model.layers.3.self_attn.k_proj k=5120 n=1024 K=5 (3.1 MiB, x32 target, x0 draft, floor 3.5 us)
+  m=  1  gemm    19.1 us  18% | mr    14.0 us  25% | dequant    40.8 us   9%
+  m=  2  gemm    19.2 us  18% | mr    14.1 us  25% | dequant    48.6 us   7%
+  m=  4  gemm    19.0 us  18% | mr    13.9 us  25% | dequant    47.9 us   7%
+  m=  6  gemm    19.1 us  18% | mr    14.0 us  25% | dequant    48.4 us   7%
+  m=  8  gemm    19.6 us  18% | mr    13.8 us  25% | dequant    48.1 us   7%
+  m= 12  gemm    20.6 us  17% | mr    16.6 us  21% | dequant    48.3 us   7%
+  m= 16  gemm    22.2 us  16% | mr    16.7 us  21% | dequant    48.8 us   7%
+  m= 17  gemm    37.5 us   9% | mr    20.1 us  17% | dequant    41.0 us   9%
+  m= 24  gemm    38.5 us   9% | mr    20.5 us  17% | dequant    41.1 us   9%
+  m= 32  gemm    41.8 us   8% | mr    20.6 us  17% | dequant    41.9 us   8%
+  m= 48  gemm    61.0 us   6% | mr    32.1 us  11% | dequant    42.7 us   8%
+  m= 64  gemm    80.6 us   4% | mr    57.8 us   6% | dequant    43.9 us   8%
+  m= 96  gemm   119.3 us   3% | mr    75.7 us   5% | dequant    56.5 us   6%
+  m=128  gemm   158.3 us   2% | mr    81.1 us   4% | dequant    71.6 us   5%
+  m=144  gemm   178.2 us   2% | mr    94.9 us   4% | dequant    70.6 us   5%
+  m=192  mr   117.1 us   3% | dequant    73.6 us   5%
+  m=256  mr   139.9 us   3% | dequant    77.2 us   5%
+  m=384  mr   256.8 us   1% | dequant   104.9 us   3%
+  m=512  mr   311.8 us   1% | dequant   133.9 us   3%
+
+model.language_model.layers.1.linear_attn.in_proj_z k=5120 n=6144 K=3 (11.2 MiB, x29 target, x0 draft, floor 12.6 us)
+  m=  1  gemm    34.3 us  37% | mr    25.4 us  50% | dequant   186.7 us   7%
+  m=  2  gemm    34.5 us  37% | mr    25.6 us  49% | dequant   214.0 us   6%
+  m=  4  gemm    35.0 us  36% | mr    26.0 us  49% | dequant   214.5 us   6%
+  m=  6  gemm    36.0 us  35% | mr    26.1 us  48% | dequant   214.8 us   6%
+  m=  8  gemm    36.7 us  34% | mr    26.4 us  48% | dequant   215.6 us   6%
+  m= 12  gemm    39.3 us  32% | mr    31.2 us  40% | dequant   216.3 us   6%
+  m= 16  gemm    42.1 us  30% | mr    31.6 us  40% | dequant   216.9 us   6%
+  m= 17  gemm    74.4 us  17% | mr    37.4 us  34% | dequant   191.4 us   7%
+  m= 24  gemm    78.4 us  16% | mr    38.5 us  33% | dequant   193.0 us   7%
+  m= 32  gemm    83.5 us  15% | mr    39.0 us  32% | dequant   193.7 us   7%
+  m= 48  gemm   123.2 us  10% | mr    53.5 us  24% | dequant   194.7 us   6%
+  m= 64  gemm   163.5 us   8% | mr   153.3 us   8% | dequant   195.6 us   6%
+  m= 96  gemm   242.7 us   5% | mr   190.0 us   7% | dequant   239.9 us   5%
+  m=128  gemm   321.8 us   4% | mr   284.0 us   4% | dequant   242.7 us   5%
+  m=144  gemm   361.9 us   3% | mr   314.0 us   4% | dequant   327.3 us   4%
+  m=192  mr   416.8 us   3% | dequant   294.9 us   4%
+  m=256  mr   552.7 us   2% | dequant   352.8 us   4%
+  m=384  mr   767.3 us   2% | dequant   443.7 us   3%
+  m=512  mr   976.2 us   1% | dequant   596.4 us   2%
+
+model.language_model.layers.0.linear_attn.in_proj_z k=5120 n=6144 K=4 (15.0 MiB, x19 target, x0 draft, floor 16.8 us)
+  m=  1  gemm    32.9 us  51% | mr    28.3 us  59% | dequant   192.3 us   9%
+  m=  2  gemm    32.4 us  52% | mr    28.6 us  59% | dequant   217.9 us   8%
+  m=  4  gemm    32.7 us  51% | mr    28.9 us  58% | dequant   218.6 us   8%
+  m=  6  gemm    33.7 us  50% | mr    29.1 us  58% | dequant   218.8 us   8%
+  m=  8  gemm    34.6 us  49% | mr    29.3 us  57% | dequant   219.5 us   8%
+  m= 12  gemm    37.1 us  45% | mr    30.0 us  56% | dequant   220.2 us   8%
+  m= 16  gemm    40.1 us  42% | mr    30.6 us  55% | dequant   220.5 us   8%
+  m= 17  gemm    69.7 us  24% | mr    36.2 us  46% | dequant   196.8 us   9%
+  m= 24  gemm    73.1 us  23% | mr    37.6 us  45% | dequant   200.7 us   8%
+  m= 32  gemm    81.1 us  21% | mr    37.8 us  45% | dequant   200.3 us   8%
+  m= 48  gemm   120.8 us  14% | mr    49.5 us  34% | dequant   202.2 us   8%
+  m= 64  gemm   156.8 us  11% | mr   105.3 us  16% | dequant   203.1 us   8%
+  m= 96  gemm   232.7 us   7% | mr   155.9 us  11% | dequant   249.3 us   7%
+  m=128  gemm   311.2 us   5% | mr   195.9 us   9% | dequant   255.5 us   7%
+  m=144  gemm   355.4 us   5% | mr   226.6 us   7% | dequant   344.5 us   5%
+  m=192  mr   280.7 us   6% | dequant   313.8 us   5%
+  m=256  mr   387.4 us   4% | dequant   372.3 us   5%
+  m=384  mr   518.9 us   3% | dequant   483.3 us   3%
+  m=512  mr   658.5 us   3% | dequant   638.0 us   3%
+
+model.language_model.layers.0.linear_attn.in_proj_qkv k=5120 n=10240 K=3 (18.8 MiB, x35 target, x0 draft, floor 21.0 us)
+  m=  1  gemm    50.6 us  42% | mr    35.0 us  60% | dequant   292.9 us   7%
+  m=  2  gemm    49.8 us  42% | mr    34.5 us  61% | dequant   283.0 us   7%
+  m=  4  gemm    50.2 us  42% | mr    35.0 us  60% | dequant   283.2 us   7%
+  m=  6  gemm    51.8 us  41% | mr    36.5 us  58% | dequant   284.6 us   7%
+  m=  8  gemm    52.3 us  40% | mr    35.5 us  59% | dequant   284.2 us   7%
+  m= 12  gemm    54.0 us  39% | mr    46.4 us  45% | dequant   285.0 us   7%
+  m= 16  gemm    58.0 us  36% | mr    47.2 us  44% | dequant   285.1 us   7%
+  m= 17  gemm   104.1 us  20% | mr    50.6 us  42% | dequant   354.0 us   6%
+  m= 24  gemm   107.5 us  20% | mr    52.1 us  40% | dequant   354.5 us   6%
+  m= 32  gemm   112.6 us  19% | mr    52.7 us  40% | dequant   287.4 us   7%
+  m= 48  gemm   165.8 us  13% | mr    72.7 us  29% | dequant   290.7 us   7%
+  m= 64  gemm   219.9 us  10% | mr   233.8 us   9% | dequant   291.7 us   7%
+  m= 96  gemm   317.9 us   7% | mr   275.8 us   8% | dequant   353.5 us   6%
+  m=128  gemm   428.3 us   5% | mr   442.5 us   5% | dequant   352.9 us   6%
+  m=144  gemm   476.5 us   4% | mr   486.5 us   4% | dequant   413.2 us   5%
+  m=192  mr   627.8 us   3% | dequant   538.5 us   4%
+  m=256  mr   834.8 us   3% | dequant   547.3 us   4%
+  m=384  mr  1239.2 us   2% | dequant   676.0 us   3%
+  m=512  mr  1657.8 us   1% | dequant   824.8 us   3%
+
+model.language_model.layers.17.linear_attn.in_proj_qkv k=5120 n=10240 K=4 (25.0 MiB, x13 target, x0 draft, floor 28.0 us)
+  m=  1  gemm    37.8 us  74% | mr    38.2 us  73% | dequant   299.4 us   9%
+  m=  2  gemm    39.1 us  72% | mr    38.9 us  72% | dequant   290.5 us  10%
+  m=  4  gemm    38.9 us  72% | mr    39.0 us  72% | dequant   290.7 us  10%
+  m=  6  gemm    39.0 us  72% | mr    39.4 us  71% | dequant   291.2 us  10%
+  m=  8  gemm    39.1 us  72% | mr    39.7 us  71% | dequant   291.2 us  10%
+  m= 12  gemm    51.9 us  54% | mr    44.1 us  63% | dequant   292.6 us  10%
+  m= 16  gemm    55.9 us  50% | mr    44.0 us  64% | dequant   292.7 us  10%
+  m= 17  gemm   100.0 us  28% | mr    45.0 us  62% | dequant   366.3 us   8%
+  m= 24  gemm   105.1 us  27% | mr    46.7 us  60% | dequant   367.1 us   8%
+  m= 32  gemm   109.6 us  26% | mr    47.7 us  59% | dequant   294.9 us   9%
+  m= 48  gemm   160.6 us  17% | mr    65.5 us  43% | dequant   297.5 us   9%
+  m= 64  gemm   213.2 us  13% | mr   153.8 us  18% | dequant   299.2 us   9%
+  m= 96  gemm   313.0 us   9% | mr   211.4 us  13% | dequant   371.5 us   8%
+  m=128  gemm   422.1 us   7% | mr   306.0 us   9% | dequant   373.7 us   7%
+  m=144  gemm   473.5 us   6% | mr   351.7 us   8% | dequant   440.0 us   6%
+  m=192  mr   420.5 us   7% | dequant   580.7 us   5%
+  m=256  mr   569.0 us   5% | dequant   584.2 us   5%
+  m=384  mr   817.1 us   3% | dequant   717.1 us   4%
+  m=512  mr  1093.8 us   3% | dequant   889.8 us   3%
+
+model.language_model.layers.3.self_attn.q_proj k=5120 n=12288 K=3 (22.5 MiB, x12 target, x0 draft, floor 25.2 us)
+  m=  1  gemm    58.6 us  43% | mr    42.4 us  59% | dequant   371.6 us   7%
+  m=  2  gemm    59.6 us  42% | mr    43.1 us  58% | dequant   360.3 us   7%
+  m=  4  gemm    59.0 us  43% | mr    43.1 us  59% | dequant   362.3 us   7%
+  m=  6  gemm    62.4 us  40% | mr    44.3 us  57% | dequant   362.3 us   7%
+  m=  8  gemm    60.3 us  42% | mr    43.8 us  58% | dequant   379.0 us   7%
+  m= 12  gemm    64.2 us  39% | mr    55.3 us  46% | dequant   377.9 us   7%
+  m= 16  gemm    65.1 us  39% | mr    56.0 us  45% | dequant   378.5 us   7%
+  m= 17  gemm   120.3 us  21% | mr    65.4 us  39% | dequant   383.1 us   7%
+  m= 24  gemm   122.9 us  21% | mr    65.7 us  38% | dequant   384.6 us   7%
+  m= 32  gemm   125.8 us  20% | mr    67.0 us  38% | dequant   385.5 us   7%
+  m= 48  gemm   186.5 us  14% | mr    97.5 us  26% | dequant   391.3 us   6%
+  m= 64  gemm   247.7 us  10% | mr   299.0 us   8% | dequant   381.4 us   7%
+  m= 96  gemm   359.3 us   7% | mr   342.1 us   7% | dequant   461.1 us   5%
+  m=128  gemm   487.7 us   5% | mr   532.5 us   5% | dequant   460.4 us   5%
+  m=144  gemm   542.0 us   5% | mr   587.1 us   4% | dequant   680.2 us   4%
+  m=192  mr   756.6 us   3% | dequant   572.9 us   4%
+  m=256  mr   972.8 us   3% | dequant   710.4 us   4%
+  m=384  mr  1462.7 us   2% | dequant   857.3 us   3%
+  m=512  mr  1958.6 us   1% | dequant  1020.4 us   2%
+
+model.language_model.layers.27.self_attn.q_proj k=5120 n=12288 K=4 (30.0 MiB, x4 target, x1 draft, floor 33.6 us)
+  m=  1  gemm    52.1 us  64% | mr    47.0 us  72% | dequant   380.2 us   9%
+  m=  2  gemm    52.7 us  64% | mr    47.2 us  71% | dequant   367.8 us   9%
+  m=  4  gemm    55.6 us  60% | mr    47.8 us  70% | dequant   369.0 us   9%
+  m=  6  gemm    56.9 us  59% | mr    48.4 us  69% | dequant   371.0 us   9%
+  m=  8  gemm    58.7 us  57% | mr    48.7 us  69% | dequant   387.2 us   9%
+  m= 12  gemm    60.2 us  56% | mr    51.3 us  65% | dequant   389.5 us   9%
+  m= 16  gemm    60.1 us  56% | mr    51.9 us  65% | dequant   391.3 us   9%
+  m= 17  gemm   115.7 us  29% | mr    60.7 us  55% | dequant   400.9 us   8%
+  m= 24  gemm   118.0 us  28% | mr    63.7 us  53% | dequant   401.7 us   8%
+  m= 32  gemm   119.2 us  28% | mr    62.8 us  54% | dequant   399.5 us   8%
+  m= 48  gemm   180.6 us  19% | mr    88.8 us  38% | dequant   405.4 us   8%
+  m= 64  gemm   236.0 us  14% | mr   197.9 us  17% | dequant   401.3 us   8%
+  m= 96  gemm   353.1 us  10% | mr   258.3 us  13% | dequant   488.9 us   7%
+  m=128  gemm   477.3 us   7% | mr   379.3 us   9% | dequant   488.3 us   7%
+  m=144  gemm   523.9 us   6% | mr   431.9 us   8% | dequant   723.8 us   5%
+  m=192  mr   507.3 us   7% | dequant   613.8 us   5%
+  m=256  mr   659.9 us   5% | dequant   758.2 us   4%
+  m=384  mr   974.8 us   3% | dequant   918.5 us   4%
+  m=512  mr  1298.6 us   3% | dequant  1105.7 us   3%
+
+model.language_model.layers.0.mlp.gate_proj k=5120 n=17408 K=2 (21.2 MiB, x4 target, x0 draft, floor 23.8 us)
+  m=  1  gemm    67.2 us  35% | dequant   488.0 us   5%
+  m=  2  gemm    67.2 us  35% | dequant   461.5 us   5%
+  m=  4  gemm    66.7 us  36% | dequant   461.3 us   5%
+  m=  6  gemm    66.6 us  36% | dequant   461.0 us   5%
+  m=  8  gemm    67.0 us  36% | dequant   466.8 us   5%
+  m= 12  gemm    84.1 us  28% | dequant   468.1 us   5%
+  m= 16  gemm    83.2 us  29% | dequant   462.9 us   5%
+  m= 17  gemm   153.3 us  16% | dequant   463.3 us   5%
+  m= 24  gemm   158.9 us  15% | dequant   464.5 us   5%
+  m= 32  gemm   167.2 us  14% | dequant   507.5 us   5%
+  m= 48  gemm   248.7 us  10% | dequant   543.0 us   4%
+  m= 64  gemm   330.3 us   7% | dequant   575.1 us   4%
+  m= 96  gemm   499.5 us   5% | dequant   637.2 us   4%
+  m=128  gemm   671.9 us   4% | dequant   645.1 us   4%
+  m=144  gemm   754.2 us   3% | dequant   762.2 us   3%
+  m=192  dequant  1017.5 us   2%
+  m=256  dequant  1020.5 us   2%
+  m=384  dequant  1091.4 us   2%
+  m=512  dequant  1461.3 us   2%
+
+model.language_model.layers.2.mlp.gate_proj k=5120 n=17408 K=3 (31.9 MiB, x70 target, x0 draft, floor 35.7 us)
+  m=  1  gemm    77.7 us  46% | mr    57.1 us  62% | dequant   502.5 us   7%
+  m=  2  gemm    78.7 us  45% | mr    57.6 us  62% | dequant   474.9 us   8%
+  m=  4  gemm    81.2 us  44% | mr    58.9 us  61% | dequant   475.5 us   8%
+  m=  6  gemm    82.1 us  43% | mr    59.2 us  60% | dequant   475.6 us   8%
+  m=  8  gemm    83.9 us  43% | mr    60.3 us  59% | dequant   481.7 us   7%
+  m= 12  gemm    85.9 us  42% | mr    74.8 us  48% | dequant   482.0 us   7%
+  m= 16  gemm    87.4 us  41% | mr    74.5 us  48% | dequant   477.3 us   7%
+  m= 17  gemm   162.5 us  22% | mr    90.4 us  40% | dequant   476.8 us   7%
+  m= 24  gemm   166.9 us  21% | mr    89.9 us  40% | dequant   479.1 us   7%
+  m= 32  gemm   168.6 us  21% | mr    94.6 us  38% | dequant   525.3 us   7%
+  m= 48  gemm   252.0 us  14% | mr   130.7 us  27% | dequant   533.3 us   7%
+  m= 64  gemm   339.1 us  11% | mr   403.5 us   9% | dequant   578.8 us   6%
+  m= 96  gemm   480.6 us   7% | mr   465.4 us   8% | dequant   650.2 us   5%
+  m=128  gemm   659.7 us   5% | mr   712.9 us   5% | dequant   648.8 us   6%
+  m=144  gemm   743.3 us   5% | mr   787.1 us   5% | dequant   768.3 us   5%
+  m=192  mr  1043.8 us   3% | dequant  1018.2 us   4%
+  m=256  mr  1424.5 us   3% | dequant  1027.5 us   3%
+  m=384  mr  2095.8 us   2% | dequant  1101.0 us   3%
+  m=512  mr  2783.2 us   1% | dequant  1415.1 us   3%
+
+model.language_model.layers.22.mlp.gate_proj k=5120 n=17408 K=4 (42.5 MiB, x54 target, x2 draft, floor 47.6 us)
+  m=  1  gemm    67.5 us  71% | mr    64.3 us  74% | dequant   514.4 us   9%
+  m=  2  gemm    71.0 us  67% | mr    65.4 us  73% | dequant   486.2 us  10%
+  m=  4  gemm    73.3 us  65% | mr    66.1 us  72% | dequant   486.6 us  10%
+  m=  6  gemm    75.5 us  63% | mr    66.4 us  72% | dequant   487.1 us  10%
+  m=  8  gemm    77.7 us  61% | mr    66.8 us  71% | dequant   492.8 us  10%
+  m= 12  gemm    78.9 us  60% | mr    71.0 us  67% | dequant   498.3 us  10%
+  m= 16  gemm    84.2 us  57% | mr    72.8 us  65% | dequant   488.6 us  10%
+  m= 17  gemm   153.4 us  31% | mr    78.7 us  60% | dequant   488.6 us  10%
+  m= 24  gemm   161.4 us  30% | mr    82.1 us  58% | dequant   490.2 us  10%
+  m= 32  gemm   168.4 us  28% | mr    85.0 us  56% | dequant   537.9 us   9%
+  m= 48  gemm   251.8 us  19% | mr   119.1 us  40% | dequant   585.0 us   8%
+  m= 64  gemm   331.6 us  14% | mr   266.6 us  18% | dequant   614.6 us   8%
+  m= 96  gemm   494.3 us  10% | mr   343.7 us  14% | dequant   690.2 us   7%
+  m=128  gemm   664.8 us   7% | mr   493.5 us  10% | dequant   690.4 us   7%
+  m=144  gemm   739.8 us   6% | mr   567.8 us   8% | dequant   826.3 us   6%
+  m=192  mr   691.5 us   7% | dequant  1095.3 us   4%
+  m=256  mr   935.4 us   5% | dequant  1105.6 us   4%
+  m=384  mr  1394.9 us   3% | dequant  1202.4 us   4%
+  m=512  mr  1851.5 us   3% | dequant  1541.0 us   3%
+
+lm_head k=5120 n=248320 K=4 (606.2 MiB, x1 target, x0 draft, floor 679.2 us)
+  m=  1  gemm   902.0 us  75% | mr   754.4 us  90% | dequant  6998.2 us  10%
+  m=  2  gemm   918.9 us  74% | mr   767.5 us  88% | dequant  7167.7 us   9%
+  m=  4  gemm   922.0 us  74% | mr   772.6 us  88% | dequant  7186.8 us   9%
+  m=  6  gemm   919.1 us  74% | mr   780.8 us  87% | dequant  7219.8 us   9%
+  m=  8  gemm   941.4 us  72% | mr   789.2 us  86% | dequant  7235.9 us   9%
+  m= 12  gemm   919.1 us  74% | mr   872.4 us  78% | dequant  7262.9 us   9%
+  m= 16  gemm   933.4 us  73% | mr   884.5 us  77% | dequant  7268.2 us   9%
+  m= 17  gemm  1970.0 us  34% | mr  1045.6 us  65% | dequant  7200.3 us   9%
+  m= 24  gemm  2033.0 us  33% | mr  1048.6 us  65% | dequant  7261.4 us   9%
+  m= 32  gemm  2009.9 us  34% | mr  1098.1 us  62% | dequant  7395.2 us   9%
+  m= 48  gemm  3055.6 us  22% | mr  1486.4 us  46% | dequant  7419.3 us   9%
+  m= 64  gemm  4066.8 us  17% | mr  3440.9 us  20% | dequant  7424.4 us   9%
+  m= 96  gemm  6155.6 us  11% | mr  4363.9 us  16% | dequant  9837.7 us   7%
+  m=128  gemm  8163.3 us   8% | mr  6578.5 us  10% | dequant  9884.0 us   7%
+  m=144  gemm  9269.4 us   7% | mr  7470.3 us   9% | dequant 11523.7 us   6%
+  m=192  mr  9850.0 us   7% | dequant 12160.0 us   6%
+  m=256  mr 13157.8 us   5% | dequant 14342.8 us   5%
+  m=384  mr 19789.2 us   3% | dequant 17512.8 us   4%
+  m=512  mr 26458.5 us   3% | dequant 21667.6 us   3%
+
+model.language_model.layers.7.self_attn.o_proj k=6144 n=5120 K=3 (11.2 MiB, x6 target, x0 draft, floor 12.6 us)
+  m=  1  gemm    34.4 us  37% | mr    23.6 us  53% | dequant   175.1 us   7%
+  m=  2  gemm    34.3 us  37% | mr    23.7 us  53% | dequant   180.5 us   7%
+  m=  4  gemm    36.3 us  35% | mr    24.9 us  51% | dequant   180.9 us   7%
+  m=  6  gemm    37.0 us  34% | mr    25.0 us  50% | dequant   181.2 us   7%
+  m=  8  gemm    37.9 us  33% | mr    25.3 us  50% | dequant   181.6 us   7%
+  m= 12  gemm    40.9 us  31% | mr    31.9 us  39% | dequant   182.7 us   7%
+  m= 16  gemm    44.4 us  28% | mr    32.4 us  39% | dequant   183.1 us   7%
+  m= 17  gemm    76.9 us  16% | mr    35.6 us  35% | dequant   176.9 us   7%
+  m= 24  gemm    79.1 us  16% | mr    36.7 us  34% | dequant   177.9 us   7%
+  m= 32  gemm    88.8 us  14% | mr    37.4 us  34% | dequant   178.9 us   7%
+  m= 48  gemm   130.2 us  10% | mr    51.3 us  25% | dequant   187.3 us   7%
+  m= 64  gemm   171.6 us   7% | mr   148.3 us   8% | dequant   182.8 us   7%
+  m= 96  gemm   253.3 us   5% | mr   187.9 us   7% | dequant   216.4 us   6%
+  m=128  gemm   338.0 us   4% | mr   286.7 us   4% | dequant   217.8 us   6%
+  m=144  gemm   378.3 us   3% | mr   316.4 us   4% | dequant   309.4 us   4%
+  m=192  mr   415.4 us   3% | dequant   335.6 us   4%
+  m=256  mr   542.2 us   2% | dequant   383.7 us   3%
+  m=384  mr   758.4 us   2% | dequant   497.2 us   3%
+  m=512  mr  1018.5 us   1% | dequant   513.2 us   2%
+
+model.language_model.layers.0.linear_attn.out_proj k=6144 n=5120 K=4 (15.0 MiB, x58 target, x1 draft, floor 16.8 us)
+  m=  1  gemm    32.6 us  52% | mr    26.9 us  62% | dequant   179.2 us   9%
+  m=  2  gemm    32.8 us  51% | mr    27.2 us  62% | dequant   184.5 us   9%
+  m=  4  gemm    33.2 us  51% | mr    27.4 us  61% | dequant   185.8 us   9%
+  m=  6  gemm    34.5 us  49% | mr    27.8 us  61% | dequant   185.6 us   9%
+  m=  8  gemm    35.7 us  47% | mr    28.0 us  60% | dequant   185.7 us   9%
+  m= 12  gemm    39.0 us  43% | mr    30.8 us  54% | dequant   186.8 us   9%
+  m= 16  gemm    42.7 us  39% | mr    31.3 us  54% | dequant   187.1 us   9%
+  m= 17  gemm    73.2 us  23% | mr    32.7 us  51% | dequant   180.6 us   9%
+  m= 24  gemm    75.9 us  22% | mr    33.7 us  50% | dequant   181.7 us   9%
+  m= 32  gemm    86.3 us  19% | mr    34.5 us  49% | dequant   182.6 us   9%
+  m= 48  gemm   125.7 us  13% | mr    47.3 us  36% | dequant   192.3 us   9%
+  m= 64  gemm   166.5 us  10% | mr    99.7 us  17% | dequant   187.0 us   9%
+  m= 96  gemm   247.2 us   7% | mr   158.7 us  11% | dequant   221.7 us   8%
+  m=128  gemm   325.8 us   5% | mr   196.4 us   9% | dequant   230.5 us   7%
+  m=144  gemm   371.9 us   5% | mr   228.3 us   7% | dequant   329.6 us   5%
+  m=192  mr   289.8 us   6% | dequant   357.0 us   5%
+  m=256  mr   368.6 us   5% | dequant   407.6 us   4%
+  m=384  mr   504.2 us   3% | dequant   535.5 us   3%
+  m=512  mr   692.9 us   2% | dequant   547.6 us   3%
+
+mtp.fc k=10240 n=5120 K=4 (25.0 MiB, x0 target, x1 draft, floor 28.0 us)
+  m=  1  gemm    49.2 us  57% | mr    39.0 us  72% | dequant   291.6 us  10%
+  m=  2  gemm    49.8 us  56% | mr    39.4 us  71% | dequant   296.4 us   9%
+  m=  4  gemm    50.3 us  56% | mr    39.6 us  71% | dequant   296.6 us   9%
+  m=  6  gemm    50.9 us  55% | mr    39.7 us  71% | dequant   297.2 us   9%
+  m=  8  gemm    52.5 us  53% | mr    40.5 us  69% | dequant   298.2 us   9%
+  m= 12  gemm    56.8 us  49% | mr    43.8 us  64% | dequant   298.2 us   9%
+  m= 16  gemm    59.9 us  47% | mr    44.5 us  63% | dequant   299.2 us   9%
+  m= 17  gemm   108.3 us  26% | mr    46.4 us  60% | dequant   293.7 us  10%
+  m= 24  gemm   113.8 us  25% | mr    48.1 us  58% | dequant   295.0 us   9%
+  m= 32  gemm   121.6 us  23% | mr    49.2 us  57% | dequant   296.3 us   9%
+  m= 48  gemm   181.8 us  15% | mr    68.7 us  41% | dequant   310.9 us   9%
+  m= 64  gemm   239.1 us  12% | mr   154.5 us  18% | dequant   301.0 us   9%
+  m= 96  gemm   351.9 us   8% | mr   241.4 us  12% | dequant   365.0 us   8%
+  m=128  gemm   467.9 us   6% | mr   307.4 us   9% | dequant   375.7 us   7%
+  m=144  gemm   531.9 us   5% | mr   357.2 us   8% | dequant   520.8 us   5%
+  m=192  mr   471.5 us   6% | dequant   583.0 us   5%
+  m=256  mr   600.1 us   5% | dequant   651.4 us   4%
+  m=384  mr   808.8 us   3% | dequant   865.8 us   3%
+  m=512  mr  1117.4 us   3% | dequant   893.7 us   3%
+
+model.language_model.layers.0.mlp.down_proj k=17408 n=5120 K=3 (31.9 MiB, x19 target, x0 draft, floor 35.7 us)
+  m=  1  gemm    81.1 us  44% | mr    54.2 us  66% | dequant   490.5 us   7%
+  m=  2  gemm    83.1 us  43% | mr    56.1 us  64% | dequant   479.7 us   7%
+  m=  4  gemm    87.0 us  41% | mr    56.7 us  63% | dequant   479.6 us   7%
+  m=  6  gemm    89.6 us  40% | mr    57.0 us  63% | dequant   480.9 us   7%
+  m=  8  gemm    88.5 us  40% | mr    57.3 us  62% | dequant   481.0 us   7%
+  m= 12  gemm    90.4 us  39% | mr    72.5 us  49% | dequant   482.4 us   7%
+  m= 16  gemm    93.4 us  38% | mr    72.8 us  49% | dequant   483.1 us   7%
+  m= 17  gemm   176.3 us  20% | mr    84.4 us  42% | dequant   477.2 us   7%
+  m= 24  gemm   180.4 us  20% | mr    85.6 us  42% | dequant   478.2 us   7%
+  m= 32  gemm   186.8 us  19% | mr    85.4 us  42% | dequant   481.6 us   7%
+  m= 48  gemm   278.8 us  13% | mr   116.4 us  31% | dequant   504.8 us   7%
+  m= 64  gemm   372.0 us  10% | mr   437.7 us   8% | dequant   489.0 us   7%
+  m= 96  gemm   536.7 us   7% | mr   490.7 us   7% | dequant   590.7 us   6%
+  m=128  gemm   726.0 us   5% | mr   770.9 us   5% | dequant   593.0 us   6%
+  m=144  gemm   817.4 us   4% | mr   843.3 us   4% | dequant   786.4 us   5%
+  m=192  mr  1134.3 us   3% | dequant   910.7 us   4%
+  m=256  mr  1491.9 us   2% | dequant  1002.1 us   4%
+  m=384  mr  2085.9 us   2% | dequant  1346.3 us   3%
+  m=512  mr  2824.5 us   1% | dequant  1396.1 us   3%
+
+model.language_model.layers.2.mlp.down_proj k=17408 n=5120 K=4 (42.5 MiB, x45 target, x1 draft, floor 47.6 us)
+  m=  1  gemm    76.9 us  62% | mr    61.7 us  77% | dequant   505.0 us   9%
+  m=  2  gemm    78.6 us  61% | mr    62.1 us  77% | dequant   492.3 us  10%
+  m=  4  gemm    79.6 us  60% | mr    62.6 us  76% | dequant   492.7 us  10%
+  m=  6  gemm    81.3 us  59% | mr    63.2 us  75% | dequant   493.5 us  10%
+  m=  8  gemm    83.0 us  57% | mr    63.7 us  75% | dequant   493.0 us  10%
+  m= 12  gemm    88.2 us  54% | mr    66.2 us  72% | dequant   494.2 us  10%
+  m= 16  gemm    91.8 us  52% | mr    67.5 us  71% | dequant   495.7 us  10%
+  m= 17  gemm   168.3 us  28% | mr    78.7 us  61% | dequant   490.2 us  10%
+  m= 24  gemm   176.0 us  27% | mr    80.2 us  59% | dequant   491.2 us  10%
+  m= 32  gemm   181.0 us  26% | mr    79.5 us  60% | dequant   494.2 us  10%
+  m= 48  gemm   270.5 us  18% | mr   107.4 us  44% | dequant   520.9 us   9%
+  m= 64  gemm   359.9 us  13% | mr   270.8 us  18% | dequant   499.2 us  10%
+  m= 96  gemm   533.0 us   9% | mr   397.1 us  12% | dequant   616.8 us   8%
+  m=128  gemm   700.9 us   7% | mr   531.6 us   9% | dequant   633.7 us   8%
+  m=144  gemm   802.6 us   6% | mr   602.1 us   8% | dequant   844.5 us   6%
+  m=192  mr   776.6 us   6% | dequant   975.6 us   5%
+  m=256  mr  1011.2 us   5% | dequant  1072.8 us   4%
+  m=384  mr  1349.8 us   4% | dequant  1461.1 us   3%
+  m=512  mr  1852.1 us   3% | dequant  1496.1 us   3%
+
+model-level sum of per-shape GEMM time (Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6); target = main model + lm_head per verify pass, draft = mtp.* per draft step; floor = trellis bytes at 936 GB/s
+rows pass       MR=0     MR=1     MR=2    MR=2a     best   floor  best route mix
+   1 target   22.757   22.757   21.320   18.143   18.138  12.049  gemm:17,mr:384
+   1 draft     0.376    0.376    0.330    0.330    0.330   0.227  mr:8
+   2 target   23.164   23.164   21.541   18.335   18.335  12.049  gemm:4,mr:397
+   2 draft     0.387    0.387    0.333    0.333    0.333   0.227  mr:8
+   4 target   23.644   23.644   21.906   18.552   18.551  12.049  gemm:17,mr:384
+   4 draft     0.396    0.396    0.337    0.337    0.337   0.227  mr:8
+   6 target   24.193   24.193   22.241   18.736   18.731  12.049  gemm:17,mr:384
+   6 draft     0.406    0.406    0.339    0.339    0.339   0.227  mr:8
+   8 target   24.642   24.642   22.454   18.869   18.862  12.049  gemm:17,mr:384
+   8 draft     0.417    0.417    0.342    0.342    0.342   0.227  mr:8
+  12 target   25.807   25.807   23.593   21.685   21.685  12.049  gemm:4,mr:397
+  12 draft     0.448    0.448    0.367    0.367    0.367   0.227  mr:8
+  16 target   27.050   27.050   24.268   21.930   21.930  12.049  gemm:4,mr:397
+  16 draft     0.471    0.471    0.374    0.374    0.374   0.227  mr:8
+  17 target   49.407   38.202   25.289   25.289   25.289  12.049  gemm:4,mr:397
+  17 draft     0.854    0.854    0.415    0.415    0.415   0.227  mr:8
+  24 target   51.255   39.454   25.780   25.780   25.780  12.049  gemm:4,mr:397
+  24 draft     0.891    0.891    0.430    0.430    0.430   0.227  mr:8
+  32 target   53.461   41.277   26.433   26.433   26.433  12.049  gemm:4,mr:397
+  32 draft     0.930    0.930    0.434    0.434    0.434   0.227  mr:8
+  48 target   79.495   60.173   36.594   36.594   36.594  12.049  gemm:4,mr:397
+  48 draft     1.387    1.387    0.605    0.605    0.605   0.227  mr:8
+  64 target  105.666  111.363   97.437   97.437   90.132  12.049  dequant:32,gemm:140,mr:229
+  64 draft     1.829    1.829    1.344    1.344    1.344   0.227  dequant:2,mr:6
+  96 target  154.723  147.793  123.457  123.457  122.843  12.049  dequant:32,gemm:4,mr:365
+  96 draft     2.718    2.718    1.864    1.864    1.855   0.227  dequant:2,mr:6
+ 128 target  207.731  209.467  179.419  179.419  165.529  12.049  dequant:207,mr:194
+ 128 draft     3.625    3.625    2.514    2.514    2.514   0.227  mr:8
+ 144 target  234.136  234.156  201.326  201.326  193.253  12.049  dequant:92,gemm:86,mr:223
+ 144 draft     4.074    4.074    2.893    2.893    2.893   0.227  mr:8
+ 192 target  283.171  283.171  283.171  283.171  243.060  12.049  dequant:207,mr:194
+ 192 draft     4.866    4.866    4.866    4.866    3.574   0.227  dequant:2,mr:6
+ 256 target  301.393  301.393  301.393  301.393  285.400  12.049  dequant:226,mr:175
+ 256 draft     5.253    5.253    5.253    5.253    4.662   0.227  dequant:2,mr:6
+ 384 target  361.593  361.593  361.593  361.593  354.774  12.049  dequant:298,mr:103
+ 384 draft     6.396    6.396    6.396    6.396    6.197   0.227  dequant:5,mr:3
+ 512 target  429.279  429.279  429.279  429.279  429.279  12.049  dequant:401
+ 512 draft     7.406    7.406    7.406    7.406    7.406   0.227  dequant:8

@@ -1,0 +1,6 @@
+sglang-exl3 includes or derives from:
+- the author's earlier EXL3 kernel work: src/sglang_exl3/kernels/{base,reference}.py, runtime ops, and the format
+  reader now in ../core/src/trellis_core/format
+- ExLlamaV3 (MIT, Copyright (c) 2025 Turboderp): kernel calling conventions in kernels/reference.py; the extension
+  exllamav3_ext is built from the pinned upstream tag inside docker/Dockerfile.dev
+- vLLM Marlin kernels (Apache-2.0): the Marlin-template EXL3 kernels under csrc/

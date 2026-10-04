@@ -1,7 +1,7 @@
 #!/bin/bash
 # Speed bench: production's own bench script, unmodified, plus a salted prefill ladder.
 #
-#   GSQ_ALLOW_GPU=1 bench/speed/run.sh gsq|baseline [--start]
+#   GSQ_ALLOW_GPU=1 bench/speed/run.sh gsq|baseline|exl3 [--start]
 #
 # 1. Production's bench/run_benchmarks.sh (deploy repo, pinned by sha256 below) in
 #    `single` mode: real-prompt cohorts at concurrency 1, 2, 4, 8, default sampling and
@@ -16,17 +16,18 @@
 # 4. GPU SM/mem clock, power and utilization sampled every second per phase
 #    (clocks-<phase>.csv) and summarised over busy samples (clocksum.py).
 #
-# The server must mirror production (serve-gsq.sh / serve-baseline.sh: MTP k=3, fp8 KV).
+# The server must mirror production (serve-gsq.sh / serve-baseline.sh / serve-exl3.sh: MTP, fp8 KV).
 # --start launches that server here and stops it at the end; otherwise one must already
 # answer on GSQ_URL. Results: $GSQ_RUNS/<ts>-speed-<kind>/ (summary.txt = ROW lines).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../../scripts/env.sh"
-KIND=${1:?usage: run.sh gsq|baseline [--start]}; shift
+KIND=${1:?usage: run.sh gsq|baseline|exl3 [--start]}; shift
 START=0; [ "${1:-}" = --start ] && START=1
 case $KIND in
   gsq) TOKENIZER=$GSQ_HF_CONFIG ;;
   baseline) TOKENIZER=$GSQ_BASELINE_MODEL ;;
-  *) gsq_die "kind must be gsq or baseline" ;;
+  exl3) TOKENIZER=$GSQ_EXL3_MODEL ;;
+  *) gsq_die "kind must be gsq, baseline or exl3" ;;
 esac
 gsq_check_port
 gsq_require_gpu

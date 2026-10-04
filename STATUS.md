@@ -8,6 +8,14 @@ GSQ-RCO went live on production on 2026-10-01 (vLLM main, MTP k=5). The soak bel
 (k=3): 19.4 h clean, stopped early by decision; a full 24 h soak and a 12 h torture soak on vLLM main
 are still to run (requested workload 01; torture harness on branch `torture`).
 
+EXL3 (2026-10-04, branches `exl3-opt` -> `exl3` -> main; plan and history in `EXL3.md`, optimization log in `EXL3-OPT.md`):
+`plugin-exl3/` serves erlidev's Swift-1.5 EXL3 3.50 bpw on production's vLLM main argv with MTP, fp8 KV
+and graphs, on owned `exl3_gemm_mr` kernels at 1..384 rows (fp16-accumulate MMA folded every 4 k-stages
+at 9..48 rows), the token embedding in pinned host memory and the MTP draft head in fp8. Rented 350 W
+3090, fixed MTP k=3: 27.0 / 27.1 / 32.2 / 38.9 ms/step at c=1/2/4/8 (GGUF GSQ-RCO at k=3: 27.9 / 31.6 /
+35.7 / 44.2), 98 / 188 / 323 / 539 tok/s greedy, acceptance 0.51, prefill 1133 tok/s at 8k. Kernel errors
+stay within exllamav3's own exl3_gemm. Corruption at k=3: no early EOS or bad UTF-8, 2 foreign-script flags at T=1.0 (baseline queued). Open: the other erlidev tiers,
+single-stack switch test, 12 h soak.
 
 Production moved to vLLM main today (0.30.1rc1.dev285 + overlay 2a0fe5e1e1, k=5 MTP schedule, 16 seqs,
 capture 48; `env/prod-main-*`). The CPU-side preparation is done (`cloud/results/vllm-main-compat-cpu.md`).

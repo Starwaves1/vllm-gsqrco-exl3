@@ -1,0 +1,42 @@
+ok .gitattributes (1686 bytes, 66862bf80065dd1bcae9b6cc28390bf35ae11748)
+ok LICENSE (13306 bytes, 209a5720f7e4a747e658b49808a933309eeecceb)
+ok LICENSE-APACHE-2.0 (11544 bytes, f938136e3adacfd92be087f6e113b5d6d97f678f)
+ok NOTICE (1133 bytes, c4ad1a7188a4191cb5efd0f5109bf6e9ba8caee8)
+ok README.md (3267 bytes, 7ee8242135782788943f817e43adfbf8fd5b1074)
+ok chat_template.jinja (8952 bytes, c0c686f9c38d70d179fb7b5f5aa7530bc913dda3)
+ok config.json (4647 bytes, 0a3d0cc264018f752e35050e1200bef1fa9af8bf)
+ok generation_config.json (202 bytes, 023756cfadf88e5bf69eefeee3e172f38c448d64)
+ok merges.txt (3353259 bytes, a494e019ca1502219fd0128658b979e5f05ae8e8)
+ok model-00001-of-00002.safetensors (8504550116 bytes, sha256 60c6cb1acaa587658d2482867a716d7ed1d367562e838516c310172bae52b71b)
+ok model-00002-of-00002.safetensors (6166071016 bytes, sha256 8537385d3cdbd917006ec5b28e66c56033dd8cbbfec321aaefcdf6f22a0811bc)
+ok model.safetensors.index.json (295620 bytes, 7771d7f218776d266cfe2e99f1f30f503c3c6136)
+ok preprocessor_config.json (390 bytes, 2ea84a437d448ff71b08df68fdd949d5cc4ebb64)
+ok quantization_config.json (629067 bytes, 9ca2132fc327f87a1942ad7fac064357f90e529e)
+ok tokenizer.json (12809320 bytes, sha256 0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3)
+ok tokenizer_config.json (17928 bytes, 5de744b3fca2129d7186979ae47c06be33903243)
+ok video_preprocessor_config.json (385 bytes, 3ba673a5ad7d4d13f54155ecd38b2a94a6dac8fe)
+ok vocab.json (6722759 bytes, 0aa0ce0658d60ac4a5d609f4eadb0e8e43514176)
+erlidev/Swift-1.5-Qwen3.8-27B-EXL3 @ 041dc382133c0ac4a3fcf6c400d70fbea1584c51 -> /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+.gitattributes	1686	66862bf80065dd1bcae9b6cc28390bf35ae11748
+LICENSE	13306	209a5720f7e4a747e658b49808a933309eeecceb
+LICENSE-APACHE-2.0	11544	f938136e3adacfd92be087f6e113b5d6d97f678f
+NOTICE	1133	c4ad1a7188a4191cb5efd0f5109bf6e9ba8caee8
+README.md	3267	7ee8242135782788943f817e43adfbf8fd5b1074
+chat_template.jinja	8952	c0c686f9c38d70d179fb7b5f5aa7530bc913dda3
+config.json	4647	0a3d0cc264018f752e35050e1200bef1fa9af8bf
+generation_config.json	202	023756cfadf88e5bf69eefeee3e172f38c448d64
+merges.txt	3353259	a494e019ca1502219fd0128658b979e5f05ae8e8
+model-00001-of-00002.safetensors	8504550116	60c6cb1acaa587658d2482867a716d7ed1d367562e838516c310172bae52b71b
+model-00002-of-00002.safetensors	6166071016	8537385d3cdbd917006ec5b28e66c56033dd8cbbfec321aaefcdf6f22a0811bc
+model.safetensors.index.json	295620	7771d7f218776d266cfe2e99f1f30f503c3c6136
+preprocessor_config.json	390	2ea84a437d448ff71b08df68fdd949d5cc4ebb64
+quantization_config.json	629067	9ca2132fc327f87a1942ad7fac064357f90e529e
+tokenizer.json	12809320	0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3
+tokenizer_config.json	17928	5de744b3fca2129d7186979ae47c06be33903243
+video_preprocessor_config.json	385	3ba673a5ad7d4d13f54155ecd38b2a94a6dac8fe
+vocab.json	6722759	0aa0ce0658d60ac4a5d609f4eadb0e8e43514176
+total 14694494597 bytes
+[model] 121 s, /workspace free 20 GB
+prep: needs 15 GB + 15 GB margin, /workspace has 20 GB free
+[model] 0 s, /workspace free 20 GB
+NOTE: turboderp 3.50bpw (--alt) skipped: not enough disk

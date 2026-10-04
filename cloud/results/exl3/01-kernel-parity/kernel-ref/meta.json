@@ -1,0 +1,7 @@
+{
+ "exllamav3": "1.5.3",
+ "torch": "2.13.0+cu130",
+ "device": "NVIDIA GeForce RTX 3090",
+ "EXL3_INT8_GEMV": "0",
+ "tune_cache": "/workspace/runs/exl3/tune-cache"
+}

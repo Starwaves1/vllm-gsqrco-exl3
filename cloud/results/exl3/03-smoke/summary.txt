@@ -1,0 +1,28 @@
+03-smoke 2026-10-01T05:57:21Z
+healthy after 246 s
+(APIServer pid=1285108) INFO 10-01 05:53:16 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+(APIServer pid=1285108) INFO 10-01 05:53:16 [api_utils.py:286] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', 'chat_template': '/workspace/wt-exl3/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_template
+(APIServer pid=1285108) WARNING 10-01 05:53:17 [vllm.py:1074] Dynamic speculative decoding changes the target verification length at runtime. Overriding cudagraph_mode from FULL_AND_PIECEWISE to PIECEWISE for reliability. Use VLLM_USE_V2_MODEL_RUNNER=1 if you 
+(EngineCore pid=1285502) INFO 10-01 05:53:33 [core.py:129] Initializing a V1 LLM engine (v0.30.1rc1.dev285+gd28795f1a) with config: model='/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', speculative_config=SpeculativeConfig(method='mtp', model=
+(EngineCore pid=1285502) INFO 10-01 05:53:41 [gpu_model_runner.py:5305] Starting to load model /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6...
+(EngineCore pid=1285502) INFO 10-01 05:53:45 [default_loader.py:484] Loading weights took 3.02 seconds
+(EngineCore pid=1285502) INFO 10-01 05:53:45 [qwen3_5_mtp.py:110] MTP drafter uses a 40960-token draft head
+(EngineCore pid=1285502) INFO 10-01 05:53:46 [default_loader.py:484] Loading weights took 0.77 seconds
+(EngineCore pid=1285502) INFO 10-01 05:53:46 [gpu_model_runner.py:5404] Model loading took 13.94 GiB memory and 5.004536 seconds
+(EngineCore pid=1285502) INFO 10-01 05:56:15 [gpu_model_runner.py:6689] Profiling CUDA graph memory: PIECEWISE=9 (largest=48)
+(EngineCore pid=1285502) INFO 10-01 05:56:17 [gpu_model_runner.py:6794] Estimated CUDA graph memory: 0.17 GiB total
+(EngineCore pid=1285502) INFO 10-01 05:56:17 [gpu_worker.py:692] Available KV cache memory: 7.09 GiB
+(EngineCore pid=1285502) INFO 10-01 05:56:17 [gpu_worker.py:707] CUDA graph memory profiling is enabled (default since v0.21.0). The current --gpu-memory-utilization=0.9400 is equivalent to --gpu-memory-utilization=0.9329 without CUDA graph memory profiling. T
+(EngineCore pid=1285502) INFO 10-01 05:56:17 [kv_cache_utils.py:2408] GPU KV cache size: 199,716 tokens, Maximum concurrency for 196,608 tokens per request: 1.02x
+(EngineCore pid=1285502) INFO 10-01 05:57:00 [gpu_model_runner.py:6855] Rank 0: Torch profiler disabled for CUDA graph capture
+
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/9 [00:00<?, ?it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  11%|█         | 1/9 [00:00<00:01,  6.74it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  2
+(EngineCore pid=1285502) INFO 10-01 05:57:03 [gpu_worker.py:887] CUDA graph pool memory: 0.14 GiB (actual), 0.17 GiB (estimated), difference: 0.03 GiB (17.8%).
+(EngineCore pid=1285502) INFO 10-01 05:57:05 [core.py:373] init engine (profile, create kv cache, warmup model) took 198.57 s (compilation: 74.11 s)
+(EngineCore pid=1285502) INFO 10-01 05:57:09 [manager.py:430] fs KV tier 'fs' bounded to 10.0 GB at /workspace/kvtier-exl3/_workspace_models_Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6_48d54d09eb52_r0: 0 block files (0.0 GB) indexed at startup
+VRAM after load: 22457 MiB, 24576 MiB
+draft head rows: 40960 (want 40960)
+smoke: SMOKE_OK
+MTP drafts 93 (the job's awk also summed the _created gauge, fixed in 03-smoke.sh), 465 draft tokens, 252 accepted: acceptance 0.542, 3.71 tokens/step, per position 0.85 0.62 0.49 0.41 0.33 (metrics.prom)

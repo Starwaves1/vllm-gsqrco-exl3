@@ -1,0 +1,34 @@
+=== serve-exl3: argv vs production (/workspace/runs/exl3-opt-h16x-f4m14/prod-argv-k3.txt); '<' production, '>' this launch
+1,2c1,2
+< /home/garrett/qwen38-27b-rtx3090/venv-main/bin/python
+< /home/garrett/qwen38-27b-rtx3090/venv/bin/vllm
+---
+> /workspace/venv-main/bin/python
+> /workspace/venv-main/bin/vllm
+4c4
+< /home/garrett/qwen38-27b-rtx3090/models/Qwen3.8-27B-TT709-W4A16-AutoRound-fast
+---
+> /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+8c8
+< 0.0.0.0
+---
+> 127.0.0.1
+10c10
+< 18081
+---
+> 18090
+14c14
+< 200000
+---
+> 196608
+41c41
+< /home/garrett/models/qwen-sharp/chat_template.jinja
+---
+> /workspace/wt-exl3-h16x-f4m14/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_template.jinja
+44c44
+< {"kv_connector":"OffloadingConnector","kv_role":"kv_both","kv_load_failure_policy":"recompute","kv_connector_extra_config":{"spec_name":"TieringOffloadingSpec","cpu_bytes_to_use":25769803776,"sync_load":true,"secondary_tiers":[{"type":"fs","root_dir":"/mnt/kvcache/tier","max_bytes":300000000000,"n_read_threads":8,"n_write_threads":4,"store_policy":"write_back","writeback_high_watermark":0.85,"writeback_low_watermark":0.5,"max_inflight_store_bytes":5000000000,"breaker_consecutive_failures":8,"breaker_probe_interval_s":300,"breaker_probe_timeout_s":30,"breaker_stall_s":600}]}}
+---
+> {"kv_connector":"OffloadingConnector","kv_role":"kv_both","kv_load_failure_policy":"recompute","kv_connector_extra_config":{"spec_name":"TieringOffloadingSpec","cpu_bytes_to_use":13958643712,"sync_load":true,"secondary_tiers":[{"type":"fs","root_dir":"/workspace/kvtier-exl3-opt","max_bytes":10000000000,"n_read_threads":8,"n_write_threads":4,"store_policy":"write_back","writeback_high_watermark":0.85,"writeback_low_watermark":0.5,"max_inflight_store_bytes":5000000000,"breaker_consecutive_failures":8,"breaker_probe_interval_s":300,"breaker_probe_timeout_s":30,"breaker_stall_s":600}]}}
+=== env: VLLM_PLUGINS=lora_filesystem_resolver,lora_hf_hub_resolver,gguf,exl3 (production: unset = all installed; production's venv has no gguf)
+=== env: VLLM_API_KEY=<local test key>, PYTHONHASHSEED=0, VLLM_USE_FLASHINFER_SAMPLER=0, PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+dry run: not launching
