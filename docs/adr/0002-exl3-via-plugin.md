@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Serve EXL3 through a second plugin package with vendored exllamav3 kernels
 
-DRAFT for Garrett's review. Evidence is in `docs/exl3-feasibility.md`.
+Accepted 2026-10-04 after GPU phases 1-3 (`cloud/results/exl3/REPORT.md`). Evidence for the choice:
+`docs/exl3-feasibility.md`. What changed from the proposal is under "Outcome".
 
 We want EXL3 (exllamav3's trellis format) on the production vLLM with everything Route L keeps working:
 MTP, CUDA graphs, fp8 KV, prefix caching, KV offload and priority scheduling. vLLM must stay the server
@@ -51,7 +52,22 @@ carries the MTP layer at 4 bits.
   judged on ms/step.
 - Estimated effort: 9-13 engineer days and 17-29 GPU-h, plus a 24 h soak.
 
-## Open questions for Garrett
+## Outcome (2026-10-04)
+
+- Checkpoint: erlidev's Swift-1.5 EXL3 quant (`SC_3.50bpw_H4_V6`), so Swift's MTP layer and acceptance
+  come with it; no own quantization was needed. turboderp's base 3.50bpw stays the A/B reference.
+- Routing: every K3/K4/K5 linear runs on `exl3_gemm_mr` from 1 to 384 rows (trellis-serve's Marlin-EXL3,
+  vendored as the second source, plus the owned `exl3_marlin_h16.patch`: fp16 accumulation at 9..48
+  rows); vendored `exl3_gemm` keeps K2, and above 384 rows the dequant + fp16 GEMM route. Parity is
+  judged against exllamav3's own `exl3_gemm` error rather than bit-exact decode, which a different
+  accumulation order cannot give; dequant stays bit-exact.
+- The token embedding is page-locked in host memory by default (`EXL3_EMBED_HOST=1`, 2.37 GiB of VRAM;
+  no ms/step change measured); that is what makes 200,000 tokens fit. The MTP draft head runs in fp8
+  (`EXL3_DRAFT_FP8=1`).
+- Still open: the 12 h soak and the other tiers (REPORT section 6); MTP must run at a fixed k on the
+  current overlay (#50021's conv1d bound corrupts output when the schedule lowers k, for GSQ as well).
+
+## Questions that were open for Garrett (answered by the outcome above)
 
 - Serve turboderp's 3.50bpw (Qwen3.8 base, 13.4 GiB with bf16 embed on GPU) or quantize Swift ourselves
   (about 2-6 GPU-h) to keep Swift's MTP acceptance?

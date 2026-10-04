@@ -398,4 +398,4 @@ Not built: fold 2, which may take part of the remaining 0.2-1.4 ms while staying
   A new kernel structure (transposed m8 MMA) would only help at 17-24 rows, which at k=3 are c=5/6.
 - **Task 3:** `box-scripts/21-tier.sh` is untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then
   4.00/4.50, one at a time (12.2/15.3/16.7 GiB). It needs a box worktree at this commit or later.
-- **Task 4:** gpuq is in `cloud/box/gpuq` (a95d257). Merge, ADR and REPORT not started. **Tasks 5-6:** not started.
+- **Task 4:** `cloud/results/exl3/REPORT.md` (with the DoD checklist), ADR 0002 accepted, README's EXL3 section; merged exl3-opt -> exl3 -> main. REPORT section 6 lists what the queued jobs still have to fill in (tiers, switch, soak, corruption baseline, concat probe).

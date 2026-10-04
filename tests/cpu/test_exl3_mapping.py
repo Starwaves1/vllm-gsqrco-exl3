@@ -15,6 +15,7 @@ turboderp/Qwen3.8-27B-exl3@3.50bpw (the A/B):
 """
 
 import collections
+import glob
 import json
 import os
 import re
@@ -136,12 +137,16 @@ def test_quantization_config_json_matches_headers():
             assert tuple(st["shape"]) == t[name][1], name
 
 
+# an unbuilt checkout takes phase 1's routing: EXL3_MR=2 (the default) refuses to load without _C_exl3_mr
+_MR_UNBUILT = {} if glob.glob(os.path.join(ROOT, "plugin-exl3/vllm_exl3_plugin/_C_exl3_mr*.so")) else {"EXL3_MR": "0"}
+
+
 @pytest.mark.parametrize("args,vision", [([], 987), (["--alt"], 333)], ids=["swift", "turboderp"])
 def test_meta_dry_run(args, vision):
     p = subprocess.run(
         [sys.executable, os.path.join(ROOT, "tools/exl3_meta_dry_run.py"), *args],
         capture_output=True, text=True, timeout=600,
-        env=dict(os.environ, CUDA_VISIBLE_DEVICES=""))
+        env=dict(os.environ, CUDA_VISIBLE_DEVICES="", **_MR_UNBUILT))
     lines = [ln for ln in p.stdout.splitlines() if ln.startswith(("[main]", "[mtp]", "checkpoint", "DRY RUN"))]
     assert p.returncode == 0 and "DRY RUN PASS" in p.stdout, "\n".join(lines) + p.stderr[-3000:]
     assert f"vision skipped {vision} of {vision}; unmapped 0 []" in lines[2]
