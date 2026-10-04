@@ -377,14 +377,23 @@ Not built: fold 2, which may take part of the remaining 0.2-1.4 ms while staying
 - **f4m14** at c=8 (32 verify rows): -3.2 ms/step, +10 % tok/s; c=4 (16 rows) -0.6; c=1/2 run on
   the unchanged 8-row kernels (+0.2/+0.1 = drift between runs; no same-job A/A was run). EXL3 is now below GGUF's k=3 ms/step at
   every c.
-- **Corruption (k=3, ref + hi at c=8/9/12/16, f4m14 2hf):** see below. Coverage gap: at k=3 these are
-  32-64 verify rows; the newly enabled 9-16-row verify kernels (c=3/4) run only in `asis` (c=1/2/4/8),
-  queued separately.
+- **Corruption (k=3, ref + hi at c=8/9/12/16, f4m14 2hf, 608 requests;
+  `cloud/results/exl3-opt-h16x/f4m14/20-corruption-k3/`):** 0 early EOS, 0 bad UTF-8, 0 errors; 2
+  "foreign" flags, both at T=1.0 (c=12: "the most直观 "demo" trick", 直观 = intuitive, a coherent
+  code-switch; c=16: Cyrillic "бор" inside an invented Danish place name "Niборghaven"); 13 repeat-only
+  flags (detector false positives, as in every earlier config including spec off). 0 at T=0. Job 20's c=9
+  corruption under the schedule looked different: digits and words broken by inserted Han characters
+  (`255, 100)噸00)`, `(CP)峋istency`) and 17 early EOS. Not attributable from two events, and there is no
+  T=1.0 baseline yet (asis/asyncon/nospec run T=0/0.7): queued `hinospec` (hi's load without MTP).
+  Coverage gap: at k=3 these are 32-64 verify rows; the 9-16-row verify kernels (c=3/4) run in `asis`
+  (c=1/2/4/8), queued with it.
 
 ## Where I stopped
 
-- Checkpoint 1 in progress: corruption job running on the box (`exl3m-20-corruption-k3` id
-  1791082620193704, which runs `/workspace/jobs-exl3m/c1-f4m14.sh`).
+- Box queue (FIFO, behind GSQ round 3's 12 h torture soak and r3-63/64), all on `/workspace/wt-exl3-c1`
+  (this branch, built with the patch defaults): `exl3c1-c1b` (mr parity, corruption `ref asis hinospec`,
+  concat probe 2hfc, 15-min soak smoke), `exl3c1-tiers` (task 3), `exl3c1-switch` (task 5),
+  `exl3-soak-12h` (task 6). Scripts in `/workspace/jobs-exl3m/`.
 - **Task 2** (owned 17-48-row kernel): the fold/mask knobs are that lever and are now taken (f4m14).
   A new kernel structure (transposed m8 MMA) would only help at 17-24 rows, which at k=3 are c=5/6.
 - **Task 3:** `box-scripts/21-tier.sh` is untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then

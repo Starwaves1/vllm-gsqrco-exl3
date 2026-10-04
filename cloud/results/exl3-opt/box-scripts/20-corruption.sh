@@ -4,7 +4,7 @@
 # reasoning on, streaming, token ids; c=1/2/4/8 x T=0 and T=0.7 = 304 requests per config).
 # Configs: ref = --enforce-eager (T=0 only, c=8; the reference for token ids and per-prompt
 # baselines), asis = production's argv (which has --no-async-scheduling), asyncon = + --async-scheduling
-# (vLLM main's default), nospec = without --speculative-config, hi = production's argv as-is at
+# (vLLM main's default), nospec = without --speculative-config (hinospec: hi's load), hi = production's argv as-is at
 # c=8 (control) and c=9/12/16 (under the schedule its k=2 tier; at lib.sh's fixed k=3, 36-64 verify rows),
 # T=0 and T=1.0 / top_k 20 / top_p 0.95, streamed and non-streamed (608 requests). Configs: the job's
 # arguments (default "ref hi asis asyncon nospec"). Corruption rates per config and concurrency in
@@ -27,6 +27,7 @@ for cfg in "${modes[@]}"; do
     hi) runargs=(--conc 8,9,12,16 --temps 0,1.0 --top-k 20 --top-p 0.95 --stream both) ;;
     asyncon) extra=(--async-scheduling) ;;
     nospec) export GSQ_NO_MTP=1 ;;
+    hinospec) export GSQ_NO_MTP=1; runargs=(--conc 8,9,12,16 --temps 0,1.0 --top-k 20 --top-p 0.95 --stream both) ;;  # hi's T=1.0 baseline without MTP
     *) echo "unknown config $cfg"; rc=1; continue ;;
   esac
   if serve_mr "${EXL3_CORR_MODE:-2h}" "$D" "${extra[@]}"; then
@@ -39,7 +40,7 @@ for cfg in "${modes[@]}"; do
   gzip -kf "$D/server.log"
   keep "$D" "20-corruption$KS/$cfg" "$D/run.log" "$D/load.txt" "$D/argv.txt" "$D/server.log.gz"
 done
-runs=(); for cfg in hi asis asyncon nospec; do [ -s "$O/$cfg.jsonl" ] && runs+=("$O/$cfg.jsonl"); done
+runs=(); for cfg in hi asis asyncon nospec hinospec; do [ -s "$O/$cfg.jsonl" ] && runs+=("$O/$cfg.jsonl"); done
 [ -s "$O/ref.jsonl" ] && [ ${#runs[@]} -gt 0 ] && "$GSQ_VENV/bin/python" bench/corruption_check.py compare \
   --ref "$O/ref.jsonl" "${runs[@]}" | tee "$O/summary.txt"
 gzip -kf "$O"/*.jsonl
