@@ -137,6 +137,12 @@ bootstrap() {
   export PATH=$CUDA_HOME/bin:$VENV/bin:$PATH TORCH_CUDA_ARCH_LIST=$CAP MAX_JOBS=${MAX_JOBS:-4}
   command -v g++-13 >/dev/null && export CC=gcc-13 CXX=g++-13 NVCC_CCBIN=g++-13
   pyjson "$B" toolchain "$(jstr "$("$CUDA_HOME/bin/nvcc" --version | tail -1); host $(${CXX:-g++} --version | head -1)")"
+  # a host compiler newer than this nvcc supports (e.g. GCC 15 with CUDA 13.0): build anyway, and say so
+  printf 'int main() { return 0; }\n' > "$WORK/probe.cu"
+  if "$CUDA_HOME/bin/nvcc" -c "$WORK/probe.cu" -o "$WORK/probe.o" 2>&1 | grep -q 'unsupported GNU version'; then
+    export NVCC_APPEND_FLAGS="${NVCC_APPEND_FLAGS:+$NVCC_APPEND_FLAGS }-allow-unsupported-compiler"
+    pyjson "$B" toolchain_note '"host compiler newer than nvcc supports: built with -allow-unsupported-compiler"'
+  fi
   build() {  # build KEY PKG ENV...: editable install; record ok / failed with the log's last error
     local key=$1 pkg=$2; shift 2
     local L=$WORK/build-$key.log
