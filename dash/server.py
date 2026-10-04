@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Serve the dashboard pages and a small JSON API from DATA (written by collect.py, post and the PR page)."""
+"""Serve the dashboard pages and a small JSON API from DATA (written by collect.py, post and the PR page)
+and from this clone's fetched refs (PR reports, validation-kit results)."""
 import json, os, re, socket, subprocess, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -9,6 +10,8 @@ DATA = os.environ.get("DASH_DATA") or os.path.expanduser("~/tools/dashboard-data
 REPO = os.path.dirname(HERE)  # this clone; collect.py fetches it every 5 min
 REPORT_REFS = ("origin/upstream-prs", "origin/main")  # first ref that has docs/upstream/prs/index.json wins
 REPORTS_DIR = os.environ.get("DASH_REPORTS_DIR")  # read reports from a plain directory instead (fixtures)
+KIT_REFS = ("origin/validation-kit", "origin/main")  # kit/results/<host>-<gpu>-<date>/{results.json,summary.md}
+CCS = ("7.5", "8.6", "8.9", "12.0")  # compute capabilities the coverage strip always shows
 GITHUB = "https://github.com/Starwaves1/vllm-gsqrco-exl3"
 DECISIONS = ("none", "approved", "rejected", "changes-requested")
 SLUG = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
@@ -86,6 +89,11 @@ def api_posts(q):
 
 # ---- upstream PRs: reports (read-only, from the fetched refs of this clone) + decisions (DATA/prs.json) ----
 
+def git(*args):
+    r = subprocess.run(["git", "-C", REPO, *args], capture_output=True, timeout=10)
+    return r.stdout.decode("utf-8", "replace") if r.returncode == 0 else None
+
+
 def report_file(rel):
     """Text of docs/upstream/prs/<rel> and the ref it came from, or (None, None)."""
     if REPORTS_DIR:
@@ -94,9 +102,9 @@ def report_file(rel):
         except OSError:
             return None, None
     for ref in REPORT_REFS:
-        r = subprocess.run(["git", "-C", REPO, "show", f"{ref}:docs/upstream/prs/{rel}"], capture_output=True, timeout=10)
-        if r.returncode == 0:
-            return r.stdout.decode("utf-8", "replace"), ref
+        text = git("show", f"{ref}:docs/upstream/prs/{rel}")
+        if text is not None:
+            return text, ref
     return None, None
 
 
@@ -106,8 +114,7 @@ def compare_url(p):
         return None
     base = p.get("base")
     if not base and not REPORTS_DIR:  # fork point with main; stacked PRs should set "base" in index.json
-        r = subprocess.run(["git", "-C", REPO, "merge-base", "origin/main", "origin/" + branch], capture_output=True, text=True, timeout=10)
-        base = r.stdout.strip()[:12] or None
+        base = (git("merge-base", "origin/main", "origin/" + branch) or "").strip()[:12] or None
     return f"{GITHUB}/compare/{base}...{branch}" if base else f"{GITHUB}/tree/{branch}"
 
 
@@ -175,9 +182,63 @@ def record(slug, body):
     return d
 
 
+# ---- cards: machines and owners (DATA/boxes.json), live nvidia-smi (DATA/cards.json), kit results (git) ----
+
+def kit_results():
+    """[(dir name, results.json)] from the first kit ref that has any, and that ref."""
+    for ref in KIT_REFS:
+        paths = [p for p in (git("ls-tree", "-r", "--name-only", ref, "kit/results") or "").splitlines()
+                 if p.count("/") == 3 and p.endswith("/results.json")]
+        out = []
+        for p in paths:
+            try:
+                r = json.loads(git("show", f"{ref}:{p}") or "")
+            except ValueError:
+                continue
+            if isinstance(r, dict):
+                out.append((p.split("/")[2], r))
+        if out:
+            return sorted(out, key=lambda x: x[0]), ref
+    return [], None
+
+
+def tiers(r):
+    """{"1": "pass", ...} from results.json "tiers" (values: a status string or {"status": ...})."""
+    t = r.get("tiers") if isinstance(r.get("tiers"), dict) else {}
+    return {str(k): v.get("status") if isinstance(v, dict) else v for k, v in t.items()}
+
+
+def api_cards(q):
+    boxes, live = load("boxes.json", {}).get("boxes", []), load("cards.json", {})
+    results, ref = kit_results()
+    kit_cc, out = {}, []
+    for b in boxes:
+        lv, meta = live.get(b["id"], {}), b.get("cards", {})
+        gpus = {g["index"]: g for g in lv.get("gpus", [])}
+        cards = []
+        for i in sorted(gpus.keys() | {int(k) for k in meta}):
+            c = {**gpus.get(i, {"index": i}), **meta.get(str(i), {}), "latest": None}
+            mine = [(d, r) for d, r in results if c.get("kit") and d.startswith(c["kit"] + "-")]
+            if c.get("kit"):
+                kit_cc[c["kit"]] = c.get("cc")
+            if mine:
+                d, r = mine[-1]  # dir names end in the date, so the last one is the latest
+                c["latest"] = {"dir": d, "date": r.get("date") or d[len(c["kit"]) + 1:], "tiers": tiers(r),
+                               "summary_url": f"{GITHUB}/blob/{ref.split('/', 1)[1]}/kit/results/{d}/summary.md"}
+            cards.append(c)
+        out.append({"id": b["id"], "name": b.get("name"), "owner": b.get("owner"), "note": b.get("note"),
+                    "online": lv.get("online"), "ts": lv.get("ts"), "error": lv.get("error"), "cards": cards})
+    # coverage: per compute capability, the newest status of each tier (dir names end in YYYY-MM-DD)
+    coverage = {cc: {} for cc in CCS}
+    for d, r in sorted(results, key=lambda x: x[1].get("date") or x[0][-10:]):
+        cc = str(r.get("cc") or next((v for k, v in kit_cc.items() if d.startswith(k + "-")), "") or "?")
+        coverage.setdefault(cc, {}).update(tiers(r))
+    return {"source": ref, "results": len(results), "boxes": out, "coverage": coverage}
+
+
 ROUTES = {"/api/now": api_now, "/api/history": api_history, "/api/queue": api_queue, "/api/posts": api_posts,
-          "/api/prs": api_prs}
-PAGES = {"/": "index.html", "/index.html": "index.html", "/prs": "prs.html"}
+          "/api/prs": api_prs, "/api/cards": api_cards}
+PAGES = {"/": "index.html", "/index.html": "index.html", "/prs": "prs.html", "/cards": "cards.html"}
 
 
 class H(BaseHTTPRequestHandler):

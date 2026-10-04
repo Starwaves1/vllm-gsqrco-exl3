@@ -6,6 +6,8 @@ import json, os, subprocess, time
 DATA = os.environ.get("DASH_DATA") or os.path.expanduser("~/tools/dashboard-data")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FETCH_EVERY = 300
+CARD_Q = "index,name,compute_cap,memory.used,memory.total,utilization.gpu,power.draw,power.limit,power.default_limit,temperature.gpu"
+CARD_KEYS = ("index", "name", "cc", "mem_used", "mem_total", "util", "power", "power_limit", "power_default", "temp")
 Q = "/workspace/gpuq"
 REMOTE = f"""
 echo @@dash:gpu; nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,memory.total,power.draw,power.limit,clocks.sm,clocks.mem,temperature.gpu --format=csv,noheader,nounits
@@ -84,6 +86,36 @@ def poll():
     return sample, running, queued, status, logs, gpuq
 
 
+def poll_cards():
+    """nvidia-smi on every machine in DATA/boxes.json -> DATA/cards.json (last good data kept when one is down)."""
+    try:
+        boxes = json.load(open(os.path.join(DATA, "boxes.json"))).get("boxes", [])
+    except (OSError, ValueError):
+        return
+    path = os.path.join(DATA, "cards.json")
+    try:
+        cards = json.load(open(path))
+    except (OSError, ValueError):
+        cards = {}
+    for b in boxes:
+        try:
+            cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", *b["ssh"].split(),
+                   f"nvidia-smi --query-gpu={CARD_Q} --format=csv,noheader,nounits"]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            rows = [[x.strip() for x in l.split(",")] for l in r.stdout.splitlines() if l.count(",") == len(CARD_KEYS) - 1]
+            if not rows:
+                raise RuntimeError((r.stderr.strip() or "no output")[-300:])
+            gpus = [{k: v if k in ("name", "cc") else num(v) for k, v in zip(CARD_KEYS, row)} for row in rows]
+            for g in gpus:
+                g["index"] = int(g["index"])
+            cards[b["id"]] = {"online": True, "ts": round(time.time()), "gpus": gpus}
+        except Exception as e:  # ssh down, timeout, odd output: keep the last good data, mark offline
+            cards[b["id"]] = {**cards.get(b["id"], {}), "online": False, "error": str(e)[-300:]}
+    with open(path + ".tmp", "w") as f:
+        json.dump(cards, f)
+    os.replace(path + ".tmp", path)
+
+
 def fetch_repo():
     r = subprocess.run(["git", "-C", REPO, "fetch", "-q", "--prune", "origin"], capture_output=True, text=True, timeout=120)
     if r.returncode:
@@ -130,6 +162,7 @@ def main():
             with open(path + ".tmp", "w") as f:
                 json.dump(obj, f)
             os.replace(path + ".tmp", path)
+        poll_cards()
         time.sleep(max(1, 60 - (time.time() - t0)))
 
 

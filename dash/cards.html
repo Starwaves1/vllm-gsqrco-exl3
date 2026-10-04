@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPU cards</title>
+<style>
+:root{color-scheme:light;--page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--border:rgba(11,11,11,.10);--series:#2a78d6;
+ --good:#0ca30c;--warning:#fab219;--critical:#d03b3b}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--page:#0d0d0d;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--grid:#2c2c2a;--border:rgba(255,255,255,.10);--series:#3987e5}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px 20px 40px;background:var(--page);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:28px 0 10px;color:var(--ink2);font-weight:600}
+header{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline}
+a{color:var(--series);text-decoration:none}a:hover{text-decoration:underline}
+.muted{color:var(--muted)}.ink2{color:var(--ink2)}
+.pill{display:inline-flex;gap:6px;align-items:center;font-weight:600;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:5px 12px 5px 0;border-bottom:1px solid var(--grid);vertical-align:top}
+th{color:var(--ink2);font-weight:600;font-size:12px;white-space:nowrap}
+tr.box td{padding-top:16px;border-bottom:1px solid var(--border);background:var(--page)}
+tr.box b{font-size:15px}
+td.note{color:var(--ink2);font-size:12.5px;max-width:420px}
+.warn{color:#b07800;font-weight:600}
+@media (prefers-color-scheme:dark){.warn{color:var(--warning)}}
+.t{display:inline-block;font-size:11px;font-weight:600;border-radius:4px;padding:0 5px;margin-right:4px;border:1px solid var(--border);color:var(--muted)}
+.t.pass{color:var(--good);border-color:var(--good)}.t.fail{color:var(--critical);border-color:var(--critical)}.t.partial{color:#b07800;border-color:var(--warning)}
+.cov{display:grid;grid-auto-flow:column;gap:8px;justify-content:start}
+.cov .c{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:120px}
+.cov .cc{font-weight:700;font-size:16px;margin-bottom:4px}
+</style></head><body>
+<header><h1>GPU cards</h1><a href="/">box dashboard</a><a href="/prs">upstream PRs</a><span id="src" class="muted"></span></header>
+
+<h2>Validation-kit coverage <span class="muted" style="font-weight:400">(newest result per tier and compute capability)</span></h2>
+<div id="cov" class="cov"></div>
+
+<h2>Cards</h2>
+<div id="cards"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function el(tag, props, ...kids) {  // untrusted text only ever goes through textContent
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) k === 'style' ? e.style.cssText = v : e[k] = v;
+  for (const c of kids) if (c != null) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const fmtT = s => s ? new Date(s * 1000).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-';
+const status = (label, color) => el('span', {className: 'pill'}, el('span', {className: 'dot', style: `background:var(${color})`}), label);
+const TIERS = ['1', '2', '3'];
+const tier = (t, st) => el('span', {className: 't ' + (st || ''), title: st || 'no result'}, `T${t} ${st || '-'}`);
+const num = (v, d = 0) => v == null ? '-' : (+v).toFixed(d);
+
+async function load() {
+  const d = await (await fetch('/api/cards', {cache: 'no-store'})).json();
+  $('src').textContent = d.source ? `${d.results} kit results from ${d.source}` : 'no kit results yet';
+  $('cov').replaceChildren(...Object.entries(d.coverage).map(([cc, t]) => el('div', {className: 'c'},
+    el('div', {className: 'cc'}, 'sm ' + cc), ...TIERS.map(n => tier(n, t[n])))));
+  if (!d.boxes.length) return $('cards').replaceChildren(el('span', {className: 'muted'}, 'No machines in boxes.json.'));
+  const rows = [el('tr', {}, ...['#', 'card', 'CC', 'VRAM used', 'util', 'power (limit / default)', 'temp', 'note', 'latest kit result'].map(h => el('th', {}, h)))];
+  for (const b of d.boxes) {
+    rows.push(el('tr', {className: 'box'}, el('td', {colSpan: 9},
+      el('b', {}, b.name || b.id), '  ', b.online ? status('online', '--good') : status(b.online === false ? 'offline' : 'not polled yet', '--critical'),
+      el('span', {className: 'muted'}, `  ${b.ts ? 'polled ' + fmtT(b.ts) : ''}${b.online === false && b.error ? ' · ' + b.error : ''}`),
+      el('div', {className: 'ink2', style: 'margin-top:3px'}, el('b', {style: 'font-size:13px'}, 'Owner: '), b.owner || '-'),
+      b.note ? el('div', {className: 'muted', style: 'font-size:12.5px'}, b.note) : null)));
+    for (const c of b.cards) {
+      const capped = c.power_limit != null && c.power_default != null && c.power_limit < c.power_default;
+      const k = c.latest;
+      rows.push(el('tr', {},
+        el('td', {}, c.index), el('td', {}, el('b', {}, (c.name || '?').replace(/^NVIDIA (GeForce )?/, ''))),
+        el('td', {}, c.cc || '-'),
+        el('td', {}, c.mem_total != null ? `${(c.mem_used / 1024).toFixed(1)} / ${(c.mem_total / 1024).toFixed(1)} GB` : '-'),
+        el('td', {}, c.util != null ? `${c.util}%` : '-'),
+        el('td', {}, `${num(c.power)} W `, el('span', {className: capped ? 'warn' : 'muted'}, `(${num(c.power_limit)} / ${num(c.power_default)} W)`)),
+        el('td', {}, c.temp != null ? `${c.temp} °C` : '-'),
+        el('td', {className: 'note'}, c.note || ''),
+        el('td', {}, k ? el('span', {}, el('div', {}, ...TIERS.map(n => tier(n, k.tiers[n]))),
+          el('div', {className: 'muted', style: 'font-size:12px;margin-top:2px'}, `${k.date} · `, el('a', {href: k.summary_url, target: '_blank', rel: 'noopener'}, 'summary')))
+          : el('span', {className: 'muted'}, 'no results yet'))));
+    }
+  }
+  $('cards').replaceChildren(el('table', {}, ...rows));
+}
+load().catch(e => $('src').textContent = 'error: ' + e.message);
+setInterval(() => load().catch(e => $('src').textContent = 'error: ' + e.message), 30000);
+</script></body></html>
