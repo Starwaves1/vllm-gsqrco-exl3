@@ -183,7 +183,10 @@ clocks_on() {
   CLK=$!
 }
 clocks_off() { [ -n "$CLK" ] && kill "$CLK" 2>/dev/null; wait "$CLK" 2>/dev/null; CLK=; }
-collect() { "$PY" "$KIT/report.py" collect "$OUT" >/dev/null && log "results: $OUT/summary.md"; }
+collect() {  # results.json + summary.md, then the per-generation agreement over every result folder
+  "$PY" "$KIT/report.py" collect "$OUT" >/dev/null && log "results: $OUT/summary.md"
+  "$PY" "$KIT/report.py" agree >/dev/null && log "generation: $KIT/results/generation-sm$CCN.md"
+}
 start_out() {
   mkdir -p "$OUT"
   [ -f "$WORK/bootstrap.json" ] || die "run 'kit/run.sh bootstrap' first"

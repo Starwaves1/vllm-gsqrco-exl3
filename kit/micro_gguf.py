@@ -131,6 +131,36 @@ def copy_bandwidth():
     return 2 * n / (best * 1e-3) / 1e9
 
 
+def compute_rates(dtype):
+    """Dense 4096^3 matmul rates: fp16/bf16 TFLOPS (cuBLAS) and int8 TOPS (torch._int_mm), best of 5 x 5.
+    With the copy bandwidth they give the card's ops-per-byte ridge, which is what moves kernel crossovers
+    between cards of one generation."""
+    def rate(fn):
+        fn()
+        torch.cuda.synchronize()
+        s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+        best = float("inf")
+        for _ in range(5):
+            s.record()
+            for _ in range(5):
+                fn()
+            e.record()
+            e.synchronize()
+            best = min(best, s.elapsed_time(e) / 5)
+        return round(2 * 4096**3 / (best * 1e-3) / 1e12, 1)
+
+    a = torch.randn(4096, 4096, device="cuda").to(dtype)
+    out = {"matmul_TFLOPS": rate(lambda: a @ a)}
+    q = torch.randint(-127, 127, (4096, 4096), device="cuda", dtype=torch.int8)
+    try:
+        out["int8_TOPS"] = rate(lambda: torch._int_mm(q, q))
+    except RuntimeError as ex:
+        out["int8_TOPS"], out["int8_error"] = None, str(ex)[:120]
+    del a, q
+    torch.cuda.empty_cache()
+    return out
+
+
 def measure(fn, ws, ps, x):
     """(us per call in a replayed graph, graph output bit-identical to an eager call)."""
     ref = fn(ws[0], ps[0], x).clone()
@@ -178,7 +208,8 @@ def main():
     dtype = torch.bfloat16 if cc >= (8, 0) else torch.float16
     l2 = torch.cuda.get_device_properties(0).L2_cache_size
     bw = copy_bandwidth()
-    print(f"{torch.cuda.get_device_name()} sm{cc[0]}{cc[1]}: copy {bw:.0f} GB/s, L2 {l2 / 2**20:.1f} MiB, "
+    rates = compute_rates(dtype)
+    print(f"{torch.cuda.get_device_name()} sm{cc[0]}{cc[1]}: copy {bw:.0f} GB/s, {rates}, L2 {l2 / 2**20:.1f} MiB, "
           f"X {str(dtype)[6:]}, Route L {'on' if lcpp else 'NOT BUILT (stock kernels only)'}", flush=True)
     cols = ["type", "rows", "K", "main", "mtp", "n", "variant", "is_route", "us", "GBps", "eff", "graph_exact", "note"]
     tsv = a.out / "gguf_micro.tsv"
@@ -228,7 +259,7 @@ def main():
         tsv.write_text("\n".join(lines) + "\n")
     tsv.write_text("\n".join(lines) + "\n")
     (a.out / "gguf_micro.json").write_text(json.dumps(
-        {"copy_GBps": round(bw, 1), "l2_bytes": l2, "x_dtype": str(dtype)[6:], "route_l": lcpp,
+        {"copy_GBps": round(bw, 1), **rates, "l2_bytes": l2, "x_dtype": str(dtype)[6:], "route_l": lcpp,
          "rows": rows_list, "fatal": fatal, "finished": time.strftime("%Y-%m-%dT%H:%M:%S%z")}, indent=1))
     if fatal:
         sys.exit(f"device error, run stopped: {fatal}")

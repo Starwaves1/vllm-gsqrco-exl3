@@ -5,7 +5,12 @@
         exit 0: go; 3: power-capped below the default limit (refused without --allow-capped);
         4: the card is busy (memory or utilization above the idle bar for S seconds)
   python kit/report.py collect   DIR      every artefact in DIR -> DIR/results.json + DIR/summary.md
-  python kit/report.py selftest  DIR      fake artefacts in DIR, then collect (CPU dry run)
+  python kit/report.py agree     [DIR...] per generation (compute capability) with >= 2 cards: do the
+        cards pick the same GGUF kernel per cell? -> kit/results/generation-smXY.{json,md}
+  python kit/report.py selftest  DIR      fake artefacts in DIR, then collect and agree (CPU dry run)
+
+The unit of the results is the GPU generation (compute capability): the card is provenance. Routing
+winners are reported per generation, and two cards of one generation are checked for agreement.
 
 Standard library only (env imports torch/vllm when present, for their versions).
 """
@@ -31,6 +36,9 @@ SHORT = {"lcpp_mmvq": "mmvq", "lcpp_mmq": "mmq", "own_vec": "own", "iq3_vec": "i
          "iq3_vec_mma": "iq3-mma", "iq3_vec_mma_packed": "iq3-mma-p", "iq3_tiled_packed": "iq3-tiled-p",
          "mma_k": "mma_k", "mma_k_chunked64": "mma_k/64", "lcpp_mmvq_chunked8": "mmvq/8", "stock_mmvq": "s-mmvq", "stock_mmq": "s-mmq",
          "stock_dq": "s-dq+cublas"}
+FAMILY = {"7.5": "Turing", "8.0": "Ampere", "8.6": "Ampere", "8.7": "Ampere", "8.9": "Ada", "9.0": "Hopper",
+          "10.0": "Blackwell", "10.3": "Blackwell", "12.0": "Blackwell", "12.1": "Blackwell"}
+TIE = 0.03  # winners within 3 % of each other on a card count as a tie
 BASELINE = ("lcpp_mmvq", "lcpp_mmq", "lcpp_mmvq_chunked8")  # vendored llama.cpp b11211 MMVQ / MMQ
 
 
@@ -212,7 +220,7 @@ def gguf_micro(d: Path) -> dict:
         r = route_of.get(key)
         base = min((v[b] for b in BASELINE if b in v), default=v.get(r))  # no vendored op: the route (IQ1_M dequant)
         out_cells.append({"type": key[0], "rows": key[1], "K": key[2], "n": key[3], "winner": win, "winner_us": v[win],
-                          "route": r, "route_us": v.get(r), "baseline_us": base})
+                          "route": r, "route_us": v.get(r), "baseline_us": base, "us": v})
         tn[(key[0], key[3])].append((key, v))
     for (typ, n), lst in sorted(tn.items()):
         common = set.intersection(*(set(v) for _, v in lst))
@@ -317,6 +325,8 @@ def cmd_collect(a):
         if runs:
             res[tier] = runs
     res["cc"] = res.get("gpu", {}).get("compute_capability", "")
+    res["generation"] = {"sm": "sm" + res["cc"].replace(".", ""), "family": FAMILY.get(res["cc"], "?"),
+                         "card": res.get("gpu", {}).get("name")}
     res["tiers"] = tier_status(res)
     (d / "results.json").write_text(json.dumps(res, indent=1))
     (d / "summary.md").write_text(render(res))
@@ -341,7 +351,10 @@ def fmt(x, nd=1):
 def render(r: dict) -> str:
     g, drv, sw, repo = r.get("gpu", {}), r.get("driver", {}), r.get("software", {}), r.get("repo", {})
     pc = next(iter(r.get("power_checks", {}).values()), None) or g
-    L = [f"# Validation kit: {g.get('name', '?')} (sm{g.get('compute_capability', '?').replace('.', '')}), {r.get('host', '?')}, {r.get('date', '?')}", ""]
+    gen = r.get("generation", {})
+    L = [f"# Validation kit: {gen.get('sm', '?')} ({gen.get('family', '?')}), measured on {g.get('name', '?')} ({r.get('host', '?')}, {r.get('date', '?')})", "",
+         "Results describe the generation (compute capability); the card is the provenance. "
+         "`python3 kit/report.py agree` checks them against other cards of the same generation.", ""]
     L += ["| | |", "|---|---|",
           f"| card | {g.get('name', '?')}, {fmt(g.get('memory_total_mib'), 0)} MiB, compute capability {g.get('compute_capability', '?')}, PCI {g.get('pci_bus_id', '?')} |",
           f"| driver / CUDA | {drv.get('version', '?')} / {drv.get('cuda', '?')} |",
@@ -376,8 +389,9 @@ def render(r: dict) -> str:
     m = t1.get("gguf_micro")
     if m:
         ns = sorted({x["n"] for x in m["dispatch"]})
-        L += ["", "## Tier 1: GGUF routing winner per (type, rows) on this card", "",
-              f"Copy bandwidth (floor) {fmt(m.get('copy_GBps'), 0)} GB/s; X {m.get('x_dtype')}; Route L "
+        L += ["", f"## Tier 1: GGUF routing winner per (type, rows) for {gen.get('sm', '?')}", "",
+              f"Copy bandwidth (floor) {fmt(m.get('copy_GBps'), 0)} GB/s, matmul {fmt(m.get('matmul_TFLOPS'))} TFLOPS, "
+              f"int8 {fmt(m.get('int8_TOPS'))} TOPS; X {m.get('x_dtype')}; Route L "
               f"{'built' if m.get('route_l') else 'NOT built (stock kernels only)'}. Cell: the fastest kernel summed over the "
               "type's 27B shapes (weighted by tensor count); `(+x%)` = how much slower the current routing is there.", "",
               "| type | " + " | ".join(f"n={n}" for n in ns) + " |", "|---|" + "---|" * len(ns)]
@@ -423,6 +437,62 @@ def render(r: dict) -> str:
                 L.append(f"\nCorruption check ({cr.get('config')}): {cr.get('corrupt')} of {cr.get('requests')} flagged, "
                          f"by kind {cr.get('by_kind')}, T=0 token mismatches vs eager reference {cr.get('t0_token_mismatch')}")
     return "\n".join(L) + "\n"
+
+
+def cmd_agree(a):
+    """Group results by compute capability; for each generation with >= 2 cards compare the GGUF winner per
+    cell (type, shape, rows) and per (type, rows). A cell disagrees when card A's winner is more than TIE
+    slower than card B's winner on card B (and vice versa is not required: one card's clear preference is
+    enough). Each card's copy bandwidth, matmul and int8 rates and int8-ops-per-byte ridge are listed, so
+    a disagreement reads against the cards' balance rather than as a per-card table."""
+    dest = Path(a.out or ROOT / "kit/results")
+    dirs = a.dirs or sorted(str(p.parent) for p in dest.glob("*/results.json"))
+    gens = collections.defaultdict(list)
+    for d in dirs:
+        r = load_json(Path(d) / "results.json")
+        if r and r.get("cc") and (r.get("tier1") or {}).get("gguf_micro"):
+            gens[r["cc"]].append((Path(d).name, r))
+    for cc, runs in sorted(gens.items()):
+        sm = "sm" + cc.replace(".", "")
+        cards = [{"run": name, "card": r["gpu"].get("name"), **{k: r["tier1"]["gguf_micro"].get(k) for k in
+                  ("copy_GBps", "matmul_TFLOPS", "int8_TOPS", "x_dtype")}} for name, r in runs]
+        for c in cards:
+            c["int8_ops_per_byte"] = round(c["int8_TOPS"] * 1e3 / c["copy_GBps"], 1) if c.get("int8_TOPS") and c.get("copy_GBps") else None
+        cells = [{(x["type"], x["rows"], x["K"], x["n"]): x for x in r["tier1"]["gguf_micro"]["per_cell"]} for _, r in runs]
+        common = set.intersection(*(set(c) for c in cells)) if len(cells) > 1 else set()
+        diff, ties = [], 0
+        for key in sorted(common):
+            xs = [c[key] for c in cells]
+            wins = {x["winner"] for x in xs}
+            if len(wins) == 1:
+                continue
+            # how much slower each card's own winner would be under the other card's choice
+            cost = [max((x["us"].get(y["winner"], float("inf")) / x["winner_us"] - 1) for y in xs) for x in xs]
+            if max(cost) <= TIE:
+                ties += 1
+                continue
+            diff.append({"type": key[0], "rows": key[1], "K": key[2], "n": key[3],
+                         "winners": {runs[i][0]: xs[i]["winner"] for i in range(len(xs))},
+                         "slowdown_if_swapped": {runs[i][0]: round(cost[i], 3) for i in range(len(xs))}})
+        out = {"generation": sm, "family": FAMILY.get(cc, "?"), "cards": cards, "cells_compared": len(common),
+               "agree": len(common) - len(diff) - ties, "ties_within_3pct": ties, "disagree": diff}
+        (dest / f"generation-{sm}.json").write_text(json.dumps(out, indent=1))
+        L = [f"# {sm} ({out['family']}): kernel-choice agreement across {len(cards)} card(s)", "",
+             "| run | card | copy GB/s | matmul TFLOPS | int8 TOPS | int8 ops/byte | X |", "|---|---|---|---|---|---|---|"]
+        L += [f"| {c['run']} | {c['card']} | {fmt(c['copy_GBps'], 0)} | {fmt(c['matmul_TFLOPS'])} | {fmt(c['int8_TOPS'])} | "
+              f"{fmt(c['int8_ops_per_byte'])} | {c['x_dtype']} |" for c in cards]
+        if len(cards) < 2:
+            L += ["", "One card so far: nothing to compare."]
+        else:
+            L += ["", f"{len(common)} cells measured on every card: {out['agree']} same winner, {ties} different winner "
+                  f"but within {TIE:.0%} (a tie), {len(diff)} disagree.", ""]
+            if diff:
+                L += ["| type | rows x K | n | winners | slowdown if a card used the other's choice |", "|---|---|---|---|---|"]
+                L += [f"| {x['type']} | {x['rows']}x{x['K']} | {x['n']} | "
+                      + ", ".join(f"{k}: {SHORT.get(v, v)}" for k, v in x["winners"].items()) + " | "
+                      + ", ".join(f"{k}: +{v:.0%}" for k, v in x["slowdown_if_swapped"].items()) + " |" for x in diff]
+        (dest / f"generation-{sm}.md").write_text("\n".join(L) + "\n")
+        print(f"{sm}: {len(cards)} card(s), {len(common)} common cells, {len(diff)} disagree -> {dest}/generation-{sm}.md")
 
 
 def cmd_selftest(a):
@@ -473,6 +543,19 @@ def cmd_selftest(a):
     assert r["tier1"]["parity"]["gguf"]["failed"] == 1 and r["clocks"]["tier1"]["busy_s"] == 20
     assert "| IQ3_S |" in (d / "summary.md").read_text()
     assert r["cc"] == "8.6" and r["tiers"] == {"1": "partial"}, (r["cc"], r["tiers"])
+    # a second sm86 card that prefers MMQ at IQ3_S 17408x5120 n=32 by 20 %: one disagreement
+    b = d.parent / (d.name + "-b")
+    b.mkdir(exist_ok=True)
+    r["gpu"]["name"] = "NVIDIA GeForce RTX 3090"
+    r["tier1"]["gguf_micro"].update(copy_GBps=850.0, int8_TOPS=284.0)
+    for c in r["tier1"]["gguf_micro"]["per_cell"]:
+        if (c["type"], c["rows"], c["n"]) == ("IQ3_S", 17408, 32):
+            c["us"]["lcpp_mmq"] = c["winner_us"] * 0.8
+            c["winner"], c["winner_us"] = "lcpp_mmq", c["winner_us"] * 0.8
+    (b / "results.json").write_text(json.dumps(r))
+    cmd_agree(argparse.Namespace(dirs=[str(d), str(b)], out=str(d.parent)))
+    g = json.loads((d.parent / "generation-sm86.json").read_text())
+    assert len(g["disagree"]) == 1 and g["agree"] == g["cells_compared"] - 1, g
     print("selftest ok")
 
 
@@ -492,8 +575,11 @@ def main():
     g.add_argument("--wait", type=float, default=0)
     for name in ("collect", "selftest"):
         sub.add_parser(name).add_argument("dir")
+    ag = sub.add_parser("agree")
+    ag.add_argument("dirs", nargs="*")
+    ag.add_argument("--out", help="where generation-smXY.{json,md} go (default kit/results)")
     a = ap.parse_args()
-    {"env": cmd_env, "gpucheck": cmd_gpucheck, "collect": cmd_collect, "selftest": cmd_selftest}[a.cmd](a)
+    {"env": cmd_env, "gpucheck": cmd_gpucheck, "collect": cmd_collect, "agree": cmd_agree, "selftest": cmd_selftest}[a.cmd](a)
 
 
 if __name__ == "__main__":

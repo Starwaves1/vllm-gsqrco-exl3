@@ -83,6 +83,13 @@ them.
 | `tier2/`, `tier3/` | per model: `argv.txt`, `ladder.json`, `corruption.jsonl`, gzipped server logs and responses |
 | `steps.json`, `bootstrap.json`, `env.json`, `gpucheck-*.json`, `clocks-*.csv` | the raw records |
 
+Next to the run folders, `kit/results/generation-smXY.{md,json}` reads every run of one compute capability. The
+unit of these results is the GPU generation, and the card is provenance. When two cards of one generation have
+run tier 1, the file says whether they pick the same kernel in every (type, shape, rows) cell. Cells where the
+two winners are within 3 % count as ties. For each real disagreement it shows how much slower each card would
+run with the other's choice, next to each card's copy bandwidth, matmul and int8 rates, and int8 ops per byte.
+That explains the disagreement, which is what a per-generation dispatch table needs.
+
 `partial` means some steps were unsupported on the card or failed. `steps.json` says which, and why.
 
 Then send the folder back: [RETURN.md](RETURN.md).
