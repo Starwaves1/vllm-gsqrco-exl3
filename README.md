@@ -92,11 +92,19 @@ Stability. A 24 h soak at c=2 with CUDA graphs is in progress. A 1.19 h partial 
 
 A second package, `plugin-exl3/` (`vllm_exl3_plugin`), serves [exllamav3](https://github.com/turboderp-org/exllamav3) EXL3 checkpoints on unpatched vLLM main. It registers quant method `exl3` and nothing else: an EXL3 checkpoint is a normal HF directory, so vLLM's own detection and safetensors loader do the rest. Kernels: exllamav3's dense-linear files (94, MIT) and trellis-serve's Marlin-EXL3 (19, MIT / Apache-2.0), both vendored byte for byte behind one shim each, plus an owned patch for the multi-row MTP verify pass. Target: [erlidev/Swift-1.5-Qwen3.8-27B-EXL3](https://huggingface.co/erlidev/Swift-1.5-Qwen3.8-27B-EXL3) at 3.50bpw.
 
-On a 350 W RTX 3090 with production's vLLM main argv and MTP at a fixed k=3: 27.0 / 27.1 / 32.2 / 38.9 ms per engine step at 1 / 2 / 4 / 8 concurrent requests (98 / 188 / 323 / 539 tok/s greedy), faster per step than the GSQ-RCO GGUF at every concurrency; 200,000 tokens of context fit; kernel errors stay within exllamav3's own. Open: the 12 h soak, the other bit-width tiers, and the raw logit gate on two chat prompts. Full results and the definition-of-done checklist: [cloud/results/exl3/REPORT.md](cloud/results/exl3/REPORT.md).
+On a 350 W RTX 3090 with production's vLLM main argv and MTP at a fixed k=3: 27.0 / 27.1 / 32.2 / 38.9 ms per engine step at 1 / 2 / 4 / 8 concurrent requests (98 / 188 / 323 / 539 tok/s greedy), faster per step than the GSQ-RCO GGUF at every concurrency (GGUF measured on vLLM 0.27.1); 200,000 tokens of context fit; kernel errors stay within exllamav3's own. Open: the 12 h soak, the other bit-width tiers, and the raw logit gate on two chat prompts. Full results and the definition-of-done checklist: [cloud/results/exl3/REPORT.md](cloud/results/exl3/REPORT.md).
 
-Serve it (build once with `cd plugin-exl3 && VLLM_EXL3_BUILD=1 python setup.py build_ext --inplace`, write the pruned MTP draft head once with `tools/exl3_draft_head.py <checkpoint> --ids <production's draft_vocab_ids.json>`). The launcher takes production's argv (`GSQ_PROD_ARGV`); with the current overlay give it a fixed `num_speculative_tokens`, since the k schedule's drop at 9 sequences corrupts output (REPORT section 5):
+Serve it from the main checkout with the vLLM-main venv (`.venv-main`, a copy of production's):
 
-    GSQ_EXL3_MODEL=/path/to/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6 GSQ_ALLOW_GPU=1 scripts/serve-exl3.sh
+    GSQ_VENV=.venv-main GSQ_PLUGIN=plugin-exl3 tools/build-plugin.sh      # editable install, builds the kernels
+    .venv-main/bin/python tools/exl3_draft_head.py /path/to/checkpoint \
+        --ids hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/mtp_draft_vocab_ids.pt   # once, needs a GPU
+    sed '/^--speculative-config$/{n;s/.*/{"method":"mtp","num_speculative_tokens":3,"draft_sample_method":"probabilistic"}/}' \
+        env/prod-main-serve-argv.txt > /tmp/prod-main-argv-k3.txt                      # production's argv at a fixed k=3
+    GSQ_VENV=.venv-main GSQ_PROD_ARGV=/tmp/prod-main-argv-k3.txt GSQ_EXL3_MODEL=/path/to/checkpoint \
+        GSQ_ALLOW_GPU=1 scripts/serve-exl3.sh
+
+The fixed k matters: production's per-batch k schedule drops from 3 to 2 at 9 sequences, which corrupts output on the current overlay (REPORT section 5).
 
 Design and history: [EXL3.md](EXL3.md), [EXL3-OPT.md](EXL3-OPT.md), [docs/adr/0002-exl3-via-plugin.md](docs/adr/0002-exl3-via-plugin.md).
 
