@@ -1,0 +1,10 @@
+[Unit]
+Description=gq cluster GPU queue dispatcher (cloud/gq/gq.py)
+
+[Service]
+ExecStart=/usr/bin/python3 %h/tools/gq/cloud/gq/gq.py dispatch
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,18 @@
+{
+ "vast": {
+  "ssh": "ssh -o BatchMode=yes -p 15245 root@ssh9.vast.ai",
+  "gpuq": "/workspace/gpuq",
+  "note": "rented RTX 3090: queued scripted jobs only, never idle; box-local gpuq jobs go first",
+  "gpus": [
+   {"index": 0, "name": "RTX 3090", "cc": 8.6, "vram_gb": 24, "never_idle": true}
+  ]
+ },
+ "torn-gpu": {
+  "ssh": "ssh -o BatchMode=yes -p 2222 star@100.64.103.112",
+  "note": "friend's machine (owner tornsensor): leave it as found; only /workspace and /models persist",
+  "gpus": [
+   {"index": 0, "name": "RTX 3070", "cc": 8.6, "vram_gb": 8, "only_when_idle": true, "max_mem_gb": 6.5},
+   {"index": 1, "name": "RTX 2080 Ti", "cc": 7.5, "vram_gb": 11, "schedulable": false, "note": "telemetry only (under diagnosis, off-limits)"}
+  ]
+ }
+}
