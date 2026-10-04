@@ -31,6 +31,12 @@ and check (knowledge-bench runs 13-16) shows no corruption signature.
   60's `noprefix` and job 40's `steady` never booted (engine-core init failure).
 - Torture smoke 3 PASSED (2026-10-02 01:58-02:23 UTC, commit fbafc28): 0 faults, 21 rows alive, 0
   errors, GPU growth 27 MiB, full 0.33 h. Smoke 1/2 had failed (connection storm; 8 empty outputs).
+- Fixed k=3 vs the schedule (job 62, production's bench, GSQ-RCO, T=0, pass 2): ms/step 26.0/29.8/
+  33.9/42.6 vs 31.3/34.3/41.7/43.1 at c=1/2/4/8; decode tok/s fixed k=3 +4.0%/-2.2%/+6.9%/+0.1% (T=default
+  +3.6%/+2.0%/+4.3%/0). Recommendation: redeploy with fixed k=3, no schedule (incident-root-cause.md
+  "Fixed k=3 vs the schedule"). The fixed build is also clean without the neighbour at c=8/9/12, T=0/1
+  (0 of 232; job 61 fix-c9). Job 61b has no data (box Triton/libcuda breakage from 23:15 UTC, now fixed
+  in box-env.sh; not rerun, fix-c9 covers it).
 
 **Inputs to the perf round (box, production's main argv, GSQ-RCO, k=5):**
 

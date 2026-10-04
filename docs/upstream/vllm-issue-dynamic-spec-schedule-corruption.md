@@ -105,6 +105,11 @@ fragment repeated 4+ times.
 | fixed `num_speculative_tokens: 3`, no schedule | 1-token completions | 0 |
 | no speculative decoding | 1-token completions | 0 |
 | `[[1,16,2]]` (K=2 at every batch size), c=3..8 | none | 0 (2 flags of 182: a combining macron in math, false positive) |
+| schedule + the fix below (GGUF) | 1-token completions | 0 (same job: 26 without the fix) |
+| schedule + the fix below, W4A16 (Marlin) | 1-token completions | 0 |
+| schedule, main's kernel (#50021's conv1d hunk reverted) | 1-token completions | 0 (1 flag: the combining macron) |
+| `[[1,1,5],[2,2,3],[3,16,2]]` (K changes almost every step), c=1 / c=2 | 1-token completions | 28 / 28 |
+| same + the fix below | 1-token completions | 0 / 0 |
 
 Without a neighbour, the same schedule corrupts when the running count hovers at a tier boundary
 (T=1.0 / T=0): c=8: 0/32 and 1/32, c=9: 8/36 and 16/36 (K flips 3 <-> 2), c=12: 3/48 and 3/48,
@@ -156,12 +161,17 @@ the first with a query of `num_spec + 1` tokens, the second with fewer tokens an
 The non-varlen (3D) path keeps `seqlen` as its bound. GDN layers use the varlen path. If a 3D caller
 can see a shrinking query, it needs the conv state width passed in.
 
+## Verified on the GPU
+
+- The end-to-end rerun with only the suggested fix applied: 26/30 -> 0/30 at c=4 with the neighbour,
+  0/30 for W4A16, and 28/30 -> 0/30 when K changes almost every step (table above). Without the
+  neighbour, the fixed build at c=8/9/12, T=0 and T=1.0, gives 0 corrupted answers of 232 (2 flags,
+  both the same math answer's combining macron or math-bold digits).
+- Main without #50021 (its conv1d hunk reverted): 0 corrupted of 30 with the neighbour, so main's
+  kernel is correct on the GPU too, as the CPU test says.
+
 ## Not yet verified
 
-- On the GPU, the end-to-end rerun with only this change applied (in progress on our side; this text
-  gets the result before it is posted).
-- Whether the same symptom appears on main without #50021 (the CPU test says the kernel is correct
-  there; no GPU run on unpatched main yet).
 - A production deployment on vLLM 0.27.1 with the same schedule and the same check showed no
   corruption signature for a W4A16 model (running count mostly 9-16). We do not have an explanation
   for that run yet.

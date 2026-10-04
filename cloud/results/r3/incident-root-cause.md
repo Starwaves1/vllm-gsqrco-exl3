@@ -277,13 +277,10 @@ but rarely binds at 2048 tokens. The one-line fix closes it too. Flagged for Gar
   acceptance by k on 2026-10-01: k=5 2.80/5, k=3 2.03/3, k=2 1.48/2 (`prod-profile-20261001.md`).
   On 0.27.1 the k sweep put k=3 best at c=1/2 and tied with k=4 at c=4/8 (REPORT.md). Job 24, the
   schedule-vs-schedule comparison at c=9, never reached steady state (a stream finished inside the
-  window on both variants), so there is no box number for the schedule's benefit yet. Task B measures
-  fixed k=3 against the schedule at c=1/2/4/8.
+  window on both variants). Job 62 (next section) measures fixed k=3 against the schedule at c=1/2/4/8.
 
 ## Still open
 
-- GPU confirmation (Task B): K changing every step must corrupt, the same traffic with fixed K must
-  be clean, and job 60's matrix with only the conv1d patch applied must be clean.
 - Job 57: compute-sanitizer memcheck and initcheck both exited rc=255 with no report, so OOB was
   never checked by tooling.
 - Job 28e: the headcheck server never booted (engine-core init failure), so the live lm_head/draft
@@ -311,24 +308,64 @@ main-kernel copies exact (same as the CPU run here).
 
 \* every one of these single flags is prompt 15 with U+0304 (combining macron in math), the known
 odd-script false positive; no U+FFFD, EOS-in-reasoning or repeat flag in any patched or mainconv cell.
-fix-c9's T=0 c=9 flag and its T=1.0 passes were not inspected before I stopped (job still running).
+fix-c9 at T=1.0 (same cell, finished 22:45 UTC): c=8/9/12 0/32, 1/36, 0/48. Both c=9 flags (T=0 and
+T=1.0) are prompt 15, a math answer: the combining macron U+0304 at T=0, math-bold digits (U+1D7CF) at T=1.0.
+Odd-script false positives; no U+FFFD, EOS-in-reasoning or repeat flag. So the fixed build is clean at
+c=8/9/12 without the neighbour: 0 corrupted of 232 (the schedule without the fix: 8-16/36 at c=9).
+
+Job 61b (r3-61b-k3c9, fixed k=3 at c=8/9/12 on venv-main, the background-rate control for fix-c9) exited
+rc=3 without data: its server died at import (`AssertionError: libcuda.so cannot found!` from Triton,
+`/workspace/logs/r3/61-kchange-fix-k3c9/`). On the box `/lib` is an empty directory, not the `usr/lib`
+symlink, and the ldconfig cache names `/lib/x86_64-linux-gnu/libcuda.so.1`, which Triton cannot find.
+Every Triton import failed from 23:15 UTC on (the EXL3 jobs and the first torture soak too). Why the
+same container worked until 23:14 is not known: `/lib`, `/etc/ld.so.cache` and `ld.so.conf.d` all date
+from container start (18:01-18:04 UTC). Fix on the box:
+`TRITON_LIBCUDA_PATH=/usr/lib/x86_64-linux-gnu` in `/workspace/box-env.sh`. fix-c9 already shows 0
+corrupted at those batch sizes, so 61b is not rerun.
 
 Labels now: the conv1d bound causing the box corruption is PROVEN (the patch is the only change
 between base and fix-base, 26 -> 0; K changing every step corrupts 28/30 unless K is fixed or the
 patch is in). Upstream main's kernel is clean on the GPU too (PROVEN), so the review comment for
 #50021 holds and Part 2 stays a test request, not a bug report.
 
-## Where I stopped (2026-10-03 ~22:46 UTC, usage window)
+## Fixed k=3 vs the schedule: cost (job 62, box RTX 3090 350 W, 2026-10-03 22:45-23:14 UTC, wt ca39b18)
 
-- Committed on r3: docs (Task A + /check fixes), job 61 partial results above. Not yet copied into
-  the review comment's "Not yet verified" list or STATUS (do that next: fix-base 26 -> 0, mainconv clean).
-- Running on the box: gpuq 1791064362987931 (job 61; last cell fix-c9 T=1.0 c=9/12). Read its
-  `summary.txt` and the fix-c9 details (`r3tok.py report ... --details 200`).
-- Queued: 1791064362990991 r3-62-k-cost (fixed k=3 vs schedule, prod bench pass 2; ms/step =
-  1000 x tok/step x C / decode), then another agent's exl3m-10-parity, then 1791065864522912
-  r3-61b-k3c9 (fixed k=3 at c=8/9/12, T=0/1: background flag rate; logs 61-kchange-fix-k3c9).
-- Box disk: overlay venvs /workspace/venv-r3-convfix and venv-r3-mainconv are hardlink copies (small),
-  /workspace/kvtier-r3 up to 7 GB; worktrees /workspace/wt-r3-i, wt-r3-j. Delete when done.
+Production's own bench (`bench/speed/run.sh gsq`: 8 real prompts x 1024 tokens, pass 2 kept), GSQ-RCO,
+production's main argv except `--speculative-config`. fixed3 = `num_speculative_tokens: 3` on venv-main;
+sched = production's `[[1,4,5],[5,8,3],[9,16,2]]` on the conv1d-fixed venv (the fix changes which counts
+the kernel rejects, not speed). The schedule runs k=5 at c=1/2/4 and k=3 at c=8, so c=8 is a same-config
+control. ms/step = 1000 x tok/step x C / decode tok/s. Logs `/workspace/logs/r3/62-k-cost/{fixed3,sched}/summary.txt`.
+
+| T=0, pass 2 | c=1 | c=2 | c=4 | c=8 |
+| --- | --- | --- | --- | --- |
+| fixed k=3: ms/step | 26.0 | 29.8 | 33.9 | 42.6 |
+| schedule: ms/step (k) | 31.3 (5) | 34.3 (5) | 41.7 (5) | 43.1 (3) |
+| fixed k=3: tok/step | 3.09 | 3.09 | 3.12 | 3.07 |
+| schedule: tok/step | 3.58 | 3.64 | 3.59 | 3.10 |
+| fixed k=3: decode tok/s | 118.9 | 207.5 | 368.0 | 576.4 |
+| schedule: decode tok/s | 114.3 | 212.1 | 344.2 | 576.0 |
+| fixed k=3 vs schedule, decode | +4.0% | -2.2% | +6.9% | +0.1% |
+
+At T=default (pass 2) decode is 112.0/196.1/342.2/546.4 vs 108.1/192.3/328.1/546.4 tok/s: fixed k=3
++3.6%/+2.0%/+4.3%/0. Whole-run MTP: fixed3 acceptance 0.663, mean accepted length 2.99; sched 0.519,
+3.26. Clocks matched (median SM 1755 vs 1785 MHz, 348 W, 92% util).
+
+**Recommendation for the redeploy:** fixed `num_speculative_tokens: 3`, no per-batch-size schedule.
+k=5 verifies two more tokens per step and accepts about 0.5 more per sequence (3.58 vs 3.09 tokens per
+step at c=1), but the step costs 15-23% more (31.3 vs 26.0 ms at c=1, 41.7 vs 33.9 at c=4), so the
+schedule's decode is 3.9% slower at c=1 and 6.5% slower at c=4, equal at c=8 (both k=3), and 2.2% faster
+only at T=0 c=2 (1.9% slower there at T=default). Fixed K is also the safer config: K never shrinks between steps, so
+with the conv1d fix deployed the only remaining shrinking-query path is grammar-truncated drafts, which
+the fix covers. Measured on GSQ-RCO; production's W4A16 already runs fixed k=3, so for it this says keep
+k=3 and deploy the one-line fix. Not measured: c=9-16, where the schedule would run k=2 (production is
+capped at 8 sequences today).
+
+## Where I stopped (2026-10-04 ~02:40 UTC)
+
+- Done: job 61's last cell, 61b and job 62 folded in above; the #50021 review text has the GPU-verified
+  list. The 12 h torture soak is in the gpuq queue on the conv1d-fixed venv (STATUS.md Round 3).
 - Needs Garrett: deploy the one-line overlay fix (prod still carries the check; structured output can
   hit it, INFERRED); go/no-go on lifting the upstream HOLD; whether to post the #50021 review comment;
-  redeploy config (fixed k=3 vs schedule) once job 62 lands.
+  redeploy config (recommendation above: fixed k=3).
+- Box disk: overlay venvs /workspace/venv-r3-convfix (used by the soak) and venv-r3-mainconv are hardlink
+  copies (small); worktrees /workspace/wt-r3-i, wt-r3-j. Delete mainconv and wt-r3-j when done.
