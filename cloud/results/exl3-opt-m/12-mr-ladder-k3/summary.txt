@@ -1,0 +1,2 @@
+mr2h     c=1   92.3 tok/s (  91.9) 2.57 tok/step 27.84 ms | c=2  188.7 tok/s ( 172.7) 2.64 tok/step 27.98 ms | c=4  310.8 tok/s ( 285.5) 2.60 tok/step 33.46 ms | c=8  483.4 tok/s ( 471.4) 2.59 tok/step 42.86 ms | acc 0.5139
+mr2hf    c=1   96.2 tok/s (  96.2) 2.58 tok/step 26.82 ms -1.02 | c=2  189.0 tok/s ( 189.0) 2.55 tok/step 26.98 ms -1.00 | c=4  319.7 tok/s ( 319.2) 2.62 tok/step 32.78 ms -0.68 | c=8  488.1 tok/s ( 492.9) 2.57 tok/step 42.12 ms -0.74 | acc 0.4981

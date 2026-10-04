@@ -2,15 +2,16 @@
 
 Latest: final phase (Integration 2 + bounded IQ3 repack on main): benchmark report `cloud/results/REPORT.md`; decode 110.3 / 192.7 / 348.1 / 541.3 tok/s c=1/2/4/8 greedy, 27.9 / 31.6 / 35.7 / 44.2 ms/step (W4A16 baseline 94.1 / 194.4 / 345.1 / 505.4 tok/s, 27.6 / 27.3 / 30.0 / 41.3 ms/step), prefill 1248 / 954 / 644 tok/s at 8k / 64k / 180k (baseline 1108 / 868 / 603); 24 h soak not run yet (see "Final phase").
 
-## Current state (2026-09-30)
+## Current state (2026-09-30; EXL3 2026-10-04)
 
-EXL3, phase 0 (branch `exl3`, CPU only): `plugin-exl3/` (`vllm_exl3_plugin`) registers quant method
-`exl3` with no vLLM patches, vendors exllamav3 d3739fd's dense-linear kernels (94 files, MIT, byte-identical)
-behind `exl3_shim.cu`, and loads `turboderp/Qwen3.8-27B-exl3@3.50bpw`'s names and shapes into vLLM main's
-Qwen3_5ForConditionalGeneration + Qwen3_5MTP on the meta device (2,426 tensors + draft head, 0 unmapped, 0
-missing). The shim compiles and links for sm_86 (450 s clean under the caps) and has never run. 153 CPU
-tests pass. Found while building: exllamav3's int8-activation GEMV is on by default at d3739fd (the shim
-turns it off). Next: GPU phase 1, kernel parity and a serve smoke. Details and plan: `EXL3.md`.
+EXL3 (2026-10-04, branch `exl3-opt`; plan and history in `EXL3.md`, optimization log in `EXL3-OPT.md`):
+`plugin-exl3/` serves erlidev's Swift-1.5 EXL3 3.50 bpw on production's vLLM main argv with MTP, fp8 KV
+and graphs, on owned `exl3_gemm_mr` kernels at 1..384 rows (fp16-accumulate MMA folded every 4 k-stages
+at 9..48 rows), the token embedding in pinned host memory and the MTP draft head in fp8. Rented 350 W
+3090, fixed MTP k=3: 27.0 / 27.1 / 32.2 / 38.9 ms/step at c=1/2/4/8 (GGUF GSQ-RCO at k=3: 27.9 / 31.6 /
+35.7 / 44.2), 98 / 188 / 323 / 539 tok/s greedy, acceptance 0.51, prefill 1133 tok/s at 8k. Kernel errors
+stay within exllamav3's own exl3_gemm. Open: corruption check at k=3, the other erlidev tiers, merge to
+main, single-stack switch test, 12 h soak.
 
 Production moved to vLLM main today (0.30.1rc1.dev285 + overlay 2a0fe5e1e1, k=5 MTP schedule, 16 seqs,
 capture 48; `env/prod-main-*`). The CPU-side preparation is done (`cloud/results/vllm-main-compat-cpu.md`).

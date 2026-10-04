@@ -5,10 +5,10 @@
  #include "exl3_had.cuh"     // EXL3
  #include <cooperative_groups.h>  // EXL3: grid barrier after the in-launch input transform
 +#ifndef TRELLIS_H16_FOLD
-+  #define TRELLIS_H16_FOLD 1  // exl3-opt h16: k-stages per fp16-partial fold (0 = once per slice)
++  #define TRELLIS_H16_FOLD 4  // exl3-opt h16: k-stages per fp16-partial fold (0 = once per slice)
 +#endif
 +#ifndef TRELLIS_H16_MB_MASK
-+  #define TRELLIS_H16_MB_MASK 4  // exl3-opt h16: bit b = fp16 accumulation in the thread_m_blocks == b kernels
++  #define TRELLIS_H16_MB_MASK 14  // exl3-opt h16: bit b = fp16 accumulation in the thread_m_blocks == b kernels
 +#endif
  #ifndef TRELLIS_PROBES
    #define TRELLIS_PROBES 0  // 1: timing-probe branches (set_debug_flags) compiled in; never in a served build
@@ -18,13 +18,13 @@
    constexpr bool use_fp16_accum = false;
    #endif
 +  // exl3-opt (owned patch, csrc/exl3_marlin_h16.patch): fp16-accumulate MMA (2x the fp32-accumulate tensor
-+  // rate on GeForce Ampere) into frag_c_tmp, folded into the fp32 frag_c after every k-stage (thread_k = 64
-+  // or 128 products), as exllamav3's own sm_86 GEMM (EXL3_GEMM_H_ACC) folds once per k-slice. Only the
-+  // 17..32-row kernels (thread_m_blocks 2): the one family where the tensor pipe, not decode issue, is the
-+  // limit (fp32 accumulate: 128 HMMA x 32 cycles vs ~6k issue cycles per pass); at 3 and 4 the extra
-+  // partial-sum registers spill.
-+  // TRELLIS_H16_MB_MASK: bit b set = h16 in the thread_m_blocks == b kernels (default 4: b = 2 only);
-+  // TRELLIS_H16_FOLD: k-stages per fold (1 = every stage; 0 = once per slice, as exllamav3's EXL3_GEMM_H_ACC)
++  // rate on GeForce Ampere) into frag_c_tmp, folded into the fp32 frag_c every TRELLIS_H16_FOLD k-stages (a
++  // k-stage is thread_k = 64 or 128 products), as exllamav3's own sm_86 GEMM (EXL3_GEMM_H_ACC) folds once
++  // per k-slice. Default: every 4 stages in the 9..48-row kernels (thread_m_blocks 1..3; mask 14), measured
++  // per model pass -0.6..-0.8 ms at 12-16 rows, -3.1..-3.6 at 17-32, -9.6 at 48, errors <= exl3_gemm's
++  // everywhere. Once per slice is 0.2-1.4 ms faster but up to 1.2x exl3_gemm's rms; thread_m_blocks 4 loses.
++  // TRELLIS_H16_MB_MASK: bit b set = h16 in the thread_m_blocks == b kernels;
++  // TRELLIS_H16_FOLD: k-stages per fold, 1, 2 or 4 (the pipe counter wraps at 4); 0 = once per slice (EXL3_GEMM_H_ACC)
 +  constexpr bool h16 = a_type_id == vllm::kFloat16.id() && !use_fp16_accum &&
 +                       ((TRELLIS_H16_MB_MASK >> thread_m_blocks) & 1) && !m_block_size_8;
    using Adtype = MarlinScalarType<a_type_id>;

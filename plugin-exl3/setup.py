@@ -70,7 +70,7 @@ if _should_build_extension():
             path.write_text(text)
 
     # The kernels compile from exl3_marlin_template_h16.h: the vendored template with the owned patch
-    # csrc/exl3_marlin_h16.patch (fp16-accumulate MMA folded into fp32 per k-stage), generated here so the
+    # csrc/exl3_marlin_h16.patch (fp16-accumulate MMA folded into fp32 every few k-stages), generated here so the
     # vendored file stays byte-identical. The instance units are upstream's exl3_marlin_inst.h with that
     # template in place of exl3_marlin_template.h.
     import subprocess

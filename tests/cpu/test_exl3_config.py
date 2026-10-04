@@ -119,7 +119,7 @@ def _layer(cls):
     ("RowParallelLinear", "visual.merger.linear_fc2", "UnquantizedLinearMethod"),
     ("ParallelLMHead", "language_model.lm_head", "EXL3LinearMethod"),
     ("ParallelLMHead", "lm_head", "EXL3LinearMethod"),
-    ("ParallelLMHead", "mtp.draft_lm_head", None),
+    ("ParallelLMHead", "mtp.draft_lm_head", "EXL3DraftHeadFp8Method"),  # fp8 by default (EXL3_DRAFT_FP8)
     # token embedding: in pinned host memory by default (EXL3_EMBED_HOST, quantization/embedding.py)
     ("VocabParallelEmbedding", "language_model.model.embed_tokens", "EXL3HostEmbeddingMethod"),
     ("VocabParallelEmbedding", "mtp.embed_tokens", None),  # the draft's copy: replaced by the target's

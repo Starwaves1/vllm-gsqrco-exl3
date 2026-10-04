@@ -250,6 +250,9 @@ alone therefore reaches 40 % of the bytes, and EXL3_MR=2 reaches 99 %.
 | (constant) `MULTI_ROW_MIN`, `MULTI_ROW_MAX` | 1, 384 | rows on exl3_gemm_mr; above 384 the dequant routes (K2 keeps exllamav3's 144); a repacked lm_head (n > 32768) stays on mr at any row count (prompt_logprobs only: no 0.6 GiB unpack copy outside vLLM's profiled budget; speed there unmeasured) |
 | (constant) glue | on with 2 | bf16 straight through exl3_gemm_mr on single-part layers (same bits) |
 | `EXL3_EMBED_HOST` | 1 | bf16 token embedding page-locked in host memory (exactly 2.37 GiB, `cudaHostRegister`; the MTP draft's own copy is not: vLLM swaps in the target's), gathered per step by a UVA kernel |
+| `EXL3_DRAFT_FP8` | 1 | MTP draft head as per-row e4m3 weights on vLLM's fp8 Marlin (0.21 instead of 0.42 GB per draft step); the target's logits are untouched |
+| `EXL3_MR_CONCAT` | 0 | equal-K fused layers stored concatenated, one Hadamard + one `exl3_gemm_mr_multi` launch per layer; off: unmeasured, and with the fp8 head the server OOMs at the drafter's load (see checkpoint 1) |
+| (build) `TRELLIS_H16_FOLD`, `TRELLIS_H16_MB_MASK` | 4, 14 | fp16-accumulate MMA in the 9..48-row `exl3_gemm_mr` kernels, folded into fp32 every 4 k-stages (csrc/exl3_marlin_h16.patch) |
 
 With bf16 out the kernel writes bf16, widened to fp32 for `out_fp32`, so the result is one
 rounding of the fp32 epilogue, as with exl3_gemm. The capture guard is keyed per (k, n, K, rows)
@@ -321,11 +324,69 @@ The box outputs are in `cloud/results/exl3-opt/{20-corruption,19-parity,12-mr-la
 - **concat** (`EXL3_MR_CONCAT`). rc=1 was an OOM at the drafter's load: the placeholders' `exl3_parts` kept the parts alive beside the concatenated copy. Fixed in 2bb3fb3 (cleared). Not yet measured.
 - All serving jobs now run a **fixed MTP k=3** (`EXL3_SPEC_K`, outputs suffixed `-k3`). The phase-2 numbers above used the schedule (k=5 at c<=4), so they cannot be compared with GGUF's k=3 27.9/31.6/35.7/44.2.
 
-## Where I stopped (2026-10-03 ~22:45 UTC, usage window)
+## Checkpoint 1 (2026-10-04): k=3 ladder, h16 fold/mask, fp8 and concat defaults
 
-- **Queued on gpuq (box), not running when I stopped:** `1791064632186130-exl3m-10-parity` (merged parity, wt `/workspace/wt-exl3-opt-m` @2bb3fb3, built) and `1791066153615931-exl3m-h16x-micro`. The second runs 11-mr-micro plus 10-mr-parity for the h16 fold/mask variants in `/workspace/wt-exl3-h16x-{f4,f0,f0m6,f0m14}` (@fbb9cfd, built: fold every 4 stages / once per slice / + mb1 / + mb1,3) against `-m`. Results: `/workspace/runs/exl3-opt-{m,h16x-*}/11-mr-micro/summary.txt` and the matching `10-mr-parity`. Both are ahead of or among r3's jobs (r3-61 running, r3-62, r3-61b).
-- **Next, task 1:** read the h16x micro (keep a fold variant only if it beats `-m` at 17-32 rows, does not lose at 1-16, and parity stays within exl3_gemm's error). Then submit via `/workspace/jobs-exl3m/run.sh`: `12-mr-ladder 2h 2hf 2hfc` (k=3, ~66 min) and `20-corruption ref hi` (k=3, c=8/9/12/16; expect 0 severe). Then decide the fp8/concat defaults and run /check (checkpoint 1).
-- **Task 2:** the owned 17-48-row lever is the fold frequency and m-block mask (fbb9cfd knobs). Per-stage folding costs about 128 instructions per k-stage per thread at mb=2, against about 400 for decode. The new kernel structure (transposed m8 MMA) only helps at 17-24 rows, and at k=3 those are only c=5/6.
-- **Task 3:** `box-scripts/21-tier.sh` is written and untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then 4.00/4.50, one at a time (12.2/15.3/16.7 GiB; the disk has 38 GB free).
-- **Task 4:** gpuq is already in `cloud/box/gpuq` with a bootstrap note (a95d257). Merge, ADR and REPORT are not started. **Tasks 5-6:** not started; the soak has not been submitted.
-- Commits used "Claude Opus 5.5" attribution (the model that wrote them), not "Fable 5.1".
+Results: `cloud/results/exl3-opt-m/` (merged build 2bb3fb3: parity, micro, k=3 ladder) and
+`cloud/results/exl3-opt-h16x/<variant>/` (fbb9cfd built with `TRELLIS_H16_FOLD`/`TRELLIS_H16_MB_MASK`:
+f4 = 4/4, f0 = 0/4, f0m6, f0m14, f4m14, f4m30, f0m30). Ladders are production's argv at a fixed k=3,
+pass 2, T=0, ms/step = tok/step / (decode tok/s / c).
+
+**Rental box.** `/lib` was an empty directory instead of the `usr/lib` symlink, so Triton found no
+`libcuda.so.1` (every vLLM server died at model inspection, the GSQ torture job included) and the linker
+could not open libm's `/lib/x86_64-linux-gnu/*`. Restored `/lib -> usr/lib` (the empty dir is
+`/lib.empty-dir-20261004`). Check it again if the container restarts.
+
+**h16 fold/mask (micro, target pass per model step, ms).** The mask bit b turns on fp16 accumulation in
+the thread_m_blocks == b kernels (b 1..3 = 9-16, 17-32, 33-48 rows; the <= 8-row kernels never).
+
+| rows | m (fold 1, mb2) | f4 | f0m14 | **f4m14** | f4m30 |
+|---|---|---|---|---|---|
+| 1-8 | 17.97-18.82 | +0.07-0.11 | +0.01-0.06 | +0.09-0.22 | +0.03-0.17 |
+| 12 / 16 | 22.59 / 22.75 | +0.2 | -1.00 / -0.87 | **-0.81 / -0.60** | -0.83 / -0.69 |
+| 17 / 24 / 32 | 29.22 / 29.65 / 30.24 | 25.91 / 26.10 / 26.98 | 25.18 / 25.61 / 26.42 | **25.62 / 26.53 / 26.90** | 25.50 / 26.25 / 26.77 |
+| 48 | 47.57 | 47.84 | 36.60 | **37.98** | 37.77 |
+| 64 / 144 | 62.60 / 139.84 | within 1 % | within 1 % | within 1 % | 90.43 / 192.30 |
+| rms vs exl3_gemm (max ratio) | 1.00 | 1.00 | 1.21 | **1.00** | 1.00 |
+
+The 1-8-row kernels are unchanged code, so their deltas are drift between jobs (f4m14/f4m30/f0m30 ran an
+hour later). Folding once per slice (f0) buys 0.2-1.4 ms more but its error rises above exllamav3's
+exl3_gemm (1.21x at K4-oproj, 16 rows; f0m30 1.77x and 7 failed tests); the 64-row tile loses badly in
+fp16 (mb4). **Kept: fold every 4 k-stages, mask 14** (now the patch's defaults). Its only test failure was
+`test_gemm_mr_multi`, a multi-vs-parts self-consistency check whose 1e-3 bound assumed fp32 accumulation
+(measured 1.06e-3: the concatenated n changes the k-slice boundaries, so the fp16 windows differ; both
+sides stay 2.0e-3 from the fp64 reference against exl3_gemm's 2.8e-3); the bound is now FLOOR_RMS (2e-3).
+Not built: fold 2, which may take part of the remaining 0.2-1.4 ms while staying within exl3_gemm's error.
+
+**k=3 ladder (ms/step, c=1/2/4/8; GGUF GSQ-RCO at k=3: 27.9 / 31.6 / 35.7 / 44.2).**
+
+| build, mode | c=1 | c=2 | c=4 | c=8 | acceptance | c=8 tok/s |
+|---|---|---|---|---|---|---|
+| m, 2h | 27.84 | 27.98 | 33.46 | 42.86 | 0.514 | 483 |
+| m, 2hf (fp8 head) | 26.82 | 26.98 | 32.78 | 42.12 | 0.498 | 488 |
+| m, 2hfc (+ concat) | OOM at the drafter's load | | | | | |
+| **f4m14, 2hf** | **27.01** | **27.08** | **32.19** | **38.88** | 0.507 | **539** |
+
+- **fp8 draft head: default on.** -1.0/-1.0/-0.7/-0.7 ms/step; T=0 tok/step 2.600 -> 2.580 (whole-run
+  acceptance 0.514 -> 0.498 in one run, 0.507 in the next); net tok/s +0-4 %; KV +5.5k tokens. Only the
+  drafts change: the target's logits, and so the outputs, do not.
+- **concat: stays off.** Probe (`/workspace/jobs-exl3m/dbg-concat.sh`, instrumented copy in
+  `/workspace/wt-exl3-dbg`): with the bf16 head (2hc) the parts are freed (refcount 2, no referrers,
+  allocated flat at 11.1 GiB) and the model loads at 11.6 GiB like 2h. With the fp8 head (2hfc) the
+  drafter's fp8 quantize found 21.6 GiB allocated (6.97 GiB in private pools) and OOMed; not explained
+  by one run. Unmeasured for speed; next step is the same probe in mode 2hfc.
+- **f4m14** at c=8 (32 verify rows): -3.2 ms/step, +10 % tok/s; c=4 (16 rows) -0.6; c=1/2 run on
+  the unchanged 8-row kernels (+0.2/+0.1 = drift between runs; no same-job A/A was run). EXL3 is now below GGUF's k=3 ms/step at
+  every c.
+- **Corruption (k=3, ref + hi at c=8/9/12/16, f4m14 2hf):** see below. Coverage gap: at k=3 these are
+  32-64 verify rows; the newly enabled 9-16-row verify kernels (c=3/4) run only in `asis` (c=1/2/4/8),
+  queued separately.
+
+## Where I stopped
+
+- Checkpoint 1 in progress: corruption job running on the box (`exl3m-20-corruption-k3` id
+  1791082620193704, which runs `/workspace/jobs-exl3m/c1-f4m14.sh`).
+- **Task 2** (owned 17-48-row kernel): the fold/mask knobs are that lever and are now taken (f4m14).
+  A new kernel structure (transposed m8 MMA) would only help at 17-24 rows, which at k=3 are c=5/6.
+- **Task 3:** `box-scripts/21-tier.sh` is untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then
+  4.00/4.50, one at a time (12.2/15.3/16.7 GiB). It needs a box worktree at this commit or later.
+- **Task 4:** gpuq is in `cloud/box/gpuq` (a95d257). Merge, ADR and REPORT not started. **Tasks 5-6:** not started.

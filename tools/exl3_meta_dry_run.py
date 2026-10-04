@@ -275,7 +275,8 @@ def main():
                 if f"{n}.{t}" not in loaded)
             unquant = sorted(n for n, m in model.named_modules()
                              if type(getattr(m, "quant_method", None)).__name__
-                             in ("UnquantizedLinearMethod", "UnquantizedEmbeddingMethod"))
+                             in ("UnquantizedLinearMethod", "UnquantizedEmbeddingMethod",
+                                 "EXL3DraftHeadFp8Method"))  # loads bf16, fp8 after loading
             # MTP: what its own remap passed on must be exactly what kept_by says it keeps
             # (main: its mapper drops inside the loader, so every tensor arrives)
             want_in = len(fed) if label == "mtp" else len(tensors)

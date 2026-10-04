@@ -277,8 +277,10 @@ def exl3_linear_cat_fake(
 # no ms/step change beyond run-to-run spread; frees 2.37 GiB (KV 198,162 -> 264,993 tokens at
 # 196,608; 200,000 fits, job 14).
 EMBED_HOST = os.environ.get("EXL3_EMBED_HOST", "1") == "1"
-# EXL3_DRAFT_FP8 (A/B while measured): the MTP draft head as fp8 weights (quantization/draft_head.py)
-DRAFT_FP8 = os.environ.get("EXL3_DRAFT_FP8", "0") == "1"
+# EXL3_DRAFT_FP8: the MTP draft head as fp8 weights (quantization/draft_head.py). Job 12 at k=3:
+# -1.0/-1.0/-0.7/-0.7 ms/step at c=1/2/4/8, acceptance 0.514 -> 0.498, net tok/s +0..4 %, KV +5.5k
+# tokens; only the drafts change (the target's logits and so the outputs do not).
+DRAFT_FP8 = os.environ.get("EXL3_DRAFT_FP8", "1") == "1"
 
 
 def exl3_embed_host(ids: torch.Tensor, table_id: int, cols: int) -> torch.Tensor:

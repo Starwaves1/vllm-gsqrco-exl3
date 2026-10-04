@@ -5,10 +5,10 @@
 # Configs: ref = --enforce-eager (T=0 only, c=8; the reference for token ids and per-prompt
 # baselines), asis = production's argv (which has --no-async-scheduling), asyncon = + --async-scheduling
 # (vLLM main's default), nospec = without --speculative-config, hi = production's argv as-is at
-# c=8 (control) and c=9/12/16 (the schedule's k=2 tier, drafter batches of 9-16 rows; max-num-seqs 16),
+# c=8 (control) and c=9/12/16 (under the schedule its k=2 tier; at lib.sh's fixed k=3, 36-64 verify rows),
 # T=0 and T=1.0 / top_k 20 / top_p 0.95, streamed and non-streamed (608 requests). Configs: the job's
 # arguments (default "ref hi asis asyncon nospec"). Corruption rates per config and concurrency in
-# summary.txt.
+# summary.txt. EXL3_CORR_MODE: the serving mode (lib.sh mode_env, default 2h).
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 job_log 20-corruption
 require_idle_gpu
@@ -29,7 +29,7 @@ for cfg in "${modes[@]}"; do
     nospec) export GSQ_NO_MTP=1 ;;
     *) echo "unknown config $cfg"; rc=1; continue ;;
   esac
-  if serve_mr 2h "$D" "${extra[@]}"; then
+  if serve_mr "${EXL3_CORR_MODE:-2h}" "$D" "${extra[@]}"; then
     "$GSQ_VENV/bin/python" bench/corruption_check.py run --url "$GSQ_URL/v1" --label "$cfg" --out "$O" \
       --prompts "$PROMPTS" "${runargs[@]}" 2>&1 | tee "$D/run.log" || rc=1
   else
