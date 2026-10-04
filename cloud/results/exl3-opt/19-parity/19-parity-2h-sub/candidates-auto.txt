@@ -1,0 +1,3 @@
+seq_000 chat     1024 tok  KLD mean 0.01624  ref glitches 3  mean without 0.00349  top1 0.9805
+seq_001 chat     2048 tok  KLD mean 0.03673  ref glitches 3  mean without 0.00714  top1 0.9757
+all: KLD mean without reference glitches 0.00543 over 538 positions

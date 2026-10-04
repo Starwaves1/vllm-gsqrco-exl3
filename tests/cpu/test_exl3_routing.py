@@ -18,6 +18,19 @@ sys.path.insert(0, os.path.join(ROOT, "plugin-exl3"))
 GEMM, RECON, RECON_HAD = "exl3_gemm", "recon_hgemm", "recon_had_hgemm"
 
 
+@pytest.fixture(autouse=True)
+def _phase1_routing(monkeypatch):
+    """Phase 1's table (EXL3_MR=0, the hook from 17 rows): this file pins it; the multi-row
+    defaults (EXL3_MR=2) are tests/cpu/test_exl3_mr.py's."""
+    from vllm_exl3_plugin import ops
+
+    monkeypatch.setattr(ops, "MR_MODE", 0)
+    monkeypatch.setattr(ops, "MULTI_ROW_OP", None)
+    monkeypatch.setattr(ops, "MULTI_ROW_MIN", 17)
+    monkeypatch.setattr(ops, "WIDE_CHUNK_ROWS", 1 << 30)  # phase 1's unchunked routes
+    monkeypatch.setattr(ops, "MR_GLUE", False)
+
+
 @pytest.mark.parametrize("n,want", [
     (1, GEMM), (2, GEMM), (8, GEMM), (16, GEMM), (17, GEMM), (48, GEMM), (64, GEMM), (144, GEMM),
     (145, RECON), (512, RECON), (1023, RECON),
@@ -39,7 +52,8 @@ def test_capture_sizes_stay_on_gemm():
 
 
 @pytest.mark.parametrize("n,want", [(1, GEMM), (16, GEMM), (17, "exl3_multi_row"), (64, "exl3_multi_row"),
-                                    (144, "exl3_multi_row"), (145, RECON)])
+                                    (144, "exl3_multi_row"), (145, "exl3_multi_row"), (384, "exl3_multi_row"),
+                                    (385, RECON)])
 def test_multi_row_hook(monkeypatch, n, want):
     from vllm_exl3_plugin import ops
 

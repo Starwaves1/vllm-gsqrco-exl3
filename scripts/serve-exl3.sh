@@ -10,9 +10,10 @@
 #
 #   scripts/serve-exl3.sh --dry-run          print argv + diff, run the non-GPU guards, exit
 #   GSQ_ALLOW_GPU=1 scripts/serve-exl3.sh    launch (foreground; GSQ_LOG=<file> to tee)
+#   ... serve-exl3.sh [--dry-run] ARGS...    ARGS appended to the argv (e.g. --profiler-config)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
-DRY=0; [ "${1:-}" = --dry-run ] && DRY=1
+DRY=0; [ "${1:-}" = --dry-run ] && { DRY=1; shift; }
 
 gsq_check_port
 gsq_assert_tier_root
@@ -21,8 +22,12 @@ gsq_assert_tier_root
 [ "$(sha256sum "$GSQ_HF_CONFIG/chat_template.jinja" | cut -d' ' -f1)" = "$GSQ_PROD_CHAT_TEMPLATE_SHA256" ] \
   || gsq_die "chat template copy differs from production's"
 
+# vLLM's torch.compile cache key does not cover the EXL3 plugin's apply()/embedding() or its
+# parameter layouts: one cache root per variant (EXL3_MR, EXL3_EMBED_HOST; plugin defaults 2/1)
+# unless the caller set one
+export VLLM_CACHE_ROOT=${VLLM_CACHE_ROOT:-$HOME/.cache/vllm/exl3-mr${EXL3_MR:-2}-h${EXL3_EMBED_HOST:-1}}
 gsq_load_prod_argv
-gsq_rewrite_argv "$GSQ_EXL3_MODEL"
+gsq_rewrite_argv "$GSQ_EXL3_MODEL" "$@"
 gsq_print_argv_diff serve-exl3 "$GSQ_PLUGINS_EXL3"
 [ $DRY = 1 ] && { echo "dry run: not launching"; exit 0; }
 

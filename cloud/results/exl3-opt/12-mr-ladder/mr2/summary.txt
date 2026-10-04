@@ -1,0 +1,29 @@
+# kind=exl3 url=http://127.0.0.1:18090 tokenizer=/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6 2026-10-01T07:29:11Z
+# production run_benchmarks.sh single, pass 1 (warm-up, discard)
+# Thu Oct  1 07:29:11 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=71.80 tok/s | decode(C/meanTPOT)=73.5 | tok/step=2.80 | meanTTFT=176.28 ms
+ROW cohort C2 real prompts T=default | e2e=120.54 tok/s | decode(C/meanTPOT)=138.5 | tok/step=2.89 | meanTTFT=252.87 ms
+ROW cohort C4 real prompts T=default | e2e=175.82 tok/s | decode(C/meanTPOT)=208.1 | tok/step=2.79 | meanTTFT=376.49 ms
+ROW cohort C8 real prompts T=default | e2e=321.62 tok/s | decode(C/meanTPOT)=384.1 | tok/step=2.61 | meanTTFT=982.59 ms
+ROW cohort C1 real prompts T=0 | e2e=74.94 tok/s | decode(C/meanTPOT)=76.9 | tok/step=2.85 | meanTTFT=175.94 ms
+ROW cohort C2 real prompts T=0 | e2e=126.56 tok/s | decode(C/meanTPOT)=145.2 | tok/step=2.93 | meanTTFT=251.22 ms
+ROW cohort C4 real prompts T=0 | e2e=189.83 tok/s | decode(C/meanTPOT)=221.4 | tok/step=2.91 | meanTTFT=371.57 ms
+ROW cohort C8 real prompts T=0 | e2e=336.25 tok/s | decode(C/meanTPOT)=412.8 | tok/step=2.70 | meanTTFT=973.65 ms
+# raw logs in /workspace/runs/exl3-opt/12-mr-ladder/mr2/prod-pass1
+# production run_benchmarks.sh single, pass 2
+# Thu Oct  1 07:38:48 UTC 2026 mode=single server=127.0.0.1:18090
+ROW cohort C1 real prompts T=default | e2e=73.10 tok/s | decode(C/meanTPOT)=74.7 | tok/step=2.86 | meanTTFT=176.79 ms
+ROW cohort C2 real prompts T=default | e2e=117.64 tok/s | decode(C/meanTPOT)=135.7 | tok/step=2.82 | meanTTFT=254.46 ms
+ROW cohort C4 real prompts T=default | e2e=182.94 tok/s | decode(C/meanTPOT)=211.2 | tok/step=2.85 | meanTTFT=377.73 ms
+ROW cohort C8 real prompts T=default | e2e=313.88 tok/s | decode(C/meanTPOT)=379.1 | tok/step=2.57 | meanTTFT=898.09 ms
+ROW cohort C1 real prompts T=0 | e2e=74.97 tok/s | decode(C/meanTPOT)=77.0 | tok/step=2.85 | meanTTFT=175.84 ms
+ROW cohort C2 real prompts T=0 | e2e=126.47 tok/s | decode(C/meanTPOT)=145.1 | tok/step=2.93 | meanTTFT=250.53 ms
+ROW cohort C4 real prompts T=0 | e2e=192.91 tok/s | decode(C/meanTPOT)=226.5 | tok/step=2.94 | meanTTFT=383.73 ms
+ROW cohort C8 real prompts T=0 | e2e=343.73 tok/s | decode(C/meanTPOT)=411.5 | tok/step=2.71 | meanTTFT=978.41 ms
+# raw logs in /workspace/runs/exl3-opt/12-mr-ladder/mr2/prod-pass2
+# salted prefill ladder
+ROW prefill len=8192 conc=1 seed=960956869 | 1071 tok/s | meanTTFT=7647.42 ms
+ROW MTP whole run | acceptance rate 0.3937 | mean accepted length 2.725 | per position 0.698 0.472 0.314 0.143 0.098
+ROW clocks /workspace/runs/exl3-opt/12-mr-ladder/mr2/clocks-decode-pass1.csv: 496 s busy, median SM 1800 MHz, mem 9501 MHz, 340.0 W, util 87%
+ROW clocks /workspace/runs/exl3-opt/12-mr-ladder/mr2/clocks-decode-pass2.csv: 496 s busy, median SM 1800 MHz, mem 9501 MHz, 339.4 W, util 87%
+ROW clocks /workspace/runs/exl3-opt/12-mr-ladder/mr2/clocks-prefill-8192-c1.csv: 30 s busy, median SM 1605 MHz, mem 9501 MHz, 348.5 W, util 100%

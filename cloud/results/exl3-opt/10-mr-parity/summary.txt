@@ -1,0 +1,4 @@
+10-mr-parity 2026-10-01T07:59:48Z rc=0 wt b01436b
+tests: tests=294 failures=0 errors=0 skipped=28 time=34s
+memcheck: tests=42 failures=0 errors=0 skipped=2 time=13s ========= ERROR SUMMARY: 0 errors
+initcheck: tests=42 failures=0 errors=0 skipped=2 time=9s ========= ERROR SUMMARY: 0 errors

@@ -1,0 +1,40 @@
+== /workspace/runs/exl3-opt/18-logprobs/mr2h/server.log
+(EngineCore pid=1595485) ERROR 10-01 13:16:31 [core.py:1435] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 159.69 MiB is free. Including non-PyTorch memory, this process has 23.35 GiB m
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1419, in run_engine_core
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/fault_tolerance/engine_core_sentinel.py", line 179, in run_with_fault_tolerance
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1478, in run_busy_loop
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1529, in _process_engine_step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 649, in step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 137, in sample_tokens
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 103, in collective_rpc
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/serial_utils.py", line 508, in run_method
+== /workspace/runs/exl3-opt/18-logprobs/mr0/server.log
+(EngineCore pid=1598692) ERROR 10-01 13:21:00 [core.py:1435] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 106.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 13.69 MiB is free. Including non-PyTorch memory, this process has 23.50 GiB 
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1419, in run_engine_core
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/fault_tolerance/engine_core_sentinel.py", line 179, in run_with_fault_tolerance
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1478, in run_busy_loop
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1529, in _process_engine_step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 649, in step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 137, in sample_tokens
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 103, in collective_rpc
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/serial_utils.py", line 508, in run_method
+== /workspace/runs/exl3-opt-lmhead-plpvenv/18-logprobs/mr2h/server.log
+(EngineCore pid=1607578) ERROR 10-01 13:32:37 [core.py:1435] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 256.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 253.69 MiB is free. Including non-PyTorch memory, this process has 23.26 GiB
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1419, in run_engine_core
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/fault_tolerance/engine_core_sentinel.py", line 179, in run_with_fault_tolerance
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1478, in run_busy_loop
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1529, in _process_engine_step
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 649, in step
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 137, in sample_tokens
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 103, in collective_rpc
+/workspace/venv-r3-plp/lib/python3.12/site-packages/vllm/v1/serial_utils.py", line 508, in run_method
+== /workspace/runs/exl3-opt-lmhead/18-logprobs/mr2h/server.log
+(EngineCore pid=1612361) ERROR 10-01 13:37:10 [core.py:1435] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 486.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 233.69 MiB is free. Including non-PyTorch memory, this process has 23.28 GiB
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1419, in run_engine_core
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/fault_tolerance/engine_core_sentinel.py", line 179, in run_with_fault_tolerance
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1478, in run_busy_loop
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 1529, in _process_engine_step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 649, in step
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 137, in sample_tokens
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/executor/uniproc_executor.py", line 103, in collective_rpc
+/workspace/venv-main/lib/python3.12/site-packages/vllm/v1/serial_utils.py", line 508, in run_method

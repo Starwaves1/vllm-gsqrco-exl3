@@ -10,10 +10,11 @@ from vllm.model_executor.layers.quantization.base_config import (
     QuantizationConfig,
     QuantizeMethodBase,
 )
-from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead
+from vllm.model_executor.layers.vocab_parallel_embedding import ParallelLMHead, VocabParallelEmbedding
 
+from .. import ops
 from ..format import QUANT_METHOD, EXL3QuantConfig
-from ..weights_adapter.qwen3_5 import is_unquantized_module
+from ..weights_adapter.qwen3_5 import DRAFT_HEAD, is_unquantized_module
 
 
 class EXL3Config(QuantizationConfig):
@@ -23,7 +24,8 @@ class EXL3Config(QuantizationConfig):
     Methods by layer: linears and the lm_head get EXL3LinearMethod, except the modules the
     checkpoint stores unquantized (weights_adapter.qwen3_5.is_unquantized_module: GDN
     in_proj_ba, the vision tower, the pruned MTP draft head), which get vLLM's unquantized
-    methods; the input embedding stays bf16 (unquantized, on the GPU)."""
+    methods; the input embedding stays bf16, in page-locked host memory (EXL3_EMBED_HOST, default
+    on; the MTP draft's own copy stays plain: vLLM replaces it with the target's)."""
 
     def __init__(self, quant: EXL3QuantConfig) -> None:
         super().__init__()
@@ -64,9 +66,17 @@ class EXL3Config(QuantizationConfig):
             return EXL3LinearMethod(self)
         if isinstance(layer, ParallelLMHead):
             if is_unquantized_module(prefix):
+                if ops.DRAFT_FP8 and DRAFT_HEAD in prefix.split("."):
+                    from .draft_head import EXL3DraftHeadFp8Method
+
+                    return EXL3DraftHeadFp8Method()  # the MTP draft head in fp8 (EXL3_DRAFT_FP8)
                 return None  # vLLM's UnquantizedEmbeddingMethod
             return EXL3LinearMethod(self)
-        return None  # VocabParallelEmbedding: bf16 in the checkpoint
+        if ops.EMBED_HOST and isinstance(layer, VocabParallelEmbedding) and "mtp" not in prefix.split("."):
+            from .embedding import EXL3HostEmbeddingMethod
+
+            return EXL3HostEmbeddingMethod()  # bf16, in pinned host memory
+        return None  # VocabParallelEmbedding: bf16 in the checkpoint, on the GPU
 
 
 def _refuse_quantized_vision_tower(prefix: str, bits: float) -> None:

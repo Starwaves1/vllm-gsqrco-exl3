@@ -1,0 +1,15 @@
+=== mode 2hc 2026-10-01T23:42:35Z
+gsq: server pid 1821461 exited
+SERVER_FAILED
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/venv-main/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 397, in _load_module
+    yield from self._load_module(
+  File "/workspace/venv-main/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 406, in _load_module
+    yield from self._load_param(
+  File "/workspace/venv-main/lib/python3.12/site-packages/vllm/model_executor/models/utils.py", line 325, in _load_param
+    weight_loader(param, weight_data)
+  File "/workspace/wt-exl3-opt-parts/plugin-exl3/vllm_exl3_plugin/quantization/linear.py", line 63, in weight_loader
+    stored = torch.empty_like(loaded_weight, device=param.device)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 608.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 373.69 MiB is free. Including non-PyTorch memory, this process has 23.17 GiB memory in use. Of the allocated memory 22.19 GiB is allocated by PyTorch, with 2.85 GiB allocated in private pools (e.g., CUDA Graphs), and 1.04 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:02,  1.03s/it]

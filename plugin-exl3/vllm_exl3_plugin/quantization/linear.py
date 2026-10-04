@@ -13,7 +13,9 @@ the config implies, mul1 or mcg) whose weight_loader stores each loaded tensor u
 id; no vLLM loader is patched. process_weights_after_loading checks the parts against the
 layer's partition sizes and replaces the placeholders with per-part params
 exl3_{trellis,suh,svh}_{i}. On CUDA it then runs exl3_warmup for each new shape (outside any
-graph capture: model loading precedes vLLM's profiling and capture).
+graph capture: model loading precedes vLLM's profiling and capture). With EXL3_MR set
+(ops.py) it then repacks the K4 trellises (EXL3_MR=2) and warms exl3_gemm_mr for every part
+the multi-row kernel takes, at every row count routed to it.
 """
 
 from __future__ import annotations
@@ -133,7 +135,10 @@ class EXL3LinearMethod(LinearMethodBase):
                                      f"expected fp16 [{size}]")
             parts.append((trellis, suh, svh))
 
-        for name in placeholders:
+        for name, p in placeholders.items():
+            # the loader may still hold the placeholders (vLLM's params_dict): drop their references,
+            # or a concatenated layer (EXL3_MR_CONCAT) keeps its parts alive beside the copy
+            p.exl3_parts.clear()
             delattr(layer, name)
         for i, tensors in enumerate(parts):
             for name, t in zip(_TENSORS, tensors):
@@ -143,6 +148,8 @@ class EXL3LinearMethod(LinearMethodBase):
 
         if parts[0][0].device.type == "cuda":
             self._warmup(layer, parts, quant)
+        if ops.MR_MODE:
+            self._mr_prepare(layer, quant)
 
     def _warmup(self, layer, parts, quant) -> None:
         if not ops.OPS_AVAILABLE:
@@ -155,6 +162,64 @@ class EXL3LinearMethod(LinearMethodBase):
             torch.ops._C_exl3.exl3_warmup(trellis, suh, svh, quant.mcg, quant.mul1, WARMUP_ROWS, out_fp32)
             _WARMED.add(key)
 
+    def _mr_prepare(self, layer, quant) -> None:
+        """EXL3_MR: under 2, K4 trellises become exl3_mr_repack's layout in place (ops.repack_k4_,
+        after exl3_warmup, which reads the stored one). Then exl3_mr_warmup
+        for every part exl3_gemm_mr takes, at each routed row count (the capture guard is
+        per row count)."""
+        if not ops.MR_AVAILABLE:
+            raise RuntimeError(f"EXL3_MR={ops.MR_MODE} but _C_exl3_mr is not built (VLLM_EXL3_BUILD=1)")
+        mr = torch.ops._C_exl3
+        out_fp32 = layer.exl3_dtype != torch.half
+        if ops.MR_CONCAT and self._mr_concat(layer, quant, out_fp32):
+            return
+        for i in range(layer.exl3_num_parts):
+            trellis = getattr(layer, f"exl3_trellis_{i}")
+            if ops.mr_repacks(trellis.shape[2], quant.mul1):
+                trellis = ops.repack_k4_(trellis)
+                setattr(layer, f"exl3_trellis_{i}", Parameter(trellis, requires_grad=False))
+                rows = range(1, ops.GEMM_MAX_ROWS + 1)  # graphs stop at 48 rows; above 144 eager
+            elif ops.mr_takes(trellis.shape[2], quant.mul1):
+                rows = range(ops.MULTI_ROW_MIN, ops.GEMM_MAX_ROWS + 1)
+            else:
+                continue
+            key = ("mr", trellis.device.index, tuple(trellis.shape), trellis.dtype, out_fp32)
+            if trellis.device.type != "cuda" or key in _WARMED:
+                continue
+            mr.exl3_mr_warmup(trellis, getattr(layer, f"exl3_suh_{i}"), getattr(layer, f"exl3_svh_{i}"),
+                              quant.mcg, quant.mul1, list(rows), out_fp32)
+            _WARMED.add(key)
+
+    def _mr_concat(self, layer, quant, out_fp32: bool) -> bool:
+        """EXL3_MR_CONCAT: a fused layer whose parts all take exl3_gemm_mr at one K becomes one
+        concatenated trellis (exl3_cat_*, the parts dropped: no second copy). Returns whether it did."""
+        n = layer.exl3_num_parts
+        ts = [getattr(layer, f"exl3_trellis_{i}") for i in range(n)]
+        if n < 2 or len({t.shape[2] for t in ts}) != 1 or not (
+                ops.mr_repacks(ts[0].shape[2], quant.mul1) or ops.mr_takes(ts[0].shape[2], quant.mul1)):
+            return False
+        if ops.mr_repacks(ts[0].shape[2], quant.mul1):
+            ts = [ops.repack_k4_(t) for t in ts]
+        widths = [ops.out_features(t) for t in ts]
+        tensors = {"trellis": torch.cat(ts, dim=1),
+                   "suh": torch.cat([getattr(layer, f"exl3_suh_{i}") for i in range(n)]),
+                   "svh": torch.cat([getattr(layer, f"exl3_svh_{i}") for i in range(n)])}
+        for i in range(n):
+            for name in _TENSORS:
+                delattr(layer, f"exl3_{name}_{i}")
+        del ts
+        for name, t in tensors.items():
+            layer.register_parameter(f"exl3_cat_{name}", Parameter(t, requires_grad=False))
+        layer.exl3_cat_widths = widths
+        t = tensors["trellis"]
+        key = ("mr-cat", t.device.index, tuple(t.shape), t.dtype, tuple(widths), out_fp32)
+        if t.device.type == "cuda" and key not in _WARMED:
+            ends = [sum(widths[:i + 1]) for i in range(n - 1)]
+            torch.ops._C_exl3.exl3_mr_warmup_multi(t, tensors["suh"], tensors["svh"], ends, quant.mcg, quant.mul1,
+                                                   list(range(1, ops.GEMM_MAX_ROWS + 1)), out_fp32)
+            _WARMED.add(key)
+        return True
+
     def apply(
         self,
         layer: torch.nn.Module,
@@ -162,23 +227,34 @@ class EXL3LinearMethod(LinearMethodBase):
         bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         quant = self.quant_config.quant
-        # the kernels take fp16: cast once per layer, not per part; with a bf16 model the
-        # kernels write fp32 (no second fp16 rounding) and the result is cast once
-        xh = x.reshape(-1, x.shape[-1]).to(torch.half)
-        out_fp32 = x.dtype != torch.half
-        outs = [
-            torch.ops.vllm._exl3_linear(
-                xh,
-                getattr(layer, f"exl3_trellis_{i}"),
-                getattr(layer, f"exl3_suh_{i}"),
-                getattr(layer, f"exl3_svh_{i}"),
-                quant.mcg,
-                quant.mul1,
-                out_fp32,
-            )
-            for i in range(layer.exl3_num_parts)
-        ]
-        out = outs[0] if len(outs) == 1 else torch.cat(outs, dim=-1)
+        # one opaque op per layer (ops.exl3_linear_parts: the parts and their concatenation). The
+        # kernels take fp16: cast once per layer; with a bf16 model they write fp32 (no second fp16
+        # rounding), cast once. Glue (ops.MR_GLUE): bf16 straight through instead, made contiguous as
+        # the cast did (the compiled graph asserts the op's input strides)
+        xh = x.reshape(-1, x.shape[-1])
+        # A wide single-part layer (the lm_head) takes bf16 in every mode: a bf16 result, no fp32 copy of
+        # the full-vocab logits when prompt_logprobs sends whole prompt chunks
+        wide = layer.exl3_num_parts == 1 and ops.out_features(layer.exl3_trellis_0) > ops.RECON_SLICE_N
+        glue = x.dtype == torch.bfloat16 and (ops.MR_GLUE or wide)
+        xh = xh.contiguous() if glue else xh.to(torch.half)
+        if hasattr(layer, "exl3_cat_widths"):  # EXL3_MR_CONCAT
+            out = torch.ops.vllm._exl3_linear_cat(xh, layer.exl3_cat_trellis, layer.exl3_cat_suh, layer.exl3_cat_svh,
+                                                  layer.exl3_cat_widths, quant.mcg, quant.mul1, x.dtype != torch.half)
+            return self._finish(out, x, bias)
+        n = range(layer.exl3_num_parts)
+        out = torch.ops.vllm._exl3_linear_parts(
+            xh,
+            [getattr(layer, f"exl3_trellis_{i}") for i in n],
+            [getattr(layer, f"exl3_suh_{i}") for i in n],
+            [getattr(layer, f"exl3_svh_{i}") for i in n],
+            quant.mcg,
+            quant.mul1,
+            x.dtype != torch.half,
+        )
+        return self._finish(out, x, bias)
+
+    @staticmethod
+    def _finish(out: torch.Tensor, x: torch.Tensor, bias: torch.Tensor | None) -> torch.Tensor:
         out = out.to(x.dtype).reshape(*x.shape[:-1], out.shape[-1])
         if bias is not None:
             out = out + bias

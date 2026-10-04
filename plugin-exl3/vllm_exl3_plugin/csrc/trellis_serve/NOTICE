@@ -1,0 +1,9 @@
+trellis-serve is MIT-licensed (see LICENSE). It includes or derives from:
+
+- ExLlamaV3 (MIT, Copyright (c) 2025 turboderp): the EXL3 format, codebook constants and decode rules.
+  Vendored headers in cuda/csrc/third_party/exllamav3; the reference decoder in core/ reproduces its maths.
+- vLLM Marlin kernels (Apache-2.0, Neural Magic / the vLLM project): the kernel skeleton in cuda/csrc,
+  vendored in cuda/csrc/third_party/marlin with its own LICENSE.
+- QTIP (Tseng et al., 2024): the bitshift trellis and computed-codebook ideas EXL3 is built on.
+
+Per-package notes: cuda/NOTICE.

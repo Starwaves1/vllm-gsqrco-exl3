@@ -1,0 +1,12 @@
+seq_000 chat     1024 tok  KLD mean 0.01192  ref glitches 2  mean without 0.00149  top1 0.9844
+seq_001 chat     2048 tok  KLD mean 0.01159  ref glitches 3  mean without 0.00180  top1 0.9931
+seq_002 code     1536 tok  KLD mean 0.00024  ref glitches 0  mean without 0.00024  top1 0.9965
+seq_003 code     4096 tok  KLD mean 0.00075  ref glitches 0  mean without 0.00075  top1 1.0000
+seq_004 code     8192 tok  KLD mean 0.00021  ref glitches 0  mean without 0.00021  top1 0.9965
+seq_005 prose    8192 tok  KLD mean 0.00031  ref glitches 0  mean without 0.00031  top1 0.9931
+seq_006 code    32768 tok  KLD mean 0.00017  ref glitches 0  mean without 0.00017  top1 0.9965
+seq_007 mixed   32768 tok  KLD mean 0.00030  ref glitches 0  mean without 0.00030  top1 0.9965
+seq_008 mixed   65536 tok  KLD mean 0.00017  ref glitches 0  mean without 0.00017  top1 0.9965
+seq_009 code   102400 tok  KLD mean 0.00022  ref glitches 0  mean without 0.00022  top1 0.9965
+seq_010 mixed  120000 tok  KLD mean 0.00067  ref glitches 0  mean without 0.00067  top1 0.9965
+all: KLD mean without reference glitches 0.00056 over 3131 positions
