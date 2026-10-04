@@ -2,7 +2,7 @@
 
 A vLLM quantization plugin that serves GSQ-RCO GGUF models on an RTX 3090 at production speed. It is a fork of [vllm-project/vllm-gguf-plugin](https://github.com/vllm-project/vllm-gguf-plugin), plus the build, test, benchmark, parity and soak harnesses used to measure it. vLLM itself is not forked.
 
-Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 support is in progress (CPU-only so far, see below).
+Status: tested on one RTX 3090 with vLLM 0.27.1. EXL3 serving (second package, `plugin-exl3/`) is measured on the same GPU with vLLM main; its 12 h soak is still to run (see below).
 
 ## What it does
 
@@ -88,11 +88,17 @@ The absolute target of KLD ≤ 0.001 and top-1 ≥ 99% fails, for the stock kern
 
 Stability. A 24 h soak at c=2 with CUDA graphs is in progress. A 1.19 h partial run on the same build served 621 requests with 0 faults and 0 restarts. GPU memory stayed flat after the first minute. Data is in `cloud/results/soak/`.
 
-## EXL3 (in progress, CPU-only so far)
+## EXL3
 
-A second package, `plugin-exl3/` (`vllm_exl3_plugin`), serves [exllamav3](https://github.com/turboderp-org/exllamav3) EXL3 checkpoints on unpatched vLLM main. It registers quant method `exl3` and nothing else: an EXL3 checkpoint is a normal HF directory, so vLLM's own detection and safetensors loader do the rest. The dense-linear kernels are vendored byte for byte from exllamav3 v1.5.3 (94 files, MIT) behind one shim, `exl3_shim.cu`, the Route L pattern. First target: [turboderp/Qwen3.8-27B-exl3](https://huggingface.co/turboderp/Qwen3.8-27B-exl3) at 3.50bpw.
+A second package, `plugin-exl3/` (`vllm_exl3_plugin`), serves [exllamav3](https://github.com/turboderp-org/exllamav3) EXL3 checkpoints on unpatched vLLM main. It registers quant method `exl3` and nothing else: an EXL3 checkpoint is a normal HF directory, so vLLM's own detection and safetensors loader do the rest. Kernels: exllamav3's dense-linear files (94, MIT) and trellis-serve's Marlin-EXL3 (19, MIT / Apache-2.0), both vendored byte for byte behind one shim each, plus an owned patch for the multi-row MTP verify pass. Target: [erlidev/Swift-1.5-Qwen3.8-27B-EXL3](https://huggingface.co/erlidev/Swift-1.5-Qwen3.8-27B-EXL3) at 3.50bpw.
 
-Done on the CPU: the package, the shim (compiles and links for sm_86, never run), loading the checkpoint's names and shapes into vLLM's Qwen3.8 model and MTP draft on the meta device (nothing unmapped, nothing missing), the row routing, the pruned draft-head tool, and 153 CPU tests. Nothing numeric is tested yet: kernel parity, logit parity against exllamav3, speed, fit and soak are the GPU phases. Design and plan: [EXL3.md](EXL3.md), [docs/adr/0002-exl3-via-plugin.md](docs/adr/0002-exl3-via-plugin.md), [docs/exl3-feasibility.md](docs/exl3-feasibility.md).
+On a 350 W RTX 3090 with production's vLLM main argv and MTP at a fixed k=3: 27.0 / 27.1 / 32.2 / 38.9 ms per engine step at 1 / 2 / 4 / 8 concurrent requests (98 / 188 / 323 / 539 tok/s greedy), faster per step than the GSQ-RCO GGUF at every concurrency; 200,000 tokens of context fit; kernel errors stay within exllamav3's own. Open: the 12 h soak, the other bit-width tiers, and the raw logit gate on two chat prompts. Full results and the definition-of-done checklist: [cloud/results/exl3/REPORT.md](cloud/results/exl3/REPORT.md).
+
+Serve it (build once with `cd plugin-exl3 && VLLM_EXL3_BUILD=1 python setup.py build_ext --inplace`, write the pruned MTP draft head once with `tools/exl3_draft_head.py <checkpoint> --ids <production's draft_vocab_ids.json>`). The launcher takes production's argv (`GSQ_PROD_ARGV`); with the current overlay give it a fixed `num_speculative_tokens`, since the k schedule's drop at 9 sequences corrupts output (REPORT section 5):
+
+    GSQ_EXL3_MODEL=/path/to/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6 GSQ_ALLOW_GPU=1 scripts/serve-exl3.sh
+
+Design and history: [EXL3.md](EXL3.md), [EXL3-OPT.md](EXL3-OPT.md), [docs/adr/0002-exl3-via-plugin.md](docs/adr/0002-exl3-via-plugin.md).
 
 ## Install and build
 
@@ -171,7 +177,7 @@ The harnesses were written for one setup. Paths and ports are environment overri
 | `plugin/vllm_gguf_plugin/csrc/lcpp/` | vendored llama.cpp b11211 files, unmodified; `VENDORED.md` lists them with sha256 |
 | `plugin/vllm_gguf_plugin/csrc/lcpp_shim.cu`, `lcpp_owned_*.cu` | the shim and the owned kernels |
 | `plugin/vllm_gguf_plugin/quantization/` | routing in `linear.py`, IQ3 repack in `iq3_pack.py` |
-| `plugin-exl3/` | the EXL3 plugin (in progress); vendored exllamav3 files in `vllm_exl3_plugin/csrc/exl3/` with `VENDORED.md` |
+| `plugin-exl3/` | the EXL3 plugin; vendored exllamav3 and trellis-serve files in `vllm_exl3_plugin/csrc/exl3/` and `csrc/trellis_serve/`, each with `VENDORED.md` |
 | `hf-config/` | HF config dirs for the tested GGUFs, and the EXL3 checkpoint's metadata, with `PROVENANCE.json` |
 | `tests/cpu`, `tests/gpu` | test suites |
 | `bench/`, `scripts/`, `cloud/` | harnesses; `cloud/results/` holds every measurement |
