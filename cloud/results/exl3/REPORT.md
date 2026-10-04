@@ -14,7 +14,7 @@ measurement: `EXL3-OPT.md`. Labels: VERIFIED = measured on the box.
   `exl3_mr_shim.cu`. `VENDORED.md` in each directory has the sha256s.
 - Owned: `exl3_gemm_mr` on every routed row count 1..384 (K3/K4/K5; K4 repacked at load), with an owned
   patch (`csrc/exl3_marlin_h16.patch`) that accumulates in fp16 at 9..48 rows and folds into fp32 every
-  4 k-stages; one opaque op per layer with the bf16 glue on fused layers; token embedding page-locked in
+  4 k-stages; one opaque op per layer, which also lets bf16 activations go straight into the kernel on fused layers; token embedding page-locked in
   host memory (2.37 GiB of VRAM freed); MTP draft head as per-row fp8 on vLLM's fp8 Marlin.
 - No vLLM patches. Switches and defaults: `EXL3-OPT.md`, "Switches".
 
@@ -30,10 +30,11 @@ ms/step = tok/step / (decode tok/s / c). `cloud/results/exl3-opt-h16x/f4m14/12-m
 | 8 | 539.1 | 38.9 | 44.2 | 41.3 |
 
 The GGUF and W4A16 columns are `cloud/results/REPORT.md` (vLLM 0.27.1, k=3): same GPU and k, older
-vLLM. MTP acceptance over the run 0.507 (per position 0.707 / 0.483 / 0.330), 2.5-2.65 tokens per step.
-Phase 1 ran 39.9 / 43.0 / 69.9 / 72.1 ms/step at c=1/2/4/8 (k=5 schedule); the gains since are the
-owned multi-row kernel and its fp16 accumulation, the per-layer op and glue, the host embedding and the
-fp8 head (`EXL3-OPT.md` has each step's measured contribution).
+vLLM; c=1/2 against W4A16 are within that report's run-to-run spread (about 1 % and 4 %). MTP acceptance
+over the run 0.507 (per position 0.707 / 0.483 / 0.330), 2.5-2.65 tokens per step. Phase 1 ran 39.9 /
+43.0 / 69.9 / 72.1 ms/step at c=1/2/4/8 under production's k schedule (6 verify rows per sequence at
+c <= 4 against 4 at k=3, so part of the gain is the fixed k); under the same schedule the phase-2
+multi-row kernel alone reached 33.2 / 38.3 / 50.8 / 50.7 (`EXL3-OPT.md` has each later step's contribution).
 
 ## 3. Prefill (c=1, tok/s)
 
@@ -49,16 +50,21 @@ At max-model-len 196,608: 281,648 KV tokens (1.43x). 200,000 fits with the host 
 
 - **Kernels** (VERIFIED, `cloud/results/exl3/01-kernel-parity`, `cloud/results/exl3-opt-h16x/f4m14/10-mr-parity`):
   dequant bit-exact with exllamav3 for every bit width in the checkpoint; `exl3_gemm_mr` against fp64
-  never above exllamav3's own `exl3_gemm` error (rms ratio <= 1.00 on 150 shape/rows/dtype cases);
-  compute-sanitizer memcheck and initcheck 0 errors; CUDA graph capture and replay tested.
-- **Logits vs exllamav3** (VERIFIED, job 05, no MTP): KLD mean 0.0034 at bf16 KV (0.00067 without 4
+  never above exllamav3's own `exl3_gemm` error (rms ratio <= 1.00 in every case of `errors.txt`);
+  compute-sanitizer memcheck and initcheck 0 errors; CUDA graph capture and replay tested. That run
+  failed 2 tests, both `test_gemm_mr_multi` (concatenated vs per-part launch, 1.06e-3 apart against a
+  1e-3 bound written for fp32 accumulation); the bound is now 2e-3 and the rerun is queued.
+- **Logits vs exllamav3** (VERIFIED, job 05, no MTP, on the 2026-10-01 build: the multi-row kernel then
+  accumulated in fp32; the fp16-accumulating build has kernel-level parity only): KLD mean 0.0034 at bf16 KV (0.00067 without 4
   positions where the reference itself is wrong by inspection), 0.0094 at fp8 KV; top-1 0.993 / 0.991.
   Code and prose sequences 1.7e-4 to 7.1e-4 up to 120k tokens; the two chat prompts carry the excess,
   as they do between llama.cpp's own CUDA and CPU backends. exllamav3's own fp16 vs fp32 spread: 7.3e-5.
 - **Generation corruption** (VERIFIED, `bench/corruption_check.py`, k=3, 608 requests at c=8/9/12/16, T=0
-  and T=1.0, streamed and not): 0 early EOS, 0 bad UTF-8, 0 errors; 2 foreign-script flags, both at
-  T=1.0 and both coherent text with one sampled foreign token. The T=1.0 baseline without MTP and the
-  c=1/2/4/8 run are queued. The production k schedule's 3 -> 2 drop at 9 seqs corrupts EXL3 as it does
+  and T=1.0, streamed and not; `cloud/results/exl3-opt-h16x/f4m14/20-corruption-k3/`): 15 flagged. 0 early
+  EOS, 0 bad UTF-8, 0 errors; 13 repeat-only flags (5 of them at T=0), which the detector raises at a
+  similar rate with MTP off (4 of 304 in the earlier `nospec` run) and are not corruption; 2 foreign-script
+  flags, both at T=1.0 and both coherent text with one sampled foreign token. The T=1.0 baseline without
+  MTP and the c=1/2/4/8 run are queued. The production k schedule's 3 -> 2 drop at 9 seqs corrupts EXL3 as it does
   GSQ (#50021's conv1d bound in the overlay, not the plugin); a fixed k avoids it.
 
 ## 6. Not finished
@@ -71,14 +77,14 @@ At max-model-len 196,608: 281,648 KV tokens (1.43x). 200,000 fits with the host 
 | `EXL3_MR_CONCAT` | off: with the fp8 head the drafter's load OOMs (probe queued); unmeasured |
 | prompt_logprobs >= 4096 tokens | dies in vLLM's own `compute_logprobs` (stock W4A16 too); vLLM-side fix |
 
-## 7. Definition of done (HANDOFF section 2, applied to EXL3)
+## 7. Definition of done (the seven conditions in `CONTEXT.md`, applied to EXL3)
 
 | item | status |
 |---|---|
 | 1 drop-in | met: same venv as production's, plugin loaded via `VLLM_PLUGINS`; argv differs only in model path, host/port, tier roots, the chat template's repo copy (same sha256) and the fixed k=3; no vLLM patches |
-| 2 correct | partly: kernels within exllamav3's error, dequant bit-exact; **logit gate KLD <= 0.001 FAIL on the raw numbers** (0.0034, the two chat prompts), PASS on code/prose; corruption check clean at T=0, 2 coherent foreign tokens at T=1.0 pending a baseline |
-| 3 fast | decode faster per step than GGUF at every c and than W4A16 at c=1/2/8 (slower at c=4: 32.2 vs 30.0 ms); prefill 5-10 % behind GGUF, ahead of W4A16 at 8k and 180k (1.5 % behind at 64k) |
+| 2 correct | partly: kernels within exllamav3's error, dequant bit-exact; **logit gate KLD <= 0.001 FAIL on the raw numbers** (0.0034, the two chat prompts), PASS on code/prose; corruption check: no early EOS, bad UTF-8 or foreign script at T=0 (5 repeat-only detector flags), 2 coherent foreign tokens at T=1.0 pending a baseline; end-to-end logits not re-measured on the fp16-accumulating build |
+| 3 fast | decode per step: faster than GGUF at every c; against W4A16 ties at c=1/2, faster at c=8, slower at c=4 (32.2 vs 30.0 ms); both references on vLLM 0.27.1; prefill 5-10 % behind GGUF, ahead of W4A16 at 8k and 180k (1.5 % behind at 64k) |
 | 4 fits | PASS: 200,000 fits; 281,648 KV tokens at 196,608 |
 | 5 stable | not yet: 12 h torture soak queued |
 | 6 scientific (DeepSWE Pi run) | not run |
-| 7 reproducible | vendored sources byte-identical with sha256, `VLLM_EXL3_BUILD=1` build, CPU tests (306 EXL3) and GPU suites (`tests/gpu/test_exl3_*.py`), box job scripts in `cloud/results/exl3*/box-scripts/`, this report |
+| 7 reproducible | vendored sources byte-identical with sha256, `VLLM_EXL3_BUILD=1` build, CPU tests (306 with `-k exl3`) and GPU suites (`tests/gpu/test_exl3_*.py`), box job scripts in `cloud/results/exl3*/box-scripts/`, this report |
