@@ -29,6 +29,10 @@ and check (knowledge-bench runs 13-16) shows no corruption signature.
   on a venv with the #50021 conv1d hunk.
 - Still open: job 57's sanitizers exited rc=255 (no OOB check ran); job 28e's headcheck server, job
   60's `noprefix` and job 40's `steady` never booted (engine-core init failure).
+- 12 h torture soak on vLLM main with the conv1d fix (venv-r3-convfix, plugin 32ae6ec, production's
+  GSQ argv incl. the K schedule): gpuq 1791083561941447, queued 2026-10-04 03:20 UTC behind 3 EXL3 jobs.
+  Its 15-min smoke PASSED (0 faults, 0 errors, 0 MiB growth). The first attempt died at import (box
+  Triton/libcuda, see above). Stack and runs: `bench/torture/TORTURE.md` "Runs on vLLM main".
 - Torture smoke 3 PASSED (2026-10-02 01:58-02:23 UTC, commit fbafc28): 0 faults, 21 rows alive, 0
   errors, GPU growth 27 MiB, full 0.33 h. Smoke 1/2 had failed (connection storm; 8 empty outputs).
 - Fixed k=3 vs the schedule (job 62, production's bench, GSQ-RCO, T=0, pass 2): ms/step 26.0/29.8/

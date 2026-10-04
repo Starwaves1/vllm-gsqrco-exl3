@@ -105,8 +105,11 @@ editable plugin build. Check that `GSQ_VENV` points at the vLLM-main venv.
 cat > /workspace/torture-gsq.sh <<'EOF'
 #!/bin/bash
 source /workspace/box-env.sh
-export PYTHONPATH=/workspace/wt-torture/plugin:/workspace/wt-torture/tools GSQ_ALLOW_GPU=1 VLLM_GGUF_LCPP=1 GSQ_RUNS=/workspace/runs
-cd /workspace/wt-torture && exec bench/torture.sh run --serve scripts/serve-gsq.sh --hours 12
+# this box image: /lib is an empty dir, so Triton cannot find libcuda through the ldconfig cache
+export TRITON_LIBCUDA_PATH=/usr/lib/x86_64-linux-gnu
+export GSQ_VENV=/workspace/venv-r3-convfix GSQ_KV_TIER_MAX_BYTES=8000000000
+export PYTHONPATH=/workspace/wt-gsq-32ae6ec/plugin:/workspace/wt-torture/tools GSQ_ALLOW_GPU=1 VLLM_GGUF_LCPP=1 GSQ_RUNS=/workspace/runs
+cd /workspace/wt-torture && exec bench/torture.sh run --serve scripts/serve-gsq.sh --hours "${TORTURE_HOURS:-12}" --skip plog,echo
 EOF
 gpuq submit torture-gsq --cwd /workspace/wt-torture -- bash /workspace/torture-gsq.sh
 ```
@@ -227,6 +230,26 @@ Run dir contents:
 | `server.log` | serve/switch modes only |
 | `serve.json` / `switch.jsonl` | start-to-healthy, stop and leftover facts |
 | `report.json`, `REPORT.md` | the report |
+
+## Runs on vLLM main (rented 3090, 350 W)
+
+| when (UTC) | gpuq job | length | result |
+| --- | --- | --- | --- |
+| 2026-10-03 23:47 | torture-gsq-12h 1791071178260540 | 40 s | FAIL: server never healthy (Triton `libcuda.so cannot found`, the box's `/lib`; not the model) |
+| 2026-10-04 02:54 | torture-gsq-smoke15 1791080362921082 | 0.25 h | PASS: 0 faults, 16 rows alive, 0 errors, GPU growth 0 MiB, healthy in 192 s, 782 responses |
+| queued 03:20 | torture-gsq-12h-b 1791083561941447 | 12 h | |
+
+All three ran the same stack (`/workspace/torture-gsq.sh` above):
+- venv `/workspace/venv-r3-convfix`: a hardlink copy of venv-main (vLLM 0.30.1rc1.dev285+gd28795f1a + overlay
+  2a0fe5e1e1) with `cloud/results/r3/patches/conv1d-accepted-bound.patch` applied (patch sha256 9100741d...,
+  patched `causal_conv1d.py` sha256 81a0ef48..., venv-main's 893158b4...). The fix for the incident in
+  `cloud/results/r3/incident-root-cause.md`.
+- plugin: `/workspace/wt-gsq-32ae6ec` (main 32ae6ec, built `_C_gguf.abi3.so`), first on PYTHONPATH.
+- harness: `/workspace/wt-torture` at fbafc28 (branch `torture`), `--skip plog,echo` (the
+  prompt-logprobs hotfix is not in this plugin build).
+- server argv: `env/prod-main-serve-argv.txt` (production's 2026-10-01 GSQ-RCO argv: per-batch-size MTP
+  schedule `[[1,4,5],[5,8,3],[9,16,2]]`, 16 sequences), so the soak also exercises the conv1d fix
+  under K changes.
 
 ## Assumptions to confirm on the first real run (vLLM main)
 
