@@ -12,6 +12,7 @@ GPUQ_ROOT=${GPUQ_ROOT:-/workspace/gpuq}; J=$GPUQ_ROOT/jobs; O=$GPUQ_ROOT/out; mk
 _id() { date +%s%6N; }
 _find() { ls "$J"/"$1"-*.job "$O"/"$1"-*.status 2>/dev/null | head -1 | sed -E 's#.*/##; s#\.(job|status)$##'; }
 preflight() {
+  for l in /workspace/gq/gpu*.lock; do [ -e "$l" ] && flock "$l" true; done   # wait while a gq job (cloud/gq) holds the GPU
   pgrep -f "VLLM::EngineCore|bin/vllm serve" >/dev/null || rm -f /dev/shm/vllm_offload_*.mmap
   for p in 8000 8001; do for pid in $(ss -ltnp "sport = :$p" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u); do echo "preflight: killing stray listener pid $pid on :$p"; kill "$pid" 2>/dev/null; done; done
   sleep 1
