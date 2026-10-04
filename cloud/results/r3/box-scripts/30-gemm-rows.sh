@@ -5,7 +5,7 @@
 # Picks the kernel work: which (type, n) sit furthest above the DRAM floor at the rows k=5/k=3/k=2
 # produce, and whether an owned kernel beats MMQ on 128-160-row prefill chunks.
 # Output: /workspace/logs/r3/30-gemm-rows/{summary.txt, sweep.tsv, sweep.log}
-# GPU time: ~25 min.
+# GPU time: ~25 min. R3_TOKENS=1,2,... overrides the row counts (with R3_TAG for a second run).
 #   bash 30-gemm-rows.sh [--plan]
 source "$(dirname "$0")/lib.sh"
 r3_init 30-gemm-rows "$@"
@@ -13,7 +13,7 @@ if [ $R3_PLAN = 1 ]; then sed -n '2,8p' "$0"; exit 0; fi
 r3_env
 r3_preflight
 r3_step sweep
-"$PY" "$R3_S/r3gemm.py" --out "$L/sweep.tsv" > "$L/sweep.log" 2>&1 || { tail -20 "$L/sweep.log"; r3_die "sweep"; }
+"$PY" "$R3_S/r3gemm.py" --out "$L/sweep.tsv" ${R3_TOKENS:+--tokens "$R3_TOKENS"} > "$L/sweep.log" 2>&1 || { tail -20 "$L/sweep.log"; r3_die "sweep"; }
 "$PY" - "$L/sweep.tsv" > "$L/table.txt" <<'PYEOF' || r3_die "table"
 import csv, sys, collections
 rows = list(csv.DictReader(open(sys.argv[1]), delimiter="\t"))
@@ -41,9 +41,9 @@ print("   n    route    best-of-variants   DRAM floor   route/floor")
 for n in sorted(model):
     r, b, f = model[n]
     print(f"{n:4d}  {r:7.2f}   {b:7.2f}            {f:7.2f}      {r / f:5.2f}")
-print("\nper type at n = 12 / 24 / 32 / 128 (route ms, floor ms):")
-for n in (12, 24, 32, 128):
+print("\nper type and n (route ms, floor ms):")
+for n in sorted(model):
     print(f"  n={n}: " + "  ".join(f"{t} {v[0]:.2f}/{v[2]:.2f}" for (m, t), v in sorted(bytype.items()) if m == n))
 PYEOF
 r3_summary "R3-30 GEMM sweep (box, $(date -u +%F)), plugin $(git -C "$R3_PLUGIN_WT" rev-parse --short HEAD)" "$(cat "$L/table.txt")"
-cat "$L/summary.txt" | head -80
+head -80 "$L/summary.txt"  # (cat | head under pipefail: rc 141, job 30)
