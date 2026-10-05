@@ -1,0 +1,19 @@
+{
+ "generation": "sm86",
+ "family": "Ampere",
+ "cards": [
+  {
+   "run": "vast-rtx3090-2026-10-05",
+   "card": "NVIDIA GeForce RTX 3090",
+   "copy_GBps": 841.8,
+   "matmul_TFLOPS": 66.0,
+   "int8_TOPS": 68.1,
+   "x_dtype": "bfloat16",
+   "int8_ops_per_byte": 80.9
+  }
+ ],
+ "cells_compared": 0,
+ "agree": 0,
+ "ties_within_3pct": 0,
+ "disagree": []
+}

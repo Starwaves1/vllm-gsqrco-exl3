@@ -1,0 +1,24 @@
+{
+ "copy_GBps": 841.8,
+ "matmul_TFLOPS": 66.0,
+ "int8_TOPS": 68.1,
+ "l2_bytes": 6291456,
+ "x_dtype": "bfloat16",
+ "route_l": true,
+ "rows": [
+  1,
+  2,
+  4,
+  6,
+  8,
+  12,
+  16,
+  24,
+  32,
+  48,
+  64,
+  128
+ ],
+ "fatal": null,
+ "finished": "2026-10-05T06:30:49+0000"
+}

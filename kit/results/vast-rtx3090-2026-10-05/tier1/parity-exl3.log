@@ -1,0 +1,25 @@
+Running 1111 items in this shard
+ssssssssssssssss........................................................ [  6%]
+........................................................................ [ 12%]
+........................................................................ [ 19%]
+........................................................................ [ 25%]
+................................................ssssssssssssssssssssssss [ 32%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 38%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 45%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 51%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 58%]
+ssssssss................................................................ [ 64%]
+....................................ssssss..................ssssss...... [ 71%]
+........................................................................ [ 77%]
+............ssssss........................ss...ss..................ss... [ 84%]
+........................................................................ [ 90%]
+.ss........ss.......................sssssssss........................... [ 97%]
+...............................                                          [100%]
+=============================== warnings summary ===============================
+tests/gpu/test_exl3_mr.py: 14 warnings
+  /workspace/kit/kit/.work/venv-cu13/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kit/kit/results/vast-rtx3090-2026-10-05/tier1/parity-exl3.xml -
+738 passed, 373 skipped, 14 warnings in 76.62s (0:01:16)
