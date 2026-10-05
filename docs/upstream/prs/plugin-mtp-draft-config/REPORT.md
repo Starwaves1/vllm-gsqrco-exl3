@@ -10,6 +10,12 @@ leaves this case as it is. Plugin #70 (open) would move the config source to `hf
 as the `.gguf`. With it, neither `model` nor `model_weights` is a config source, so the draft would need
 vllm#53214's draft `hf_config_path` and this wrapper would no longer be enough. No open PR or issue reports this bug.
 
+Status 2026-10-05: approved by Garrett; held until the GPU run completes (signed branch ready, not pushed).
+GPU so far (RTX 3090, vLLM main d28795f1a): e2b8ad5 reproduces `Unrecognized model in unsloth/Qwen3.5-4B-MTP-GGUF` at
+SpeculativeConfig; the branch gets past engine config creation, then the remote README form stops at a different bug
+(`plugin-mmproj-revision-404`: mm_proj fetched at the config repo's commit, 404). The local-GGUF variant that avoids it
+(`e2e_mtp_local.py`) has not run yet. The PR body was corrected accordingly.
+
 ## Initial problem and concise proof
 
 On vLLM >= 0.29, a GGUF target with `--speculative-config '{"method": "mtp", ...}'` and its config taken from

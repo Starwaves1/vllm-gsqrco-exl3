@@ -3,7 +3,7 @@
     "slug": "plugin-host-staging-copy",
     "title": "[BugFix] Copy unsharded and vocab GGUF weights to the device from host memory (bug 1: MTP draft-load OOM under cumem)",
     "target_repo": "vllm-project/vllm-gguf-plugin",
-    "status": "fable-reviewed",
+    "status": "approved",
     "branch": "upstream/01-host-staging-copy",
     "upstream_refs": [
       "vllm-project/vllm-gguf-plugin#101",
@@ -18,15 +18,15 @@
     "base": "e2b8ad5",
     "fable_comment": "**Recommendation:** approve. **Confidence:** high.\n\nThe mechanism is real and now complete: inside vLLM's cumem weights pool, segments are never returned until the pool closes and `max_split_size_mb=20` stops a freed block from serving any request outside its own size band, so one dead block per distinct unsharded shape is exactly what the 1.06 GiB gap between 18.42 and 17.36 GiB reserved measures. The draft's two 2.37 GiB vocab placeholders then have nowhere to go. The fix removes the only thing that created those blocks, a device staging copy that was never needed because the materialized parameter can take a host-to-device `copy_` directly. Three changed lines, the sharded path untouched for the stated reason, red/green test, and the plugin's own CPU suite green.\n\nResidual points, none blocking: the test patches `torch.Tensor.to` globally for its duration, which is fine in a unit test but should stay the only test doing so; load time was not measured, and I expect it unchanged or better since one copy replaces two. Open PR #141 rewrites the linear half of this path, so whichever lands second rebases one hunk. I would open this one first.",
     "check_opinion": "Ready with edits (applied, text only): cites and pool/OOM path verified, 1.06 GiB = staging copies, red/green real, no downside; mechanism now includes max_split_size_mb=20; #141 fixes the linear half independently, not the vocab half.",
-    "updated": "2026-10-03T22:32:24Z",
-    "why_not": ""
+    "updated": "2026-10-05",
+    "why_not": "Approved by Garrett 2026-10-05; held until the GPU suite completes (Vast run lost to a damaged HF cache, then the instance became unreachable)."
   },
   {
     "slug": "plugin-qwen35-no-mmproj",
     "title": "[BugFix] qwen3_5: serve a multimodal-config GGUF without mm_proj as text only (bug 2)",
     "target_repo": "vllm-project/vllm-gguf-plugin",
-    "status": "fable-reviewed",
-    "branch": "pr/plugin-qwen35-no-mmproj",
+    "status": "opened",
+    "branch": "pr/plugin-qwen35-no-mmproj (signed: Starwaves1:qwen35-text-only-no-mmproj)",
     "upstream_refs": [
       "vllm-project/vllm-gguf-plugin#120 (closed; text-architecture route, +201/-14; CHANGES_REQUESTED: Qwen3_5ForCausalLM missing in vLLM 0.26.0)"
     ],
@@ -38,14 +38,15 @@
     "base": "e2b8ad5",
     "fable_comment": "**Recommendation:** approve. **Confidence:** medium-high.\n\nThe diagnosis is sound and the reviewer closed the gaps that mattered. Deleting the raise alone would silently load nothing, because the text prefix was keyed on the presence of an mm_proj file while the model class is keyed on the config, and `Qwen3_5ForConditionalGeneration` has no mapping for bare `model.*` names. Taking the prefix from `vision_config` aligns the two, and requiring image and video limits of 0 is the one condition under which vLLM itself replaces the tower with a stage-missing layer, so nothing is left uninitialized. The closed alternative #120 needed a text-architecture rebuild and failed on 0.26.0 for lack of `Qwen3_5ForCausalLM`; this route uses classes 0.26.0 already has. Twenty-three lines plus a test with a 5-fail/6-pass red/green.\n\nTwo things to say in the PR rather than hide: the error for the unsupported case now fires at weight load instead of at config patching, which is later in the startup than before but with a message that names both flags; and `is_multimodal` changes meaning from \"an mm_proj file exists\" to \"the config has a vision block\", which is the correct key and is why the mm_proj-with-text-config path still works. Confidence is medium-high rather than high only because the proof of correct serving is our own production run, not an upstream test on GPU.",
     "check_opinion": "Ready with edits (applied): mechanism and cites verified, red/green real, no smaller fix works (architecture fixed in config_parser before the loader; limits cannot be changed at load time); #120 review shows the text-arch route fails on vLLM 0.26.0; stale MTP comment fixed on pr/ branch.",
-    "updated": "2026-10-03T22:32:24Z",
-    "why_not": ""
+    "updated": "2026-10-05",
+    "why_not": "",
+    "pr_url": "https://github.com/vllm-project/vllm-gguf-plugin/pull/143"
   },
   {
     "slug": "plugin-mtp-draft-config",
     "title": "[BugFix] Build the MTP draft config from the HF config source on vLLM >= 0.29 (bug 16)",
     "target_repo": "vllm-project/vllm-gguf-plugin",
-    "status": "fable-reviewed",
+    "status": "approved",
     "branch": "upstream/12-mtp-draft-config",
     "upstream_refs": [
       "vllm-project/vllm#42079 (cause)",
@@ -62,14 +63,32 @@
     "base": "e2b8ad5",
     "fable_comment": "**Recommendation:** approve. **Confidence:** medium-high.\n\nThe break is precisely located: since vLLM #42079 (first in v0.29.0) the MTP draft takes `target.model_weights or target.model`, the plugin sets `model_weights` to the `.gguf`, and the draft's config parser then looks for a `config.json` next to a file that has none. The README's own MTP example is the failing case, which makes this easy for maintainers to confirm. The fix blanks `model_weights` only while vLLM builds the speculative config and only for a GGUF target with no explicit draft, restores it in a `finally`, and lets the existing line point the draft's weights back at the `.gguf`. On 0.27.1 it is a no-op. The alternative of setting the draft `model` directly was correctly rejected because it skips vLLM's quantization-alignment step. Red/green test, CPU suite green, and the reviewer confirmed `model_weights` is read exactly once in that code.\n\nThe residual risk is version fragility of the wrapper signature: it now names `target_model_config` positionally, which is safe for every vLLM version checked but would break with a TypeError if vLLM renamed that parameter. That is visible and loud, not silent, so I accept it. The right long-term home for this is vLLM core, as the branch description says; this PR is the correct plugin-side scope until then. Note the interaction with open plugin #70 in the PR text so maintainers sequence them.",
     "check_opinion": "Ready with edits (applied, text only): cites verified on e2b8ad5/d28795f1a7/main; model_weights read once in SpeculativeConfig; red/green and 105/6 reproduced; no downsides; first affected release is v0.29.0; README MTP example is the failing case.",
-    "updated": "2026-10-03T22:32:24Z",
-    "why_not": ""
+    "updated": "2026-10-05",
+    "why_not": "Approved by Garrett 2026-10-05; held until the GPU suite completes (Vast run lost to a damaged HF cache, then the instance became unreachable)."
+  },
+  {
+    "slug": "plugin-mmproj-revision-404",
+    "title": "[BugFix] Fetch the mm_proj at the GGUF repo's own revision, not the config repo's resolved commit",
+    "target_repo": "vllm-project/vllm-gguf-plugin",
+    "status": "candidate",
+    "branch": "",
+    "upstream_refs": [],
+    "loc": {
+      "added": 0,
+      "removed": 0
+    },
+    "report": "docs/upstream/prs/plugin-mmproj-revision-404/REPORT.md",
+    "base": "e2b8ad5",
+    "fable_comment": "",
+    "check_opinion": "",
+    "updated": "2026-10-05",
+    "why_not": "Found 2026-10-05 in the GPU check of plugin-mtp-draft-config; not diagnosed past the traceback, no fix or test yet."
   },
   {
     "slug": "vllm-50021-conv1d-bound",
     "title": "Review comment on vllm#50021: its causal_conv1d bound zeroes GDN output when the speculative query shrinks (bugs 18, 19: production corruption)",
     "target_repo": "vllm-project/vllm#50021 review",
-    "status": "candidate",
+    "status": "opened",
     "branch": "r3",
     "upstream_refs": [
       "vllm-project/vllm#50021 (open, head 71d7c782ca)"
@@ -82,8 +101,9 @@
     "base": "vllm#50021 head 71d7c782ca",
     "fable_comment": "",
     "check_opinion": "",
-    "updated": "2026-10-03",
-    "why_not": ""
+    "updated": "2026-10-05",
+    "why_not": "",
+    "pr_url": "https://github.com/vllm-project/vllm/pull/50021#issuecomment-5993723671"
   },
   {
     "slug": "vllm-prompt-logprobs-oom",

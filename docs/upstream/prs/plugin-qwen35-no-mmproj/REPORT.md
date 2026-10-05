@@ -10,6 +10,16 @@ It has one CHANGES_REQUESTED review (2026-09-04): `Qwen3_5ForCausalLM` is not re
 that route needs a minimum-version bump. This branch keeps `Qwen3_5ForConditionalGeneration`, which 0.26.0
 already has, and 0.26.0 already skips the tower at limit 0. No open PR or issue covers this.
 
+Upstream: opened 2026-10-05 as https://github.com/vllm-project/vllm-gguf-plugin/pull/143 (signed branch
+`Starwaves1:qwen35-text-only-no-mmproj`, same tree as `pr/plugin-qwen35-no-mmproj`).
+
+GPU proof (2026-10-05, vLLM main d28795f1a wheel without the overlay, torch 2.13.0+cu130, plugin built from the branch):
+RTX 3090, driver 580.173.02: e2b8ad5 fails with `Could not find mm_proj`; the branch serves Qwen3.5-0.8B Q4_K_M text-only
+(no mm_proj, official config, `language_model_only`) and passes `check_logprobs_close` against the original model
+(first divergences at tokens 2, 13, 13, inside the top 8). RTX 3070, driver 595.84: e2b8ad5 fails the same way (Qwen3.5-4B);
+the branch run could not complete (another job held the card). The full `pytest tests -m "not slow"` did not complete
+(damaged HF cache on the Vast box, then the instance became unreachable).
+
 ## Initial problem and concise proof
 
 The official Qwen3.5 / 3.6 / 3.8 HF configs are multimodal (`vision_config`), and text-only GGUFs of these models

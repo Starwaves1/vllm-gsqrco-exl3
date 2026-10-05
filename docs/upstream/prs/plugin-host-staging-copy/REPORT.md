@@ -8,6 +8,9 @@ becomes `param.data = loaded_weight`, which fixes the linear half of this OOM in
 `_gguf_embedding_weight_loader` untouched: if #141 lands first, this PR reduces to the vocab path plus the test;
 if this lands first, #141 rebases one hunk). No open PR or issue covers this OOM.
 
+Status 2026-10-05: approved by Garrett; held until `pytest tests -m "not slow"` completes on a GPU for this branch
+(signed branch ready, not pushed).
+
 ## Initial problem and concise proof
 
 With vLLM's cumem allocator on (`--enable-sleep-mode`, or `enable_cumem_allocator`), a 27B Qwen3.5-architecture
