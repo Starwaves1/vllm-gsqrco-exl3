@@ -3,13 +3,13 @@
  "family": "Ampere",
  "cards": [
   {
-   "run": "vast-rtx3090-2026-10-05",
-   "card": "NVIDIA GeForce RTX 3090",
-   "copy_GBps": 841.8,
-   "matmul_TFLOPS": 66.0,
-   "int8_TOPS": 68.1,
+   "run": "torn-gpu-rtx3070-2026-10-04",
+   "card": "NVIDIA GeForce RTX 3070",
+   "copy_GBps": 403.8,
+   "matmul_TFLOPS": 41.1,
+   "int8_TOPS": 40.2,
    "x_dtype": "bfloat16",
-   "int8_ops_per_byte": 80.9
+   "int8_ops_per_byte": 99.6
   }
  ],
  "cells_compared": 0,
