@@ -29,16 +29,22 @@ class EXL3DraftHeadFp8Method(UnquantizedEmbeddingMethod):
         from vllm.model_executor.layers.quantization.utils.marlin_utils import marlin_make_workspace_new
         from vllm.model_executor.layers.quantization.utils.marlin_utils_fp8 import prepare_fp8_layer_for_marlin
 
-        q, scale = quantize_rows(w)
-        m = torch.nn.Module()  # what prepare_fp8_layer_for_marlin reads
-        m.output_size_per_partition, m.input_size_per_partition, m.orig_dtype = w.shape[0], w.shape[1], w.dtype
-        m.weight = torch.nn.Parameter(q, requires_grad=False)
-        m.weight_scale = torch.nn.Parameter(scale, requires_grad=False)
-        prepare_fp8_layer_for_marlin(m, size_k_first=False)
-        m.workspace = marlin_make_workspace_new(w.device)
-        self.marlin = m
+        # Quantized in row chunks staged on the host, then the bf16 head is freed before the fp8 copy and its
+        # Marlin repack are allocated, so they reuse its block: under vLLM's cumem allocator (production's argv)
+        # freed weight memory stays in its pool until the load ends, and the whole-head fp32 temporaries (0.8 GiB
+        # each) OOMed there. Same GPU arithmetic per row as one call.
+        (n, k), dtype, dev = w.shape, w.dtype, w.device
+        chunks = [[t.cpu() for t in quantize_rows(w[i:i + 1024])] for i in range(0, n, 1024)]
+        q, scale = (torch.cat(ts) for ts in zip(*chunks))
         w.untyped_storage().resize_(0)
-        layer.weight.data = torch.empty((0, w.shape[1]), dtype=w.dtype, device=w.device)
+        layer.weight.data = torch.empty((0, k), dtype=dtype, device=dev)
+        m = torch.nn.Module()  # what prepare_fp8_layer_for_marlin reads
+        m.output_size_per_partition, m.input_size_per_partition, m.orig_dtype = n, k, dtype
+        m.weight = torch.nn.Parameter(q.to(dev), requires_grad=False)
+        m.weight_scale = torch.nn.Parameter(scale.to(dev), requires_grad=False)
+        prepare_fp8_layer_for_marlin(m, size_k_first=False)
+        m.workspace = marlin_make_workspace_new(dev)
+        self.marlin = m
 
     def apply(self, layer: torch.nn.Module, x: torch.Tensor, bias: torch.Tensor | None = None) -> torch.Tensor:
         if self.marlin is None:

@@ -1,0 +1,25 @@
+== 2hf (EXL3DBG draft head entry: allocated 14.62 GiB reserved 17.68 GiB)
+active 14.62 GiB
+  pool (0, 1): 14.56 GiB
+  pool (0, 0): 0.06 GiB
+  6.282 GiB  linear.py:63:weight_loader < linear.py:987:load_weights < utils.py:381:_load_module < utils.py:397:_load_module
+  4.775 GiB  linear.py:63:weight_loader < utils.py:325:_load_param < utils.py:406:_load_module < utils.py:397:_load_module
+  2.369 GiB  vocab_parallel_embedding.py:55:create_weights < vocab_parallel_embedding.py:357:__init__ < qwen3_5_mtp.py:85:__init__ < decorators.py:383:__init__
+  0.531 GiB  linear.py:63:weight_loader < linear.py:1341:load_weights < utils.py:381:_load_module < utils.py:397:_load_module
+  0.391 GiB  vocab_parallel_embedding.py:55:create_weights < vocab_parallel_embedding.py:357:__init__ < vocab_parallel_embedding.py:611:__init__ < qwen3_5_mtp.py:104:__init__
+  0.125 GiB  base.py:61:__init__ < mrope.py:350:__init__ < __init__.py:112:get_rope < qwen3_next.py:328:__init__
+  0.044 GiB  linear.py:193:create_weights < linear.py:519:__init__ < linear.py:719:__init__ < qwen_gdn_linear_attn.py:605:create_ba_proj
+  0.039 GiB  linear.py:189:_mr_prepare < linear.py:152:process_weights_after_loading < utils.py:170:process_weights_after_loading < base_loader.py:91:load_model
+== 2hfc (EXL3DBG draft head entry: allocated 14.62 GiB reserved 22.47 GiB)
+active 14.62 GiB
+  pool (0, 1): 14.56 GiB
+  pool (0, 0): 0.06 GiB
+  5.336 GiB  linear.py:204:_mr_concat < linear.py:174:_mr_prepare < linear.py:152:process_weights_after_loading < utils.py:170:process_weights_after_loading
+  4.772 GiB  linear.py:63:weight_loader < utils.py:325:_load_param < utils.py:406:_load_module < utils.py:397:_load_module
+  2.369 GiB  vocab_parallel_embedding.py:55:create_weights < vocab_parallel_embedding.py:357:__init__ < qwen3_5_mtp.py:85:__init__ < decorators.py:383:__init__
+  0.941 GiB  linear.py:63:weight_loader < linear.py:987:load_weights < utils.py:381:_load_module < utils.py:397:_load_module
+  0.533 GiB  linear.py:63:weight_loader < linear.py:1341:load_weights < utils.py:381:_load_module < utils.py:397:_load_module
+  0.391 GiB  vocab_parallel_embedding.py:55:create_weights < vocab_parallel_embedding.py:357:__init__ < vocab_parallel_embedding.py:611:__init__ < qwen3_5_mtp.py:104:__init__
+  0.125 GiB  base.py:61:__init__ < mrope.py:350:__init__ < __init__.py:112:get_rope < qwen3_next.py:328:__init__
+  0.044 GiB  linear.py:193:create_weights < linear.py:519:__init__ < linear.py:719:__init__ < qwen_gdn_linear_attn.py:605:create_ba_proj
+473050a EXL3 DoD: tiers job (dod-tiers.sh: 3.00/3.50/4.00/4.50 one at a time, non-zero exit on any failed tier); 21-tier regenerates the parity prompt set when the box lost it

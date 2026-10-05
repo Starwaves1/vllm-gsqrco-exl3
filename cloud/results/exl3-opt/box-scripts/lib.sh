@@ -25,12 +25,10 @@ export GSQ_RUNS=$R GSQ_KV_TIER_ROOT=/workspace/kvtier-exl3-opt
 # MTP at a fixed k (EXL3_SPEC_K, default 3; "sched" = production's per-batch-size schedule): the
 # schedule's K drops at batch-size boundaries trip the overlay's #50021 conv1d bound (GSQ round 3's
 # corruption root cause, EXL3 job 20 at c=9), and GSQ-RCO and prod W4A16 are measured at k=3
-# EXL3_ARGV_DROP: one flag line dropped from that argv, for an A/B outside production's argv (e.g. --enable-cumem-allocator)
 if [ "${EXL3_SPEC_K:=3}" != sched ]; then
   mkdir -p "$R"
   awk -v spec="{\"method\":\"mtp\",\"num_speculative_tokens\":$EXL3_SPEC_K,\"draft_sample_method\":\"probabilistic\"}" \
-    -v drop="${EXL3_ARGV_DROP:-}" \
-    'p {print spec; p=0; next} drop != "" && $0 == drop {next} {print} $0=="--speculative-config" {p=1}' "$GSQ_PROD_ARGV" > "$R/prod-argv-k$EXL3_SPEC_K.txt"
+    'p {print spec; p=0; next} {print} $0=="--speculative-config" {p=1}' "$GSQ_PROD_ARGV" > "$R/prod-argv-k$EXL3_SPEC_K.txt"
   grep -q "\"num_speculative_tokens\":$EXL3_SPEC_K," "$R/prod-argv-k$EXL3_SPEC_K.txt" || die "speculative-config not replaced"
   export GSQ_PROD_ARGV=$R/prod-argv-k$EXL3_SPEC_K.txt
 fi
