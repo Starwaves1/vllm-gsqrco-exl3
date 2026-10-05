@@ -1,0 +1,18 @@
+index, name, compute_cap, memory.used [MiB]
+0, NVIDIA GeForce RTX 3070, 8.6, 936 MiB
+1, NVIDIA GeForce RTX 2080 Ti, 7.5, 304 MiB
+Running 640 items in this shard
+ssssssssssssss.......................................................... [ 11%]
+........................................................................ [ 22%]
+........................................................................ [ 33%]
+........................................................................ [ 45%]
+......ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 56%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 67%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 78%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.. [ 90%]
+................................................................         [100%]
+=========================== short test summary info ============================
+SKIPPED [14] tests/gpu/test_exl3_kernels.py:96: no exllamav3 reference in /workspace/logs/exl3-sm75/no-ref (run tests/gpu/exl3_ref_dump.py)
+SKIPPED [280] tests/gpu/test_exl3_kernels.py:135: no exllamav3 reference
+346 passed, 294 skipped in 79.31s (0:01:19)
+=== exit 0

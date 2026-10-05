@@ -1,0 +1,5 @@
+_C_exl3 sm_75: funcs=818 instrs=2362592 HMMA.1688=17184 HMMA.16816=0 LDGSTS=0 LDGDEPBAR=0 LDSM=1944 BPT.TRAP=1560 funcs_with_HMMA=568 funcs_le8_instrs=2
+   sm_75 funcs with <=8 instrs: [('_ZN6f16acc11rate_kernelILb0EEEviPf', ['MOV R1, c[0x0][0x28]', 'EXIT', 'BRA 0x20', 'NOP', 'NOP', 'NOP', 'NOP', 'NOP']), ('_ZN6f16acc11rate_kernelILb1EEEviPf', ['MOV R1, c[0x0][0x28]', 'EXIT', 'BRA 0x20', 'NOP', 'NOP', 'NOP', 'NOP', 'NOP'])]
+_C_exl3 sm_86: funcs=818 instrs=2290040 HMMA.1688=0 HMMA.16816=8912 LDGSTS=6992 LDGDEPBAR=6316 LDSM=2088 BPT.TRAP=1548 funcs_with_HMMA=576 funcs_le8_instrs=0
+_C_exl3_mr sm_75: funcs=69 instrs=580336 HMMA.1688=16128 HMMA.16816=0 LDGSTS=0 LDGDEPBAR=0 LDSM=1320 BPT.TRAP=60 funcs_with_HMMA=60 funcs_le8_instrs=0
+_C_exl3_mr sm_86: funcs=69 instrs=510056 HMMA.1688=0 HMMA.16816=8064 LDGSTS=3500 LDGDEPBAR=768 LDSM=1320 BPT.TRAP=60 funcs_with_HMMA=60 funcs_le8_instrs=0

@@ -1,0 +1,20 @@
+diff --git a/tests/gpu/exl3_cases.py b/tests/gpu/exl3_cases.py
+index 47ec424..107e6d5 100644
+--- a/tests/gpu/exl3_cases.py
++++ b/tests/gpu/exl3_cases.py
+@@ -44,6 +44,15 @@ CHECKPOINTS = {
+         "K5-oproj": ("model.language_model.layers.63.self_attn.o_proj", 5, 6144, 5120),
+         "K6-lmhead": ("lm_head", 6, 5120, 248320),
+     },
++    "Qwen3.5-4B-exl3-6hb-3.0bpw": {  # TheMelonGod/Qwen3.5-4B-exl3 @ 458b610 (branch 6hb-3.0bpw), sm75 check
++        "K3-down": ("model.language_model.layers.0.mlp.down_proj", 3, 9216, 2560),
++        "K3-up": ("model.language_model.layers.0.mlp.up_proj", 3, 2560, 9216),
++        "K3-kproj": ("model.language_model.layers.3.self_attn.k_proj", 3, 2560, 1024),
++        "K3-oproj": ("model.language_model.layers.3.self_attn.o_proj", 3, 4096, 2560),
++        "K4-kproj": ("mtp.layers.0.self_attn.k_proj", 4, 2560, 1024),
++        "K4-mtp-up": ("mtp.layers.0.mlp.up_proj", 4, 2560, 9216),
++        "K6-lmhead": ("lm_head", 6, 2560, 248320),
++    },
+ }
+ TENSORS = CHECKPOINTS[MODEL.name]
+ HEAD = next(t for t in TENSORS if t.endswith("lmhead"))
