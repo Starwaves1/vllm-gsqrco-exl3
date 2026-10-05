@@ -18,5 +18,15 @@
   "status": "ok",
   "note": "",
   "time": "2026-10-05T06:31:13+00:00"
+ },
+ "tier3.gguf-swift-27b-iq3s-k3": {
+  "status": "failed",
+  "note": "server did not start: (EngineCore pid=367123) ERROR 10-05 06:47:12 [core.py:1433]     raise ValueError(msg)\r",
+  "time": "2026-10-05T06:47:15+00:00"
+ },
+ "tier3.exl3-swift-27b-3.50bpw-k3": {
+  "status": "ok",
+  "note": "",
+  "time": "2026-10-05T06:49:13+00:00"
  }
 }

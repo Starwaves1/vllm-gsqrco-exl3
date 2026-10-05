@@ -271,6 +271,7 @@ serve() {  # serve LOG ARGS...: start vLLM in the background and wait for /healt
     sleep 5; t=$((t + 5))
     [ $t -ge "${KIT_SERVE_TIMEOUT:-1500}" ] && { stop; return 1; }
   done
+  return 0
 }
 stop() { [ -n "$SRV" ] && { kill "$SRV" 2>/dev/null; wait "$SRV" 2>/dev/null; }; SRV=; sleep 3; }
 
@@ -322,7 +323,7 @@ tier2() {
   start_out
   [ $CU = 13 ] || { step tier2.all unsupported "the pinned vLLM needs a CUDA 13 driver (>= 580)"; collect; return; }
   [ "$MAX_MIB" -ge 6000 ] || { step tier2.all unsupported "needs >= 6 GB of GPU memory"; collect; return; }
-  local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", g > 0.9 ? 0.9 : g }')
+  local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", (g > 0.9 ? 0.9 : g) }')
   local cfg gguf
   cfg=$(fetch Qwen/Qwen3.5-4B 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a cfg) || die "Qwen3.5-4B config download failed"
   gguf=$(fetch unsloth/Qwen3.5-4B-MTP-GGUF 86835bf9949e4d14d6860f7910b1340ad4f271a9 Qwen3.5-4B-Q4_K_M.gguf) || die "GGUF download failed"
@@ -342,7 +343,7 @@ tier3() {
   start_out
   [ $CU = 13 ] || { step tier3.all unsupported "the pinned vLLM needs a CUDA 13 driver (>= 580)"; collect; return; }
   [ "$MAX_MIB" -ge 20000 ] || { step tier3.all unsupported "needs a 24 GB card"; collect; return; }
-  local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", g > 0.92 ? 0.92 : g }')
+  local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", (g > 0.92 ? 0.92 : g) }')
   local cfg=$ROOT/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp gguf
   gguf=$(fetch ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF d74895bbe5db4bec1e0024e7cc87d59c02d7631a Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf) \
     || die "27B GGUF download failed"

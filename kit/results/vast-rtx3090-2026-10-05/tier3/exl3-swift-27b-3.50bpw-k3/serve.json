@@ -1,0 +1,6 @@
+{
+ "load_s": 30,
+ "model": "/workspace/.hf_home/hub/models--erlidev--Swift-1.5-Qwen3.8-27B-EXL3/snapshots/041dc382133c0ac4a3fcf6c400d70fbea1584c51",
+ "attention": "Using FLASHINFER attention backend out of potential backends: ['FLASHINFER', 'TRITON_ATTN']",
+ "kv_cache": "GPU KV cache size: 128,093 tokens"
+}

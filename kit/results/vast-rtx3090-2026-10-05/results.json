@@ -1,6 +1,6 @@
 {
  "kit_format": 1,
- "generated": "2026-10-05T06:31:14+0000",
+ "generated": "2026-10-05T06:49:13+0000",
  "host": "5180ec32f349",
  "date": "2026-10-05",
  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
@@ -19,12 +19,12 @@
   "power_limit_w": 350.0,
   "default_power_limit_w": 420.0,
   "max_power_limit_w": 500.0,
-  "power_draw_w": 26.44,
+  "power_draw_w": 26.62,
   "sm_clock_mhz": 210.0,
   "mem_clock_mhz": 405.0,
   "max_sm_clock_mhz": 2100.0,
   "max_mem_clock_mhz": 9751.0,
-  "temperature_c": 22.0,
+  "temperature_c": 24.0,
   "utilization_pct": 0.0,
   "memory_used_mib": 1.0,
   "memory_total_mib": 24576.0,
@@ -33,7 +33,7 @@
    "clocks_event_reason_sw_power_cap"
   ],
   "processes": [],
-  "time": "2026-10-05T06:24:36+0000",
+  "time": "2026-10-05T06:45:48+0000",
   "compute_capability": "8.6"
  },
  "software": {
@@ -58,9 +58,9 @@
   ]
  },
  "repo": {
-  "commit": "0c9ff84f744f0a460beca19cf1f083b16d43ddd4",
+  "commit": "e5e34678d01acd9d592da7a48b8a95e3a23723b9",
   "branch": "validation-kit",
-  "dirty": false,
+  "dirty": true,
   "remote": "https://github.com/Starwaves1/vllm-gsqrco-exl3.git"
  },
  "bootstrap": {
@@ -102,6 +102,16 @@
    "status": "ok",
    "note": "",
    "time": "2026-10-05T06:31:13+00:00"
+  },
+  "tier3.gguf-swift-27b-iq3s-k3": {
+   "status": "failed",
+   "note": "server did not start: (EngineCore pid=367123) ERROR 10-05 06:47:12 [core.py:1433]     raise ValueError(msg)\r",
+   "time": "2026-10-05T06:47:15+00:00"
+  },
+  "tier3.exl3-swift-27b-3.50bpw-k3": {
+   "status": "ok",
+   "note": "",
+   "time": "2026-10-05T06:49:13+00:00"
   }
  },
  "power_checks": {
@@ -170,6 +180,72 @@
    },
    "max_memory_used_mib": 1.0,
    "max_utilization_pct": 0
+  },
+  "tier3-exl3-swift-27b-3.50bpw-k3": {
+   "name": "NVIDIA GeForce RTX 3090",
+   "uuid": "GPU-1e4f5106-89be-7fdd-1cbb-7c6777a686d1",
+   "pci_bus_id": "00000000:01:00.0",
+   "vbios": "94.02.42.80.27",
+   "power_limit_w": 350.0,
+   "default_power_limit_w": 420.0,
+   "max_power_limit_w": 500.0,
+   "power_draw_w": 44.97,
+   "sm_clock_mhz": 210.0,
+   "mem_clock_mhz": 810.0,
+   "max_sm_clock_mhz": 2100.0,
+   "max_mem_clock_mhz": 9751.0,
+   "temperature_c": 27.0,
+   "utilization_pct": 0.0,
+   "memory_used_mib": 1.0,
+   "memory_total_mib": 24576.0,
+   "persistence_mode": "Enabled",
+   "clock_event_reasons_active": [
+    "clocks_event_reason_gpu_idle"
+   ],
+   "processes": [],
+   "time": "2026-10-05T06:47:17+0000",
+   "capped": true,
+   "allow_capped": true,
+   "idle": true,
+   "idle_bar": {
+    "mib": 1024.0,
+    "util": 10
+   },
+   "max_memory_used_mib": 1.0,
+   "max_utilization_pct": 0
+  },
+  "tier3-gguf-swift-27b-iq3s-k3": {
+   "name": "NVIDIA GeForce RTX 3090",
+   "uuid": "GPU-1e4f5106-89be-7fdd-1cbb-7c6777a686d1",
+   "pci_bus_id": "00000000:01:00.0",
+   "vbios": "94.02.42.80.27",
+   "power_limit_w": 350.0,
+   "default_power_limit_w": 420.0,
+   "max_power_limit_w": 500.0,
+   "power_draw_w": 26.4,
+   "sm_clock_mhz": 210.0,
+   "mem_clock_mhz": 405.0,
+   "max_sm_clock_mhz": 2100.0,
+   "max_mem_clock_mhz": 9751.0,
+   "temperature_c": 24.0,
+   "utilization_pct": 0.0,
+   "memory_used_mib": 1.0,
+   "memory_total_mib": 24576.0,
+   "persistence_mode": "Enabled",
+   "clock_event_reasons_active": [
+    "clocks_event_reason_sw_power_cap"
+   ],
+   "processes": [],
+   "time": "2026-10-05T06:45:59+0000",
+   "capped": true,
+   "allow_capped": true,
+   "idle": true,
+   "idle_bar": {
+    "mib": 1024.0,
+    "util": 10
+   },
+   "max_memory_used_mib": 1.0,
+   "max_utilization_pct": 0
   }
  },
  "capped": true,
@@ -196,6 +272,18 @@
    "max_temp_c": 43.0,
    "event_reasons_busy": {
     "0x0000000000000004": 4
+   }
+  },
+  "tier3-exl3-swift-27b-3.50bpw-k3": {
+   "samples": 58,
+   "busy_s": 57,
+   "median_sm_mhz": 1755.0,
+   "median_mem_mhz": 9501.0,
+   "median_power_w": 348.55,
+   "max_power_w": 350.25,
+   "max_temp_c": 53.0,
+   "event_reasons_busy": {
+    "0x0000000000000004": 57
    }
   }
  },
@@ -15367,6 +15455,241 @@
    ]
   }
  },
+ "tier3": {
+  "exl3-swift-27b-3.50bpw-k3": {
+   "ladder": {
+    "model": "exl3-swift-27b-3.50bpw-k3",
+    "note": "MTP k=3, T=0, 256 tokens/request",
+    "max_tokens": 256,
+    "rounds": 2,
+    "pass1": {
+     "1": {
+      "requests": 2,
+      "tokens": 512,
+      "wall_s": 5.51,
+      "e2e_tok_s": 92.9,
+      "mean_tpot_ms": 10.403,
+      "mean_ttft_ms": 102.3,
+      "tok_s": 96.1,
+      "tok_step": 2.738,
+      "ms_step": 28.483
+     },
+     "2": {
+      "requests": 4,
+      "tokens": 1024,
+      "wall_s": 5.99,
+      "e2e_tok_s": 171.1,
+      "mean_tpot_ms": 11.105,
+      "mean_ttft_ms": 140.2,
+      "tok_s": 180.1,
+      "tok_step": 2.457,
+      "ms_step": 27.285
+     },
+     "4": {
+      "requests": 8,
+      "tokens": 2048,
+      "wall_s": 7.67,
+      "e2e_tok_s": 266.9,
+      "mean_tpot_ms": 13.363,
+      "mean_ttft_ms": 233.8,
+      "tok_s": 299.3,
+      "tok_step": 2.446,
+      "ms_step": 32.681
+     },
+     "8": {
+      "requests": 16,
+      "tokens": 4096,
+      "wall_s": 9.6,
+      "e2e_tok_s": 426.7,
+      "mean_tpot_ms": 16.611,
+      "mean_ttft_ms": 396.7,
+      "tok_s": 481.6,
+      "tok_step": 2.472,
+      "ms_step": 41.056
+     }
+    },
+    "pass2": {
+     "1": {
+      "requests": 2,
+      "tokens": 512,
+      "wall_s": 5.25,
+      "e2e_tok_s": 97.5,
+      "mean_tpot_ms": 9.905,
+      "mean_ttft_ms": 99.7,
+      "tok_s": 101.0,
+      "tok_step": 2.738,
+      "ms_step": 27.119
+     },
+     "2": {
+      "requests": 4,
+      "tokens": 1024,
+      "wall_s": 5.99,
+      "e2e_tok_s": 171.0,
+      "mean_tpot_ms": 11.112,
+      "mean_ttft_ms": 140.4,
+      "tok_s": 180.0,
+      "tok_step": 2.457,
+      "ms_step": 27.3
+     },
+     "4": {
+      "requests": 8,
+      "tokens": 2048,
+      "wall_s": 7.59,
+      "e2e_tok_s": 269.9,
+      "mean_tpot_ms": 13.294,
+      "mean_ttft_ms": 209.9,
+      "tok_s": 300.9,
+      "tok_step": 2.446,
+      "ms_step": 32.511
+     },
+     "8": {
+      "requests": 16,
+      "tokens": 4096,
+      "wall_s": 9.6,
+      "e2e_tok_s": 426.8,
+      "mean_tpot_ms": 16.616,
+      "mean_ttft_ms": 395.3,
+      "tok_s": 481.5,
+      "tok_step": 2.472,
+      "ms_step": 41.068
+     }
+    }
+   },
+   "serve": {
+    "load_s": 30,
+    "model": "/workspace/.hf_home/hub/models--erlidev--Swift-1.5-Qwen3.8-27B-EXL3/snapshots/041dc382133c0ac4a3fcf6c400d70fbea1584c51",
+    "attention": "Using FLASHINFER attention backend out of potential backends: ['FLASHINFER', 'TRITON_ATTN']",
+    "kv_cache": "GPU KV cache size: 128,093 tokens"
+   },
+   "corruption": [
+    {
+     "config": "exl3-swift-27b-3.50bpw-k3",
+     "requests": 200,
+     "corrupt": 200,
+     "rate": 1.0,
+     "by_temp": {
+      "0.0": {
+       "n": 100,
+       "corrupt": 100
+      },
+      "0.7": {
+       "n": 100,
+       "corrupt": 100
+      }
+     },
+     "by_conc": {
+      "1": {
+       "n": 50,
+       "corrupt": 50
+      },
+      "2": {
+       "n": 50,
+       "corrupt": 50
+      },
+      "4": {
+       "n": 50,
+       "corrupt": 50
+      },
+      "8": {
+       "n": 50,
+       "corrupt": 50
+      }
+     },
+     "by_kind": {
+      "early_eos": 0,
+      "repeat": 0,
+      "foreign": 0,
+      "bad_utf8": 0,
+      "error": 200
+     },
+     "t0_token_mismatch": 0,
+     "t0_first_divergence_median": null,
+     "examples": [
+      {
+       "prompt_idx": 0,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 1,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 2,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 3,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 4,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 5,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 6,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      },
+      {
+       "prompt_idx": 7,
+       "temp": 0.0,
+       "conc": 1,
+       "stream": true,
+       "flags": [
+        "error"
+       ],
+       "tail": ""
+      }
+     ]
+    }
+   ]
+  }
+ },
  "cc": "8.6",
  "generation": {
   "sm": "sm86",
@@ -15374,6 +15697,7 @@
   "card": "NVIDIA GeForce RTX 3090"
  },
  "tiers": {
-  "1": "pass"
+  "1": "pass",
+  "3": "partial"
  }
 }

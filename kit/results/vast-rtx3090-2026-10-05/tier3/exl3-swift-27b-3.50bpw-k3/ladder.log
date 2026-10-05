@@ -1,0 +1,8 @@
+pass 1 c=1: 96.1 tok/s, 28.483 ms/step, 2.738 tok/step
+pass 1 c=2: 180.1 tok/s, 27.285 ms/step, 2.457 tok/step
+pass 1 c=4: 299.3 tok/s, 32.681 ms/step, 2.446 tok/step
+pass 1 c=8: 481.6 tok/s, 41.056 ms/step, 2.472 tok/step
+pass 2 c=1: 101.0 tok/s, 27.119 ms/step, 2.738 tok/step
+pass 2 c=2: 180.0 tok/s, 27.3 ms/step, 2.457 tok/step
+pass 2 c=4: 300.9 tok/s, 32.511 ms/step, 2.446 tok/step
+pass 2 c=8: 481.5 tok/s, 41.068 ms/step, 2.472 tok/step

@@ -9,7 +9,7 @@ Results describe the generation (compute capability); the card is the provenance
 | power limit | 350 W (default 420 W) **CAPPED, numbers labelled capped** |
 | max clocks | SM 2100 MHz, mem 9751 MHz |
 | software | torch 2.13.0 (CUDA 13.0), vLLM 0.30.1rc1.dev285+gd28795f1a, triton 3.7.1 |
-| repo | https://github.com/Starwaves1/vllm-gsqrco-exl3.git @ 0c9ff84f744f |
+| repo | https://github.com/Starwaves1/vllm-gsqrco-exl3.git @ e5e34678d01a (dirty) |
 
 Clocks while busy (util >= 50 %):
 
@@ -17,8 +17,9 @@ Clocks while busy (util >= 50 %):
 |---|---|---|---|---|---|---|
 | tier1-micro | 170 | 1695 | 9501 | 346.0 / 351.6 | 58 | 0x0000000000000004 x167 |
 | tier1-parity | 49 | 1950 | 9501 | 189.7 / 347.7 | 43 | 0x0000000000000004 x4 |
+| tier3-exl3-swift-27b-3.50bpw-k3 | 57 | 1755 | 9501 | 348.6 / 350.2 | 53 | 0x0000000000000004 x57 |
 
-Tiers: tier 1 **pass**
+Tiers: tier 1 **pass**, tier 3 **partial**
 
 | step | status | note |
 |---|---|---|
@@ -26,6 +27,8 @@ Tiers: tier 1 **pass**
 | tier1.parity-exl3 | ok |  |
 | tier1.micro-gguf | ok |  |
 | tier1.micro-exl3 | ok |  |
+| tier3.gguf-swift-27b-iq3s-k3 | failed | server did not start: (EngineCore pid=367123) ERROR 10-05 06:47:12 [core.py:1433]     raise ValueError(msg) |
+| tier3.exl3-swift-27b-3.50bpw-k3 | ok |  |
 
 | build | status | note |
 |---|---|---|
@@ -154,3 +157,16 @@ CUDA-graph replay bit-identical to eager: 2466 of 2466 timed cells
 | 48 | 38.373 | 80.825 | 13.65 |
 | 64 | 63.746 | 106.641 | 13.65 |
 | 128 | 118.86 | 208.182 | 13.65 |
+
+## Tier3: exl3-swift-27b-3.50bpw-k3
+
+exl3-swift-27b-3.50bpw-k3; MTP k=3, T=0, 256 tokens/request
+
+| c | tok/s | ms/step | tok/step | mean TPOT ms |
+|---|---|---|---|---|
+| 1 | 101.0 | 27.12 | 2.74 | 9.90 |
+| 2 | 180.0 | 27.30 | 2.46 | 11.11 |
+| 4 | 300.9 | 32.51 | 2.45 | 13.29 |
+| 8 | 481.5 | 41.07 | 2.47 | 16.62 |
+
+Corruption check (exl3-swift-27b-3.50bpw-k3): 200 of 200 flagged, by kind {'early_eos': 0, 'repeat': 0, 'foreign': 0, 'bad_utf8': 0, 'error': 200}, T=0 token mismatches vs eager reference 0
