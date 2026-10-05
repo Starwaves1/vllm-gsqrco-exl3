@@ -1,0 +1,12 @@
+EXL3_MR=2 EXL3_EMBED_HOST=1 EXL3_DRAFT_FP8=1 EXL3_MR_CONCAT=0 healthy after 45 s
+(APIServer pid=239408) INFO 10-04 16:19:52 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+(APIServer pid=239408) INFO 10-04 16:19:52 [api_utils.py:286] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', 'chat_template': '/workspace/wt-exl3-c1/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_templa
+(EngineCore pid=239988) INFO 10-04 16:20:10 [core.py:129] Initializing a V1 LLM engine (v0.30.1rc1.dev285+gd28795f1a) with config: model='/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', speculative_config=SpeculativeConfig(method='mtp', model='
+(EngineCore pid=239988) INFO 10-04 16:20:14 [gpu_model_runner.py:5305] Starting to load model /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6...
+(EngineCore pid=239988) INFO 10-04 16:20:19 [default_loader.py:484] Loading weights took 4.72 seconds
+(EngineCore pid=239988) INFO 10-04 16:20:22 [default_loader.py:484] Loading weights took 0.62 seconds
+(EngineCore pid=239988) INFO 10-04 16:20:23 [gpu_model_runner.py:5404] Model loading took 11.4 GiB memory and 8.391043 seconds
+(EngineCore pid=239988) INFO 10-04 16:20:27 [kv_cache_utils.py:2408] GPU KV cache size: 284,769 tokens, Maximum concurrency for 196,608 tokens per request: 1.45x
+(EngineCore pid=239988) INFO 10-04 16:20:30 [core.py:380] init engine (profile, create kv cache, warmup model) took 7.51 s
+(EngineCore pid=239988) INFO 10-04 16:20:31 [manager.py:430] fs KV tier 'fs' bounded to 10.0 GB at /workspace/kvtier-exl3-opt/_workspace_models_Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6_d7be6762a91e_r0: 0 block files (0.0 GB) indexed at startup
+VRAM after load: 22520 MiB, 24576 MiB
