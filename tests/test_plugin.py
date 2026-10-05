@@ -16,6 +16,7 @@ from vllm.model_executor.layers.linear import (
     WEIGHT_LOADER_V2_SUPPORTED,
     MergedColumnParallelLinear,
     QKVParallelLinear,
+    RowParallelLinear,
 )
 from vllm.model_executor.layers.quantization import get_quantization_config
 from vllm.model_executor.layers.vocab_parallel_embedding import VocabParallelEmbedding
@@ -149,6 +150,71 @@ def test_gguf_embedding_uses_plugin_weight_loader(monkeypatch):
     assert torch.equal(layer.weight[10:], torch.zeros((6, 6), dtype=torch.uint8))
     assert torch.equal(layer.weight_type, torch.tensor([7], dtype=torch.uint8))
     assert layer.weight_type.weight_type == 7
+
+
+def _record_device_moves(monkeypatch) -> list:
+    """Record Tensor.to() calls that name a device."""
+    moves = []
+    real_to = torch.Tensor.to
+
+    def to(self, *args, **kwargs):
+        if "device" in kwargs or any(isinstance(a, (str, torch.device)) for a in args):
+            moves.append(tuple(self.shape))
+        return real_to(self, *args, **kwargs)
+
+    monkeypatch.setattr(torch.Tensor, "to", to)
+    return moves
+
+
+def test_gguf_unsharded_and_vocab_weights_copy_from_host(monkeypatch):
+    """Unsharded and vocab weights reach their parameter in one host-to-device
+    copy_, without a device staging tensor: in vLLM's cumem weights pool each
+    staging tensor leaves a freed segment that later allocations (the MTP
+    draft's) cannot reuse. Sharded weights are still moved to the device, since
+    a single-shard parameter keeps the stored tensor as its data."""
+    register()
+    for module in (
+        parameter_module,
+        vocab_embedding_module,
+        linear_module,
+        gguf_params_module,
+    ):
+        monkeypatch.setattr(module, "get_tensor_model_parallel_rank", lambda: 0)
+        monkeypatch.setattr(module, "get_tensor_model_parallel_world_size", lambda: 1)
+    quant_config = OOTGGUFConfig.from_config({})
+    linear = RowParallelLinear(
+        input_size=4,
+        output_size=4,
+        bias=False,
+        quant_config=quant_config,
+        disable_tp=True,
+    )
+    embedding = VocabParallelEmbedding(
+        num_embeddings=10,
+        embedding_dim=4,
+        org_num_embeddings=10,
+        padding_size=8,
+        quant_config=quant_config,
+    )
+    merged = MergedColumnParallelLinear(
+        input_size=4,
+        output_sizes=[4, 4],
+        bias=False,
+        quant_config=quant_config,
+        disable_tp=True,
+    )
+    moves = _record_device_moves(monkeypatch)
+
+    weight = torch.arange(16, dtype=torch.uint8).reshape(4, 4)
+    linear.weight_loader_v2(linear.weight, weight)
+    vocab = torch.arange(60, dtype=torch.uint8).reshape(10, 6)
+    embedding.weight.weight_loader(embedding.weight, vocab)
+    assert moves == []
+    assert torch.equal(linear.weight.data, weight)
+    assert torch.equal(embedding.weight.data[:10], vocab)
+
+    merged.weight_loader_v2(merged.weight, weight, 0)
+    assert moves == [(4, 4)]
 
 
 def test_gguf_linear_same_type_shards_skip_concat(monkeypatch):
