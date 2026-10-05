@@ -1,0 +1,19 @@
+{
+ "generation": "sm86",
+ "family": "Ampere",
+ "cards": [
+  {
+   "run": "torn-gpu-rtx3070-2026-10-04",
+   "card": "NVIDIA GeForce RTX 3070",
+   "copy_GBps": 403.8,
+   "matmul_TFLOPS": 41.1,
+   "int8_TOPS": 40.2,
+   "x_dtype": "bfloat16",
+   "int8_ops_per_byte": 99.6
+  }
+ ],
+ "cells_compared": 0,
+ "agree": 0,
+ "ties_within_3pct": 0,
+ "disagree": []
+}

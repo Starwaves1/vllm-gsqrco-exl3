@@ -1,0 +1,715 @@
+NVIDIA GeForce RTX 3070 sm86: copy 404 GB/s, {'matmul_TFLOPS': 41.1, 'int8_TOPS': 40.2}, L2 4.0 MiB, X bfloat16, Route L on
+
+IQ1_M 17408x5120 (18.6 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 86.1us 0.56 | *lcpp_mmvq 81.9us 0.59
+  n=  2 route=lcpp_mmvq: stock_mmvq 166.8us 0.29 | *lcpp_mmvq 97.2us 0.50
+  n=  4 route=lcpp_mmvq: stock_mmvq 335.7us 0.14 | *lcpp_mmvq 135.5us 0.36
+  n=  6 route=lcpp_mmvq: stock_mmvq 504.0us 0.10 | *lcpp_mmvq 175.5us 0.28
+  n=  8 route=lcpp_mmvq: stock_mmvq 666.0us 0.07 | *lcpp_mmvq 200.8us 0.24
+  n= 12 route=lcpp_mmvq_chunked8: stock_mmvq 1009.9us 0.05 | *lcpp_mmvq_chunked8 344.1us 0.14
+  n= 16 route=lcpp_mmvq_chunked8: stock_mmvq 1353.6us 0.04 | stock_dq 966.1us 0.05 | *lcpp_mmvq_chunked8 421.0us 0.11
+  n= 24 route=lcpp_mmvq_chunked8: stock_dq 961.6us 0.05 | *lcpp_mmvq_chunked8 622.7us 0.08
+  n= 32 route=lcpp_mmvq_chunked8: stock_dq 1003.3us 0.05 | *lcpp_mmvq_chunked8 819.6us 0.06
+  n= 48 route=stock_dq: *stock_dq 1004.3us 0.05
+  n= 64 route=stock_dq: *stock_dq 1004.6us 0.05
+  n=128 route=stock_dq: *stock_dq 1063.1us 0.05
+
+IQ2_S 1024x5120 (1.6 MiB, 1 main + 0 mtp, x10 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 11.1us 0.37 | *lcpp_mmvq 10.1us 0.41 | lcpp_mmq 18.2us 0.23 | own_vec 11.3us 0.37 | mma_k 16.6us 0.25
+  n=  2 route=lcpp_mmvq: stock_mmvq 15.6us 0.27 | *lcpp_mmvq 11.0us 0.38 | lcpp_mmq 18.3us 0.23 | own_vec 16.1us 0.26 | mma_k 16.7us 0.25
+  n=  4 route=lcpp_mmvq: stock_mmvq 26.0us 0.16 | *lcpp_mmvq 13.1us 0.32 | lcpp_mmq 18.3us 0.23 | own_vec 13.2us 0.32 | mma_k 16.6us 0.25
+  n=  6 route=lcpp_mmvq: stock_mmvq 36.4us 0.11 | *lcpp_mmvq 16.2us 0.26 | lcpp_mmq 18.4us 0.23 | own_vec 17.9us 0.23 | mma_k 18.1us 0.23
+  n=  8 route=lcpp_mmq: stock_mmvq 46.8us 0.09 | lcpp_mmvq 18.0us 0.23 | *lcpp_mmq 18.4us 0.23 | own_vec 17.9us 0.23 | mma_k 18.2us 0.23
+  n= 12 route=lcpp_mmq: stock_mmvq 67.7us 0.06 | *lcpp_mmq 20.2us 0.21 | mma_k 19.8us 0.21
+  n= 16 route=lcpp_mmq: stock_mmvq 88.7us 0.05 | stock_dq 67.7us 0.06 | *lcpp_mmq 20.4us 0.20 | mma_k 21.1us 0.20
+  n= 24 route=lcpp_mmq: stock_dq 69.9us 0.06 | *lcpp_mmq 22.6us 0.18 | mma_k 26.4us 0.16
+  n= 32 route=lcpp_mmq: stock_dq 70.1us 0.06 | *lcpp_mmq 24.7us 0.17 | mma_k 29.4us 0.14
+  n= 48 route=lcpp_mmq: stock_dq 68.9us 0.06 | *lcpp_mmq 28.0us 0.15 | mma_k 39.7us 0.10
+  n= 64 route=lcpp_mmq: stock_dq 69.5us 0.06 | *lcpp_mmq 34.8us 0.12 | mma_k 45.8us 0.09
+  n=128 route=lcpp_mmq: stock_dq 81.6us 0.05 | *lcpp_mmq 67.2us 0.06 | mma_k_chunked64 93.7us 0.04
+
+IQ2_S 5120x17408 (27.2 MiB, 4 main + 0 mtp, x1 copies)
+  n=  1 route=own_vec: stock_mmvq 100.0us 0.71 | lcpp_mmvq 85.8us 0.82 | lcpp_mmq 169.6us 0.42 | *own_vec 77.0us 0.92 | mma_k 126.1us 0.56
+  n=  2 route=own_vec: stock_mmvq 194.5us 0.36 | lcpp_mmvq 97.6us 0.72 | lcpp_mmq 170.5us 0.41 | *own_vec 81.9us 0.86 | mma_k 127.8us 0.55
+  n=  4 route=own_vec: stock_mmvq 387.8us 0.18 | lcpp_mmvq 134.1us 0.53 | lcpp_mmq 167.9us 0.42 | *own_vec 90.7us 0.78 | mma_k 132.7us 0.53
+  n=  6 route=own_vec: stock_mmvq 589.5us 0.12 | lcpp_mmvq 173.6us 0.41 | lcpp_mmq 176.0us 0.40 | *own_vec 133.4us 0.53 | mma_k 131.9us 0.54
+  n=  8 route=own_vec: stock_mmvq 791.9us 0.09 | lcpp_mmvq 208.2us 0.34 | lcpp_mmq 177.4us 0.40 | *own_vec 133.0us 0.53 | mma_k 129.9us 0.54
+  n= 12 route=mma_k: stock_mmvq 1196.2us 0.06 | lcpp_mmq 193.5us 0.37 | *mma_k 135.1us 0.52
+  n= 16 route=mma_k: stock_mmvq 1605.2us 0.04 | stock_dq 1030.9us 0.07 | lcpp_mmq 186.8us 0.38 | *mma_k 138.2us 0.51
+  n= 24 route=mma_k: stock_dq 1005.8us 0.07 | lcpp_mmq 205.0us 0.34 | *mma_k 189.3us 0.37
+  n= 32 route=mma_k: stock_dq 1016.4us 0.07 | lcpp_mmq 229.4us 0.31 | *mma_k 191.4us 0.37
+  n= 48 route=lcpp_mmq: stock_dq 1031.4us 0.07 | *lcpp_mmq 260.5us 0.27 | mma_k 306.3us 0.23
+  n= 64 route=lcpp_mmq: stock_dq 1284.2us 0.06 | *lcpp_mmq 312.4us 0.23 | mma_k 319.9us 0.22
+  n=128 route=lcpp_mmq: stock_dq 1360.1us 0.05 | *lcpp_mmq 500.3us 0.14 | mma_k_chunked64 659.7us 0.11
+
+IQ2_S 6144x5120 (9.6 MiB, 2 main + 0 mtp, x2 copies)
+  n=  1 route=own_vec: stock_mmvq 40.0us 0.62 | lcpp_mmvq 37.3us 0.67 | lcpp_mmq 64.3us 0.39 | *own_vec 34.4us 0.73 | mma_k 50.7us 0.49
+  n=  2 route=own_vec: stock_mmvq 72.9us 0.34 | lcpp_mmvq 42.0us 0.59 | lcpp_mmq 65.7us 0.38 | *own_vec 41.1us 0.61 | mma_k 51.1us 0.49
+  n=  4 route=own_vec: stock_mmvq 140.0us 0.18 | lcpp_mmvq 58.5us 0.43 | lcpp_mmq 67.0us 0.37 | *own_vec 40.0us 0.62 | mma_k 51.4us 0.49
+  n=  6 route=own_vec: stock_mmvq 209.5us 0.12 | lcpp_mmvq 72.2us 0.35 | lcpp_mmq 67.6us 0.37 | *own_vec 52.0us 0.48 | mma_k 51.8us 0.48
+  n=  8 route=own_vec: stock_mmvq 275.9us 0.09 | lcpp_mmvq 82.3us 0.30 | lcpp_mmq 65.7us 0.38 | *own_vec 56.5us 0.44 | mma_k 52.4us 0.48
+  n= 12 route=mma_k: stock_mmvq 419.0us 0.06 | lcpp_mmq 74.3us 0.34 | *mma_k 54.5us 0.46
+  n= 16 route=mma_k: stock_mmvq 556.8us 0.04 | stock_dq 393.6us 0.06 | lcpp_mmq 71.6us 0.35 | *mma_k 53.9us 0.46
+  n= 24 route=mma_k: stock_dq 379.0us 0.07 | lcpp_mmq 79.8us 0.31 | *mma_k 69.8us 0.36
+  n= 32 route=mma_k: stock_dq 438.5us 0.06 | lcpp_mmq 88.7us 0.28 | *mma_k 71.8us 0.35
+  n= 48 route=lcpp_mmq: stock_dq 408.6us 0.06 | *lcpp_mmq 104.1us 0.24 | mma_k 116.4us 0.21
+  n= 64 route=lcpp_mmq: stock_dq 410.0us 0.06 | *lcpp_mmq 125.0us 0.20 | mma_k 121.9us 0.20
+  n=128 route=lcpp_mmq: stock_dq 454.9us 0.05 | *lcpp_mmq 207.2us 0.12 | mma_k_chunked64 254.1us 0.10
+
+IQ2_S 17408x5120 (27.2 MiB, 9 main + 0 mtp, x1 copies)
+  n=  1 route=own_vec: stock_mmvq 100.3us 0.70 | lcpp_mmvq 94.8us 0.75 | lcpp_mmq 156.2us 0.45 | *own_vec 77.8us 0.91 | mma_k 128.3us 0.55
+  n=  2 route=own_vec: stock_mmvq 203.2us 0.35 | lcpp_mmvq 109.4us 0.65 | lcpp_mmq 154.0us 0.46 | *own_vec 91.4us 0.77 | mma_k 130.7us 0.54
+  n=  4 route=own_vec: stock_mmvq 403.1us 0.18 | lcpp_mmvq 151.5us 0.47 | lcpp_mmq 156.3us 0.45 | *own_vec 94.1us 0.75 | mma_k 135.7us 0.52
+  n=  6 route=own_vec: stock_mmvq 605.5us 0.12 | lcpp_mmvq 185.5us 0.38 | lcpp_mmq 154.3us 0.46 | *own_vec 128.0us 0.55 | mma_k 135.0us 0.52
+  n=  8 route=own_vec: stock_mmvq 805.4us 0.09 | lcpp_mmvq 218.5us 0.32 | lcpp_mmq 155.1us 0.46 | *own_vec 146.6us 0.48 | mma_k 140.1us 0.50
+  n= 12 route=mma_k: stock_mmvq 1186.0us 0.06 | lcpp_mmq 170.2us 0.42 | *mma_k 138.3us 0.51
+  n= 16 route=mma_k: stock_mmvq 1634.3us 0.04 | stock_dq 1006.6us 0.07 | lcpp_mmq 161.9us 0.44 | *mma_k 136.5us 0.52
+  n= 24 route=mma_k: stock_dq 1004.5us 0.07 | lcpp_mmq 187.5us 0.38 | *mma_k 183.8us 0.38
+  n= 32 route=mma_k: stock_dq 1048.4us 0.07 | lcpp_mmq 202.9us 0.35 | *mma_k 198.3us 0.36
+  n= 48 route=lcpp_mmq: stock_dq 1049.5us 0.07 | *lcpp_mmq 272.5us 0.26 | mma_k 308.9us 0.23
+  n= 64 route=lcpp_mmq: stock_dq 1048.8us 0.07 | *lcpp_mmq 330.8us 0.21 | mma_k 305.3us 0.23
+  n=128 route=lcpp_mmq: stock_dq 1114.0us 0.06 | *lcpp_mmq 487.9us 0.14 | mma_k_chunked64 658.4us 0.11
+
+IQ2_XS 5120x17408 (24.6 MiB, 3 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 155.8us 0.41 | *lcpp_mmvq 80.3us 0.79 | lcpp_mmq 170.1us 0.38
+  n=  2 route=lcpp_mmvq: stock_mmvq 314.2us 0.20 | *lcpp_mmvq 90.6us 0.70 | lcpp_mmq 175.2us 0.36
+  n=  4 route=lcpp_mmvq: stock_mmvq 604.6us 0.11 | *lcpp_mmvq 131.3us 0.49 | lcpp_mmq 171.3us 0.37
+  n=  6 route=lcpp_mmvq: stock_mmvq 918.6us 0.07 | *lcpp_mmvq 166.6us 0.38 | lcpp_mmq 174.2us 0.37
+  n=  8 route=lcpp_mmq: stock_mmvq 1260.9us 0.05 | lcpp_mmvq 198.6us 0.32 | *lcpp_mmq 177.9us 0.36
+  n= 12 route=lcpp_mmq: stock_mmvq 1893.8us 0.03 | *lcpp_mmq 201.6us 0.32
+  n= 16 route=lcpp_mmq: stock_mmvq 2558.3us 0.02 | stock_dq 1011.5us 0.06 | *lcpp_mmq 196.5us 0.32
+  n= 24 route=lcpp_mmq: stock_dq 984.6us 0.06 | *lcpp_mmq 214.2us 0.30
+  n= 32 route=lcpp_mmq: stock_dq 993.7us 0.06 | *lcpp_mmq 241.1us 0.26
+  n= 48 route=lcpp_mmq: stock_dq 1000.8us 0.06 | *lcpp_mmq 273.6us 0.23
+  n= 64 route=lcpp_mmq: stock_dq 1264.3us 0.05 | *lcpp_mmq 313.1us 0.20
+  n=128 route=lcpp_mmq: stock_dq 1361.1us 0.05 | *lcpp_mmq 505.9us 0.13
+
+IQ2_XS 10240x5120 (14.5 MiB, 1 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 93.7us 0.40 | *lcpp_mmvq 52.6us 0.71 | lcpp_mmq 101.3us 0.37
+  n=  2 route=lcpp_mmvq: stock_mmvq 179.8us 0.21 | *lcpp_mmvq 66.3us 0.57 | lcpp_mmq 102.2us 0.37
+  n=  4 route=lcpp_mmvq: stock_mmvq 361.8us 0.10 | *lcpp_mmvq 90.3us 0.42 | lcpp_mmq 101.3us 0.37
+  n=  6 route=lcpp_mmvq: stock_mmvq 565.7us 0.07 | *lcpp_mmvq 106.8us 0.35 | lcpp_mmq 103.5us 0.36
+  n=  8 route=lcpp_mmq: stock_mmvq 750.3us 0.05 | lcpp_mmvq 121.2us 0.31 | *lcpp_mmq 101.8us 0.37
+  n= 12 route=lcpp_mmq: stock_mmvq 1122.2us 0.03 | *lcpp_mmq 119.9us 0.31
+  n= 16 route=lcpp_mmq: stock_mmvq 1488.8us 0.03 | stock_dq 593.6us 0.06 | *lcpp_mmq 116.0us 0.32
+  n= 24 route=lcpp_mmq: stock_dq 594.1us 0.06 | *lcpp_mmq 127.7us 0.29
+  n= 32 route=lcpp_mmq: stock_dq 662.6us 0.06 | *lcpp_mmq 142.9us 0.26
+  n= 48 route=lcpp_mmq: stock_dq 684.6us 0.05 | *lcpp_mmq 165.1us 0.23
+  n= 64 route=lcpp_mmq: stock_dq 694.5us 0.05 | *lcpp_mmq 193.0us 0.19
+  n=128 route=lcpp_mmq: stock_dq 692.7us 0.05 | *lcpp_mmq 330.3us 0.11
+
+IQ2_XS 17408x5120 (24.6 MiB, 5 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 155.9us 0.41 | *lcpp_mmvq 89.8us 0.71 | lcpp_mmq 149.8us 0.43
+  n=  2 route=lcpp_mmvq: stock_mmvq 316.0us 0.20 | *lcpp_mmvq 107.6us 0.59 | lcpp_mmq 147.9us 0.43
+  n=  4 route=lcpp_mmvq: stock_mmvq 613.3us 0.10 | *lcpp_mmvq 145.6us 0.44 | lcpp_mmq 148.6us 0.43
+  n=  6 route=lcpp_mmvq: stock_mmvq 962.8us 0.07 | *lcpp_mmvq 180.3us 0.35 | lcpp_mmq 145.7us 0.44
+  n=  8 route=lcpp_mmq: stock_mmvq 1287.4us 0.05 | lcpp_mmvq 209.6us 0.30 | *lcpp_mmq 145.4us 0.44
+  n= 12 route=lcpp_mmq: stock_mmvq 1931.4us 0.03 | *lcpp_mmq 169.0us 0.38
+  n= 16 route=lcpp_mmq: stock_mmvq 2604.1us 0.02 | stock_dq 986.6us 0.06 | *lcpp_mmq 163.0us 0.39
+  n= 24 route=lcpp_mmq: stock_dq 982.6us 0.06 | *lcpp_mmq 180.2us 0.35
+  n= 32 route=lcpp_mmq: stock_dq 1026.4us 0.06 | *lcpp_mmq 201.8us 0.32
+  n= 48 route=lcpp_mmq: stock_dq 1026.4us 0.06 | *lcpp_mmq 267.6us 0.24
+  n= 64 route=lcpp_mmq: stock_dq 1027.0us 0.06 | *lcpp_mmq 312.4us 0.20
+  n=128 route=lcpp_mmq: stock_dq 1094.0us 0.06 | *lcpp_mmq 505.8us 0.13
+
+IQ2_XXS 10240x5120 (12.9 MiB, 1 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 86.9us 0.39 | *lcpp_mmvq 54.0us 0.62 | lcpp_mmq 87.8us 0.38
+  n=  2 route=lcpp_mmvq: stock_mmvq 166.8us 0.20 | *lcpp_mmvq 60.7us 0.55 | lcpp_mmq 93.4us 0.36
+  n=  4 route=lcpp_mmvq: stock_mmvq 336.1us 0.10 | *lcpp_mmvq 91.8us 0.36 | lcpp_mmq 89.1us 0.38
+  n=  6 route=lcpp_mmvq: stock_mmvq 496.1us 0.07 | *lcpp_mmvq 103.7us 0.32 | lcpp_mmq 93.0us 0.36
+  n=  8 route=lcpp_mmq: stock_mmvq 702.5us 0.05 | lcpp_mmvq 119.6us 0.28 | *lcpp_mmq 90.8us 0.37
+  n= 12 route=lcpp_mmq: stock_mmvq 1029.4us 0.03 | *lcpp_mmq 102.2us 0.33
+  n= 16 route=lcpp_mmq: stock_mmvq 1408.3us 0.02 | stock_dq 585.7us 0.06 | *lcpp_mmq 98.2us 0.34
+  n= 24 route=lcpp_mmq: stock_dq 586.2us 0.06 | *lcpp_mmq 109.8us 0.30
+  n= 32 route=lcpp_mmq: stock_dq 652.0us 0.05 | *lcpp_mmq 120.9us 0.28
+  n= 48 route=lcpp_mmq: stock_dq 675.2us 0.05 | *lcpp_mmq 136.5us 0.25
+  n= 64 route=lcpp_mmq: stock_dq 687.0us 0.05 | *lcpp_mmq 156.9us 0.21
+  n=128 route=lcpp_mmq: stock_dq 683.2us 0.05 | *lcpp_mmq 250.4us 0.13
+
+IQ2_XXS 12288x5120 (15.5 MiB, 1 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 102.3us 0.39 | *lcpp_mmvq 61.2us 0.66 | lcpp_mmq 105.9us 0.38
+  n=  2 route=lcpp_mmvq: stock_mmvq 203.3us 0.20 | *lcpp_mmvq 69.2us 0.58 | lcpp_mmq 106.1us 0.38
+  n=  4 route=lcpp_mmvq: stock_mmvq 404.2us 0.10 | *lcpp_mmvq 104.9us 0.38 | lcpp_mmq 106.3us 0.38
+  n=  6 route=lcpp_mmvq: stock_mmvq 605.0us 0.07 | *lcpp_mmvq 121.6us 0.33 | lcpp_mmq 106.0us 0.38
+  n=  8 route=lcpp_mmq: stock_mmvq 845.4us 0.05 | lcpp_mmvq 144.1us 0.28 | *lcpp_mmq 107.7us 0.37
+  n= 12 route=lcpp_mmq: stock_mmvq 1271.7us 0.03 | *lcpp_mmq 120.3us 0.33
+  n= 16 route=lcpp_mmq: stock_mmvq 1693.9us 0.02 | stock_dq 721.7us 0.06 | *lcpp_mmq 115.7us 0.35
+  n= 24 route=lcpp_mmq: stock_dq 769.6us 0.05 | *lcpp_mmq 129.2us 0.31
+  n= 32 route=lcpp_mmq: stock_dq 718.4us 0.06 | *lcpp_mmq 142.4us 0.28
+  n= 48 route=lcpp_mmq: stock_dq 870.6us 0.05 | *lcpp_mmq 159.5us 0.25
+  n= 64 route=lcpp_mmq: stock_dq 893.9us 0.04 | *lcpp_mmq 184.6us 0.22
+  n=128 route=lcpp_mmq: stock_dq 918.0us 0.04 | *lcpp_mmq 294.8us 0.14
+
+IQ2_XXS 17408x5120 (21.9 MiB, 3 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 142.4us 0.40 | *lcpp_mmvq 88.7us 0.64 | lcpp_mmq 130.8us 0.43
+  n=  2 route=lcpp_mmvq: stock_mmvq 294.7us 0.19 | *lcpp_mmvq 95.6us 0.60 | lcpp_mmq 130.8us 0.43
+  n=  4 route=lcpp_mmvq: stock_mmvq 561.7us 0.10 | *lcpp_mmvq 142.7us 0.40 | lcpp_mmq 126.7us 0.45
+  n=  6 route=lcpp_mmvq: stock_mmvq 874.8us 0.07 | *lcpp_mmvq 164.8us 0.35 | lcpp_mmq 132.9us 0.43
+  n=  8 route=lcpp_mmq: stock_mmvq 1158.2us 0.05 | lcpp_mmvq 194.9us 0.29 | *lcpp_mmq 130.1us 0.44
+  n= 12 route=lcpp_mmq: stock_mmvq 1768.1us 0.03 | *lcpp_mmq 144.5us 0.39
+  n= 16 route=lcpp_mmq: stock_mmvq 2423.4us 0.02 | stock_dq 973.6us 0.06 | *lcpp_mmq 140.9us 0.40
+  n= 24 route=lcpp_mmq: stock_dq 970.0us 0.06 | *lcpp_mmq 157.2us 0.36
+  n= 32 route=lcpp_mmq: stock_dq 1014.5us 0.06 | *lcpp_mmq 173.3us 0.33
+  n= 48 route=lcpp_mmq: stock_dq 1016.4us 0.06 | *lcpp_mmq 225.2us 0.25
+  n= 64 route=lcpp_mmq: stock_dq 1016.3us 0.06 | *lcpp_mmq 255.8us 0.22
+  n=128 route=lcpp_mmq: stock_dq 1081.0us 0.05 | *lcpp_mmq 408.2us 0.14
+
+IQ3_S 1024x5120 (2.1 MiB, 7 main + 0 mtp, x8 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 12.0us 0.47 | lcpp_mmvq 10.9us 0.51 | lcpp_mmq 19.3us 0.29 | iq3_vec 14.1us 0.40 | iq3_vec_mma 13.5us 0.41 | *iq3_vec_mma_packed 11.2us 0.50 | iq3_tiled_packed 16.8us 0.33
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 16.4us 0.34 | lcpp_mmvq 12.4us 0.45 | lcpp_mmq 19.3us 0.29 | iq3_vec 14.1us 0.40 | iq3_vec_mma 13.5us 0.41 | *iq3_vec_mma_packed 11.2us 0.50 | iq3_tiled_packed 17.5us 0.32
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 27.5us 0.20 | lcpp_mmvq 14.0us 0.40 | lcpp_mmq 19.3us 0.29 | iq3_vec 15.3us 0.37 | iq3_vec_mma 13.7us 0.41 | *iq3_vec_mma_packed 11.4us 0.49 | iq3_tiled_packed 18.8us 0.30
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 38.8us 0.14 | lcpp_mmvq 16.4us 0.34 | lcpp_mmq 19.4us 0.29 | iq3_vec 18.7us 0.30 | iq3_vec_mma 14.1us 0.40 | *iq3_vec_mma_packed 11.6us 0.48 | iq3_tiled_packed 20.1us 0.28
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 50.2us 0.11 | lcpp_mmvq 18.9us 0.30 | lcpp_mmq 19.5us 0.29 | iq3_vec 17.9us 0.31 | iq3_vec_mma 14.3us 0.39 | *iq3_vec_mma_packed 11.9us 0.47 | iq3_tiled_packed 21.4us 0.26
+  n= 12 route=iq3_tiled_packed: stock_mmvq 72.9us 0.08 | lcpp_mmq 21.0us 0.27 | iq3_vec_mma_packed 14.9us 0.37 | *iq3_tiled_packed 23.9us 0.23
+  n= 16 route=iq3_tiled_packed: stock_mmvq 95.5us 0.06 | stock_dq 67.5us 0.08 | lcpp_mmq 21.2us 0.26 | iq3_vec_mma_packed 15.9us 0.35 | *iq3_tiled_packed 26.4us 0.21
+  n= 24 route=iq3_tiled_packed: stock_dq 69.6us 0.08 | lcpp_mmq 22.8us 0.25 | iq3_vec_mma_packed 23.6us 0.24 | *iq3_tiled_packed 28.6us 0.20
+  n= 32 route=iq3_tiled_packed: stock_dq 70.1us 0.08 | lcpp_mmq 24.8us 0.23 | iq3_vec_mma_packed 25.9us 0.22 | *iq3_tiled_packed 28.7us 0.19
+  n= 48 route=iq3_tiled_packed: stock_dq 68.5us 0.08 | lcpp_mmq 27.8us 0.20 | *iq3_tiled_packed 29.3us 0.19
+  n= 64 route=iq3_tiled_packed: stock_dq 69.4us 0.08 | lcpp_mmq 33.4us 0.17 | *iq3_tiled_packed 33.1us 0.17
+  n=128 route=iq3_tiled_packed: stock_dq 81.6us 0.07 | lcpp_mmq 57.0us 0.10 | *iq3_tiled_packed 53.2us 0.10
+
+IQ3_S 5120x6144 (12.9 MiB, 32 main + 0 mtp, x2 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 42.2us 0.79 | lcpp_mmvq 39.9us 0.84 | lcpp_mmq 71.9us 0.47 | iq3_vec 37.7us 0.89 | iq3_vec_mma 42.6us 0.79 | *iq3_vec_mma_packed 39.2us 0.85 | iq3_tiled_packed 46.6us 0.72
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 78.4us 0.43 | lcpp_mmvq 44.9us 0.75 | lcpp_mmq 73.4us 0.46 | iq3_vec 42.9us 0.78 | iq3_vec_mma 43.2us 0.78 | *iq3_vec_mma_packed 39.5us 0.85 | iq3_tiled_packed 47.3us 0.71
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 151.0us 0.22 | lcpp_mmvq 59.1us 0.57 | lcpp_mmq 75.5us 0.44 | iq3_vec 49.8us 0.67 | iq3_vec_mma 44.7us 0.75 | *iq3_vec_mma_packed 39.9us 0.84 | iq3_tiled_packed 48.5us 0.69
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 223.9us 0.15 | lcpp_mmvq 68.5us 0.49 | lcpp_mmq 74.8us 0.45 | iq3_vec 57.1us 0.59 | iq3_vec_mma 45.0us 0.74 | *iq3_vec_mma_packed 40.2us 0.83 | iq3_tiled_packed 49.8us 0.67
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 296.3us 0.11 | lcpp_mmvq 81.9us 0.41 | lcpp_mmq 75.1us 0.45 | iq3_vec 56.3us 0.59 | iq3_vec_mma 47.1us 0.71 | *iq3_vec_mma_packed 41.3us 0.81 | iq3_tiled_packed 51.4us 0.65
+  n= 12 route=iq3_tiled_packed: stock_mmvq 441.7us 0.08 | lcpp_mmq 83.4us 0.40 | iq3_vec_mma_packed 43.5us 0.77 | *iq3_tiled_packed 53.5us 0.63
+  n= 16 route=iq3_tiled_packed: stock_mmvq 614.2us 0.05 | stock_dq 367.1us 0.09 | lcpp_mmq 80.3us 0.42 | iq3_vec_mma_packed 45.4us 0.74 | *iq3_tiled_packed 55.8us 0.60
+  n= 24 route=iq3_tiled_packed: stock_dq 364.7us 0.09 | lcpp_mmq 85.9us 0.39 | iq3_vec_mma_packed 76.8us 0.44 | *iq3_tiled_packed 61.7us 0.54
+  n= 32 route=iq3_tiled_packed: stock_dq 365.5us 0.09 | lcpp_mmq 96.0us 0.35 | iq3_vec_mma_packed 83.7us 0.40 | *iq3_tiled_packed 61.0us 0.55
+  n= 48 route=iq3_tiled_packed: stock_dq 367.4us 0.09 | lcpp_mmq 102.5us 0.33 | *iq3_tiled_packed 88.3us 0.38
+  n= 64 route=iq3_tiled_packed: stock_dq 468.0us 0.07 | lcpp_mmq 112.9us 0.30 | *iq3_tiled_packed 76.4us 0.44
+  n=128 route=iq3_tiled_packed: stock_dq 421.1us 0.08 | lcpp_mmq 171.7us 0.19 | *iq3_tiled_packed 121.8us 0.27
+
+IQ3_S 5120x17408 (36.5 MiB, 22 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 114.4us 0.83 | lcpp_mmvq 98.8us 0.96 | lcpp_mmq 208.2us 0.46 | iq3_vec 96.8us 0.98 | iq3_vec_mma 104.9us 0.90 | *iq3_vec_mma_packed 98.5us 0.96 | iq3_tiled_packed 106.9us 0.89
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 219.0us 0.43 | lcpp_mmvq 107.9us 0.88 | lcpp_mmq 206.2us 0.46 | iq3_vec 112.2us 0.85 | iq3_vec_mma 106.3us 0.89 | *iq3_vec_mma_packed 99.0us 0.96 | iq3_tiled_packed 107.3us 0.88
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 442.8us 0.21 | lcpp_mmvq 144.5us 0.66 | lcpp_mmq 211.4us 0.45 | iq3_vec 129.5us 0.73 | iq3_vec_mma 109.7us 0.86 | *iq3_vec_mma_packed 99.9us 0.95 | iq3_tiled_packed 109.4us 0.87
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 637.3us 0.15 | lcpp_mmvq 182.8us 0.52 | lcpp_mmq 213.5us 0.44 | iq3_vec 151.0us 0.63 | iq3_vec_mma 114.9us 0.83 | *iq3_vec_mma_packed 101.6us 0.93 | iq3_tiled_packed 110.8us 0.86
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 879.9us 0.11 | lcpp_mmvq 220.8us 0.43 | lcpp_mmq 213.9us 0.44 | iq3_vec 140.0us 0.68 | iq3_vec_mma 119.8us 0.79 | *iq3_vec_mma_packed 107.2us 0.88 | iq3_tiled_packed 112.5us 0.84
+  n= 12 route=iq3_tiled_packed: stock_mmvq 1308.5us 0.07 | lcpp_mmq 230.3us 0.41 | iq3_vec_mma_packed 110.3us 0.86 | *iq3_tiled_packed 116.6us 0.81
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1767.7us 0.05 | stock_dq 1040.5us 0.09 | lcpp_mmq 230.9us 0.41 | iq3_vec_mma_packed 115.4us 0.82 | *iq3_tiled_packed 120.9us 0.78
+  n= 24 route=iq3_tiled_packed: stock_dq 1012.5us 0.09 | lcpp_mmq 236.0us 0.40 | iq3_vec_mma_packed 192.0us 0.49 | *iq3_tiled_packed 130.7us 0.73
+  n= 32 route=iq3_tiled_packed: stock_dq 1018.9us 0.09 | lcpp_mmq 276.0us 0.34 | iq3_vec_mma_packed 215.4us 0.44 | *iq3_tiled_packed 138.7us 0.68
+  n= 48 route=iq3_tiled_packed: stock_dq 1026.5us 0.09 | lcpp_mmq 270.9us 0.35 | *iq3_tiled_packed 163.8us 0.58
+  n= 64 route=iq3_tiled_packed: stock_dq 1293.6us 0.07 | lcpp_mmq 297.4us 0.32 | *iq3_tiled_packed 200.8us 0.47
+  n=128 route=iq3_tiled_packed: stock_dq 1368.7us 0.07 | lcpp_mmq 416.2us 0.23 | *iq3_tiled_packed 360.4us 0.26
+
+IQ3_S 6144x5120 (12.9 MiB, 18 main + 0 mtp, x2 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 43.4us 0.77 | lcpp_mmvq 43.1us 0.78 | lcpp_mmq 76.7us 0.44 | iq3_vec 46.0us 0.73 | iq3_vec_mma 45.0us 0.74 | *iq3_vec_mma_packed 40.7us 0.82 | iq3_tiled_packed 46.5us 0.72
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 78.9us 0.42 | lcpp_mmvq 47.1us 0.71 | lcpp_mmq 77.4us 0.43 | iq3_vec 47.3us 0.71 | iq3_vec_mma 45.6us 0.73 | *iq3_vec_mma_packed 41.0us 0.82 | iq3_tiled_packed 47.2us 0.71
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 151.9us 0.22 | lcpp_mmvq 59.8us 0.56 | lcpp_mmq 77.9us 0.43 | iq3_vec 47.7us 0.70 | iq3_vec_mma 46.4us 0.72 | *iq3_vec_mma_packed 41.4us 0.81 | iq3_tiled_packed 48.2us 0.69
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 225.1us 0.15 | lcpp_mmvq 76.6us 0.44 | lcpp_mmq 79.5us 0.42 | iq3_vec 53.2us 0.63 | iq3_vec_mma 47.2us 0.71 | *iq3_vec_mma_packed 41.9us 0.80 | iq3_tiled_packed 49.4us 0.68
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 304.5us 0.11 | lcpp_mmvq 91.2us 0.37 | lcpp_mmq 78.4us 0.43 | iq3_vec 59.0us 0.57 | iq3_vec_mma 49.5us 0.68 | *iq3_vec_mma_packed 42.9us 0.78 | iq3_tiled_packed 50.8us 0.66
+  n= 12 route=iq3_tiled_packed: stock_mmvq 444.8us 0.08 | lcpp_mmq 87.7us 0.38 | iq3_vec_mma_packed 46.1us 0.73 | *iq3_tiled_packed 53.1us 0.63
+  n= 16 route=iq3_tiled_packed: stock_mmvq 602.3us 0.06 | stock_dq 393.4us 0.09 | lcpp_mmq 84.3us 0.40 | iq3_vec_mma_packed 48.3us 0.69 | *iq3_tiled_packed 55.2us 0.61
+  n= 24 route=iq3_tiled_packed: stock_dq 379.1us 0.09 | lcpp_mmq 89.5us 0.37 | iq3_vec_mma_packed 82.5us 0.41 | *iq3_tiled_packed 64.9us 0.52
+  n= 32 route=iq3_tiled_packed: stock_dq 444.1us 0.08 | lcpp_mmq 98.6us 0.34 | iq3_vec_mma_packed 90.8us 0.37 | *iq3_tiled_packed 69.8us 0.48
+  n= 48 route=iq3_tiled_packed: stock_dq 410.3us 0.08 | lcpp_mmq 102.9us 0.33 | *iq3_tiled_packed 85.8us 0.39
+  n= 64 route=iq3_tiled_packed: stock_dq 412.9us 0.08 | lcpp_mmq 114.2us 0.29 | *iq3_tiled_packed 115.6us 0.29
+  n=128 route=iq3_tiled_packed: stock_dq 457.8us 0.07 | lcpp_mmq 174.0us 0.19 | *iq3_tiled_packed 166.8us 0.20
+
+IQ3_S 10240x5120 (21.5 MiB, 22 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 66.5us 0.84 | lcpp_mmvq 66.1us 0.84 | lcpp_mmq 123.3us 0.45 | iq3_vec 61.1us 0.91 | iq3_vec_mma 67.6us 0.83 | *iq3_vec_mma_packed 60.8us 0.92 | iq3_tiled_packed 61.6us 0.91
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 127.5us 0.44 | lcpp_mmvq 75.0us 0.74 | lcpp_mmq 124.2us 0.45 | iq3_vec 68.5us 0.81 | iq3_vec_mma 68.2us 0.82 | *iq3_vec_mma_packed 61.1us 0.91 | iq3_tiled_packed 61.7us 0.90
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 248.7us 0.22 | lcpp_mmvq 95.7us 0.58 | lcpp_mmq 124.3us 0.45 | iq3_vec 73.7us 0.76 | iq3_vec_mma 71.4us 0.78 | *iq3_vec_mma_packed 61.9us 0.90 | iq3_tiled_packed 61.8us 0.90
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 372.9us 0.15 | lcpp_mmvq 118.1us 0.47 | lcpp_mmq 123.8us 0.45 | iq3_vec 84.9us 0.66 | iq3_vec_mma 73.6us 0.76 | *iq3_vec_mma_packed 62.6us 0.89 | iq3_tiled_packed 62.1us 0.90
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 491.9us 0.11 | lcpp_mmvq 144.2us 0.39 | lcpp_mmq 124.8us 0.45 | iq3_vec 86.0us 0.65 | iq3_vec_mma 75.6us 0.74 | *iq3_vec_mma_packed 67.1us 0.83 | iq3_tiled_packed 62.5us 0.89
+  n= 12 route=iq3_tiled_packed: stock_mmvq 756.5us 0.07 | lcpp_mmq 133.8us 0.42 | iq3_vec_mma_packed 67.8us 0.82 | *iq3_tiled_packed 63.1us 0.88
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1058.7us 0.05 | stock_dq 611.8us 0.09 | lcpp_mmq 130.5us 0.43 | iq3_vec_mma_packed 71.2us 0.78 | *iq3_tiled_packed 63.8us 0.87
+  n= 24 route=iq3_tiled_packed: stock_dq 604.8us 0.09 | lcpp_mmq 138.7us 0.40 | iq3_vec_mma_packed 123.4us 0.45 | *iq3_tiled_packed 69.2us 0.81
+  n= 32 route=iq3_tiled_packed: stock_dq 666.4us 0.08 | lcpp_mmq 156.6us 0.36 | iq3_vec_mma_packed 139.3us 0.40 | *iq3_tiled_packed 73.4us 0.76
+  n= 48 route=iq3_tiled_packed: stock_dq 693.5us 0.08 | lcpp_mmq 161.7us 0.35 | *iq3_tiled_packed 87.3us 0.64
+  n= 64 route=iq3_tiled_packed: stock_dq 702.6us 0.08 | lcpp_mmq 177.0us 0.32 | *iq3_tiled_packed 101.7us 0.55
+  n=128 route=iq3_tiled_packed: stock_dq 707.8us 0.08 | lcpp_mmq 268.4us 0.21 | *iq3_tiled_packed 195.3us 0.29
+
+IQ3_S 12288x5120 (25.8 MiB, 3 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 78.5us 0.85 | lcpp_mmvq 78.7us 0.85 | lcpp_mmq 144.3us 0.46 | iq3_vec 78.4us 0.85 | iq3_vec_mma 78.1us 0.86 | *iq3_vec_mma_packed 71.8us 0.93 | iq3_tiled_packed 81.8us 0.82
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 151.3us 0.44 | lcpp_mmvq 89.4us 0.75 | lcpp_mmq 146.0us 0.46 | iq3_vec 81.5us 0.82 | iq3_vec_mma 80.8us 0.83 | *iq3_vec_mma_packed 72.5us 0.92 | iq3_tiled_packed 82.9us 0.81
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 297.0us 0.23 | lcpp_mmvq 114.3us 0.59 | lcpp_mmq 145.7us 0.46 | iq3_vec 87.4us 0.77 | iq3_vec_mma 81.3us 0.82 | *iq3_vec_mma_packed 73.3us 0.91 | iq3_tiled_packed 84.8us 0.79
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 467.6us 0.14 | lcpp_mmvq 142.8us 0.47 | lcpp_mmq 146.8us 0.46 | iq3_vec 103.5us 0.65 | iq3_vec_mma 86.5us 0.77 | *iq3_vec_mma_packed 74.3us 0.90 | iq3_tiled_packed 86.5us 0.77
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 593.6us 0.11 | lcpp_mmvq 165.8us 0.40 | lcpp_mmq 146.3us 0.46 | iq3_vec 103.9us 0.64 | iq3_vec_mma 87.9us 0.76 | *iq3_vec_mma_packed 79.5us 0.84 | iq3_tiled_packed 88.3us 0.76
+  n= 12 route=iq3_tiled_packed: stock_mmvq 952.3us 0.07 | lcpp_mmq 158.2us 0.42 | iq3_vec_mma_packed 81.5us 0.82 | *iq3_tiled_packed 92.7us 0.72
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1241.5us 0.05 | stock_dq 755.5us 0.09 | lcpp_mmq 155.6us 0.43 | iq3_vec_mma_packed 86.9us 0.77 | *iq3_tiled_packed 95.4us 0.70
+  n= 24 route=iq3_tiled_packed: stock_dq 798.0us 0.08 | lcpp_mmq 165.4us 0.40 | iq3_vec_mma_packed 153.2us 0.44 | *iq3_tiled_packed 107.5us 0.62
+  n= 32 route=iq3_tiled_packed: stock_dq 746.8us 0.09 | lcpp_mmq 185.3us 0.36 | iq3_vec_mma_packed 172.2us 0.39 | *iq3_tiled_packed 113.4us 0.59
+  n= 48 route=iq3_tiled_packed: stock_dq 907.3us 0.07 | lcpp_mmq 188.5us 0.36 | *iq3_tiled_packed 138.4us 0.48
+  n= 64 route=iq3_tiled_packed: stock_dq 908.2us 0.07 | lcpp_mmq 207.5us 0.32 | *iq3_tiled_packed 166.4us 0.40
+  n=128 route=iq3_tiled_packed: stock_dq 953.7us 0.07 | lcpp_mmq 330.9us 0.20 | *iq3_tiled_packed 252.6us 0.27
+
+IQ3_S 17408x5120 (36.5 MiB, 40 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 109.1us 0.87 | lcpp_mmvq 108.1us 0.88 | lcpp_mmq 188.1us 0.50 | iq3_vec 99.3us 0.96 | iq3_vec_mma 112.2us 0.85 | *iq3_vec_mma_packed 99.0us 0.96 | iq3_tiled_packed 106.2us 0.89
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 212.6us 0.45 | lcpp_mmvq 125.2us 0.76 | lcpp_mmq 186.9us 0.51 | iq3_vec 110.1us 0.86 | iq3_vec_mma 112.9us 0.84 | *iq3_vec_mma_packed 99.3us 0.96 | iq3_tiled_packed 106.6us 0.89
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 421.4us 0.23 | lcpp_mmvq 159.7us 0.59 | lcpp_mmq 189.1us 0.50 | iq3_vec 115.2us 0.82 | iq3_vec_mma 119.1us 0.80 | *iq3_vec_mma_packed 100.8us 0.94 | iq3_tiled_packed 108.5us 0.87
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 629.8us 0.15 | lcpp_mmvq 193.9us 0.49 | lcpp_mmq 188.0us 0.50 | iq3_vec 135.8us 0.70 | iq3_vec_mma 124.2us 0.76 | *iq3_vec_mma_packed 102.5us 0.93 | iq3_tiled_packed 109.8us 0.86
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 895.3us 0.11 | lcpp_mmvq 243.9us 0.39 | lcpp_mmq 186.5us 0.51 | iq3_vec 145.8us 0.65 | iq3_vec_mma 132.5us 0.72 | *iq3_vec_mma_packed 112.7us 0.84 | iq3_tiled_packed 111.0us 0.85
+  n= 12 route=iq3_tiled_packed: stock_mmvq 1319.8us 0.07 | lcpp_mmq 187.5us 0.51 | iq3_vec_mma_packed 114.8us 0.83 | *iq3_tiled_packed 114.9us 0.83
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1797.5us 0.05 | stock_dq 1013.1us 0.09 | lcpp_mmq 187.8us 0.51 | iq3_vec_mma_packed 123.2us 0.77 | *iq3_tiled_packed 116.7us 0.81
+  n= 24 route=iq3_tiled_packed: stock_dq 1008.9us 0.09 | lcpp_mmq 202.6us 0.47 | iq3_vec_mma_packed 214.0us 0.44 | *iq3_tiled_packed 128.2us 0.74
+  n= 32 route=iq3_tiled_packed: stock_dq 1060.9us 0.09 | lcpp_mmq 223.5us 0.42 | iq3_vec_mma_packed 237.9us 0.40 | *iq3_tiled_packed 134.3us 0.71
+  n= 48 route=iq3_tiled_packed: stock_dq 1057.8us 0.09 | lcpp_mmq 259.7us 0.37 | *iq3_tiled_packed 162.5us 0.58
+  n= 64 route=iq3_tiled_packed: stock_dq 1056.7us 0.09 | lcpp_mmq 275.8us 0.34 | *iq3_tiled_packed 206.1us 0.46
+  n=128 route=iq3_tiled_packed: stock_dq 1127.0us 0.08 | lcpp_mmq 413.2us 0.23 | *iq3_tiled_packed 295.1us 0.32
+
+IQ3_XXS 1024x5120 (1.9 MiB, 2 main + 0 mtp, x9 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 11.4us 0.44 | lcpp_mmvq 10.3us 0.48 | lcpp_mmq 18.1us 0.27 | iq3_vec 13.7us 0.36 | iq3_vec_mma 13.4us 0.37 | *iq3_vec_mma_packed 11.2us 0.44 | iq3_tiled_packed 16.8us 0.30
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 16.0us 0.31 | lcpp_mmvq 11.1us 0.45 | lcpp_mmq 17.9us 0.28 | iq3_vec 14.2us 0.35 | iq3_vec_mma 13.4us 0.37 | *iq3_vec_mma_packed 11.2us 0.45 | iq3_tiled_packed 17.3us 0.29
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 27.4us 0.18 | lcpp_mmvq 12.9us 0.38 | lcpp_mmq 17.9us 0.28 | iq3_vec 16.7us 0.30 | iq3_vec_mma 13.7us 0.36 | *iq3_vec_mma_packed 11.3us 0.44 | iq3_tiled_packed 18.7us 0.27
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 38.8us 0.13 | lcpp_mmvq 15.5us 0.32 | lcpp_mmq 18.0us 0.28 | iq3_vec 21.1us 0.24 | iq3_vec_mma 14.1us 0.35 | *iq3_vec_mma_packed 11.6us 0.43 | iq3_tiled_packed 20.0us 0.25
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 50.2us 0.10 | lcpp_mmvq 17.8us 0.28 | lcpp_mmq 18.0us 0.28 | iq3_vec 18.7us 0.27 | iq3_vec_mma 14.5us 0.34 | *iq3_vec_mma_packed 12.0us 0.42 | iq3_tiled_packed 21.1us 0.24
+  n= 12 route=iq3_tiled_packed: stock_mmvq 73.0us 0.07 | lcpp_mmq 20.4us 0.24 | iq3_vec_mma_packed 15.5us 0.32 | *iq3_tiled_packed 23.8us 0.21
+  n= 16 route=iq3_tiled_packed: stock_mmvq 95.9us 0.05 | stock_dq 67.1us 0.07 | lcpp_mmq 20.6us 0.24 | iq3_vec_mma_packed 16.5us 0.30 | *iq3_tiled_packed 26.2us 0.19
+  n= 24 route=iq3_tiled_packed: stock_dq 69.6us 0.07 | lcpp_mmq 21.8us 0.23 | iq3_vec_mma_packed 24.2us 0.21 | *iq3_tiled_packed 28.5us 0.17
+  n= 32 route=iq3_tiled_packed: stock_dq 70.1us 0.07 | lcpp_mmq 23.6us 0.21 | iq3_vec_mma_packed 26.3us 0.19 | *iq3_tiled_packed 28.7us 0.17
+  n= 48 route=iq3_tiled_packed: stock_dq 68.6us 0.07 | lcpp_mmq 26.4us 0.19 | *iq3_tiled_packed 29.2us 0.17
+  n= 64 route=iq3_tiled_packed: stock_dq 69.1us 0.07 | lcpp_mmq 31.7us 0.16 | *iq3_tiled_packed 32.6us 0.15
+  n=128 route=iq3_tiled_packed: stock_dq 81.8us 0.06 | lcpp_mmq 57.0us 0.09 | *iq3_tiled_packed 53.2us 0.09
+
+IQ3_XXS 5120x6144 (11.5 MiB, 5 main + 0 mtp, x2 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 41.2us 0.72 | lcpp_mmvq 36.9us 0.81 | lcpp_mmq 64.8us 0.46 | iq3_vec 34.6us 0.86 | iq3_vec_mma 40.8us 0.73 | *iq3_vec_mma_packed 35.9us 0.83 | iq3_tiled_packed 43.6us 0.68
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 76.5us 0.39 | lcpp_mmvq 39.8us 0.75 | lcpp_mmq 66.2us 0.45 | iq3_vec 38.9us 0.77 | iq3_vec_mma 41.5us 0.72 | *iq3_vec_mma_packed 36.2us 0.82 | iq3_tiled_packed 44.1us 0.68
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 147.2us 0.20 | lcpp_mmvq 55.8us 0.53 | lcpp_mmq 67.3us 0.44 | iq3_vec 51.4us 0.58 | iq3_vec_mma 42.1us 0.71 | *iq3_vec_mma_packed 36.5us 0.82 | iq3_tiled_packed 45.3us 0.66
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 218.3us 0.14 | lcpp_mmvq 62.4us 0.48 | lcpp_mmq 65.9us 0.45 | iq3_vec 57.9us 0.52 | iq3_vec_mma 43.3us 0.69 | *iq3_vec_mma_packed 37.0us 0.81 | iq3_tiled_packed 46.7us 0.64
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 290.1us 0.10 | lcpp_mmvq 74.9us 0.40 | lcpp_mmq 68.1us 0.44 | iq3_vec 55.3us 0.54 | iq3_vec_mma 46.1us 0.65 | *iq3_vec_mma_packed 38.6us 0.77 | iq3_tiled_packed 48.1us 0.62
+  n= 12 route=iq3_tiled_packed: stock_mmvq 431.0us 0.07 | lcpp_mmq 78.1us 0.38 | iq3_vec_mma_packed 45.1us 0.66 | *iq3_tiled_packed 50.3us 0.59
+  n= 16 route=iq3_tiled_packed: stock_mmvq 609.5us 0.05 | stock_dq 363.4us 0.08 | lcpp_mmq 78.4us 0.38 | iq3_vec_mma_packed 47.6us 0.63 | *iq3_tiled_packed 52.6us 0.57
+  n= 24 route=iq3_tiled_packed: stock_dq 362.1us 0.08 | lcpp_mmq 81.3us 0.37 | iq3_vec_mma_packed 78.7us 0.38 | *iq3_tiled_packed 61.4us 0.49
+  n= 32 route=iq3_tiled_packed: stock_dq 361.8us 0.08 | lcpp_mmq 89.8us 0.33 | iq3_vec_mma_packed 85.5us 0.35 | *iq3_tiled_packed 63.6us 0.47
+  n= 48 route=iq3_tiled_packed: stock_dq 362.3us 0.08 | lcpp_mmq 96.4us 0.31 | *iq3_tiled_packed 87.1us 0.34
+  n= 64 route=iq3_tiled_packed: stock_dq 465.3us 0.06 | lcpp_mmq 108.9us 0.27 | *iq3_tiled_packed 76.9us 0.39
+  n=128 route=iq3_tiled_packed: stock_dq 419.5us 0.07 | lcpp_mmq 170.2us 0.18 | *iq3_tiled_packed 125.6us 0.24
+
+IQ3_XXS 5120x17408 (32.5 MiB, 7 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 106.4us 0.79 | lcpp_mmvq 89.2us 0.95 | lcpp_mmq 178.0us 0.47 | iq3_vec 89.6us 0.94 | iq3_vec_mma 100.4us 0.84 | *iq3_vec_mma_packed 88.9us 0.95 | iq3_tiled_packed 97.4us 0.87
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 207.1us 0.41 | lcpp_mmvq 94.6us 0.89 | lcpp_mmq 183.5us 0.46 | iq3_vec 103.6us 0.82 | iq3_vec_mma 103.0us 0.82 | *iq3_vec_mma_packed 89.5us 0.94 | iq3_tiled_packed 98.4us 0.86
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 401.7us 0.21 | lcpp_mmvq 129.1us 0.65 | lcpp_mmq 179.7us 0.47 | iq3_vec 138.5us 0.61 | iq3_vec_mma 104.1us 0.81 | *iq3_vec_mma_packed 90.8us 0.93 | iq3_tiled_packed 100.0us 0.85
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 611.7us 0.14 | lcpp_mmvq 165.1us 0.51 | lcpp_mmq 187.2us 0.45 | iq3_vec 157.9us 0.54 | iq3_vec_mma 110.9us 0.76 | *iq3_vec_mma_packed 93.2us 0.91 | iq3_tiled_packed 101.3us 0.83
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 846.4us 0.10 | lcpp_mmvq 200.2us 0.42 | lcpp_mmq 186.7us 0.45 | iq3_vec 138.9us 0.61 | iq3_vec_mma 121.0us 0.70 | *iq3_vec_mma_packed 97.9us 0.86 | iq3_tiled_packed 103.0us 0.82
+  n= 12 route=iq3_tiled_packed: stock_mmvq 1267.5us 0.07 | lcpp_mmq 219.3us 0.39 | iq3_vec_mma_packed 111.1us 0.76 | *iq3_tiled_packed 106.6us 0.79
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1708.3us 0.05 | stock_dq 1028.5us 0.08 | lcpp_mmq 218.9us 0.39 | iq3_vec_mma_packed 116.5us 0.73 | *iq3_tiled_packed 110.5us 0.76
+  n= 24 route=iq3_tiled_packed: stock_dq 1002.5us 0.08 | lcpp_mmq 221.2us 0.38 | iq3_vec_mma_packed 200.4us 0.42 | *iq3_tiled_packed 124.9us 0.68
+  n= 32 route=iq3_tiled_packed: stock_dq 1025.1us 0.08 | lcpp_mmq 249.1us 0.34 | iq3_vec_mma_packed 222.1us 0.38 | *iq3_tiled_packed 132.5us 0.64
+  n= 48 route=iq3_tiled_packed: stock_dq 1025.5us 0.08 | lcpp_mmq 246.0us 0.34 | *iq3_tiled_packed 159.9us 0.53
+  n= 64 route=iq3_tiled_packed: stock_dq 1286.8us 0.07 | lcpp_mmq 278.0us 0.30 | *iq3_tiled_packed 206.2us 0.41
+  n=128 route=iq3_tiled_packed: stock_dq 1364.0us 0.06 | lcpp_mmq 411.7us 0.21 | *iq3_tiled_packed 365.8us 0.23
+
+IQ3_XXS 6144x5120 (11.5 MiB, 9 main + 0 mtp, x2 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 41.7us 0.72 | lcpp_mmvq 39.5us 0.76 | lcpp_mmq 66.6us 0.45 | iq3_vec 35.9us 0.83 | iq3_vec_mma 43.4us 0.69 | *iq3_vec_mma_packed 37.4us 0.80 | iq3_tiled_packed 43.6us 0.68
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 76.8us 0.39 | lcpp_mmvq 42.5us 0.70 | lcpp_mmq 67.3us 0.44 | iq3_vec 40.6us 0.73 | iq3_vec_mma 44.5us 0.67 | *iq3_vec_mma_packed 37.6us 0.79 | iq3_tiled_packed 44.2us 0.67
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 148.0us 0.20 | lcpp_mmvq 57.9us 0.51 | lcpp_mmq 69.4us 0.43 | iq3_vec 47.7us 0.63 | iq3_vec_mma 46.0us 0.65 | *iq3_vec_mma_packed 38.2us 0.78 | iq3_tiled_packed 45.5us 0.66
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 219.7us 0.14 | lcpp_mmvq 69.2us 0.43 | lcpp_mmq 69.2us 0.43 | iq3_vec 54.1us 0.55 | iq3_vec_mma 46.9us 0.64 | *iq3_vec_mma_packed 38.9us 0.77 | iq3_tiled_packed 46.8us 0.64
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 291.0us 0.10 | lcpp_mmvq 80.4us 0.37 | lcpp_mmq 69.2us 0.43 | iq3_vec 56.3us 0.53 | iq3_vec_mma 47.9us 0.62 | *iq3_vec_mma_packed 39.9us 0.75 | iq3_tiled_packed 47.8us 0.62
+  n= 12 route=iq3_tiled_packed: stock_mmvq 433.6us 0.07 | lcpp_mmq 80.3us 0.37 | iq3_vec_mma_packed 48.7us 0.61 | *iq3_tiled_packed 50.5us 0.59
+  n= 16 route=iq3_tiled_packed: stock_mmvq 583.7us 0.05 | stock_dq 391.4us 0.08 | lcpp_mmq 77.9us 0.38 | iq3_vec_mma_packed 51.0us 0.59 | *iq3_tiled_packed 52.4us 0.57
+  n= 24 route=iq3_tiled_packed: stock_dq 376.6us 0.08 | lcpp_mmq 81.0us 0.37 | iq3_vec_mma_packed 83.9us 0.36 | *iq3_tiled_packed 62.1us 0.48
+  n= 32 route=iq3_tiled_packed: stock_dq 441.4us 0.07 | lcpp_mmq 90.0us 0.33 | iq3_vec_mma_packed 92.2us 0.32 | *iq3_tiled_packed 67.2us 0.44
+  n= 48 route=iq3_tiled_packed: stock_dq 407.8us 0.07 | lcpp_mmq 95.9us 0.31 | *iq3_tiled_packed 85.9us 0.35
+  n= 64 route=iq3_tiled_packed: stock_dq 409.0us 0.07 | lcpp_mmq 109.1us 0.27 | *iq3_tiled_packed 115.6us 0.26
+  n=128 route=iq3_tiled_packed: stock_dq 455.7us 0.07 | lcpp_mmq 172.1us 0.17 | *iq3_tiled_packed 165.2us 0.18
+
+IQ3_XXS 10240x5120 (19.1 MiB, 13 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 64.9us 0.77 | lcpp_mmvq 60.3us 0.82 | lcpp_mmq 104.4us 0.48 | iq3_vec 59.1us 0.84 | iq3_vec_mma 66.7us 0.74 | *iq3_vec_mma_packed 55.4us 0.90 | iq3_tiled_packed 55.2us 0.90
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 124.3us 0.40 | lcpp_mmvq 66.7us 0.75 | lcpp_mmq 107.0us 0.46 | iq3_vec 62.0us 0.80 | iq3_vec_mma 67.6us 0.74 | *iq3_vec_mma_packed 55.6us 0.89 | iq3_tiled_packed 55.3us 0.90
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 243.9us 0.20 | lcpp_mmvq 87.0us 0.57 | lcpp_mmq 107.1us 0.46 | iq3_vec 72.3us 0.69 | iq3_vec_mma 69.9us 0.71 | *iq3_vec_mma_packed 56.4us 0.88 | iq3_tiled_packed 55.4us 0.90
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 361.4us 0.14 | lcpp_mmvq 107.5us 0.46 | lcpp_mmq 106.4us 0.47 | iq3_vec 81.2us 0.61 | iq3_vec_mma 71.8us 0.69 | *iq3_vec_mma_packed 59.0us 0.84 | iq3_tiled_packed 55.9us 0.89
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 484.9us 0.10 | lcpp_mmvq 129.2us 0.38 | lcpp_mmq 108.1us 0.46 | iq3_vec 84.9us 0.59 | iq3_vec_mma 76.9us 0.65 | *iq3_vec_mma_packed 62.8us 0.79 | iq3_tiled_packed 56.4us 0.88
+  n= 12 route=iq3_tiled_packed: stock_mmvq 722.3us 0.07 | lcpp_mmq 126.2us 0.39 | iq3_vec_mma_packed 72.3us 0.69 | *iq3_tiled_packed 57.0us 0.87
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1015.0us 0.05 | stock_dq 604.3us 0.08 | lcpp_mmq 123.2us 0.40 | iq3_vec_mma_packed 76.2us 0.65 | *iq3_tiled_packed 58.1us 0.86
+  n= 24 route=iq3_tiled_packed: stock_dq 599.9us 0.08 | lcpp_mmq 124.6us 0.40 | iq3_vec_mma_packed 126.7us 0.39 | *iq3_tiled_packed 72.4us 0.69
+  n= 32 route=iq3_tiled_packed: stock_dq 666.2us 0.07 | lcpp_mmq 141.2us 0.35 | iq3_vec_mma_packed 144.1us 0.34 | *iq3_tiled_packed 72.6us 0.68
+  n= 48 route=iq3_tiled_packed: stock_dq 684.9us 0.07 | lcpp_mmq 150.5us 0.33 | *iq3_tiled_packed 86.2us 0.58
+  n= 64 route=iq3_tiled_packed: stock_dq 697.1us 0.07 | lcpp_mmq 169.3us 0.29 | *iq3_tiled_packed 110.3us 0.45
+  n=128 route=iq3_tiled_packed: stock_dq 705.6us 0.07 | lcpp_mmq 262.8us 0.19 | *iq3_tiled_packed 205.4us 0.24
+
+IQ3_XXS 12288x5120 (23.0 MiB, 3 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 77.0us 0.77 | lcpp_mmvq 71.2us 0.84 | lcpp_mmq 125.9us 0.47 | iq3_vec 67.8us 0.88 | iq3_vec_mma 77.9us 0.77 | *iq3_vec_mma_packed 65.4us 0.91 | iq3_tiled_packed 75.5us 0.79
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 147.8us 0.40 | lcpp_mmvq 78.6us 0.76 | lcpp_mmq 125.5us 0.48 | iq3_vec 71.8us 0.83 | iq3_vec_mma 79.6us 0.75 | *iq3_vec_mma_packed 65.9us 0.90 | iq3_tiled_packed 76.3us 0.78
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 290.2us 0.21 | lcpp_mmvq 104.2us 0.57 | lcpp_mmq 127.9us 0.47 | iq3_vec 81.8us 0.73 | iq3_vec_mma 84.2us 0.71 | *iq3_vec_mma_packed 66.8us 0.89 | iq3_tiled_packed 78.4us 0.76
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 449.2us 0.13 | lcpp_mmvq 123.1us 0.48 | lcpp_mmq 127.5us 0.47 | iq3_vec 94.4us 0.63 | iq3_vec_mma 87.2us 0.68 | *iq3_vec_mma_packed 69.5us 0.86 | iq3_tiled_packed 79.9us 0.75
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 604.5us 0.10 | lcpp_mmvq 153.4us 0.39 | lcpp_mmq 129.6us 0.46 | iq3_vec 100.9us 0.59 | iq3_vec_mma 87.5us 0.68 | *iq3_vec_mma_packed 73.8us 0.81 | iq3_tiled_packed 82.3us 0.72
+  n= 12 route=iq3_tiled_packed: stock_mmvq 906.0us 0.07 | lcpp_mmq 147.3us 0.40 | iq3_vec_mma_packed 85.9us 0.69 | *iq3_tiled_packed 85.4us 0.70
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1217.2us 0.05 | stock_dq 740.5us 0.08 | lcpp_mmq 144.6us 0.41 | iq3_vec_mma_packed 90.5us 0.66 | *iq3_tiled_packed 90.1us 0.66
+  n= 24 route=iq3_tiled_packed: stock_dq 792.3us 0.08 | lcpp_mmq 147.7us 0.40 | iq3_vec_mma_packed 156.5us 0.38 | *iq3_tiled_packed 104.4us 0.57
+  n= 32 route=iq3_tiled_packed: stock_dq 739.3us 0.08 | lcpp_mmq 166.7us 0.36 | iq3_vec_mma_packed 172.1us 0.35 | *iq3_tiled_packed 111.4us 0.54
+  n= 48 route=iq3_tiled_packed: stock_dq 869.1us 0.07 | lcpp_mmq 175.6us 0.34 | *iq3_tiled_packed 137.4us 0.43
+  n= 64 route=iq3_tiled_packed: stock_dq 908.3us 0.07 | lcpp_mmq 198.3us 0.30 | *iq3_tiled_packed 169.5us 0.35
+  n=128 route=iq3_tiled_packed: stock_dq 944.0us 0.06 | lcpp_mmq 310.7us 0.19 | *iq3_tiled_packed 263.8us 0.23
+
+IQ3_XXS 17408x5120 (32.5 MiB, 39 main + 0 mtp, x1 copies)
+  n=  1 route=iq3_vec_mma_packed: stock_mmvq 106.2us 0.80 | lcpp_mmvq 97.2us 0.87 | lcpp_mmq 145.3us 0.58 | iq3_vec 95.2us 0.89 | iq3_vec_mma 112.6us 0.75 | *iq3_vec_mma_packed 89.3us 0.95 | iq3_tiled_packed 96.3us 0.88
+  n=  2 route=iq3_vec_mma_packed: stock_mmvq 209.4us 0.40 | lcpp_mmvq 111.1us 0.76 | lcpp_mmq 150.1us 0.56 | iq3_vec 99.5us 0.85 | iq3_vec_mma 115.3us 0.73 | *iq3_vec_mma_packed 90.1us 0.94 | iq3_tiled_packed 97.4us 0.87
+  n=  4 route=iq3_vec_mma_packed: stock_mmvq 410.9us 0.21 | lcpp_mmvq 145.2us 0.58 | lcpp_mmq 150.9us 0.56 | iq3_vec 113.9us 0.74 | iq3_vec_mma 116.5us 0.73 | *iq3_vec_mma_packed 91.6us 0.92 | iq3_tiled_packed 98.7us 0.86
+  n=  6 route=iq3_vec_mma_packed: stock_mmvq 621.6us 0.14 | lcpp_mmvq 178.5us 0.47 | lcpp_mmq 151.6us 0.56 | iq3_vec 132.4us 0.64 | iq3_vec_mma 124.2us 0.68 | *iq3_vec_mma_packed 95.7us 0.88 | iq3_tiled_packed 99.8us 0.85
+  n=  8 route=iq3_vec_mma_packed: stock_mmvq 869.7us 0.10 | lcpp_mmvq 214.3us 0.39 | lcpp_mmq 152.8us 0.55 | iq3_vec 141.6us 0.60 | iq3_vec_mma 129.8us 0.65 | *iq3_vec_mma_packed 101.7us 0.83 | iq3_tiled_packed 101.8us 0.83
+  n= 12 route=iq3_tiled_packed: stock_mmvq 1248.5us 0.07 | lcpp_mmq 174.7us 0.48 | iq3_vec_mma_packed 119.6us 0.71 | *iq3_tiled_packed 105.7us 0.80
+  n= 16 route=iq3_tiled_packed: stock_mmvq 1698.2us 0.05 | stock_dq 1003.0us 0.08 | lcpp_mmq 171.2us 0.49 | iq3_vec_mma_packed 129.9us 0.65 | *iq3_tiled_packed 110.7us 0.76
+  n= 24 route=iq3_tiled_packed: stock_dq 997.8us 0.08 | lcpp_mmq 177.4us 0.48 | iq3_vec_mma_packed 225.8us 0.37 | *iq3_tiled_packed 121.3us 0.70
+  n= 32 route=iq3_tiled_packed: stock_dq 1045.4us 0.08 | lcpp_mmq 201.2us 0.42 | iq3_vec_mma_packed 244.2us 0.35 | *iq3_tiled_packed 130.0us 0.65
+  n= 48 route=iq3_tiled_packed: stock_dq 1046.1us 0.08 | lcpp_mmq 242.6us 0.35 | *iq3_tiled_packed 163.7us 0.52
+  n= 64 route=iq3_tiled_packed: stock_dq 1048.8us 0.08 | lcpp_mmq 262.6us 0.32 | *iq3_tiled_packed 211.0us 0.40
+  n=128 route=iq3_tiled_packed: stock_dq 1114.4us 0.08 | lcpp_mmq 405.0us 0.21 | *iq3_tiled_packed 312.5us 0.27
+
+IQ4_XS 1024x5120 (2.7 MiB, 9 main + 0 mtp, x7 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 12.9us 0.54 | *lcpp_mmvq 10.6us 0.65 | lcpp_mmq 17.1us 0.40 | mma_k 16.6us 0.42
+  n=  2 route=lcpp_mmvq: stock_mmvq 17.3us 0.40 | *lcpp_mmvq 11.1us 0.62 | lcpp_mmq 16.9us 0.41 | mma_k 16.1us 0.43
+  n=  4 route=lcpp_mmvq: stock_mmvq 28.9us 0.24 | *lcpp_mmvq 11.9us 0.58 | lcpp_mmq 17.0us 0.41 | mma_k 16.2us 0.43
+  n=  6 route=lcpp_mmvq: stock_mmvq 40.8us 0.17 | *lcpp_mmvq 13.4us 0.51 | lcpp_mmq 17.2us 0.40 | mma_k 17.7us 0.39
+  n=  8 route=lcpp_mmq: stock_mmvq 52.9us 0.13 | lcpp_mmvq 16.1us 0.43 | *lcpp_mmq 17.2us 0.40 | mma_k 17.7us 0.39
+  n= 12 route=lcpp_mmq: stock_mmvq 76.7us 0.09 | *lcpp_mmq 18.7us 0.37 | mma_k 19.4us 0.36
+  n= 16 route=lcpp_mmq: stock_mmvq 100.6us 0.07 | stock_dq 67.1us 0.10 | *lcpp_mmq 18.9us 0.36 | mma_k 20.7us 0.33
+  n= 24 route=lcpp_mmq: stock_dq 69.8us 0.10 | *lcpp_mmq 20.9us 0.33 | mma_k 25.8us 0.27
+  n= 32 route=lcpp_mmq: stock_dq 70.0us 0.10 | *lcpp_mmq 22.8us 0.30 | mma_k 28.9us 0.24
+  n= 48 route=lcpp_mmq: stock_dq 68.8us 0.10 | *lcpp_mmq 26.0us 0.27 | mma_k 36.0us 0.19
+  n= 64 route=lcpp_mmq: stock_dq 69.5us 0.10 | *lcpp_mmq 30.7us 0.22 | mma_k 42.5us 0.16
+  n=128 route=lcpp_mmq: stock_dq 81.6us 0.08 | *lcpp_mmq 54.7us 0.13 | mma_k_chunked64 86.4us 0.08
+
+IQ4_XS 5120x6144 (15.9 MiB, 18 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 47.8us 0.87 | *lcpp_mmvq 44.0us 0.94 | lcpp_mmq 52.8us 0.78 | mma_k 50.4us 0.82
+  n=  2 route=lcpp_mmvq: stock_mmvq 90.4us 0.46 | *lcpp_mmvq 44.6us 0.93 | lcpp_mmq 53.3us 0.78 | mma_k 50.9us 0.81
+  n=  4 route=lcpp_mmvq: stock_mmvq 176.1us 0.24 | *lcpp_mmvq 47.0us 0.88 | lcpp_mmq 54.4us 0.76 | mma_k 51.6us 0.80
+  n=  6 route=lcpp_mmvq: stock_mmvq 261.6us 0.16 | *lcpp_mmvq 51.1us 0.81 | lcpp_mmq 54.8us 0.75 | mma_k 53.0us 0.78
+  n=  8 route=lcpp_mmq: stock_mmvq 346.3us 0.12 | lcpp_mmvq 63.9us 0.65 | *lcpp_mmq 55.0us 0.75 | mma_k 53.2us 0.78
+  n= 12 route=mma_k: stock_mmvq 535.2us 0.08 | lcpp_mmq 61.1us 0.68 | *mma_k 55.6us 0.74
+  n= 16 route=mma_k: stock_mmvq 698.8us 0.06 | stock_dq 368.7us 0.11 | lcpp_mmq 60.2us 0.69 | *mma_k 56.6us 0.73
+  n= 24 route=lcpp_mmq: stock_dq 366.8us 0.11 | *lcpp_mmq 66.8us 0.62 | mma_k 64.4us 0.64
+  n= 32 route=lcpp_mmq: stock_dq 364.9us 0.11 | *lcpp_mmq 73.0us 0.57 | mma_k 68.5us 0.60
+  n= 48 route=lcpp_mmq: stock_dq 368.7us 0.11 | *lcpp_mmq 79.6us 0.52 | mma_k 89.2us 0.46
+  n= 64 route=lcpp_mmq: stock_dq 469.8us 0.09 | *lcpp_mmq 93.2us 0.44 | mma_k 95.9us 0.43
+  n=128 route=lcpp_mmq: stock_dq 427.0us 0.10 | *lcpp_mmq 155.7us 0.27 | mma_k_chunked64 203.8us 0.20
+
+IQ4_XS 5120x17408 (45.2 MiB, 21 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 135.7us 0.86 | *lcpp_mmvq 117.2us 1.00 | lcpp_mmq 133.9us 0.88 | mma_k 127.5us 0.92
+  n=  2 route=lcpp_mmvq: stock_mmvq 273.2us 0.43 | *lcpp_mmvq 118.4us 0.99 | lcpp_mmq 134.3us 0.87 | mma_k 128.6us 0.91
+  n=  4 route=lcpp_mmvq: stock_mmvq 544.7us 0.22 | *lcpp_mmvq 120.0us 0.98 | lcpp_mmq 137.3us 0.85 | mma_k 129.3us 0.91
+  n=  6 route=lcpp_mmvq: stock_mmvq 815.5us 0.14 | *lcpp_mmvq 134.4us 0.87 | lcpp_mmq 139.8us 0.84 | mma_k 131.6us 0.89
+  n=  8 route=lcpp_mmq: stock_mmvq 1091.7us 0.11 | lcpp_mmvq 179.2us 0.65 | *lcpp_mmq 139.1us 0.84 | mma_k 132.0us 0.89
+  n= 12 route=mma_k: stock_mmvq 1657.6us 0.07 | lcpp_mmq 150.4us 0.78 | *mma_k 134.6us 0.87
+  n= 16 route=mma_k: stock_mmvq 2197.8us 0.05 | stock_dq 1041.1us 0.11 | lcpp_mmq 149.2us 0.79 | *mma_k 136.9us 0.86
+  n= 24 route=mma_k: stock_dq 1015.1us 0.12 | lcpp_mmq 163.1us 0.72 | *mma_k 152.2us 0.77
+  n= 32 route=mma_k: stock_dq 1031.9us 0.11 | lcpp_mmq 178.3us 0.66 | *mma_k 171.1us 0.69
+  n= 48 route=lcpp_mmq: stock_dq 1043.7us 0.11 | *lcpp_mmq 196.2us 0.60 | mma_k 233.8us 0.50
+  n= 64 route=lcpp_mmq: stock_dq 1302.0us 0.09 | *lcpp_mmq 225.5us 0.52 | mma_k 240.1us 0.49
+  n=128 route=lcpp_mmq: stock_dq 1381.8us 0.08 | *lcpp_mmq 373.8us 0.31 | mma_k_chunked64 476.4us 0.25
+
+IQ4_XS 6144x5120 (15.9 MiB, 12 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 48.1us 0.86 | *lcpp_mmvq 44.1us 0.94 | lcpp_mmq 52.6us 0.79 | mma_k 50.5us 0.82
+  n=  2 route=lcpp_mmvq: stock_mmvq 87.7us 0.47 | *lcpp_mmvq 45.0us 0.92 | lcpp_mmq 52.5us 0.79 | mma_k 50.6us 0.82
+  n=  4 route=lcpp_mmvq: stock_mmvq 169.7us 0.24 | *lcpp_mmvq 47.1us 0.88 | lcpp_mmq 54.4us 0.76 | mma_k 51.6us 0.80
+  n=  6 route=lcpp_mmvq: stock_mmvq 251.4us 0.16 | *lcpp_mmvq 54.6us 0.76 | lcpp_mmq 55.0us 0.75 | mma_k 52.7us 0.79
+  n=  8 route=lcpp_mmq: stock_mmvq 333.6us 0.12 | lcpp_mmvq 72.6us 0.57 | *lcpp_mmq 55.1us 0.75 | mma_k 52.7us 0.79
+  n= 12 route=mma_k: stock_mmvq 502.4us 0.08 | lcpp_mmq 62.0us 0.67 | *mma_k 54.5us 0.76
+  n= 16 route=mma_k: stock_mmvq 669.9us 0.06 | stock_dq 393.8us 0.11 | lcpp_mmq 60.0us 0.69 | *mma_k 55.2us 0.75
+  n= 24 route=lcpp_mmq: stock_dq 381.1us 0.11 | *lcpp_mmq 66.5us 0.62 | mma_k 62.3us 0.66
+  n= 32 route=lcpp_mmq: stock_dq 446.3us 0.09 | *lcpp_mmq 72.7us 0.57 | mma_k 65.5us 0.63
+  n= 48 route=lcpp_mmq: stock_dq 411.1us 0.10 | *lcpp_mmq 79.1us 0.52 | mma_k 88.9us 0.47
+  n= 64 route=lcpp_mmq: stock_dq 415.5us 0.10 | *lcpp_mmq 93.8us 0.44 | mma_k 101.7us 0.41
+  n=128 route=lcpp_mmq: stock_dq 463.1us 0.09 | *lcpp_mmq 158.6us 0.26 | mma_k_chunked64 203.8us 0.20
+
+IQ4_XS 10240x5120 (26.6 MiB, 9 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 74.0us 0.93 | *lcpp_mmvq 70.5us 0.98 | lcpp_mmq 80.2us 0.86 | mma_k 78.0us 0.88
+  n=  2 route=lcpp_mmvq: stock_mmvq 141.3us 0.49 | *lcpp_mmvq 71.8us 0.96 | lcpp_mmq 81.5us 0.85 | mma_k 78.6us 0.88
+  n=  4 route=lcpp_mmvq: stock_mmvq 280.1us 0.25 | *lcpp_mmvq 74.8us 0.92 | lcpp_mmq 82.9us 0.83 | mma_k 79.6us 0.87
+  n=  6 route=lcpp_mmvq: stock_mmvq 426.7us 0.16 | *lcpp_mmvq 86.4us 0.80 | lcpp_mmq 83.9us 0.82 | mma_k 80.3us 0.86
+  n=  8 route=lcpp_mmq: stock_mmvq 554.8us 0.12 | lcpp_mmvq 113.7us 0.61 | *lcpp_mmq 84.3us 0.82 | mma_k 80.6us 0.86
+  n= 12 route=mma_k: stock_mmvq 836.7us 0.08 | lcpp_mmq 93.4us 0.74 | *mma_k 82.6us 0.83
+  n= 16 route=mma_k: stock_mmvq 1120.0us 0.06 | stock_dq 614.5us 0.11 | lcpp_mmq 91.3us 0.76 | *mma_k 83.8us 0.82
+  n= 24 route=lcpp_mmq: stock_dq 609.1us 0.11 | *lcpp_mmq 101.3us 0.68 | mma_k 93.7us 0.74
+  n= 32 route=lcpp_mmq: stock_dq 673.7us 0.10 | *lcpp_mmq 111.2us 0.62 | mma_k 102.9us 0.67
+  n= 48 route=lcpp_mmq: stock_dq 691.7us 0.10 | *lcpp_mmq 121.4us 0.57 | mma_k 145.4us 0.47
+  n= 64 route=lcpp_mmq: stock_dq 705.0us 0.10 | *lcpp_mmq 144.1us 0.48 | mma_k 154.3us 0.45
+  n=128 route=lcpp_mmq: stock_dq 713.2us 0.10 | *lcpp_mmq 241.6us 0.29 | mma_k_chunked64 315.8us 0.22
+
+IQ4_XS 12288x5120 (31.9 MiB, 2 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 87.7us 0.94 | *lcpp_mmvq 83.8us 0.99 | lcpp_mmq 95.1us 0.87 | mma_k 92.4us 0.90
+  n=  2 route=lcpp_mmvq: stock_mmvq 168.0us 0.49 | *lcpp_mmvq 85.3us 0.97 | lcpp_mmq 96.3us 0.86 | mma_k 92.8us 0.89
+  n=  4 route=lcpp_mmvq: stock_mmvq 331.3us 0.25 | *lcpp_mmvq 88.8us 0.93 | lcpp_mmq 97.8us 0.85 | mma_k 93.8us 0.88
+  n=  6 route=lcpp_mmvq: stock_mmvq 503.5us 0.16 | *lcpp_mmvq 100.5us 0.82 | lcpp_mmq 99.5us 0.83 | mma_k 95.3us 0.87
+  n=  8 route=lcpp_mmq: stock_mmvq 677.0us 0.12 | lcpp_mmvq 131.0us 0.63 | *lcpp_mmq 99.3us 0.83 | mma_k 95.6us 0.87
+  n= 12 route=mma_k: stock_mmvq 1014.0us 0.08 | lcpp_mmq 110.8us 0.75 | *mma_k 97.7us 0.85
+  n= 16 route=mma_k: stock_mmvq 1341.1us 0.06 | stock_dq 750.3us 0.11 | lcpp_mmq 108.0us 0.77 | *mma_k 98.8us 0.84
+  n= 24 route=mma_k: stock_dq 805.1us 0.10 | lcpp_mmq 119.1us 0.69 | *mma_k 109.4us 0.76
+  n= 32 route=mma_k: stock_dq 748.6us 0.11 | lcpp_mmq 130.6us 0.63 | *mma_k 120.8us 0.69
+  n= 48 route=lcpp_mmq: stock_dq 874.8us 0.09 | *lcpp_mmq 141.2us 0.59 | mma_k 168.2us 0.49
+  n= 64 route=lcpp_mmq: stock_dq 910.7us 0.09 | *lcpp_mmq 169.4us 0.49 | mma_k 181.5us 0.46
+  n=128 route=lcpp_mmq: stock_dq 954.3us 0.09 | *lcpp_mmq 291.9us 0.28 | mma_k_chunked64 374.6us 0.22
+
+IQ4_XS 17408x5120 (45.2 MiB, 25 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 120.6us 0.97 | *lcpp_mmvq 117.1us 1.00 | lcpp_mmq 127.5us 0.92 | mma_k 126.9us 0.92
+  n=  2 route=lcpp_mmvq: stock_mmvq 235.5us 0.50 | *lcpp_mmvq 118.8us 0.99 | lcpp_mmq 128.4us 0.91 | mma_k 127.0us 0.92
+  n=  4 route=lcpp_mmvq: stock_mmvq 476.3us 0.25 | *lcpp_mmvq 123.0us 0.95 | lcpp_mmq 130.2us 0.90 | mma_k 128.7us 0.91
+  n=  6 route=lcpp_mmvq: stock_mmvq 708.1us 0.17 | *lcpp_mmvq 139.8us 0.84 | lcpp_mmq 131.8us 0.89 | mma_k 130.0us 0.90
+  n=  8 route=lcpp_mmq: stock_mmvq 962.2us 0.12 | lcpp_mmvq 188.6us 0.62 | *lcpp_mmq 131.5us 0.89 | mma_k 130.7us 0.90
+  n= 12 route=mma_k: stock_mmvq 1471.9us 0.08 | lcpp_mmq 143.3us 0.82 | *mma_k 133.1us 0.88
+  n= 16 route=mma_k: stock_mmvq 1911.5us 0.06 | stock_dq 1018.1us 0.12 | lcpp_mmq 140.9us 0.83 | *mma_k 135.2us 0.87
+  n= 24 route=mma_k: stock_dq 1012.3us 0.12 | lcpp_mmq 154.6us 0.76 | *mma_k 156.2us 0.75
+  n= 32 route=mma_k: stock_dq 1057.6us 0.11 | lcpp_mmq 166.4us 0.70 | *mma_k 169.4us 0.69
+  n= 48 route=lcpp_mmq: stock_dq 1060.6us 0.11 | *lcpp_mmq 190.4us 0.62 | mma_k 223.0us 0.53
+  n= 64 route=lcpp_mmq: stock_dq 1061.4us 0.11 | *lcpp_mmq 223.9us 0.52 | mma_k 247.6us 0.47
+  n=128 route=lcpp_mmq: stock_dq 1127.3us 0.10 | *lcpp_mmq 371.7us 0.32 | mma_k_chunked64 538.7us 0.22
+
+Q2_K 5120x17408 (27.9 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 106.1us 0.68 | stock_mmq 145.0us 0.50 | *lcpp_mmvq 78.3us 0.92 | lcpp_mmq 131.9us 0.55
+  n=  2 route=lcpp_mmvq: stock_mmvq 209.0us 0.35 | stock_mmq 151.0us 0.48 | *lcpp_mmvq 88.9us 0.81 | lcpp_mmq 127.5us 0.57
+  n=  4 route=lcpp_mmvq: stock_mmvq 404.9us 0.18 | stock_mmq 154.1us 0.47 | *lcpp_mmvq 141.4us 0.51 | lcpp_mmq 141.4us 0.51
+  n=  6 route=lcpp_mmvq: stock_mmvq 621.2us 0.12 | stock_mmq 240.0us 0.30 | *lcpp_mmvq 209.0us 0.35 | lcpp_mmq 139.1us 0.52
+  n=  8 route=lcpp_mmq: stock_mmvq 812.0us 0.09 | stock_mmq 244.8us 0.30 | lcpp_mmvq 274.2us 0.26 | *lcpp_mmq 138.0us 0.52
+  n= 12 route=lcpp_mmq: stock_mmvq 1236.9us 0.06 | stock_mmq 361.6us 0.20 | *lcpp_mmq 162.9us 0.44
+  n= 16 route=lcpp_mmq: stock_mmvq 1649.5us 0.04 | stock_mmq 460.8us 0.16 | stock_dq 996.8us 0.07 | *lcpp_mmq 157.5us 0.46
+  n= 24 route=lcpp_mmq: stock_mmq 696.3us 0.10 | stock_dq 968.7us 0.07 | *lcpp_mmq 189.5us 0.38
+  n= 32 route=lcpp_mmq: stock_mmq 896.6us 0.08 | stock_dq 979.0us 0.07 | *lcpp_mmq 225.4us 0.32
+  n= 48 route=lcpp_mmq: stock_mmq 1390.9us 0.05 | stock_dq 986.5us 0.07 | *lcpp_mmq 279.9us 0.26
+  n= 64 route=lcpp_mmq: stock_mmq 1826.6us 0.04 | stock_dq 1255.6us 0.06 | *lcpp_mmq 352.7us 0.21
+  n=128 route=lcpp_mmq: stock_mmq 3729.4us 0.02 | stock_dq 1346.4us 0.05 | *lcpp_mmq 834.7us 0.09
+
+Q2_K 6144x5120 (9.8 MiB, 4 main + 0 mtp, x2 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 41.4us 0.62 | stock_mmq 50.7us 0.50 | *lcpp_mmvq 33.3us 0.77 | lcpp_mmq 49.4us 0.52
+  n=  2 route=lcpp_mmvq: stock_mmvq 77.9us 0.33 | stock_mmq 51.9us 0.49 | *lcpp_mmvq 38.1us 0.67 | lcpp_mmq 50.0us 0.51
+  n=  4 route=lcpp_mmvq: stock_mmvq 150.5us 0.17 | stock_mmq 53.2us 0.48 | *lcpp_mmvq 61.3us 0.42 | lcpp_mmq 50.6us 0.51
+  n=  6 route=lcpp_mmvq: stock_mmvq 224.2us 0.11 | stock_mmq 87.2us 0.29 | *lcpp_mmvq 77.3us 0.33 | lcpp_mmq 53.2us 0.48
+  n=  8 route=lcpp_mmq: stock_mmvq 300.1us 0.09 | stock_mmq 86.6us 0.30 | lcpp_mmvq 101.1us 0.25 | *lcpp_mmq 53.0us 0.48
+  n= 12 route=lcpp_mmq: stock_mmvq 447.5us 0.06 | stock_mmq 125.5us 0.20 | *lcpp_mmq 65.0us 0.39
+  n= 16 route=lcpp_mmq: stock_mmvq 594.3us 0.04 | stock_mmq 155.7us 0.16 | stock_dq 380.0us 0.07 | *lcpp_mmq 62.2us 0.41
+  n= 24 route=lcpp_mmq: stock_mmq 226.9us 0.11 | stock_dq 364.3us 0.07 | *lcpp_mmq 74.3us 0.34
+  n= 32 route=lcpp_mmq: stock_mmq 292.3us 0.09 | stock_dq 428.0us 0.06 | *lcpp_mmq 87.5us 0.29
+  n= 48 route=lcpp_mmq: stock_mmq 465.4us 0.05 | stock_dq 395.2us 0.06 | *lcpp_mmq 109.9us 0.23
+  n= 64 route=lcpp_mmq: stock_mmq 592.9us 0.04 | stock_dq 398.2us 0.06 | *lcpp_mmq 144.6us 0.18
+  n=128 route=lcpp_mmq: stock_mmq 1263.4us 0.02 | stock_dq 444.6us 0.06 | *lcpp_mmq 303.4us 0.08
+
+Q2_K 10240x5120 (16.4 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 64.8us 0.66 | stock_mmq 68.7us 0.62 | *lcpp_mmvq 52.5us 0.81 | lcpp_mmq 76.9us 0.55
+  n=  2 route=lcpp_mmvq: stock_mmvq 126.6us 0.34 | stock_mmq 71.5us 0.60 | *lcpp_mmvq 60.0us 0.71 | lcpp_mmq 77.8us 0.55
+  n=  4 route=lcpp_mmvq: stock_mmvq 250.5us 0.17 | stock_mmq 73.4us 0.58 | *lcpp_mmvq 97.8us 0.44 | lcpp_mmq 80.9us 0.53
+  n=  6 route=lcpp_mmvq: stock_mmvq 370.9us 0.11 | stock_mmq 131.7us 0.32 | *lcpp_mmvq 133.9us 0.32 | lcpp_mmq 83.5us 0.51
+  n=  8 route=lcpp_mmq: stock_mmvq 494.5us 0.09 | stock_mmq 134.5us 0.32 | lcpp_mmvq 164.7us 0.26 | *lcpp_mmq 83.8us 0.51
+  n= 12 route=lcpp_mmq: stock_mmvq 743.1us 0.06 | stock_mmq 190.0us 0.22 | *lcpp_mmq 105.4us 0.40
+  n= 16 route=lcpp_mmq: stock_mmvq 996.0us 0.04 | stock_mmq 258.6us 0.16 | stock_dq 584.8us 0.07 | *lcpp_mmq 97.2us 0.44
+  n= 24 route=lcpp_mmq: stock_mmq 363.9us 0.12 | stock_dq 591.7us 0.07 | *lcpp_mmq 116.7us 0.37
+  n= 32 route=lcpp_mmq: stock_mmq 503.3us 0.08 | stock_dq 654.5us 0.07 | *lcpp_mmq 138.2us 0.31
+  n= 48 route=lcpp_mmq: stock_mmq 740.0us 0.06 | stock_dq 667.4us 0.06 | *lcpp_mmq 174.6us 0.24
+  n= 64 route=lcpp_mmq: stock_mmq 1056.8us 0.04 | stock_dq 684.0us 0.06 | *lcpp_mmq 223.3us 0.19
+  n=128 route=lcpp_mmq: stock_mmq 2143.8us 0.02 | stock_dq 685.8us 0.06 | *lcpp_mmq 434.3us 0.10
+
+Q2_K 12288x5120 (19.7 MiB, 6 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 76.7us 0.67 | stock_mmq 85.0us 0.60 | *lcpp_mmvq 64.1us 0.80 | lcpp_mmq 92.0us 0.56
+  n=  2 route=lcpp_mmvq: stock_mmvq 149.2us 0.34 | stock_mmq 87.4us 0.59 | *lcpp_mmvq 73.4us 0.70 | lcpp_mmq 95.1us 0.54
+  n=  4 route=lcpp_mmvq: stock_mmvq 298.2us 0.17 | stock_mmq 90.3us 0.57 | *lcpp_mmvq 120.0us 0.43 | lcpp_mmq 98.7us 0.52
+  n=  6 route=lcpp_mmvq: stock_mmvq 450.1us 0.11 | stock_mmq 160.9us 0.32 | *lcpp_mmvq 160.3us 0.32 | lcpp_mmq 100.1us 0.51
+  n=  8 route=lcpp_mmq: stock_mmvq 599.8us 0.09 | stock_mmq 160.7us 0.32 | lcpp_mmvq 202.4us 0.25 | *lcpp_mmq 96.8us 0.53
+  n= 12 route=lcpp_mmq: stock_mmvq 887.7us 0.06 | stock_mmq 234.2us 0.22 | *lcpp_mmq 122.9us 0.42
+  n= 16 route=lcpp_mmq: stock_mmvq 1197.1us 0.04 | stock_mmq 310.6us 0.16 | stock_dq 717.3us 0.07 | *lcpp_mmq 115.1us 0.44
+  n= 24 route=lcpp_mmq: stock_mmq 444.8us 0.11 | stock_dq 773.0us 0.07 | *lcpp_mmq 137.9us 0.37
+  n= 32 route=lcpp_mmq: stock_mmq 566.5us 0.09 | stock_dq 717.4us 0.07 | *lcpp_mmq 163.8us 0.31
+  n= 48 route=lcpp_mmq: stock_mmq 940.6us 0.05 | stock_dq 866.9us 0.06 | *lcpp_mmq 205.5us 0.25
+  n= 64 route=lcpp_mmq: stock_mmq 1252.1us 0.04 | stock_dq 879.2us 0.06 | *lcpp_mmq 260.3us 0.20
+  n=128 route=lcpp_mmq: stock_mmq 2568.7us 0.02 | stock_dq 919.4us 0.06 | *lcpp_mmq 524.1us 0.10
+
+Q2_K 17408x5120 (27.9 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 106.8us 0.68 | stock_mmq 111.3us 0.65 | *lcpp_mmvq 94.5us 0.77 | lcpp_mmq 127.9us 0.57
+  n=  2 route=lcpp_mmvq: stock_mmvq 211.6us 0.34 | stock_mmq 117.0us 0.62 | *lcpp_mmvq 99.6us 0.73 | lcpp_mmq 126.6us 0.57
+  n=  4 route=lcpp_mmvq: stock_mmvq 422.4us 0.17 | stock_mmq 118.8us 0.61 | *lcpp_mmvq 169.7us 0.43 | lcpp_mmq 134.2us 0.54
+  n=  6 route=lcpp_mmvq: stock_mmvq 637.4us 0.11 | stock_mmq 223.0us 0.32 | *lcpp_mmvq 222.9us 0.32 | lcpp_mmq 135.3us 0.54
+  n=  8 route=lcpp_mmq: stock_mmvq 839.7us 0.09 | stock_mmq 216.3us 0.33 | lcpp_mmvq 291.2us 0.25 | *lcpp_mmq 129.9us 0.56
+  n= 12 route=lcpp_mmq: stock_mmvq 1273.4us 0.06 | stock_mmq 328.9us 0.22 | *lcpp_mmq 164.8us 0.44
+  n= 16 route=lcpp_mmq: stock_mmvq 1694.8us 0.04 | stock_mmq 430.1us 0.17 | stock_dq 970.5us 0.07 | *lcpp_mmq 157.1us 0.46
+  n= 24 route=lcpp_mmq: stock_mmq 659.1us 0.11 | stock_dq 966.4us 0.07 | *lcpp_mmq 188.9us 0.38
+  n= 32 route=lcpp_mmq: stock_mmq 822.0us 0.09 | stock_dq 1013.6us 0.07 | *lcpp_mmq 225.5us 0.32
+  n= 48 route=lcpp_mmq: stock_mmq 1335.3us 0.05 | stock_dq 1014.3us 0.07 | *lcpp_mmq 279.4us 0.26
+  n= 64 route=lcpp_mmq: stock_mmq 1787.2us 0.04 | stock_dq 1015.0us 0.07 | *lcpp_mmq 348.5us 0.21
+  n=128 route=lcpp_mmq: stock_mmq 3648.3us 0.02 | stock_dq 1084.1us 0.07 | *lcpp_mmq 610.1us 0.12
+
+Q4_K 1024x5120 (2.8 MiB, 13 main + 0 mtp, x6 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 12.6us 0.58 | stock_mmq 27.5us 0.27 | *lcpp_mmvq 10.8us 0.68 | lcpp_mmq 17.4us 0.42 | own_vec 14.4us 0.51 | mma_k 14.9us 0.49
+  n=  2 route=lcpp_mmvq: stock_mmvq 14.7us 0.50 | stock_mmq 27.3us 0.27 | *lcpp_mmvq 11.2us 0.65 | lcpp_mmq 17.3us 0.42 | own_vec 12.5us 0.58 | mma_k 15.0us 0.49
+  n=  4 route=lcpp_mmvq: stock_mmvq 22.3us 0.33 | stock_mmq 27.6us 0.26 | *lcpp_mmvq 13.0us 0.56 | lcpp_mmq 17.4us 0.42 | own_vec 14.6us 0.50 | mma_k 14.9us 0.49
+  n=  6 route=lcpp_mmvq: stock_mmvq 30.0us 0.24 | stock_mmq 34.9us 0.21 | *lcpp_mmvq 15.2us 0.48 | lcpp_mmq 17.5us 0.42 | own_vec 17.2us 0.42 | mma_k 16.3us 0.45
+  n=  8 route=lcpp_mmq: stock_mmvq 37.6us 0.19 | stock_mmq 35.1us 0.21 | lcpp_mmvq 18.1us 0.40 | *lcpp_mmq 17.4us 0.42 | own_vec 17.6us 0.42 | mma_k 16.4us 0.44
+  n= 12 route=lcpp_mmq: stock_mmvq 53.0us 0.14 | stock_mmq 48.8us 0.15 | *lcpp_mmq 19.6us 0.37 | mma_k 17.9us 0.41
+  n= 16 route=lcpp_mmq: stock_mmvq 68.2us 0.11 | stock_mmq 49.4us 0.15 | stock_dq 66.3us 0.11 | *lcpp_mmq 19.9us 0.37 | mma_k 19.3us 0.38
+  n= 24 route=lcpp_mmq: stock_mmq 76.1us 0.10 | stock_dq 68.9us 0.11 | *lcpp_mmq 20.9us 0.35 | mma_k 23.4us 0.31
+  n= 32 route=lcpp_mmq: stock_mmq 90.0us 0.08 | stock_dq 69.4us 0.11 | *lcpp_mmq 23.6us 0.31 | mma_k 26.8us 0.27
+  n= 48 route=lcpp_mmq: stock_mmq 131.3us 0.06 | stock_dq 67.8us 0.11 | *lcpp_mmq 27.6us 0.26 | mma_k 36.9us 0.20
+  n= 64 route=lcpp_mmq: stock_mmq 172.3us 0.04 | stock_dq 68.6us 0.11 | *lcpp_mmq 33.6us 0.22 | mma_k 42.8us 0.17
+  n=128 route=lcpp_mmq: stock_mmq 323.5us 0.02 | stock_dq 81.2us 0.09 | *lcpp_mmq 61.4us 0.12 | mma_k_chunked64 86.6us 0.08
+
+Q4_K 5120x6144 (16.9 MiB, 9 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 47.7us 0.92 | stock_mmq 78.6us 0.56 | *lcpp_mmvq 46.2us 0.95 | lcpp_mmq 59.0us 0.74 | own_vec 48.9us 0.90 | mma_k 50.9us 0.86
+  n=  2 route=lcpp_mmvq: stock_mmvq 91.2us 0.48 | stock_mmq 79.1us 0.55 | *lcpp_mmvq 46.8us 0.94 | lcpp_mmq 59.3us 0.74 | own_vec 51.8us 0.85 | mma_k 51.2us 0.86
+  n=  4 route=own_vec: stock_mmvq 177.1us 0.25 | stock_mmq 81.5us 0.54 | lcpp_mmvq 49.5us 0.89 | lcpp_mmq 59.9us 0.73 | *own_vec 53.5us 0.82 | mma_k 51.7us 0.85
+  n=  6 route=own_vec: stock_mmvq 262.6us 0.17 | stock_mmq 129.3us 0.34 | lcpp_mmvq 62.5us 0.70 | lcpp_mmq 61.5us 0.71 | *own_vec 59.2us 0.74 | mma_k 53.5us 0.82
+  n=  8 route=own_vec: stock_mmvq 349.0us 0.13 | stock_mmq 131.5us 0.33 | lcpp_mmvq 76.6us 0.57 | lcpp_mmq 63.6us 0.69 | *own_vec 62.7us 0.70 | mma_k 53.5us 0.82
+  n= 12 route=mma_k: stock_mmvq 521.0us 0.08 | stock_mmq 198.7us 0.22 | lcpp_mmq 67.4us 0.65 | *mma_k 55.1us 0.80
+  n= 16 route=mma_k: stock_mmvq 693.9us 0.06 | stock_mmq 252.0us 0.17 | stock_dq 370.8us 0.12 | lcpp_mmq 67.3us 0.65 | *mma_k 56.7us 0.77
+  n= 24 route=mma_k: stock_mmq 365.6us 0.12 | stock_dq 367.7us 0.12 | lcpp_mmq 64.2us 0.68 | *mma_k 61.2us 0.72
+  n= 32 route=mma_k: stock_mmq 495.1us 0.09 | stock_dq 368.4us 0.12 | lcpp_mmq 72.4us 0.61 | *mma_k 64.7us 0.68
+  n= 48 route=lcpp_mmq: stock_mmq 741.4us 0.06 | stock_dq 369.5us 0.12 | *lcpp_mmq 88.2us 0.50 | mma_k 95.9us 0.46
+  n= 64 route=lcpp_mmq: stock_mmq 962.1us 0.05 | stock_dq 472.7us 0.09 | *lcpp_mmq 105.2us 0.42 | mma_k 101.1us 0.43
+  n=128 route=lcpp_mmq: stock_mmq 1992.1us 0.02 | stock_dq 424.0us 0.10 | *lcpp_mmq 175.0us 0.25 | mma_k_chunked64 212.7us 0.21
+
+Q4_K 5120x17408 (47.8 MiB, 6 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 130.6us 0.95 | stock_mmq 209.3us 0.59 | *lcpp_mmvq 123.5us 1.00 | lcpp_mmq 153.1us 0.81 | own_vec 129.3us 0.96 | mma_k 133.7us 0.93
+  n=  2 route=lcpp_mmvq: stock_mmvq 254.6us 0.49 | stock_mmq 210.2us 0.59 | *lcpp_mmvq 125.1us 0.99 | lcpp_mmq 153.9us 0.81 | own_vec 139.5us 0.89 | mma_k 135.0us 0.92
+  n=  4 route=own_vec: stock_mmvq 502.8us 0.25 | stock_mmq 211.7us 0.59 | lcpp_mmvq 132.0us 0.94 | lcpp_mmq 159.1us 0.78 | *own_vec 143.6us 0.86 | mma_k 136.2us 0.91
+  n=  6 route=own_vec: stock_mmvq 751.7us 0.17 | stock_mmq 354.8us 0.35 | lcpp_mmvq 161.2us 0.77 | lcpp_mmq 157.2us 0.79 | *own_vec 162.2us 0.77 | mma_k 137.2us 0.90
+  n=  8 route=own_vec: stock_mmvq 999.4us 0.12 | stock_mmq 357.7us 0.35 | lcpp_mmvq 202.9us 0.61 | lcpp_mmq 161.3us 0.77 | *own_vec 166.3us 0.75 | mma_k 138.3us 0.90
+  n= 12 route=mma_k: stock_mmvq 1495.6us 0.08 | stock_mmq 541.3us 0.23 | lcpp_mmq 167.4us 0.74 | *mma_k 140.8us 0.88
+  n= 16 route=mma_k: stock_mmvq 2014.3us 0.06 | stock_mmq 691.4us 0.18 | stock_dq 1050.4us 0.12 | lcpp_mmq 167.2us 0.74 | *mma_k 143.3us 0.87
+  n= 24 route=mma_k: stock_mmq 1030.6us 0.12 | stock_dq 1021.7us 0.12 | lcpp_mmq 159.5us 0.78 | *mma_k 151.6us 0.82
+  n= 32 route=mma_k: stock_mmq 1370.8us 0.09 | stock_dq 1039.5us 0.12 | lcpp_mmq 180.5us 0.69 | *mma_k 156.7us 0.79
+  n= 48 route=lcpp_mmq: stock_mmq 2050.3us 0.06 | stock_dq 1052.2us 0.12 | *lcpp_mmq 214.5us 0.58 | mma_k 243.0us 0.51
+  n= 64 route=lcpp_mmq: stock_mmq 2754.1us 0.05 | stock_dq 1312.8us 0.09 | *lcpp_mmq 256.2us 0.48 | mma_k 265.2us 0.47
+  n=128 route=lcpp_mmq: stock_mmq 5506.3us 0.02 | stock_dq 1389.2us 0.09 | *lcpp_mmq 442.6us 0.28 | mma_k_chunked64 550.9us 0.23
+
+Q4_K 6144x5120 (16.9 MiB, 3 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 49.1us 0.89 | stock_mmq 79.1us 0.55 | *lcpp_mmvq 46.3us 0.95 | lcpp_mmq 60.0us 0.73 | own_vec 48.4us 0.90 | mma_k 51.2us 0.86
+  n=  2 route=lcpp_mmvq: stock_mmvq 91.0us 0.48 | stock_mmq 78.5us 0.56 | *lcpp_mmvq 47.0us 0.93 | lcpp_mmq 60.3us 0.73 | own_vec 49.1us 0.89 | mma_k 51.8us 0.85
+  n=  4 route=own_vec: stock_mmvq 177.2us 0.25 | stock_mmq 80.6us 0.54 | lcpp_mmvq 50.9us 0.86 | lcpp_mmq 60.6us 0.72 | *own_vec 51.1us 0.86 | mma_k 51.9us 0.84
+  n=  6 route=own_vec: stock_mmvq 262.6us 0.17 | stock_mmq 133.1us 0.33 | lcpp_mmvq 62.9us 0.70 | lcpp_mmq 63.0us 0.70 | *own_vec 64.1us 0.68 | mma_k 53.2us 0.82
+  n=  8 route=own_vec: stock_mmvq 348.5us 0.13 | stock_mmq 134.7us 0.33 | lcpp_mmvq 79.3us 0.55 | lcpp_mmq 62.2us 0.70 | *own_vec 64.2us 0.68 | mma_k 53.7us 0.82
+  n= 12 route=mma_k: stock_mmvq 520.2us 0.08 | stock_mmq 190.5us 0.23 | lcpp_mmq 68.1us 0.64 | *mma_k 55.1us 0.80
+  n= 16 route=mma_k: stock_mmvq 692.3us 0.06 | stock_mmq 246.6us 0.18 | stock_dq 398.0us 0.11 | lcpp_mmq 67.7us 0.65 | *mma_k 56.2us 0.78
+  n= 24 route=mma_k: stock_mmq 360.0us 0.12 | stock_dq 383.2us 0.11 | lcpp_mmq 62.9us 0.70 | *mma_k 59.5us 0.74
+  n= 32 route=mma_k: stock_mmq 487.2us 0.09 | stock_dq 446.3us 0.10 | lcpp_mmq 71.1us 0.62 | *mma_k 62.5us 0.70
+  n= 48 route=lcpp_mmq: stock_mmq 724.1us 0.06 | stock_dq 413.7us 0.11 | *lcpp_mmq 87.2us 0.50 | mma_k 96.2us 0.46
+  n= 64 route=lcpp_mmq: stock_mmq 947.2us 0.05 | stock_dq 416.8us 0.11 | *lcpp_mmq 105.1us 0.42 | mma_k 100.9us 0.43
+  n=128 route=lcpp_mmq: stock_mmq 1919.5us 0.02 | stock_dq 463.7us 0.09 | *lcpp_mmq 179.7us 0.24 | mma_k_chunked64 210.5us 0.21
+
+Q4_K 10240x5120 (28.1 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 76.5us 0.95 | stock_mmq 106.0us 0.69 | *lcpp_mmvq 74.3us 0.98 | lcpp_mmq 96.1us 0.76 | own_vec 77.2us 0.95 | mma_k 80.0us 0.91
+  n=  2 route=lcpp_mmvq: stock_mmvq 147.7us 0.49 | stock_mmq 106.5us 0.69 | *lcpp_mmvq 75.4us 0.97 | lcpp_mmq 97.3us 0.75 | own_vec 78.0us 0.94 | mma_k 80.6us 0.91
+  n=  4 route=own_vec: stock_mmvq 290.5us 0.25 | stock_mmq 106.9us 0.68 | lcpp_mmvq 81.8us 0.89 | lcpp_mmq 100.7us 0.73 | *own_vec 81.1us 0.90 | mma_k 81.5us 0.90
+  n=  6 route=own_vec: stock_mmvq 440.2us 0.17 | stock_mmq 201.7us 0.36 | lcpp_mmvq 101.6us 0.72 | lcpp_mmq 100.9us 0.72 | *own_vec 95.4us 0.77 | mma_k 82.8us 0.88
+  n=  8 route=own_vec: stock_mmvq 577.7us 0.13 | stock_mmq 205.5us 0.36 | lcpp_mmvq 130.1us 0.56 | lcpp_mmq 99.8us 0.73 | *own_vec 96.0us 0.76 | mma_k 83.1us 0.88
+  n= 12 route=mma_k: stock_mmvq 863.8us 0.08 | stock_mmq 302.5us 0.24 | lcpp_mmq 105.9us 0.69 | *mma_k 84.9us 0.86
+  n= 16 route=mma_k: stock_mmvq 1151.3us 0.06 | stock_mmq 400.7us 0.18 | stock_dq 617.1us 0.12 | lcpp_mmq 105.2us 0.69 | *mma_k 86.0us 0.85
+  n= 24 route=mma_k: stock_mmq 599.2us 0.12 | stock_dq 616.6us 0.12 | lcpp_mmq 97.1us 0.75 | *mma_k 91.8us 0.80
+  n= 32 route=mma_k: stock_mmq 799.6us 0.09 | stock_dq 675.7us 0.11 | lcpp_mmq 110.0us 0.66 | *mma_k 95.4us 0.77
+  n= 48 route=lcpp_mmq: stock_mmq 1205.0us 0.06 | stock_dq 693.6us 0.11 | *lcpp_mmq 135.3us 0.54 | mma_k 157.8us 0.46
+  n= 64 route=lcpp_mmq: stock_mmq 1607.6us 0.05 | stock_dq 713.7us 0.10 | *lcpp_mmq 162.5us 0.45 | mma_k 165.1us 0.44
+  n=128 route=lcpp_mmq: stock_mmq 3233.6us 0.02 | stock_dq 717.4us 0.10 | *lcpp_mmq 271.8us 0.27 | mma_k_chunked64 333.8us 0.22
+
+Q4_K 12288x5120 (33.8 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 90.7us 0.97 | stock_mmq 132.6us 0.66 | *lcpp_mmvq 88.6us 0.99 | lcpp_mmq 112.9us 0.78 | own_vec 90.9us 0.96 | mma_k 94.2us 0.93
+  n=  2 route=lcpp_mmvq: stock_mmvq 176.7us 0.50 | stock_mmq 134.4us 0.65 | *lcpp_mmvq 89.5us 0.98 | lcpp_mmq 113.1us 0.77 | own_vec 90.4us 0.97 | mma_k 95.1us 0.92
+  n=  4 route=own_vec: stock_mmvq 347.0us 0.25 | stock_mmq 134.9us 0.65 | lcpp_mmvq 96.7us 0.91 | lcpp_mmq 116.6us 0.75 | *own_vec 98.2us 0.89 | mma_k 95.6us 0.92
+  n=  6 route=own_vec: stock_mmvq 520.0us 0.17 | stock_mmq 246.2us 0.36 | lcpp_mmvq 122.3us 0.72 | lcpp_mmq 117.0us 0.75 | *own_vec 114.6us 0.76 | mma_k 97.0us 0.90
+  n=  8 route=own_vec: stock_mmvq 692.5us 0.13 | stock_mmq 246.9us 0.36 | lcpp_mmvq 152.4us 0.58 | lcpp_mmq 121.7us 0.72 | *own_vec 117.2us 0.75 | mma_k 97.9us 0.90
+  n= 12 route=mma_k: stock_mmvq 1036.9us 0.08 | stock_mmq 370.1us 0.24 | lcpp_mmq 124.3us 0.70 | *mma_k 99.2us 0.88
+  n= 16 route=mma_k: stock_mmvq 1400.2us 0.06 | stock_mmq 482.1us 0.18 | stock_dq 754.7us 0.12 | lcpp_mmq 123.9us 0.71 | *mma_k 100.3us 0.87
+  n= 24 route=mma_k: stock_mmq 724.2us 0.12 | stock_dq 809.7us 0.11 | lcpp_mmq 114.3us 0.77 | *mma_k 106.9us 0.82
+  n= 32 route=mma_k: stock_mmq 956.4us 0.09 | stock_dq 754.2us 0.12 | lcpp_mmq 129.8us 0.68 | *mma_k 109.4us 0.80
+  n= 48 route=lcpp_mmq: stock_mmq 1434.1us 0.06 | stock_dq 883.1us 0.10 | *lcpp_mmq 158.5us 0.55 | mma_k 182.5us 0.48
+  n= 64 route=lcpp_mmq: stock_mmq 1904.7us 0.05 | stock_dq 915.4us 0.10 | *lcpp_mmq 191.5us 0.46 | mma_k 188.3us 0.47
+  n=128 route=lcpp_mmq: stock_mmq 3845.7us 0.02 | stock_dq 960.3us 0.09 | *lcpp_mmq 321.8us 0.27 | mma_k_chunked64 390.8us 0.22
+
+Q4_K 17408x5120 (47.8 MiB, 5 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 126.2us 0.98 | stock_mmq 177.1us 0.70 | *lcpp_mmvq 123.5us 1.00 | lcpp_mmq 141.8us 0.88 | own_vec 127.3us 0.98 | mma_k 130.7us 0.95
+  n=  2 route=lcpp_mmvq: stock_mmvq 248.6us 0.50 | stock_mmq 176.5us 0.70 | *lcpp_mmvq 125.1us 0.99 | lcpp_mmq 144.4us 0.86 | own_vec 126.0us 0.99 | mma_k 131.6us 0.94
+  n=  4 route=own_vec: stock_mmvq 491.2us 0.25 | stock_mmq 176.2us 0.70 | lcpp_mmvq 135.6us 0.92 | lcpp_mmq 147.9us 0.84 | *own_vec 132.0us 0.94 | mma_k 132.7us 0.94
+  n=  6 route=own_vec: stock_mmvq 733.4us 0.17 | stock_mmq 339.8us 0.37 | lcpp_mmvq 167.9us 0.74 | lcpp_mmq 147.8us 0.84 | *own_vec 150.8us 0.82 | mma_k 134.4us 0.92
+  n=  8 route=own_vec: stock_mmvq 976.0us 0.13 | stock_mmq 344.3us 0.36 | lcpp_mmvq 216.3us 0.57 | lcpp_mmq 148.7us 0.83 | *own_vec 153.9us 0.81 | mma_k 135.3us 0.92
+  n= 12 route=mma_k: stock_mmvq 1464.9us 0.08 | stock_mmq 512.0us 0.24 | lcpp_mmq 155.6us 0.80 | *mma_k 136.2us 0.91
+  n= 16 route=mma_k: stock_mmvq 1956.9us 0.06 | stock_mmq 666.0us 0.19 | stock_dq 1023.7us 0.12 | lcpp_mmq 154.7us 0.80 | *mma_k 138.2us 0.90
+  n= 24 route=mma_k: stock_mmq 1011.5us 0.12 | stock_dq 1020.0us 0.12 | lcpp_mmq 154.3us 0.80 | *mma_k 144.5us 0.86
+  n= 32 route=mma_k: stock_mmq 1352.0us 0.09 | stock_dq 1066.8us 0.12 | lcpp_mmq 191.6us 0.65 | *mma_k 147.6us 0.84
+  n= 48 route=lcpp_mmq: stock_mmq 2026.3us 0.06 | stock_dq 1069.9us 0.12 | *lcpp_mmq 211.9us 0.59 | mma_k 260.4us 0.48
+  n= 64 route=lcpp_mmq: stock_mmq 2736.9us 0.05 | stock_dq 1068.4us 0.12 | *lcpp_mmq 254.2us 0.49 | mma_k 265.5us 0.47
+  n=128 route=lcpp_mmq: stock_mmq 5481.2us 0.02 | stock_dq 1136.4us 0.11 | *lcpp_mmq 430.6us 0.29 | mma_k_chunked64 558.6us 0.22
+
+Q4_K 248320x5120 (682.0 MiB, 1 main + 0 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 1748.2us 1.01 | stock_mmq 2387.0us 0.74 | *lcpp_mmvq 1732.8us 1.02 | lcpp_mmq 1858.1us 0.95 | own_vec 1723.5us 1.03 | mma_k 1748.9us 1.01
+  n=  2 route=lcpp_mmvq: stock_mmvq 3522.0us 0.50 | stock_mmq 2412.3us 0.73 | *lcpp_mmvq 1744.1us 1.02 | lcpp_mmq 1873.4us 0.95 | own_vec 1748.5us 1.01 | mma_k 1764.2us 1.00
+  n=  4 route=own_vec: stock_mmvq 7016.0us 0.25 | stock_mmq 2435.6us 0.73 | lcpp_mmvq 2079.6us 0.85 | lcpp_mmq 1905.6us 0.93 | *own_vec 1806.6us 0.98 | mma_k 1775.2us 1.00
+  n=  6 route=own_vec: stock_mmvq 10564.3us 0.17 | stock_mmq 4898.6us 0.36 | lcpp_mmvq 2730.4us 0.65 | lcpp_mmq 1912.9us 0.93 | *own_vec 2105.7us 0.84 | mma_k 1786.7us 0.99
+  n=  8 route=own_vec: stock_mmvq 14196.8us 0.12 | stock_mmq 4920.9us 0.36 | lcpp_mmvq 3524.1us 0.50 | lcpp_mmq 1916.2us 0.92 | *own_vec 1878.0us 0.94 | mma_k 1782.8us 0.99
+  n= 12 route=mma_k: stock_mmvq 21173.4us 0.08 | stock_mmq 7347.8us 0.24 | lcpp_mmq 2085.0us 0.85 | *mma_k 1797.3us 0.99
+  n= 16 route=mma_k: stock_mmvq 28232.6us 0.06 | stock_mmq 9785.1us 0.18 | lcpp_mmq 2114.2us 0.84 | *mma_k 1799.9us 0.98
+  n= 24 route=mma_k: stock_mmq 14743.8us 0.12 | lcpp_mmq 2239.8us 0.79 | *mma_k 1946.9us 0.91
+  n= 32 route=mma_k: stock_mmq 19770.9us 0.09 | lcpp_mmq 2846.0us 0.62 | *mma_k 1997.0us 0.89
+  n= 48 route=lcpp_mmq: stock_mmq 29483.3us 0.06 | *lcpp_mmq 3181.3us 0.56 | mma_k 3621.8us 0.49
+  n= 64 route=lcpp_mmq: stock_mmq 39319.5us 0.05 | *lcpp_mmq 3837.4us 0.46 | mma_k 3778.7us 0.47
+  n=128 route=lcpp_mmq: stock_mmq 78716.1us 0.02 | *lcpp_mmq 6250.7us 0.28 | mma_k_chunked64 7784.2us 0.23
+
+Q6_K 1024x5120 (4.1 MiB, 0 main + 2 mtp, x4 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 17.2us 0.62 | stock_mmq 84.9us 0.13 | *lcpp_mmvq 14.7us 0.73 | lcpp_mmq 22.9us 0.46
+  n=  2 route=lcpp_mmvq: stock_mmvq 21.8us 0.49 | stock_mmq 85.1us 0.13 | *lcpp_mmvq 15.1us 0.71 | lcpp_mmq 23.0us 0.46
+  n=  4 route=lcpp_mmvq: stock_mmvq 35.5us 0.30 | stock_mmq 85.6us 0.12 | *lcpp_mmvq 16.0us 0.67 | lcpp_mmq 23.0us 0.46
+  n=  6 route=lcpp_mmvq: stock_mmvq 48.8us 0.22 | stock_mmq 85.9us 0.12 | *lcpp_mmvq 20.4us 0.52 | lcpp_mmq 23.2us 0.46
+  n=  8 route=lcpp_mmq: stock_mmvq 62.1us 0.17 | stock_mmq 86.3us 0.12 | lcpp_mmvq 22.5us 0.47 | *lcpp_mmq 23.3us 0.46
+  n= 12 route=lcpp_mmq: stock_mmvq 88.0us 0.12 | stock_mmq 89.3us 0.12 | *lcpp_mmq 25.4us 0.42
+  n= 16 route=lcpp_mmq: stock_mmvq 115.5us 0.09 | stock_mmq 95.3us 0.11 | stock_dq 67.4us 0.16 | *lcpp_mmq 25.7us 0.41
+  n= 24 route=lcpp_mmq: stock_mmq 107.2us 0.10 | stock_dq 70.2us 0.15 | *lcpp_mmq 27.8us 0.38
+  n= 32 route=lcpp_mmq: stock_mmq 128.8us 0.08 | stock_dq 70.5us 0.15 | *lcpp_mmq 30.2us 0.35
+  n= 48 route=lcpp_mmq: stock_mmq 183.0us 0.06 | stock_dq 69.2us 0.15 | *lcpp_mmq 36.0us 0.30
+  n= 64 route=lcpp_mmq: stock_mmq 237.9us 0.04 | stock_dq 70.3us 0.15 | *lcpp_mmq 41.2us 0.26
+  n=128 route=lcpp_mmq: stock_mmq 446.3us 0.02 | stock_dq 82.7us 0.13 | *lcpp_mmq 67.7us 0.16
+
+Q6_K 5120x6144 (24.6 MiB, 0 main + 1 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 69.0us 0.93 | stock_mmq 127.1us 0.50 | *lcpp_mmvq 66.1us 0.97 | lcpp_mmq 82.7us 0.77
+  n=  2 route=lcpp_mmvq: stock_mmvq 133.1us 0.48 | stock_mmq 129.8us 0.49 | *lcpp_mmvq 66.4us 0.96 | lcpp_mmq 82.9us 0.77
+  n=  4 route=lcpp_mmvq: stock_mmvq 259.7us 0.25 | stock_mmq 130.7us 0.49 | *lcpp_mmvq 68.6us 0.93 | lcpp_mmq 83.9us 0.76
+  n=  6 route=lcpp_mmvq: stock_mmvq 387.3us 0.16 | stock_mmq 202.0us 0.32 | *lcpp_mmvq 80.9us 0.79 | lcpp_mmq 84.7us 0.75
+  n=  8 route=lcpp_mmq: stock_mmvq 517.3us 0.12 | stock_mmq 200.8us 0.32 | lcpp_mmvq 101.3us 0.63 | *lcpp_mmq 87.6us 0.73
+  n= 12 route=lcpp_mmq: stock_mmvq 770.5us 0.08 | stock_mmq 294.6us 0.22 | *lcpp_mmq 87.3us 0.73
+  n= 16 route=lcpp_mmq: stock_mmvq 1026.6us 0.06 | stock_mmq 359.4us 0.18 | stock_dq 382.0us 0.17 | *lcpp_mmq 87.6us 0.73
+  n= 24 route=lcpp_mmq: stock_mmq 524.0us 0.12 | stock_dq 381.1us 0.17 | *lcpp_mmq 93.4us 0.68
+  n= 32 route=lcpp_mmq: stock_mmq 688.1us 0.09 | stock_dq 380.0us 0.17 | *lcpp_mmq 98.6us 0.65
+  n= 48 route=lcpp_mmq: stock_mmq 1011.9us 0.06 | stock_dq 381.0us 0.17 | *lcpp_mmq 110.0us 0.58
+  n= 64 route=lcpp_mmq: stock_mmq 1360.6us 0.05 | stock_dq 494.1us 0.13 | *lcpp_mmq 122.8us 0.52
+  n=128 route=lcpp_mmq: stock_mmq 2709.5us 0.02 | stock_dq 441.4us 0.14 | *lcpp_mmq 201.9us 0.32
+
+Q6_K 5120x10240 (41.0 MiB, 0 main + 1 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 113.9us 0.93 | stock_mmq 209.9us 0.51 | *lcpp_mmvq 107.8us 0.99 | lcpp_mmq 136.3us 0.78
+  n=  2 route=lcpp_mmvq: stock_mmvq 222.1us 0.48 | stock_mmq 211.6us 0.50 | *lcpp_mmvq 108.1us 0.99 | lcpp_mmq 136.7us 0.78
+  n=  4 route=lcpp_mmvq: stock_mmvq 439.7us 0.24 | stock_mmq 214.7us 0.50 | *lcpp_mmvq 111.6us 0.95 | lcpp_mmq 138.2us 0.77
+  n=  6 route=lcpp_mmvq: stock_mmvq 660.4us 0.16 | stock_mmq 330.4us 0.32 | *lcpp_mmvq 128.0us 0.83 | lcpp_mmq 140.8us 0.76
+  n=  8 route=lcpp_mmq: stock_mmvq 876.4us 0.12 | stock_mmq 331.8us 0.32 | lcpp_mmvq 168.2us 0.63 | *lcpp_mmq 141.0us 0.76
+  n= 12 route=lcpp_mmq: stock_mmvq 1316.3us 0.08 | stock_mmq 489.7us 0.22 | *lcpp_mmq 141.0us 0.76
+  n= 16 route=lcpp_mmq: stock_mmvq 1753.9us 0.06 | stock_mmq 594.2us 0.18 | stock_dq 630.3us 0.17 | *lcpp_mmq 142.6us 0.75
+  n= 24 route=lcpp_mmq: stock_mmq 863.9us 0.12 | stock_dq 627.7us 0.17 | *lcpp_mmq 152.7us 0.70
+  n= 32 route=lcpp_mmq: stock_mmq 1147.3us 0.09 | stock_dq 632.2us 0.17 | *lcpp_mmq 156.1us 0.68
+  n= 48 route=lcpp_mmq: stock_mmq 1700.0us 0.06 | stock_dq 640.8us 0.17 | *lcpp_mmq 169.1us 0.63
+  n= 64 route=lcpp_mmq: stock_mmq 2272.5us 0.05 | stock_dq 806.6us 0.13 | *lcpp_mmq 188.1us 0.57
+  n=128 route=lcpp_mmq: stock_mmq 4537.7us 0.02 | stock_dq 730.2us 0.15 | *lcpp_mmq 304.1us 0.35
+
+Q6_K 5120x17408 (69.7 MiB, 0 main + 1 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 196.4us 0.92 | stock_mmq 354.4us 0.51 | *lcpp_mmvq 181.1us 1.00 | lcpp_mmq 222.1us 0.82
+  n=  2 route=lcpp_mmvq: stock_mmvq 391.7us 0.46 | stock_mmq 356.5us 0.51 | *lcpp_mmvq 183.0us 0.99 | lcpp_mmq 222.7us 0.81
+  n=  4 route=lcpp_mmvq: stock_mmvq 769.4us 0.24 | stock_mmq 358.0us 0.51 | *lcpp_mmvq 189.5us 0.96 | lcpp_mmq 226.3us 0.80
+  n=  6 route=lcpp_mmvq: stock_mmvq 1153.8us 0.16 | stock_mmq 561.8us 0.32 | *lcpp_mmvq 216.8us 0.84 | lcpp_mmq 228.2us 0.79
+  n=  8 route=lcpp_mmq: stock_mmvq 1534.0us 0.12 | stock_mmq 558.5us 0.32 | lcpp_mmvq 267.6us 0.68 | *lcpp_mmq 229.8us 0.79
+  n= 12 route=lcpp_mmq: stock_mmvq 2344.8us 0.08 | stock_mmq 836.1us 0.22 | *lcpp_mmq 226.6us 0.80
+  n= 16 route=lcpp_mmq: stock_mmvq 3070.3us 0.06 | stock_mmq 989.9us 0.18 | stock_dq 1086.3us 0.17 | *lcpp_mmq 229.8us 0.79
+  n= 24 route=lcpp_mmq: stock_mmq 1490.1us 0.12 | stock_dq 1059.7us 0.17 | *lcpp_mmq 249.8us 0.72
+  n= 32 route=lcpp_mmq: stock_mmq 1977.6us 0.09 | stock_dq 1069.3us 0.17 | *lcpp_mmq 257.2us 0.70
+  n= 48 route=lcpp_mmq: stock_mmq 2936.2us 0.06 | stock_dq 1070.9us 0.17 | *lcpp_mmq 283.1us 0.64
+  n= 64 route=lcpp_mmq: stock_mmq 3912.1us 0.05 | stock_dq 1352.9us 0.13 | *lcpp_mmq 307.3us 0.59
+  n=128 route=lcpp_mmq: stock_mmq 7780.2us 0.02 | stock_dq 1429.6us 0.13 | *lcpp_mmq 481.4us 0.38
+
+Q6_K 12288x5120 (49.2 MiB, 0 main + 1 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 140.9us 0.91 | stock_mmq 200.6us 0.64 | *lcpp_mmvq 127.9us 1.00 | lcpp_mmq 154.0us 0.83
+  n=  2 route=lcpp_mmvq: stock_mmvq 279.1us 0.46 | stock_mmq 203.3us 0.63 | *lcpp_mmvq 129.4us 0.99 | lcpp_mmq 154.0us 0.83
+  n=  4 route=lcpp_mmvq: stock_mmvq 555.8us 0.23 | stock_mmq 204.2us 0.63 | *lcpp_mmvq 139.3us 0.92 | lcpp_mmq 155.5us 0.82
+  n=  6 route=lcpp_mmvq: stock_mmvq 831.6us 0.15 | stock_mmq 363.7us 0.35 | *lcpp_mmvq 162.1us 0.79 | lcpp_mmq 157.1us 0.81
+  n=  8 route=lcpp_mmq: stock_mmvq 1110.8us 0.12 | stock_mmq 364.5us 0.35 | lcpp_mmvq 206.9us 0.62 | *lcpp_mmq 157.6us 0.81
+  n= 12 route=lcpp_mmq: stock_mmvq 1684.9us 0.08 | stock_mmq 517.0us 0.25 | *lcpp_mmq 158.7us 0.81
+  n= 16 route=lcpp_mmq: stock_mmvq 2256.3us 0.06 | stock_mmq 695.2us 0.18 | stock_dq 780.7us 0.16 | *lcpp_mmq 159.5us 0.80
+  n= 24 route=lcpp_mmq: stock_mmq 1027.7us 0.12 | stock_dq 836.7us 0.15 | *lcpp_mmq 176.2us 0.73
+  n= 32 route=lcpp_mmq: stock_mmq 1355.1us 0.09 | stock_dq 780.5us 0.16 | *lcpp_mmq 180.1us 0.71
+  n= 48 route=lcpp_mmq: stock_mmq 2026.5us 0.06 | stock_dq 909.0us 0.14 | *lcpp_mmq 195.2us 0.65
+  n= 64 route=lcpp_mmq: stock_mmq 2703.4us 0.05 | stock_dq 948.8us 0.13 | *lcpp_mmq 223.0us 0.57
+  n=128 route=lcpp_mmq: stock_mmq 5401.6us 0.02 | stock_dq 986.0us 0.13 | *lcpp_mmq 376.8us 0.34
+
+Q6_K 17408x5120 (69.7 MiB, 0 main + 2 mtp, x1 copies)
+  n=  1 route=lcpp_mmvq: stock_mmvq 198.2us 0.91 | stock_mmq 267.2us 0.68 | *lcpp_mmvq 179.4us 1.01 | lcpp_mmq 200.9us 0.90
+  n=  2 route=lcpp_mmvq: stock_mmvq 396.4us 0.46 | stock_mmq 270.0us 0.67 | *lcpp_mmvq 181.2us 1.00 | lcpp_mmq 201.8us 0.90
+  n=  4 route=lcpp_mmvq: stock_mmvq 789.1us 0.23 | stock_mmq 272.2us 0.67 | *lcpp_mmvq 196.6us 0.92 | lcpp_mmq 203.7us 0.89
+  n=  6 route=lcpp_mmvq: stock_mmvq 1201.7us 0.15 | stock_mmq 490.8us 0.37 | *lcpp_mmvq 226.7us 0.80 | lcpp_mmq 205.6us 0.88
+  n=  8 route=lcpp_mmq: stock_mmvq 1579.1us 0.11 | stock_mmq 504.3us 0.36 | lcpp_mmvq 283.2us 0.64 | *lcpp_mmq 208.1us 0.87
+  n= 12 route=lcpp_mmq: stock_mmvq 2396.1us 0.08 | stock_mmq 725.0us 0.25 | *lcpp_mmq 210.9us 0.86
+  n= 16 route=lcpp_mmq: stock_mmvq 3208.6us 0.06 | stock_mmq 957.8us 0.19 | stock_dq 1061.2us 0.17 | *lcpp_mmq 210.3us 0.86
+  n= 24 route=lcpp_mmq: stock_mmq 1439.6us 0.13 | stock_dq 1055.6us 0.17 | *lcpp_mmq 222.7us 0.81
+  n= 32 route=lcpp_mmq: stock_mmq 1915.3us 0.09 | stock_dq 1108.3us 0.16 | *lcpp_mmq 232.6us 0.78
+  n= 48 route=lcpp_mmq: stock_mmq 2853.7us 0.06 | stock_dq 1117.8us 0.16 | *lcpp_mmq 257.6us 0.70
+  n= 64 route=lcpp_mmq: stock_mmq 3807.9us 0.05 | stock_dq 1108.8us 0.16 | *lcpp_mmq 296.6us 0.61
+  n=128 route=lcpp_mmq: stock_mmq 7637.7us 0.02 | stock_dq 1178.3us 0.15 | *lcpp_mmq 476.1us 0.38

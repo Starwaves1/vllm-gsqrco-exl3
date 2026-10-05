@@ -1,0 +1,22 @@
+{
+ "tier1.parity-gguf": {
+  "status": "ok",
+  "note": "",
+  "time": "2026-10-04T08:19:56+00:00"
+ },
+ "tier1.parity-exl3": {
+  "status": "failed",
+  "note": "test failures, see parity-exl3.log",
+  "time": "2026-10-04T08:21:38+00:00"
+ },
+ "tier1.micro-gguf": {
+  "status": "ok",
+  "note": "",
+  "time": "2026-10-04T08:26:22+00:00"
+ },
+ "tier1.micro-exl3": {
+  "status": "ok",
+  "note": "",
+  "time": "2026-10-04T08:27:04+00:00"
+ }
+}
