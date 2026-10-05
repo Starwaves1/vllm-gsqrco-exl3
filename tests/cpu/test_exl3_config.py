@@ -96,7 +96,7 @@ def test_entry_point_registers_exl3():
     assert get_quantization_config("exl3") is EXL3Config
     cfg = EXL3Config.from_config(_qcfg())
     assert cfg.get_name() == "exl3"
-    assert cfg.get_min_capability() == 80
+    assert cfg.get_min_capability() == 75
     assert cfg.get_config_filenames() == []
 
 

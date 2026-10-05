@@ -43,7 +43,7 @@ class EXL3Config(QuantizationConfig):
 
     @classmethod
     def get_min_capability(cls) -> int:
-        return 80
+        return 75  # the vendored kernels have sm75 paths (two m16n8k8 per k16, no cp.async); built per TORCH_CUDA_ARCH_LIST
 
     @classmethod
     def get_config_filenames(cls) -> list[str]:

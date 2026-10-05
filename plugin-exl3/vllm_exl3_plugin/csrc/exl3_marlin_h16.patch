@@ -13,7 +13,18 @@
  #ifndef TRELLIS_PROBES
    #define TRELLIS_PROBES 0  // 1: timing-probe branches (set_debug_flags) compiled in; never in a served build
  #endif
-@@ -364,6 +370,16 @@
+@@ -353,7 +359,9 @@
+     return;
+   #endif
+ 
+-  #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ == 750
++  // exl3-opt: never on Turing, whose upstream fp16 accumulation over a whole k-slice is 2-3x exl3_gemm's error
++  // (sm75 test_exl3_mr); h16 below then folds into fp32 there too
++  #if 0 && defined(__CUDA_ARCH__) && __CUDA_ARCH__ == 750
+   constexpr auto num_bits = vllm::ScalarType::from_id(b_type_id).size_bits();
+   // Disable use_fp16_accum for NVFP4 and cases when group_size == -1 &&
+   // num_bits == 4
+@@ -364,6 +372,16 @@
    #else
    constexpr bool use_fp16_accum = false;
    #endif
@@ -30,7 +41,7 @@
    using Adtype = MarlinScalarType<a_type_id>;
    using Cdtype = MarlinScalarType<c_type_id>;
    const int4* A = A0;
-@@ -902,6 +918,25 @@
+@@ -902,6 +920,25 @@
    #pragma unroll
      for (int i = 0; i < thread_m_blocks * 4 * 2 * 4; i++)
        reinterpret_cast<float*>(frag_c)[i] = 0;
@@ -56,7 +67,7 @@
    };
  
    int sh_first_group_id = -1;
-@@ -1485,7 +1520,12 @@
+@@ -1485,7 +1522,12 @@
        }
    #pragma unroll
        for (int i = 0; i < thread_m_blocks; i++) {
@@ -70,7 +81,7 @@
            mma_trans<a_type_id, use_fp16_accum>(frag_a[k2][i], frag_b0, frag_b1,
                                                 frag_c[i][j][0]);
          } else {
-@@ -2043,6 +2083,10 @@
+@@ -2043,6 +2085,10 @@
            matmul_a8(k);
          }
        }
