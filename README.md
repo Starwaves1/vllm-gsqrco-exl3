@@ -205,14 +205,7 @@ Docs:
 
 ## Upstream notes
 
-No PRs are open yet. The candidates, in order:
-
-1. llama.cpp. `ggml_cuda_mul_mat_q` sizes MMQ's q8_1 read tail from `ggml_cuda_mmq_get_J_max`, which rounds `ne11` down to a multiple of 8. Below 8 activation columns the tail is zero, but the kernel still loads a full tile, so it reads past the allocation. llama.cpp's own dispatch sends ≤ 8 columns to MMVQ, so only direct MMQ callers hit it. The shim adds its own tail and zeroes it. The proposed fix sizes the tail from the largest tile the kernel can pick. Details are in REPORT.md section 14a.
-2. vllm-gguf-plugin fixes that stand alone: staging unsharded weights from host memory, which avoids an OOM at MTP draft load, and serving a multimodal-config Qwen3.5 GGUF without a projector as text only.
-3. vllm-gguf-plugin: Route L as an opt-in backend, with the vendored files, the shim, the routing, the build flag and the tests.
-4. The owned kernels, one at a time with microbenchmarks and parity tests. The IQ3 repack and packed kernels come first.
-
-Draft-head vocab pruning and the routing thresholds stay local. They were tuned on one 3090.
+The project table above is the source of truth. Reports for the contributions being opened live under `docs/upstream/prs/<slug>/REPORT.md`, the standard they follow is described there, and `docs/upstream/prs/index.json` lists every bug found, including the ones rejected for upstream and why (for example the llama.cpp MMQ tail: real in our vendored path, unreachable for llama.cpp's own users). The Route L vendoring goes up as an RFC first; the owned kernels and the per-generation dispatch follow once every generation in the table has run the same tagged commit.
 
 ## Credits and licenses
 
