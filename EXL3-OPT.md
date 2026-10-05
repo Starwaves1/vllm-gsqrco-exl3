@@ -399,3 +399,22 @@ Not built: fold 2, which may take part of the remaining 0.2-1.4 ms while staying
 - **Task 3:** `box-scripts/21-tier.sh` is untested: `run-job.sh 21-tier SC_3.00bpw_H4_V4 2hf`, then
   4.00/4.50, one at a time (12.2/15.3/16.7 GiB). It needs a box worktree at this commit or later.
 - **Task 4:** `cloud/results/exl3/REPORT.md` (with the DoD checklist), ADR 0002 accepted, README's EXL3 section; merged exl3-opt -> exl3 -> main. REPORT section 6 lists what the queued jobs still have to fill in (tiers, switch, soak, corruption baseline, concat probe).
+
+## DoD session 2026-10-05 (branch exl3-opt from main 299d8e3): where I stopped
+
+Stopped at the usage threshold, 07:2x UTC. Box worktrees `/workspace/wt-exl3-dod` (tiers) and `/workspace/wt-exl3-dod2`
+(concat, switch), both at 13f52e0 with the c1 build's `.so` copied in (plugin-exl3 sources unchanged since b29530c).
+Run dirs `/workspace/runs/exl3-opt-dod/`, logs `/workspace/logs/exl3-opt-dod/`, small results in each worktree's
+`cloud/results/exl3-opt-dod/` (pull them with tar, as done for 3.00).
+
+| deliverable | state |
+|---|---|
+| 1 tiers | reference crash already fixed in main (1adf032: the whole per-sequence loop under inference_mode); 21-tier regenerates the parity prompts (473050a). **3.00 bpw VERIFIED** (`cloud/results/exl3-opt-dod/21-tier-SC_3.00bpw_H4_V4-k3/`): load 9.89 GiB in 4.7 s, KV 326,119 tokens at 196,608; parity vs exllamav3 (bf16 KV, no MTP) KLD mean 0.00040 (code 1.5k 0.00031, code 4k 0.00049, prose 8k 0.00039), top-1 0.987 (gate 0.99 fails on prose 8k at 0.972); k=3 ladder 26.27 / 26.54 / 32.51 / 41.58 ms/step c=1/2/4/8, acceptance 0.514. 3.50 / 4.00 / 4.50: running in gpuq `exl3dod-tiers` (1791183230130256); `tiers.md` not written yet |
+| 2 switch | guard kept as is: the 10-04 run served `serve-gsq.sh` from wt-torture under wt-exl3-c1's exported `GSQ_HF_CONFIG`; `dod-switch.sh` runs both serve scripts from one checkout (7ddd811). Queued: `exl3dod-switch` (1791183442573746) |
+| 3 concat | root cause measured (`cloud/results/exl3-opt-dod/concat-probe/`, CUDA memory snapshot at the fp8 head's entry): with `--enable-cumem-allocator` (production's argv) weights load into vLLM's private pool and the parts freed by the concat stay reserved there until the load ends: 22.47 GiB reserved against 17.68 for 2hf, same 14.62 GiB allocated; the head's whole-matrix fp32 temporaries then OOMed. Fix 13f52e0: quantize in 1024-row chunks staged on the host, free the bf16 head before allocating the fp8 copy (bit-identical, checked on a 3070; 179 CPU tests pass). Queued: `exl3dod-concat` (1791183442570538, 12-mr-ladder 2hf vs 2hfc, non-zero rc on failure) |
+| 4 sm75 | opus agent on torn-gpu (2080 Ti); its output, if written: `cloud/results/exl3/sm75.md` (uncommitted when I stopped) |
+| 5 /check | not started |
+
+Next: when gpuq is done, pull `cloud/results/exl3-opt-dod/` from both box worktrees, write `cloud/results/exl3/tiers.md`
+(load, parity, ms/step per tier), switch and concat numbers into REPORT.md (sections 6/7), commit sm75.md, then one /check.
+Also queued behind them: a PR agent's `uprs-gpu-tests`.
