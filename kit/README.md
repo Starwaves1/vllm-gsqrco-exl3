@@ -8,17 +8,16 @@ directory is modified.
 ## What you need
 
 - Linux x86_64 and an NVIDIA GPU (tested: RTX 3070 sm86; written for sm75, sm86, sm89 and sm120)
-- NVIDIA driver 580 or newer (CUDA 13) for every tier. A CUDA 12.x driver runs tier 1 only, and also needs a
-  local CUDA 12.x toolkit (`CUDA_HOME`).
+- NVIDIA driver 580 or newer (CUDA 13); the kit stops on an older driver
 - [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`), git, curl, python3, about 25 GB of disk
   (venv 9 GB, builds 2 GB, synthetic weights 3.5 GB, tier 2 models 6 GB; tier 3 another 27 GB)
 - No sudo, no system packages. The CUDA compiler comes from pip wheels.
 
 | tier | card | time | what it measures |
 |---|---|---|---|
-| bootstrap | any | 15-40 min, mostly compiling | venv with the pinned wheels (`env/gsq-main-freeze.txt`: torch 2.13.0, vLLM main d28795f), both plugins compiled for your card's compute capability only, vendored-source sha256 check |
-| 1 | >= 4 GB | 15-30 min | kernel parity (GGUF Route L and EXL3, synthetic weights at the Qwen3.8-27B matrix shapes); a micro-benchmark of every candidate kernel per (quant type, rows 1..128, shape) against the vendored llama.cpp MMVQ/MMQ; CUDA-graph replay bit-exactness; efficiency against the card's measured copy bandwidth |
-| 2 | >= 8 GB | ~25 min | Qwen3.5-4B served end to end: GGUF Q4_K_M with MTP k=3, decode ladder c=1/2/4/8 (ms/step, tok/s), a 200-request corruption check; the same for a Qwen3.5-4B EXL3 quant (no MTP head exists for it) |
+| bootstrap | any | 15-40 min, mostly compiling | venv with the pinned wheels (`env/gsq-main-freeze.txt`: torch 2.13.0, vLLM main d28795f), both plugins compiled for your card's compute capability only (`TORCH_CUDA_ARCH_LIST` overrides; the builds live in the checkout, so use one checkout per architecture), vendored-source sha256 check |
+| 1 | >= 8 GB | 15-30 min | kernel parity (under a 12 GB cap without the EXL3 1024-row lm_head cases, which need ~9.5 GB) (GGUF Route L and EXL3, synthetic weights at the Qwen3.8-27B matrix shapes); a micro-benchmark of every candidate kernel per (quant type, rows 1..128, shape) against the vendored llama.cpp MMVQ/MMQ; CUDA-graph replay bit-exactness; efficiency against the card's measured copy bandwidth |
+| 2 | >= 8 GB | ~25 min | Qwen3.5-4B served end to end: GGUF Q4_K_M with MTP k=3, decode ladder c=1/2/4/8 (ms/step, tok/s), a 200-request corruption check (one flagged response fails the step); the same for a Qwen3.5-4B EXL3 quant (no MTP head exists for it) |
 | 3 | 24 GB | ~1.5 h | the same for the 27B production models (Swift-1.5-Qwen3.8-27B GSQ-RCO IQ3_S-mtp GGUF and its EXL3 3.50 bpw) |
 
 ## Run
@@ -45,7 +44,8 @@ Long runs survive a closed terminal with `nohup kit/run.sh tier1 > kit-tier1.log
 
 Environment: `KIT_WORK` (venv, builds, synthetic weights; default `kit/.work`), `HF_HOME` (model downloads;
 default `kit/.work/hf`), `KIT_PORT` (vLLM port for tiers 2/3, default 18200), `MAX_JOBS` (parallel compiles,
-default 4; each needs about 3 GB RAM), `UV` (path to uv).
+default 4; each needs about 3 GB RAM), `UV` (path to uv), `TORCH_CUDA_ARCH_LIST` (bootstrap: the archs to
+compile for, default the card's).
 
 ## Power limit and clocks
 
@@ -61,15 +61,14 @@ the run then completes, and the summary labels every number as capped.
   activations. There is no fp8 KV cache (`--kv-cache-dtype` stays auto) and no FlashAttention (sm80+), and the
   prebuilt FlashInfer kernels cover sm80+ only, so tiers 2/3 use `--attention-backend TRITON_ATTN`. The int8
   tensor-core kernels (Route L's owned IQ3/mma_k kernels) and the EXL3 kernels may not compile for sm75. The
-  bootstrap then records the failure and builds what it can (Route L without them, or the stock GGUF kernels; EXL3
-  phase 1 only, or none). The affected tests and benchmarks are reported as `unsupported`, not as failures.
+  bootstrap then records the failure and builds what it can (the stock GGUF kernels; EXL3 phase 1 only, or none).
+  Without Route L the kit runs with `VLLM_GGUF_LCPP=0`, the micro-benchmark times only the stock kernels, and the
+  results say "stock kernels". The affected tests and benchmarks are reported as `unsupported`, not as failures.
 - **Ada (sm89) and Blackwell (sm120):** fp8 KV cache as on Ampere. Nothing else changes.
-- **CUDA 12 driver:** tier 1 only, as above. torch 2.13.0+cu129 from the PyTorch index; vLLM's Python code is
-  installed without its CUDA 13 deps, which the plugins' kernel tests do not need.
 
 All tiers use stock vLLM at the pinned commit. The published 27B numbers in the top-level README also used a small
 vLLM patch set (filesystem KV tiers, a pruned MTP draft head), so tier 3 numbers are not directly comparable to
-them.
+them: stock vLLM has no pruned draft head, so the tier 3 GGUF run drafts on the full lm_head (`MTP_DRAFT_VOCAB=0`).
 
 ## What comes out
 

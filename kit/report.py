@@ -239,7 +239,7 @@ def gguf_micro(d: Path) -> dict:
         best = sum(cnt(k) * min(by[k].values()) for k in ks)
         base = sum(cnt(k) * min((by[k][b] for b in BASELINE if b in by[k]), default=by[k].get(route_of.get(k), 0)) for k in ks)
         floor = sum(cnt(k) * bytes_of.get(k[:3], 0) for k in ks) / (bw * 1e9) * 1e3 if bw else None
-        model.append({"n": n, "route_ms": round(route / 1e3, 3), "best_ms": round(best / 1e3, 3),
+        model.append({"n": n, "route_ms": round(route / 1e3, 3) if all(route_of.get(k) in by[k] for k in ks) else None, "best_ms": round(best / 1e3, 3),
                       "baseline_ms": round(base / 1e3, 3), "floor_ms": round(floor, 3) if floor else None})
     exact = [c for c in cells if c.get("graph_exact") == "0"]
     na = [c for c in cells if not c["us"]]
@@ -407,8 +407,8 @@ def render(r: dict) -> str:
             L.append(f"| {typ} | " + " | ".join(row) + " |")
         L += ["", "Whole-model GEMM time per forward (all 27B linears incl. lm_head and the MTP layer), ms:", "",
               "| rows | current routing | best per cell | vendored llama.cpp | copy-bandwidth floor | routing / floor |", "|---|---|---|---|---|---|"]
-        L += [f"| {x['n']} | {x['route_ms']} | {x['best_ms']} | {x['baseline_ms']} | {fmt(x['floor_ms'], 3)} | "
-              f"{fmt(x['route_ms'] / x['floor_ms'], 2) if x['floor_ms'] else '-'} |" for x in m["model"]]
+        L += [f"| {x['n']} | {fmt(x['route_ms'], 3)} | {x['best_ms']} | {x['baseline_ms']} | {fmt(x['floor_ms'], 3)} | "
+              f"{fmt(x['route_ms'] / x['floor_ms'], 2) if x['floor_ms'] and x['route_ms'] is not None else '-'} |" for x in m["model"]]
         L += ["", f"CUDA-graph replay bit-identical to eager: {m['cells'] - len(m['graph_mismatches']) - len(m['not_applicable'])} "
               f"of {m['cells'] - len(m['not_applicable'])} timed cells" + (f"; mismatches: {m['graph_mismatches'][:6]}" if m["graph_mismatches"] else "")]
         if m.get("fatal"):
@@ -507,7 +507,8 @@ def cmd_selftest(a):
     (d / "gpucheck-tier1.json").write_text(json.dumps({"power_limit_w": 220.0, "default_power_limit_w": 220.0, "capped": False,
                                                        "max_sm_clock_mhz": 2100, "max_mem_clock_mhz": 7001}))
     (d / "clocks-tier1.csv").write_text("".join(f"2026/10/04 12:00:{i:02d}.000, 1905 MHz, 6801 MHz, 180.5 W, 97 %, 66, 0x0000000000000000\n" for i in range(20)))
-    (d / "steps.json").write_text(json.dumps({"tier1.parity-gguf": {"status": "ok"}, "tier1.parity-exl3": {"status": "unsupported", "note": "EXL3 build failed on sm75"}}))
+    (d / "steps.json").write_text(json.dumps({"tier1.parity-gguf": {"status": "ok"}, "tier1.parity-exl3": {"status": "unsupported", "note": "EXL3 build failed on sm75"},
+                                             "tier2.gguf-4b-q4km-k3": {"status": "refused", "note": "card not idle"}}))
     (d / "tier1/parity-gguf.xml").write_text(
         '<testsuites><testsuite name="pytest" tests="3" time="12.5"><testcase classname="t" name="test_lcpp_mmvq[IQ3_S-1-bfloat16]"/>'
         '<testcase classname="t" name="test_lcpp_mmq[Q4_K-8-float16]"><failure message="AssertionError: too far"/></testcase>'
@@ -542,7 +543,7 @@ def cmd_selftest(a):
     assert disp[("IQ3_S", 32)]["route_us"] > disp[("IQ3_S", 32)]["winner_us"]
     assert r["tier1"]["parity"]["gguf"]["failed"] == 1 and r["clocks"]["tier1"]["busy_s"] == 20
     assert "| IQ3_S |" in (d / "summary.md").read_text()
-    assert r["cc"] == "8.6" and r["tiers"] == {"1": "partial"}, (r["cc"], r["tiers"])
+    assert r["cc"] == "8.6" and r["tiers"] == {"1": "partial", "2": "fail"}, (r["cc"], r["tiers"])
     # a second sm86 card that prefers MMQ at IQ3_S 17408x5120 n=32 by 20 %: one disagreement
     b = d.parent / (d.name + "-b")
     b.mkdir(exist_ok=True)

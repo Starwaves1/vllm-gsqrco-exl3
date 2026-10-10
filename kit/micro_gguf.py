@@ -64,7 +64,7 @@ def variants(typ, qt, rows, k, n, lcpp):
         v["stock_mmvq"] = lambda w, p, x: ops.ggml_mul_mat_vec_a8(w, x, qt, rows)
     if typ in ("Q2_K", "Q4_K", "Q6_K"):
         v["stock_mmq"] = lambda w, p, x: ops.ggml_mul_mat_a8(w, x, qt, rows)
-    if n >= 16 and rows <= 20000:  # dequantize + cuBLAS; above 20000 rows the bf16 copy alone is 2.5 GB
+    if n > 8 and rows <= 20000:  # dequantize + cuBLAS (stock IQ route above 8 rows); above 20000 rows the bf16 copy alone is 2.5 GB
         v["stock_dq"] = lambda w, p, x: x @ ops.ggml_dequantize(w, qt, rows, k, x.dtype).T
     if not lcpp:
         return v

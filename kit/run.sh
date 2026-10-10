@@ -9,7 +9,7 @@
 #   --max-gpu-gb G     most GPU memory the kit may use (default: 85 % of the card)
 #   --idle-mib N       the card counts as idle at <= N MiB used and <= 10 % util (default 1024)
 #   --wait S           wait up to S seconds for the card to become idle (default 600)
-#   --no-gpu           bootstrap only, no GPU present (CPU dry run); --arch X.Y and --cuda 12|13 stand in
+#   --no-gpu           bootstrap only, no GPU present (CPU dry run); --arch X.Y stands in for the card
 #   --skip-build       bootstrap without compiling the plugins
 #   --parity-k EXPR    pytest -k filter for the tier 1 parity tests (default: all)
 #
@@ -19,7 +19,7 @@ set -uo pipefail
 KIT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(dirname "$KIT")
 TIER=${1:-}; shift || true
-GPU=0 NAME= ALLOW_CAPPED= MAX_GB= IDLE_MIB=1024 WAIT=600 NO_GPU=0 ARCH=8.6 CUDA_FORCE= SKIP_BUILD=0 PARITY_K=
+GPU=0 NAME= ALLOW_CAPPED= MAX_GB= IDLE_MIB=1024 WAIT=600 NO_GPU=0 ARCH=8.6 SKIP_BUILD=0 PARITY_K=
 while [ $# -gt 0 ]; do
   case $1 in
     --gpu) GPU=$2; shift ;;
@@ -30,7 +30,6 @@ while [ $# -gt 0 ]; do
     --wait) WAIT=$2; shift ;;
     --no-gpu) NO_GPU=1 ;;
     --arch) ARCH=$2; shift ;;
-    --cuda) CUDA_FORCE=$2; shift ;;
     --skip-build) SKIP_BUILD=1 ;;
     --parity-k) PARITY_K=$2; shift ;;
     *) echo "unknown option $1 (see the header of $0)"; exit 2 ;;
@@ -52,24 +51,23 @@ die() { log "FATAL: $*"; exit 1; }
 
 # ------------------------------------------------------------------------------ card facts
 if [ $NO_GPU = 1 ]; then
-  CAP=$ARCH CUDA_MAJOR=${CUDA_FORCE:-13} GPU_NAME="none" MEM_MIB=8192
+  CAP=$ARCH GPU_NAME="none" MEM_MIB=8192
 else
   command -v nvidia-smi >/dev/null || die "nvidia-smi not found (use --no-gpu for a CPU dry run)"
   IFS=, read -r GPU_NAME CAP MEM_MIB < <(nvidia-smi -i "$GPU" --query-gpu=name,compute_cap,memory.total \
     --format=csv,noheader,nounits | sed 's/, */,/g') || die "no GPU with index $GPU"
   DRV_CUDA=$(nvidia-smi | sed -n 's/.*CUDA Version: *\([0-9.]*\).*/\1/p' | head -1)
-  CUDA_MAJOR=${CUDA_FORCE:-${DRV_CUDA%%.*}}
+  [ "${DRV_CUDA%%.*}" -ge 13 ] 2>/dev/null || die "driver supports CUDA ${DRV_CUDA:-?}: the kit needs NVIDIA driver >= 580 (CUDA 13)"
 fi
 CCN=${CAP/./}
 SLUG=$(echo "$GPU_NAME" | tr 'A-Z' 'a-z' | sed 's/nvidia//; s/geforce//; s/[^a-z0-9]//g')
 OUT=$KIT/results/${NAME:-$(hostname -s)-$SLUG}-$(date +%F)
-[ "$CUDA_MAJOR" -ge 13 ] 2>/dev/null && CU=13 || CU=12
-VENV=$WORK/venv-cu$CU
+VENV=$WORK/venv-cu13
 PY=$VENV/bin/python
 # memory cap: a fraction of the card for the tier 1 processes, gpu-memory-utilization for vLLM
 MAX_MIB=$(awk -v g="${MAX_GB:-0}" -v t="$MEM_MIB" 'BEGIN { m = g > 0 ? g * 1024 : t * 0.85; print int(m < t ? m : t) }')
 export KIT_MEM_FRACTION=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { printf "%.3f", m / t }')
-log "card $GPU: $GPU_NAME, sm$CCN, $MEM_MIB MiB; kit memory cap $MAX_MIB MiB ($KIT_MEM_FRACTION); CUDA $CU stack; out $OUT"
+log "card $GPU: $GPU_NAME, sm$CCN, $MEM_MIB MiB; kit memory cap $MAX_MIB MiB ($KIT_MEM_FRACTION); out $OUT"
 
 pyjson() {  # pyjson FILE KEY.PATH VALUE-JSON: set a nested key in a JSON file
   python3 - "$@" <<'EOF'
@@ -93,23 +91,13 @@ step() {  # step NAME STATUS [NOTE]: record a step's outcome in steps.json
 bootstrap() {
   local B=$WORK/bootstrap.json
   rm -f "$B"
-  pyjson "$B" cuda "\"$CU\""; pyjson "$B" cc "\"$CAP\""; pyjson "$B" venv "$(jstr "$VENV")"
+  pyjson "$B" cc "\"$CAP\""; pyjson "$B" venv "$(jstr "$VENV")"
   [ -x "$PY" ] || "$UV" venv --python 3.12 "$VENV" || die "uv venv failed"
-  local F=$WORK/freeze-cu$CU.txt
+  local F=$WORK/freeze-cu13.txt
   # the pinned stack of the repo's vLLM-main venv, minus the two local paths (gguf-py, the editable plugin)
   # and FlashInfer's prebuilt JIT cache (not on PyPI; a workaround for one host's broken FlashInfer JIT)
   grep -vE '^(-e |gguf @|flashinfer-jit-cache)' "$ROOT/env/gsq-main-freeze.txt" > "$F"
-  if [ $CU = 13 ]; then
-    "$UV" pip install --python "$PY" -r "$F" || die "pip install of the pinned cu130 stack failed"
-  else
-    # CUDA 12 driver: the vLLM pin ships cu130 wheels only, so torch comes from the cu129 index and vLLM's
-    # Python code goes in without its CUDA deps: enough for tier 1 (the plugins' kernels); tiers 2/3 need a
-    # driver with CUDA 13 (>= 580)
-    grep -vE '^(torch|torchvision|torchaudio|triton|vllm|flashinfer[-a-z]*|nvidia-[-a-z0-9]*|cuda-[-a-z]*)( |=|@)' "$F" > "$F.cu12"
-    # one resolution, torch-family packages from the PyTorch cu129 index (else torchcodec pulls a cu13 torch)
-    "$UV" pip install --python "$PY" -r "$F.cu12" torch==2.13.0 --torch-backend cu129 || die "pip install of the cu129 stack failed"
-    "$UV" pip install --python "$PY" --no-deps "$(grep -E '^vllm @' "$F" | sed 's/^vllm @ //')" || die "vLLM wheel install failed"
-  fi
+  "$UV" pip install --python "$PY" -r "$F" || die "pip install of the pinned cu130 stack failed"
   "$UV" pip install --python "$PY" --no-deps "gguf @ git+https://github.com/ggml-org/llama.cpp@b11211#subdirectory=gguf-py" \
     || die "gguf-py b11211 install failed"
   # vendored sources must be byte-identical to their upstream commits (hashes in each VENDORED.md)
@@ -125,16 +113,12 @@ bootstrap() {
   done
   [ $ok = 1 ] || die "vendored sources differ from their VENDORED.md hashes"
   [ $SKIP_BUILD = 1 ] && { log "bootstrap done (no build)"; return 0; }
-  # toolchain: CUDA 13.0 from pip wheels (matches torch's cudart; tools/setup-cuda-toolchain.sh), or a
-  # local CUDA 12.x toolkit for the cu129 torch
-  if [ $CU = 13 ]; then
-    PY=$PY "$ROOT/tools/setup-cuda-toolchain.sh" || die "CUDA 13.0 toolchain setup failed"
-    export CUDA_HOME=$ROOT/build/cu130/nvidia/cu13
-  else
-    export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-    "$CUDA_HOME/bin/nvcc" --version 2>/dev/null | grep -q 'release 12\.' || die "CUDA 12 stack needs a CUDA 12.x toolkit: set CUDA_HOME"
-  fi
-  export PATH=$CUDA_HOME/bin:$VENV/bin:$PATH TORCH_CUDA_ARCH_LIST=$CAP MAX_JOBS=${MAX_JOBS:-4}
+  # toolchain: CUDA 13.0 from pip wheels (matches torch's cudart; tools/setup-cuda-toolchain.sh)
+  PY=$PY "$ROOT/tools/setup-cuda-toolchain.sh" || die "CUDA 13.0 toolchain setup failed"
+  export CUDA_HOME=$ROOT/build/cu130/nvidia/cu13
+  # kernels for this card's compute capability only, unless TORCH_CUDA_ARCH_LIST is set
+  export PATH=$CUDA_HOME/bin:$VENV/bin:$PATH TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST:-$CAP} MAX_JOBS=${MAX_JOBS:-4}
+  pyjson "$B" arch_list "$(jstr "$TORCH_CUDA_ARCH_LIST")"
   command -v g++-13 >/dev/null && export CC=gcc-13 CXX=g++-13 NVCC_CCBIN=g++-13
   pyjson "$B" toolchain "$(jstr "$("$CUDA_HOME/bin/nvcc" --version | tail -1); host $(${CXX:-g++} --version | head -1)")"
   # a host compiler newer than this nvcc supports (e.g. GCC 15 with CUDA 13.0): build anyway, and say so
@@ -162,8 +146,9 @@ bootstrap() {
   log "bootstrap done: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("builds"))' "$B")"
 }
 
-# Route L on only where it was built: with VLLM_GGUF_LCPP=1 and no Route L ops the plugin refuses to import
-lcpp_env() { if built gguf_route_l; then export VLLM_GGUF_LCPP=1; else unset VLLM_GGUF_LCPP; fi; }
+# Route L on only where it was built (sm75 cannot build its int8-MMA kernels): with VLLM_GGUF_LCPP=1 and no
+# Route L ops the plugin refuses to import, and vLLM then skips it and reads the .gguf as an HF config
+lcpp_env() { if built gguf_route_l; then export VLLM_GGUF_LCPP=1; else export VLLM_GGUF_LCPP=0; fi; }
 built() { python3 -c 'import json,sys; b=json.load(open(sys.argv[1])).get("builds",{}); sys.exit(0 if b.get(sys.argv[2],{}).get("status")=="ok" else 1)' "$WORK/bootstrap.json" "$1"; }
 
 # ------------------------------------------------------------------------------ measurement plumbing
@@ -192,6 +177,9 @@ start_out() {
   [ -f "$WORK/bootstrap.json" ] || die "run 'kit/run.sh bootstrap' first"
   [ -x "$PY" ] || die "no venv at $VENV: run 'kit/run.sh bootstrap' first"
   cp "$WORK/bootstrap.json" "$OUT/bootstrap.json"
+  # the plugins' kernels must include this card's arch (one checkout per arch: the builds are in-tree)
+  python3 -c 'import json,sys; b=json.load(open(sys.argv[1])); a=b.get("arch_list") or b.get("cc", ""); sys.exit(sys.argv[2] not in a.replace(";", " ").split())' \
+    "$WORK/bootstrap.json" "$CAP" || die "bootstrap built for another arch than sm$CCN: rerun 'kit/run.sh bootstrap --gpu $GPU'"
   "$PY" "$KIT/report.py" env --out "$OUT/env.json" --gpu "$GPU" >/dev/null || die "env record failed"
   # the device CUDA sees must be the card nvidia-smi names (CUDA_DEVICE_ORDER=PCI_BUS_ID)
   local seen; seen=$("$PY" -c 'import torch; print(torch.cuda.get_device_name(0))' 2>/dev/null)
@@ -212,22 +200,25 @@ tier1() {
     PYTHONPATH=$KIT${PYTHONPATH:+:$PYTHONPATH}
   local k=(); [ -n "$PARITY_K" ] && k=(-k "$PARITY_K")
   local rc
-  gate tier1-parity-gguf; clocks_on tier1-parity
+  gate tier1.parity-gguf; clocks_on tier1-parity
   timeout "${KIT_PARITY_TIMEOUT:-3600}" "$ROOT/tools/pytest" -p kit_guard "$ROOT/tests/gpu/test_kernel_parity.py" -q -rfE \
     "${k[@]}" --junitxml="$T/parity-gguf.xml" > "$T/parity-gguf.log" 2>&1; rc=$?
   case $rc in 0) step tier1.parity-gguf ok ;; 1) step tier1.parity-gguf failed "test failures, see parity-gguf.log" ;;
     124) step tier1.parity-gguf failed "timeout" ;; *) step tier1.parity-gguf failed "pytest rc $rc" ;; esac
   built gguf_route_l || step tier1.route-l unsupported "Route L did not build for sm$CCN; stock kernels only ($WORK/build-gguf_route_l.log)"
   if built exl3 || built exl3_phase1_only; then
+    # the 1024-row lm_head cases need ~9.5 GB (fp64 reference): deselected under a 12 GB cap
+    local kx=("${k[@]}")
+    [ "$MAX_MIB" -lt 12000 ] && kx=(-k "${PARITY_K:+($PARITY_K) and }not (lmhead and 1024)")
     timeout "${KIT_PARITY_TIMEOUT:-3600}" "$ROOT/tools/pytest" -p kit_guard "$ROOT/tests/gpu/test_exl3_kernels.py" \
-      "$ROOT/tests/gpu/test_exl3_mr.py" -q -rfE "${k[@]}" --junitxml="$T/parity-exl3.xml" > "$T/parity-exl3.log" 2>&1; rc=$?
+      "$ROOT/tests/gpu/test_exl3_mr.py" -q -rfE "${kx[@]}" --junitxml="$T/parity-exl3.xml" > "$T/parity-exl3.log" 2>&1; rc=$?
     case $rc in 0) step tier1.parity-exl3 ok ;; 1) step tier1.parity-exl3 failed "test failures, see parity-exl3.log" ;;
       *) step tier1.parity-exl3 failed "pytest rc $rc" ;; esac
   else
     step tier1.parity-exl3 unsupported "EXL3 kernels did not build for sm$CCN (see bootstrap.json)"
   fi
   clocks_off
-  gate tier1-micro-gguf; clocks_on tier1-micro
+  gate tier1.micro-gguf; clocks_on tier1-micro
   timeout "${KIT_MICRO_TIMEOUT:-2400}" "$PY" "$KIT/micro_gguf.py" --out "$T" > "$T/gguf_micro.log" 2>&1 \
     && step tier1.micro-gguf ok || step tier1.micro-gguf failed "$(tail -1 "$T/gguf_micro.log")"
   if built exl3; then
@@ -291,7 +282,15 @@ run_model() {
   printf '%s\n' "${argv[@]}" "${spec[@]}" > "$D/argv.txt"
   lcpp_env
   export VLLM_PLUGINS=$plugins VLLM_USE_FLASHINFER_SAMPLER=0
-  gate "$tier-$name"
+  local note; note="$([ "$k" -gt 0 ] && echo "MTP k=$k" || echo "no speculative decoding"), T=0, 256 tokens/request"
+  case $name in gguf-*)
+    [ "$VLLM_GGUF_LCPP" = 1 ] || note="stock kernels (no Route L), $note"
+    [ "${MTP_DRAFT_VOCAB:-}" = 0 ] && note="$note, MTP draft on the full lm_head"
+    # vLLM logs a plugin that fails to import and goes on, then fails on the .gguf as "not a valid JSON file"
+    "$PY" -c 'import vllm_gguf_plugin' > "$D/plugin-import.log" 2>&1 \
+      || { step "$tier.$name" failed "vllm_gguf_plugin does not import: $(tail -1 "$D/plugin-import.log")"; return 1; } ;;
+  esac
+  gate "$tier.$name"
   local t0=$SECONDS
   if ! serve "$D/server.log" "${argv[@]}" --compilation-config '{"max_cudagraph_capture_size":32}' "${spec[@]}"; then
     step "$tier.$name" failed "server did not start: $(grep -m1 -E 'Error|error' "$D/server.log" | cut -c1-200)"; return 1
@@ -303,15 +302,16 @@ run_model() {
   clocks_on "$tier-$name"
   local ok=1
   "$PY" "$KIT/ladder.py" --url "http://127.0.0.1:$PORT" --model kit --out "$D/ladder.json" --label "$name" \
-    --note "$([ "$k" -gt 0 ] && echo "MTP k=$k" || echo "no speculative decoding"), T=0, 256 tokens/request" > "$D/ladder.log" 2>&1 || ok=0
-  "$PY" "$ROOT/bench/corruption_check.py" run --url "http://127.0.0.1:$PORT" --model kit --label "$name" --out "$D" \
+    --note "$note" > "$D/ladder.log" 2>&1 || ok=0
+  "$PY" "$ROOT/bench/corruption_check.py" run --url "http://127.0.0.1:$PORT/v1" --model kit --label "$name" --out "$D" \
     --conc 1,2,4,8 --temps 0,0.7 --n-prompts 25 --max-tokens 256 > "$D/corruption-run.log" 2>&1 || ok=0
   clocks_off; stop
   if serve "$D/ref-server.log" "${argv[@]}" --enforce-eager; then
-    "$PY" "$ROOT/bench/corruption_check.py" run --url "http://127.0.0.1:$PORT" --model kit --label ref --out "$D" \
+    "$PY" "$ROOT/bench/corruption_check.py" run --url "http://127.0.0.1:$PORT/v1" --model kit --label ref --out "$D" \
       --conc 1 --temps 0 --n-prompts 25 --max-tokens 256 > "$D/ref-run.log" 2>&1 || ok=0
     stop
     "$PY" "$ROOT/bench/corruption_check.py" compare --ref "$D/ref.jsonl" "$D/$name.jsonl" > "$D/corruption.jsonl" 2>&1 || ok=0
+    grep -q '"corrupt": 0,' "$D/corruption.jsonl" || ok=0
   else
     ok=0
   fi
@@ -321,7 +321,6 @@ run_model() {
 
 tier2() {
   start_out
-  [ $CU = 13 ] || { step tier2.all unsupported "the pinned vLLM needs a CUDA 13 driver (>= 580)"; collect; return; }
   [ "$MAX_MIB" -ge 6000 ] || { step tier2.all unsupported "needs >= 6 GB of GPU memory"; collect; return; }
   local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", (g > 0.9 ? 0.9 : g) }')
   local cfg gguf
@@ -341,14 +340,15 @@ tier2() {
 
 tier3() {
   start_out
-  [ $CU = 13 ] || { step tier3.all unsupported "the pinned vLLM needs a CUDA 13 driver (>= 580)"; collect; return; }
   [ "$MAX_MIB" -ge 20000 ] || { step tier3.all unsupported "needs a 24 GB card"; collect; return; }
   local gmu; gmu=$(awk -v m="$MAX_MIB" -v t="$MEM_MIB" 'BEGIN { g = m / t; printf "%.2f", (g > 0.92 ? 0.92 : g) }')
   local cfg=$ROOT/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp gguf
   gguf=$(fetch ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF d74895bbe5db4bec1e0024e7cc87d59c02d7631a Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf) \
     || die "27B GGUF download failed"
   echo "9aecf1cd41b2cb2f32a74e0d889e33855ebef43b26f43b43feb5720239e677e5  $gguf" | sha256sum -c --quiet || die "27B GGUF sha256 mismatch"
-  run_model tier3 gguf-swift-27b-iq3s-k3 lora_filesystem_resolver,gguf 3 "$gguf" 32768 "$gmu" \
+  # stock vLLM has no pruned MTP draft head (draft_lm_head, a patch of the published runs): MTP_DRAFT_VOCAB=0
+  # makes the draft use the full lm_head, as stock vLLM does
+  MTP_DRAFT_VOCAB=0 run_model tier3 gguf-swift-27b-iq3s-k3 lora_filesystem_resolver,gguf 3 "$gguf" 32768 "$gmu" \
     --hf-config-path "$cfg" --tokenizer "$cfg"
   if built exl3 && [ "$CCN" -ge 80 ]; then
     local x3
