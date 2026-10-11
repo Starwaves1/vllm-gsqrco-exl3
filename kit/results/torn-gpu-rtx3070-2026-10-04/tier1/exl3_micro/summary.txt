@@ -1,0 +1,26 @@
+model-level sum of per-shape GEMM time (Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6); target = main model + lm_head per verify pass, draft = mtp.* per draft step; floor = trellis bytes at 936 GB/s
+rows pass       MR=0     MR=1     MR=2    MR=2a     best   floor  best route mix
+   1 target    2.641    2.641    2.555    2.416    2.410   0.992  gemm:3,mr:11
+   1 draft     0.203    0.203    0.207    0.207    0.201   0.078  gemm:2,mr:1
+   2 target    2.649    2.649    2.569    2.426    2.421   0.992  gemm:3,mr:11
+   2 draft     0.204    0.204    0.208    0.208    0.202   0.078  gemm:1,mr:2
+   4 target    2.668    2.668    2.592    2.449    2.444   0.992  gemm:3,mr:11
+   4 draft     0.208    0.208    0.210    0.210    0.205   0.078  gemm:1,mr:2
+   6 target    2.677    2.677    2.619    2.476    2.471   0.992  gemm:3,mr:11
+   6 draft     0.212    0.212    0.212    0.212    0.207   0.078  gemm:1,mr:2
+   8 target    2.731    2.731    2.638    2.494    2.489   0.992  gemm:3,mr:11
+   8 draft     0.214    0.214    0.213    0.213    0.209   0.078  gemm:1,mr:2
+  12 target    2.803    2.803    2.765    2.692    2.688   0.992  gemm:3,mr:11
+  12 draft     0.229    0.229    0.221    0.221    0.217   0.078  gemm:1,mr:2
+  16 target    2.868    2.868    2.839    2.760    2.758   0.992  gemm:3,mr:11
+  16 draft     0.235    0.235    0.225    0.225    0.222   0.078  gemm:1,mr:2
+  24 target    5.658    5.118    3.248    3.248    3.248   0.992  gemm:1,mr:13
+  24 draft     0.453    0.453    0.251    0.251    0.251   0.078  mr:3
+  32 target    5.742    5.187    3.315    3.315    3.315   0.992  gemm:1,mr:13
+  32 draft     0.469    0.469    0.257    0.257    0.257   0.078  mr:3
+  48 target    8.673    7.772    4.548    4.548    4.548   0.992  gemm:1,mr:13
+  48 draft     0.707    0.707    0.331    0.331    0.331   0.078  mr:3
+  64 target   11.553   10.665    7.756    7.756    7.756   0.992  gemm:1,mr:13
+  64 draft     0.966    0.966    0.586    0.586    0.586   0.078  mr:3
+ 128 target   23.239   21.243   14.871   14.871   14.871   0.992  gemm:1,mr:13
+ 128 draft     1.882    1.882    1.090    1.090    1.090   0.078  mr:3

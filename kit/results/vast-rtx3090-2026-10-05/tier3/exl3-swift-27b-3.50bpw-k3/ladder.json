@@ -1,0 +1,98 @@
+{
+ "model": "exl3-swift-27b-3.50bpw-k3",
+ "note": "MTP k=3, T=0, 256 tokens/request",
+ "max_tokens": 256,
+ "rounds": 2,
+ "pass1": {
+  "1": {
+   "requests": 2,
+   "tokens": 512,
+   "wall_s": 5.51,
+   "e2e_tok_s": 92.9,
+   "mean_tpot_ms": 10.403,
+   "mean_ttft_ms": 102.3,
+   "tok_s": 96.1,
+   "tok_step": 2.738,
+   "ms_step": 28.483
+  },
+  "2": {
+   "requests": 4,
+   "tokens": 1024,
+   "wall_s": 5.99,
+   "e2e_tok_s": 171.1,
+   "mean_tpot_ms": 11.105,
+   "mean_ttft_ms": 140.2,
+   "tok_s": 180.1,
+   "tok_step": 2.457,
+   "ms_step": 27.285
+  },
+  "4": {
+   "requests": 8,
+   "tokens": 2048,
+   "wall_s": 7.67,
+   "e2e_tok_s": 266.9,
+   "mean_tpot_ms": 13.363,
+   "mean_ttft_ms": 233.8,
+   "tok_s": 299.3,
+   "tok_step": 2.446,
+   "ms_step": 32.681
+  },
+  "8": {
+   "requests": 16,
+   "tokens": 4096,
+   "wall_s": 9.6,
+   "e2e_tok_s": 426.7,
+   "mean_tpot_ms": 16.611,
+   "mean_ttft_ms": 396.7,
+   "tok_s": 481.6,
+   "tok_step": 2.472,
+   "ms_step": 41.056
+  }
+ },
+ "pass2": {
+  "1": {
+   "requests": 2,
+   "tokens": 512,
+   "wall_s": 5.25,
+   "e2e_tok_s": 97.5,
+   "mean_tpot_ms": 9.905,
+   "mean_ttft_ms": 99.7,
+   "tok_s": 101.0,
+   "tok_step": 2.738,
+   "ms_step": 27.119
+  },
+  "2": {
+   "requests": 4,
+   "tokens": 1024,
+   "wall_s": 5.99,
+   "e2e_tok_s": 171.0,
+   "mean_tpot_ms": 11.112,
+   "mean_ttft_ms": 140.4,
+   "tok_s": 180.0,
+   "tok_step": 2.457,
+   "ms_step": 27.3
+  },
+  "4": {
+   "requests": 8,
+   "tokens": 2048,
+   "wall_s": 7.59,
+   "e2e_tok_s": 269.9,
+   "mean_tpot_ms": 13.294,
+   "mean_ttft_ms": 209.9,
+   "tok_s": 300.9,
+   "tok_step": 2.446,
+   "ms_step": 32.511
+  },
+  "8": {
+   "requests": 16,
+   "tokens": 4096,
+   "wall_s": 9.6,
+   "e2e_tok_s": 426.8,
+   "mean_tpot_ms": 16.616,
+   "mean_ttft_ms": 395.3,
+   "tok_s": 481.5,
+   "tok_step": 2.472,
+   "ms_step": 41.068
+  }
+ }
+}

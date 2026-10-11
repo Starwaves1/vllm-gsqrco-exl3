@@ -1,0 +1,19 @@
+{
+ "cuda": "13",
+ "cc": "8.6",
+ "venv": "/workspace/kit/kit/.work/venv-cu13",
+ "vendored": {
+  "lcpp": "ok",
+  "exl3": "ok",
+  "trellis_serve": "ok"
+ },
+ "toolchain": "Build cuda_13.0.r13.0/compiler.36424714_0; host g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+ "builds": {
+  "gguf_route_l": {
+   "status": "ok"
+  },
+  "exl3": {
+   "status": "ok"
+  }
+ }
+}
