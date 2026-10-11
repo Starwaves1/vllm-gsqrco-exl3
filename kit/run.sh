@@ -147,7 +147,7 @@ bootstrap() {
 }
 
 # Route L on only where it was built (sm75 cannot build its int8-MMA kernels): with VLLM_GGUF_LCPP=1 and no
-# Route L ops the plugin refuses to import, and vLLM then skips it and reads the .gguf as an HF config
+# Route L ops the plugin refuses to import
 lcpp_env() { if built gguf_route_l; then export VLLM_GGUF_LCPP=1; else export VLLM_GGUF_LCPP=0; fi; }
 built() { python3 -c 'import json,sys; b=json.load(open(sys.argv[1])).get("builds",{}); sys.exit(0 if b.get(sys.argv[2],{}).get("status")=="ok" else 1)' "$WORK/bootstrap.json" "$1"; }
 
@@ -178,7 +178,7 @@ start_out() {
   [ -x "$PY" ] || die "no venv at $VENV: run 'kit/run.sh bootstrap' first"
   cp "$WORK/bootstrap.json" "$OUT/bootstrap.json"
   # the plugins' kernels must include this card's arch (one checkout per arch: the builds are in-tree)
-  python3 -c 'import json,sys; b=json.load(open(sys.argv[1])); a=b.get("arch_list") or b.get("cc", ""); sys.exit(sys.argv[2] not in a.replace(";", " ").split())' \
+  python3 -c 'import json,sys; b=json.load(open(sys.argv[1])); a=b.get("arch_list") or b.get("cc", ""); sys.exit(sys.argv[2] not in a.replace("+PTX", "").replace(";", " ").split())' \
     "$WORK/bootstrap.json" "$CAP" || die "bootstrap built for another arch than sm$CCN: rerun 'kit/run.sh bootstrap --gpu $GPU'"
   "$PY" "$KIT/report.py" env --out "$OUT/env.json" --gpu "$GPU" >/dev/null || die "env record failed"
   # the device CUDA sees must be the card nvidia-smi names (CUDA_DEVICE_ORDER=PCI_BUS_ID)
@@ -286,9 +286,11 @@ run_model() {
   case $name in gguf-*)
     [ "$VLLM_GGUF_LCPP" = 1 ] || note="stock kernels (no Route L), $note"
     [ "${MTP_DRAFT_VOCAB:-}" = 0 ] && note="$note, MTP draft on the full lm_head"
-    # vLLM logs a plugin that fails to import and goes on, then fails on the .gguf as "not a valid JSON file"
-    "$PY" -c 'import vllm_gguf_plugin' > "$D/plugin-import.log" 2>&1 \
-      || { step "$tier.$name" failed "vllm_gguf_plugin does not import: $(tail -1 "$D/plugin-import.log")"; return 1; } ;;
+    # when the gguf entry point is missing from the venv or fails to load, vLLM logs it and goes on, then reads
+    # the .gguf as an HF config ("not a valid JSON file"): check what vLLM itself will load
+    "$PY" -c 'import vllm_gguf_plugin; from vllm.plugins import load_plugins_by_group as l
+assert "gguf" in l("vllm.general_plugins"), "gguf entry point not installed in the venv"' > "$D/plugin-import.log" 2>&1 \
+      || { step "$tier.$name" failed "gguf plugin does not load: $(tail -1 "$D/plugin-import.log")"; return 1; } ;;
   esac
   gate "$tier.$name"
   local t0=$SECONDS
@@ -328,12 +330,12 @@ tier2() {
   gguf=$(fetch unsloth/Qwen3.5-4B-MTP-GGUF 86835bf9949e4d14d6860f7910b1340ad4f271a9 Qwen3.5-4B-Q4_K_M.gguf) || die "GGUF download failed"
   echo "3874209241c9a397e2f62cd3f70f80fd2dfbf0dfccb6838416bdb48a714e8630  $gguf" | sha256sum -c --quiet || die "GGUF sha256 mismatch"
   run_model tier2 gguf-qwen3.5-4b-q4km-k3 lora_filesystem_resolver,gguf 3 "$gguf" 8192 "$gmu" --hf-config-path "$cfg" --tokenizer "$cfg"
-  if built exl3 && [ "$CCN" -ge 80 ]; then
+  if built exl3; then
     local x3; x3=$(fetch UnstableLlama/Qwen3.5-4B-exl3-4.00bpw d56d49f6b712044fb960d4ed8e84c51cd6c14ad0) || die "EXL3 download failed"
     # no public Qwen3.5-4B EXL3 quant keeps the MTP head (2026-10-04), so this one runs without MTP
     run_model tier2 exl3-qwen3.5-4b-4.00bpw-nomtp lora_filesystem_resolver,gguf,exl3 0 "$x3" 8192 "$gmu"
   else
-    step tier2.exl3 unsupported "EXL3 needs its full build and sm80+"
+    step tier2.exl3 unsupported "EXL3 needs its full build"
   fi
   collect
 }
@@ -350,7 +352,7 @@ tier3() {
   # makes the draft use the full lm_head, as stock vLLM does
   MTP_DRAFT_VOCAB=0 run_model tier3 gguf-swift-27b-iq3s-k3 lora_filesystem_resolver,gguf 3 "$gguf" 32768 "$gmu" \
     --hf-config-path "$cfg" --tokenizer "$cfg"
-  if built exl3 && [ "$CCN" -ge 80 ]; then
+  if built exl3; then
     local x3
     if x3=$(fetch erlidev/Swift-1.5-Qwen3.8-27B-EXL3 041dc382133c0ac4a3fcf6c400d70fbea1584c51); then
       run_model tier3 exl3-swift-27b-3.50bpw-k3 lora_filesystem_resolver,gguf,exl3 3 "$x3" 32768 "$gmu"

@@ -60,8 +60,8 @@ the run then completes, and the summary labels every number as capped.
 - **Turing (sm75, RTX 20xx):** no bf16. The kit serves with `--dtype float16` and runs the micro-benchmark on fp16
   activations. There is no fp8 KV cache (`--kv-cache-dtype` stays auto) and no FlashAttention (sm80+), and the
   prebuilt FlashInfer kernels cover sm80+ only, so tiers 2/3 use `--attention-backend TRITON_ATTN`. The int8
-  tensor-core kernels (Route L's owned IQ3/mma_k kernels) and the EXL3 kernels may not compile for sm75. The
-  bootstrap then records the failure and builds what it can (the stock GGUF kernels; EXL3 phase 1 only, or none).
+  tensor-core kernels (Route L's owned IQ3/mma_k kernels) do not compile for sm75; the EXL3 kernels do
+  (`cloud/results/exl3/sm75.md`). The bootstrap records a failed build and builds what it can (the stock GGUF kernels).
   Without Route L the kit runs with `VLLM_GGUF_LCPP=0`, the micro-benchmark times only the stock kernels, and the
   results say "stock kernels". The affected tests and benchmarks are reported as `unsupported`, not as failures.
 - **Ada (sm89) and Blackwell (sm120):** fp8 KV cache as on Ampere. Nothing else changes.
