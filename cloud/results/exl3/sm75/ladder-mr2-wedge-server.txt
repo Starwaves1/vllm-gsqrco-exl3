@@ -1,0 +1,127 @@
+#!/bin/bash
+# 4B EXL3 decode ladder on the 2080 Ti: serve with EXL3_MR=$1, MTP k=3, fp16; kit/ladder.py c=1/2/4/8; stop
+MR=${1:-2}; L=/workspace/logs/exl3-sm75; D=$L/ladder-mr$MR; rm -rf $D; mkdir -p $D; cd $D
+V=/workspace/kit-work/venv-cu13
+export PATH=$V/bin:$PATH CUDA_VISIBLE_DEVICES=1 EXL3_MR=$MR PYTHONPATH=/workspace/exl3-sm75b/plugin-exl3 HF_HOME=/models/hf
+export VLLM_PLUGINS=lora_filesystem_resolver,lora_hf_hub_resolver,gguf,exl3 VLLM_USE_FLASHINFER_SAMPLER=0 VLLM_CACHE_ROOT=$L/vllmcache-ti-mr$MR
+export EXLLAMAV3_TUNE_CACHE=$L/tune-cache.json
+M=/models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw
+$V/bin/vllm serve $M --served-model-name kit --host 127.0.0.1 --port 18212 --gpu-memory-utilization 0.80 --max-model-len 16384 \
+  --max-num-seqs 8 --max-num-batched-tokens 2048 --no-async-scheduling --mamba-ssm-cache-dtype float16 --mamba-cache-mode align \
+  --enable-prefix-caching --limit-mm-per-prompt '{"image":0,"video":0}' --dtype float16 --attention-backend TRITON_ATTN \
+  --compilation-config '{"max_cudagraph_capture_size":32}' --speculative-config '{"method":"mtp","num_speculative_tokens":3}' > server.log 2>&1 &
+P=$!; t=0
+until curl -sf -o /dev/null http://127.0.0.1:18212/health; do
+  kill -0 $P 2>/dev/null || { echo "SERVER DIED"; tail -30 server.log; exit 1; }
+  sleep 5; t=$((t+5)); [ $t -ge 900 ] && { echo TIMEOUT; kill $P; exit 1; }
+done
+echo "up after ${t}s"; nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+grep -E "Model loading took|GPU KV cache size|EXL3|exl3_gemm" server.log | cut -c1-220 | head
+$V/bin/python /workspace/kit/kit/ladder.py --url http://127.0.0.1:18212 --model kit --out $D/ladder.json --label "2080Ti-4B-exl3-mr$MR"; rc=$?
+kill $P; sleep 3; pkill -P $P 2>/dev/null; for i in 1 2 3 4 5 6; do kill -0 $P 2>/dev/null || break; sleep 5; done; kill -9 $P 2>/dev/null
+sleep 5; nvidia-smi --query-compute-apps=pid,used_memory --format=csv
+echo "=== ladder rc=$rc"
+----
+(MainProcess pid=23396) WARNING 10-05 11:57:09 [cuda.py:1008] Detected different devices in the system: NVIDIA GeForce RTX 3070, NVIDIA GeForce RTX 2080 Ti. Please make sure to set `CUDA_DEVICE_ORDER=PCI_BUS_ID` to avoid unexpected behavior.
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347] 
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.30.1rc1.dev285+gd28795f1a
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:347] 
+(APIServer pid=23396) INFO 10-05 11:57:09 [api_utils.py:286] non-default args: {'model_tag': '/models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw', 'host': '127.0.0.1', 'port': 18212, 'model': '/models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw', 'dtype': 'float16', 'max_model_len': 16384, 'served_model_name': ['k
+(APIServer pid=23396) INFO 10-05 11:57:16 [model.py:699] Resolved architecture: Qwen3_5ForConditionalGeneration
+(APIServer pid=23396) WARNING 10-05 11:57:16 [model.py:2442] Casting torch.bfloat16 to torch.float16.
+(APIServer pid=23396) INFO 10-05 11:57:16 [model.py:2109] Using max model len 16384
+[ERROR] `min_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /workspace/kit-work/venv-cu13/lib/python3.12/site-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+[ERROR] `max_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /workspace/kit-work/venv-cu13/lib/python3.12/site-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+(APIServer pid=23396) INFO 10-05 11:57:17 [model.py:917] All limits of multimodal modalities supported by the model are set to 0, running in text-only mode.
+(APIServer pid=23396) INFO 10-05 11:57:17 [model.py:974] Disabled mm_prefix attention mode because multimodal inputs are configuration-disabled. Attention backends without mm_prefix support may now be selected.
+(APIServer pid=23396) INFO 10-05 11:57:24 [model.py:699] Resolved architecture: Qwen3_5MTP
+(APIServer pid=23396) WARNING 10-05 11:57:24 [model.py:2442] Casting torch.bfloat16 to torch.float16.
+(APIServer pid=23396) INFO 10-05 11:57:24 [model.py:2109] Using max model len 262144
+(APIServer pid=23396) WARNING 10-05 11:57:24 [speculative.py:1375] Enabling num_speculative_tokens > 1 will run multiple times of forward on same MTP layer,which may result in lower acceptance rate
+(APIServer pid=23396) INFO 10-05 11:57:24 [speculative.py:1663] Overriding draft model max model len from 262144 to 16384
+(APIServer pid=23396) WARNING 10-05 11:57:24 [config.py:837] Qwen3.5 model specifies mamba_ssm_dtype='float32' in its config, but --mamba-ssm-cache-dtype='float16' was passed. Using the user-specified value.
+(APIServer pid=23396) INFO 10-05 11:57:24 [kernel.py:408] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['triton', 'native'])
+(APIServer pid=23396) WARNING 10-05 11:57:24 [vllm.py:2364] max_num_scheduled_tokens is set to 2048 based on the speculative decoding settings. This may lead to suboptimal performance. Consider increasing max_num_batched_tokens to accommodate the additional draft token slots, or decrease num_specula
+(EngineCore pid=23772) WARNING 10-05 11:57:32 [cuda.py:1008] Detected different devices in the system: NVIDIA GeForce RTX 3070, NVIDIA GeForce RTX 2080 Ti. Please make sure to set `CUDA_DEVICE_ORDER=PCI_BUS_ID` to avoid unexpected behavior.
+(EngineCore pid=23772) INFO 10-05 11:57:33 [__init__.py:113] Registered model loader `<class 'vllm_gguf_plugin.loader.GGUFModelLoader'>` with load format `gguf`
+(EngineCore pid=23772) INFO 10-05 11:57:33 [config.py:577] Registered config parser `<class 'vllm_gguf_plugin.config_parser.GGUFConfigParser'>` with config format `gguf`
+(EngineCore pid=23772) INFO 10-05 11:57:33 [core.py:129] Initializing a V1 LLM engine (v0.30.1rc1.dev285+gd28795f1a) with config: model='/models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw', speculative_config=SpeculativeConfig(method='mtp', model='/models/hf/local/Qwen3.5-4B-exl3-6hb-3.0bpw', num_spec_toke
+(EngineCore pid=23772) INFO 10-05 11:57:33 [parallel_state.py:1825] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///tmp/vllm_dist_cc83f0ef59ae4a919878f1ccd410cbce backend=nccl
+(EngineCore pid=23772) INFO 10-05 11:57:33 [parallel_state.py:2269] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, ETP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=23772) INFO 10-05 11:57:33 [gpu_worker.py:479] Using V2 Model Runner
+[ERROR] `min_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /workspace/kit-work/venv-cu13/lib/python3.12/site-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+[ERROR] `max_frames` is part of Qwen3VLVideoProcessorInitKwargs, but not documented. Make sure to add it to the docstring of the function in /workspace/kit-work/venv-cu13/lib/python3.12/site-packages/transformers/models/qwen3_vl/video_processing_qwen3_vl.py.
+(EngineCore pid=23772) INFO 10-05 11:57:34 [model_runner.py:375] Loading model from scratch...
+(EngineCore pid=23772) ERROR 10-05 11:57:35 [fa_utils.py:212] Cannot use FA version 2 is not supported due to FA2 is only supported on devices with compute capability >= 8
+(EngineCore pid=23772) INFO 10-05 11:57:35 [mm_encoder_attention.py:372] Using AttentionBackendEnum.TORCH_SDPA for MMEncoderAttention.
+(EngineCore pid=23772) INFO 10-05 11:57:35 [qwen_gdn_linear_attn.py:177] Using Triton/FLA GDN prefill kernel (requested=auto, head_k_dim=128).
+(EngineCore pid=23772) INFO 10-05 11:57:35 [qwen_gdn_linear_attn.py:523] Falling back to the Triton GDN decode path: the fused CUDA kernel requires a BF16 GDN model with K=V=128, SiLU or sigmoid gating, non-interleaved GQA layout, BF16 convolution cache, BF16 or FP32 recurrent state, and a GPU with 
+(EngineCore pid=23772) INFO 10-05 11:57:35 [qwen_gdn_linear_attn.py:533] GDN decode kernel: triton
+(EngineCore pid=23772) INFO 10-05 11:57:35 [cuda.py:466] Using AttentionBackendEnum.TRITON_ATTN backend.
+(EngineCore pid=23772) INFO 10-05 11:57:36 [weight_utils.py:1063] Filesystem type for checkpoints: EXT4. Checkpoint size: 3.56 GiB. Available RAM: 14.59 GiB.
+(EngineCore pid=23772) INFO 10-05 11:57:36 [weight_utils.py:1086] Auto-prefetch is disabled because the filesystem (EXT4) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.45it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.45it/s]
+
+(EngineCore pid=23772) INFO 10-05 11:57:36 [default_loader.py:484] Loading weights took 0.71 seconds
+(EngineCore pid=23772) INFO 10-05 11:57:37 [weight_utils.py:1063] Filesystem type for checkpoints: EXT4. Checkpoint size: 3.56 GiB. Available RAM: 14.52 GiB.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.29it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.29it/s]
+
+(EngineCore pid=23772) INFO 10-05 11:57:37 [default_loader.py:484] Loading weights took 0.45 seconds
+(EngineCore pid=23772) INFO 10-05 11:57:38 [model_runner.py:407] Model loading took 3.11 GiB memory and 4.490689 seconds
+(EngineCore pid=23772) INFO 10-05 11:57:38 [topk_topp_sampler.py:96] FlashInfer top-p/top-k sampling disabled via VLLM_USE_FLASHINFER_SAMPLER=0.
+(EngineCore pid=23772) INFO 10-05 11:57:38 [torch_utils.py:286] Reducing Torch threads from 8 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(EngineCore pid=23772) INFO 10-05 11:57:38 [interface.py:989] Setting attention block size to 288 tokens to ensure that attention page size is >= mamba page size.
+(EngineCore pid=23772) INFO 10-05 11:57:38 [interface.py:1013] Padding mamba page size by 2.86% to ensure that mamba page size and attention page size are exactly equal.
+(EngineCore pid=23772) INFO 10-05 11:57:38 [utils.py:340] Using LBNHC KV cache layout.
+(EngineCore pid=23772) INFO 10-05 11:57:44 [backends.py:1090] Using cache directory: /workspace/logs/exl3-sm75/vllmcache-ti-mr2/torch_compile_cache/3add2d8654/rank_0_0/backbone for vLLM's torch.compile
+(EngineCore pid=23772) INFO 10-05 11:57:44 [backends.py:1151] Dynamo bytecode transform time: 4.45 s
+(EngineCore pid=23772) INFO 10-05 11:57:55 [backends.py:391] Compiling a graph for compile range (1, 2048) takes 10.27 s
+(EngineCore pid=23772) INFO 10-05 11:57:57 [backends.py:916] collected artifacts: 33 entries, 12 artifacts, 15293331 bytes total
+(EngineCore pid=23772) INFO 10-05 11:57:58 [decorators.py:717] saved AOT compiled function to /workspace/logs/exl3-sm75/vllmcache-ti-mr2/torch_compile_cache/torch_aot_compile/31c835e9c611146652c657f2ac84f0cd3d0caf2b6a150e61aa533407f76c29c8/rank_0_0/model
+(EngineCore pid=23772) INFO 10-05 11:57:58 [monitor.py:53] torch.compile took 17.82 s in total
+/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/triton/language/core.py:2284: UserWarning: tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.
+  warn("tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.")
+(EngineCore pid=23772) INFO 10-05 12:01:15 [monitor.py:81] Initial profiling/warmup run took 197.37 s
+(EngineCore pid=23772) INFO 10-05 12:01:15 [backends.py:1090] Using cache directory: /workspace/logs/exl3-sm75/vllmcache-ti-mr2/torch_compile_cache/3add2d8654/rank_0_0/eagle_head for vLLM's torch.compile
+(EngineCore pid=23772) INFO 10-05 12:01:15 [backends.py:1151] Dynamo bytecode transform time: 0.31 s
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433] EngineCore failed to start.
+(EngineCore pid=23772) INFO 10-05 12:01:15 [backends.py:1090] Using cache directory: /workspace/logs/exl3-sm75/vllmcache-ti-mr2/torch_compile_cache/3add2d8654/rank_0_0/eagle_head for vLLM's torch.compile
+(EngineCore pid=23772) INFO 10-05 12:01:15 [backends.py:1151] Dynamo bytecode transform time: 0.31 s
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433] EngineCore failed to start.
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433] Traceback (most recent call last):
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 2669, in preserve_rng_state
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     yield
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/aot_autograd.py", line 1238, in aot_module_simplified
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     compiled_fn, _ = aot_stage2_compile(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]                      ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/graph_compile.py", line 364, in aot_stage2_compile
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     return aot_stage2_inference(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/graph_compile.py", line 488, in aot_stage2_inference
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     compiled_fw = _aot_stage2b_inference_compile(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/graph_compile.py", line 415, in _aot_stage2b_inference_compile
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     return _aot_stage2b_compile_forward_or_inference(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/graph_compile.py", line 2800, in _aot_stage2b_compile_forward_or_inference
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     compiled_fw_func = compiler(fw_module, adjusted_flat_args)
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/schemas.py", line 1472, in __call__
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     output_code = self.compiler_fn(gm, example_inputs)
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 2924, in fw_compiler_base
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     return compile_fx_forward(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]            ^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/kit-work/venv-cu13/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 2537, in compile_fx_forward
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     result = inner_compile(
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]              ^^^^^^^^^^^^^^
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]   File "/workspace/tools/python/cpython-3.12.15-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 81, in inner
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]     return func(*args, **kwds)
+(EngineCore pid=23772) ERROR 10-05 12:01:16 [core.py:1433]            ^^^^^^^^^^^^^^^^^^^

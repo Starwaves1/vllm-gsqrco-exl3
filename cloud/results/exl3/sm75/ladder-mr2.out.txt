@@ -1,0 +1,17 @@
+up after 65s
+0, 429 MiB
+1, 7629 MiB
+(EngineCore pid=431) INFO 10-05 14:06:23 [model_runner.py:407] Model loading took 3.11 GiB memory and 5.799535 seconds
+(EngineCore pid=431) INFO 10-05 14:06:36 [kv_cache_utils.py:2408] GPU KV cache size: 82,375 tokens, Maximum concurrency for 16,384 tokens per request: 5.03x
+pass 1 c=1: 156.4 tok/s, 18.396 ms/step, 2.876 tok/step
+pass 1 c=2: 346.7 tok/s, 16.548 ms/step, 2.869 tok/step
+pass 1 c=4: 538.9 tok/s, 21.155 ms/step, 2.85 tok/step
+pass 1 c=8: 863.2 tok/s, 26.059 ms/step, 2.812 tok/step
+pass 2 c=1: 180.5 tok/s, 15.939 ms/step, 2.876 tok/step
+pass 2 c=2: 344.1 tok/s, 16.671 ms/step, 2.869 tok/step
+pass 2 c=4: 525.7 tok/s, 21.432 ms/step, 2.816 tok/step
+pass 2 c=8: 856.6 tok/s, 26.26 ms/step, 2.812 tok/step
+pid, used_gpu_memory [MiB]
+=== ladder rc=0
+(APIServer pid=295) INFO 10-05 14:07:18 [metrics.py:120] SpecDecoding metrics: Mean acceptance length: 2.83, Accepted throughput: 408.46 tokens/s, Drafted throughput: 668.93 tokens/s, Accepted: 4085 tokens, Drafted: 6690 tokens, Per-position acceptan
+(APIServer pid=295) INFO 10-05 14:07:28 [metrics.py:120] SpecDecoding metrics: Mean acceptance length: 2.84, Accepted throughput: 229.38 tokens/s, Drafted throughput: 374.97 tokens/s, Accepted: 2294 tokens, Drafted: 3750 tokens, Per-position acceptan

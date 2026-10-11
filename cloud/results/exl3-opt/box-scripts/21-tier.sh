@@ -33,8 +33,10 @@ grep -o '"bits": *[0-9.]*\|"head_bits": *[0-9]*\|"calibration[^,]*' "$EXL3_MODEL
 [ -f "$EXL3_MODEL/mtp_draft_head.safetensors" ] || "$GSQ_VENV/bin/python" tools/exl3_draft_head.py "$EXL3_MODEL" --ids "$DRAFT_IDS" > "$O/draft-head.log" 2>&1 \
   || { tail -20 "$O/draft-head.log"; die "draft head"; }
 
-# 3. short parity vs exllamav3
+# 3. short parity vs exllamav3 (the salted prompt set is regenerated when the box lost it)
 rc=0
+[ -f "$P/prompts/manifest.json" ] || "$GSQ_VENV/bin/python" bench/parity/prompts.py --out "$P/prompts" > "$O/prompts.txt" 2>&1 \
+  || { tail -20 "$O/prompts.txt"; die "prompts"; }
 "$GSQ_EXL3_VENV/bin/python" bench/parity/exl3_logits.py -m "$EXL3_MODEL" -d "$P/prompts" -o "$O/ref" --only "$SEQS" > "$O/exl3-ref.log" 2>&1 \
   || { tail -20 "$O/exl3-ref.log"; rc=1; }
 mkdir -p "$O/ref-l"; for f in "$O"/ref/*.exl3.f32; do ln -sf "$f" "$O/ref-l/$(basename "$f" .exl3.f32).llama.f32"; done

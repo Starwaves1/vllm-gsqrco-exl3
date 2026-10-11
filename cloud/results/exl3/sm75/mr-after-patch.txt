@@ -1,0 +1,13 @@
+E       AssertionError: ({'rel_rms': 0.0020672965593793603, 'max_rel': 0.036330353327066606, 'finite': True, 'ref_rms': 0.608435517353913}, {'rel_rms': 0.001921178479070722, 'max_rel': 0.02193402171255327, 'finite': True, 'ref_rms': 0.608435517353913})
+E       assert 0.036330353327066606 <= 0.03290103256882991
+E        +  where 0.03290103256882991 = max((1.5 * 0.02193402171255327), 0.03)
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K4-mtp-up-16-bf16model]
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[1] - RuntimeError: marl...
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[4] - RuntimeError: marl...
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[8] - RuntimeError: marl...
+4 failed, 247 passed, 39 skipped, 45 deselected, 14 warnings in 15.14s
+
+# K4-mtp-up per-row errors (-s output)

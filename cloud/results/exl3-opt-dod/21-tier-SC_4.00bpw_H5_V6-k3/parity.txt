@@ -1,0 +1,23 @@
+seq_000: missing output, skipped
+seq_001: missing output, skipped
+seq_002 code      1536 tok  KLD mean 0.00034 p99 0.00450 max 0.0152  top1 0.9965
+seq_003 code      4096 tok  KLD mean 0.00057 p99 0.00677 max 0.0446  top1 0.9896
+seq_004: missing output, skipped
+seq_005 prose     8192 tok  KLD mean 0.00305 p99 0.00528 max 0.7466  top1 0.9931
+seq_006: missing output, skipped
+seq_007: missing output, skipped
+seq_008: missing output, skipped
+seq_009: missing output, skipped
+seq_010: missing output, skipped
+{
+ "kld_mean": 0.0013175022000644647,
+ "top1": 0.9930555555555556,
+ "positions": 864,
+ "long_kld_mean": null,
+ "long_top1": null,
+ "thresholds": {
+  "kld_mean_max": 0.001,
+  "top1_min": 0.99
+ },
+ "pass": false
+}

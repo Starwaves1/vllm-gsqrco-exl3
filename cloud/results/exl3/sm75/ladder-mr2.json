@@ -1,0 +1,98 @@
+{
+ "model": "2080Ti-4B-exl3-mr2",
+ "note": "",
+ "max_tokens": 256,
+ "rounds": 2,
+ "pass1": {
+  "1": {
+   "requests": 2,
+   "tokens": 512,
+   "wall_s": 3.33,
+   "e2e_tok_s": 153.6,
+   "mean_tpot_ms": 6.396,
+   "mean_ttft_ms": 35.4,
+   "tok_s": 156.4,
+   "tok_step": 2.876,
+   "ms_step": 18.396
+  },
+  "2": {
+   "requests": 4,
+   "tokens": 1024,
+   "wall_s": 3.1,
+   "e2e_tok_s": 330.6,
+   "mean_tpot_ms": 5.768,
+   "mean_ttft_ms": 56.9,
+   "tok_s": 346.7,
+   "tok_step": 2.869,
+   "ms_step": 16.548
+  },
+  "4": {
+   "requests": 8,
+   "tokens": 2048,
+   "wall_s": 4.1,
+   "e2e_tok_s": 499.2,
+   "mean_tpot_ms": 7.422,
+   "mean_ttft_ms": 89.0,
+   "tok_s": 538.9,
+   "tok_step": 2.85,
+   "ms_step": 21.155
+  },
+  "8": {
+   "requests": 16,
+   "tokens": 4096,
+   "wall_s": 5.28,
+   "e2e_tok_s": 776.4,
+   "mean_tpot_ms": 9.268,
+   "mean_ttft_ms": 136.0,
+   "tok_s": 863.2,
+   "tok_step": 2.812,
+   "ms_step": 26.059
+  }
+ },
+ "pass2": {
+  "1": {
+   "requests": 2,
+   "tokens": 512,
+   "wall_s": 2.89,
+   "e2e_tok_s": 177.1,
+   "mean_tpot_ms": 5.541,
+   "mean_ttft_ms": 32.5,
+   "tok_s": 180.5,
+   "tok_step": 2.876,
+   "ms_step": 15.939
+  },
+  "2": {
+   "requests": 4,
+   "tokens": 1024,
+   "wall_s": 3.1,
+   "e2e_tok_s": 329.9,
+   "mean_tpot_ms": 5.811,
+   "mean_ttft_ms": 53.4,
+   "tok_s": 344.1,
+   "tok_step": 2.869,
+   "ms_step": 16.671
+  },
+  "4": {
+   "requests": 8,
+   "tokens": 2048,
+   "wall_s": 4.17,
+   "e2e_tok_s": 491.0,
+   "mean_tpot_ms": 7.609,
+   "mean_ttft_ms": 83.7,
+   "tok_s": 525.7,
+   "tok_step": 2.816,
+   "ms_step": 21.432
+  },
+  "8": {
+   "requests": 16,
+   "tokens": 4096,
+   "wall_s": 5.31,
+   "e2e_tok_s": 770.7,
+   "mean_tpot_ms": 9.34,
+   "mean_ttft_ms": 136.6,
+   "tok_s": 856.6,
+   "tok_step": 2.812,
+   "ms_step": 26.26
+  }
+ }
+}

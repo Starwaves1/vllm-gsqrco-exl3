@@ -1,0 +1,12 @@
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
+./build.sh: line 8: g++-13: command not found
+2.13.0+cu130 13.0
+2026-10-05T07:07:03+00:00
+running build_ext
+-gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_86,code=sm_86
+0
+184
+copying build/lib.linux-x86_64-cpython-312/vllm_exl3_plugin/_C_exl3_mr.cpython-312-x86_64-linux-gnu.so -> vllm_exl3_plugin
+=== exit 0
+2026-10-05T07:17:21+00:00

@@ -1,0 +1,1 @@
+2080 Ti 14:05-14:12 UTC: 1141 samples, max 210.4 W, mean 106.8 W, 32 samples above 200 W

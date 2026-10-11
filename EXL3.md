@@ -156,7 +156,7 @@ decode check against `exl3_dequant`. The range will likely move down to 9 once m
 - Detection: `config.json` has `quantization_config.quant_method: "exl3"`, so vLLM's normal
   detection picks the registered config. `EXL3Config.from_config` parses bits, head_bits,
   mtp_bits and the codebook (`mul1` here; absent means 3INST; `mcg`). Per-tensor K comes from
-  each trellis' last dimension at load. `get_min_capability` 80.
+  each trellis' last dimension at load. `get_min_capability` 75 (Turing builds with sm75 SASS when TORCH_CUDA_ARCH_LIST has 7.5; `cloud/results/exl3/sm75.md`).
 - Methods: every `LinearBase` and the `ParallelLMHead` get `EXL3LinearMethod`, except the modules
   the checkpoint stores unquantized (`weights_adapter/qwen3_5.is_unquantized_module`): GDN
   `in_proj_ba` (fp16 `in_proj_a`/`in_proj_b`, 48 outputs, never quantized by exllamav3), a bf16

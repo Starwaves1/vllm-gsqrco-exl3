@@ -1,0 +1,22 @@
+EXL3_MR=2 EXL3_EMBED_HOST=1 EXL3_DRAFT_FP8=1 EXL3_MR_CONCAT=0 healthy after 120 s
+(APIServer pid=240382) INFO 10-04 16:21:37 [api_utils.py:347]   █▄█▀ █     █     █     █  model   /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6
+(APIServer pid=240382) INFO 10-04 16:21:37 [api_utils.py:286] non-default args: {'model_tag': '/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', 'chat_template': '/workspace/wt-exl3-c1/hf-config/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp/chat_templa
+(EngineCore pid=240586) INFO 10-04 16:21:46 [core.py:129] Initializing a V1 LLM engine (v0.30.1rc1.dev285+gd28795f1a) with config: model='/workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6', speculative_config=SpeculativeConfig(method='mtp', model='
+(EngineCore pid=240586) INFO 10-04 16:21:50 [gpu_model_runner.py:5305] Starting to load model /workspace/models/Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6...
+(EngineCore pid=240586) INFO 10-04 16:21:54 [default_loader.py:484] Loading weights took 3.02 seconds
+(EngineCore pid=240586) INFO 10-04 16:21:57 [default_loader.py:484] Loading weights took 0.35 seconds
+(EngineCore pid=240586) INFO 10-04 16:21:57 [gpu_model_runner.py:5404] Model loading took 11.4 GiB memory and 6.582925 seconds
+(EngineCore pid=240586) INFO 10-04 16:22:03 [backends.py:1090] Using cache directory: /workspace/runs/exl3-opt-c1/vllm-cache-mr2-h1-f1-c0/torch_compile_cache/5a95d90a9d/rank_0_0/backbone for vLLM's torch.compile
+(EngineCore pid=240586) INFO 10-04 16:22:24 [decorators.py:717] saved AOT compiled function to /workspace/runs/exl3-opt-c1/vllm-cache-mr2-h1-f1-c0/torch_compile_cache/torch_aot_compile/6f6e886691ec9cbf7a38e0dd43d9e86ebe6c467bf7137491861b5dafdb44fdda/rank_0_0/m
+(EngineCore pid=240586) INFO 10-04 16:23:03 [backends.py:1090] Using cache directory: /workspace/runs/exl3-opt-c1/vllm-cache-mr2-h1-f1-c0/torch_compile_cache/5a95d90a9d/rank_0_0/eagle_head for vLLM's torch.compile
+(EngineCore pid=240586) INFO 10-04 16:23:05 [decorators.py:717] saved AOT compiled function to /workspace/runs/exl3-opt-c1/vllm-cache-mr2-h1-f1-c0/torch_compile_cache/torch_aot_compile/751a289c1e83f49504fd3ce617a040bf32565a7a178afbd01b66d337b3791355/rank_0_0/m
+(EngineCore pid=240586) INFO 10-04 16:23:09 [gpu_model_runner.py:6689] Profiling CUDA graph memory: PIECEWISE=9 (largest=48)
+(EngineCore pid=240586) INFO 10-04 16:23:10 [gpu_model_runner.py:6794] Estimated CUDA graph memory: 0.19 GiB total
+(EngineCore pid=240586) INFO 10-04 16:23:10 [gpu_worker.py:707] CUDA graph memory profiling is enabled (default since v0.21.0). The current --gpu-memory-utilization=0.9400 is equivalent to --gpu-memory-utilization=0.9320 without CUDA graph memory profiling. To
+(EngineCore pid=240586) INFO 10-04 16:23:10 [kv_cache_utils.py:2408] GPU KV cache size: 281,648 tokens, Maximum concurrency for 196,608 tokens per request: 1.43x
+(EngineCore pid=240586) INFO 10-04 16:23:27 [gpu_model_runner.py:6855] Rank 0: Torch profiler disabled for CUDA graph capture
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/9 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  22%|██▏       | 2/9 [00:00<00:00, 17.02it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE)
+(EngineCore pid=240586) INFO 10-04 16:23:28 [gpu_worker.py:887] CUDA graph pool memory: 0.16 GiB (actual), 0.19 GiB (estimated), difference: 0.03 GiB (17.1%).
+(EngineCore pid=240586) INFO 10-04 16:23:29 [core.py:373] init engine (profile, create kv cache, warmup model) took 92.05 s (compilation: 28.36 s)
+(EngineCore pid=240586) INFO 10-04 16:23:30 [manager.py:430] fs KV tier 'fs' bounded to 10.0 GB at /workspace/kvtier-exl3-opt/_workspace_models_Swift-1.5-Qwen3.8-27B-exl3-SC_3.50bpw_H4_V6_d7be6762a91e_r0: 0 block files (0.0 GB) indexed at startup
+VRAM after load: 22586 MiB, 24576 MiB

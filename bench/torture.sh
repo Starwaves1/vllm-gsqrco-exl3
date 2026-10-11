@@ -3,8 +3,8 @@
 # it serves this repo's models under production's vLLM-main argv (env/prod-main-serve-argv.txt:
 # MTP k=5 schedule, 16 seqs, fp8 KV, prefix caching, KV offload tiers, CUDA graphs) from .venv-main,
 # with the repo's guards (GSQ_ALLOW_GPU=1; never ports 18080/18081; refuse while production is live)
-# and results under $GSQ_RUNS. The serve script is any of ours: scripts/serve-gsq.sh, the exl3
-# branch's scripts/serve-exl3.sh (from its own checkout), ...
+# and results under $GSQ_RUNS. The serve script is any of ours: scripts/serve-gsq.sh, scripts/serve-exl3.sh, ...;
+# run every serve script from this checkout (env.sh derives GSQ_HF_CONFIG from it: the KV-tier namespace rule).
 #
 #   GSQ_ALLOW_GPU=1 bench/torture.sh run --serve SCRIPT [--port 18090] [--hours 12 | --minutes 20] [torture options]
 #   GSQ_ALLOW_GPU=1 bench/torture.sh switch --a SCRIPT --b SCRIPT [--rounds 3] [--minutes 10] [--port 18090] [torture options]

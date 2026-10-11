@@ -1,0 +1,70 @@
+E       AssertionError: ({'rel_rms': 0.002026875518001139, 'max_rel': 0.016919965191907888, 'finite': True, 'ref_rms': 0.8153523684903411}, {'rel_rms': 0.0010865678406641458, 'max_rel': 0.009515152297837256, 'finite': True, 'ref_rms': 0.8153523684903411})
+E       assert 0.002026875518001139 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010865678406641458), 0.002)
+E       AssertionError: ({'rel_rms': 0.002098585154535109, 'max_rel': 0.01742584475290538, 'finite': True, 'ref_rms': 0.8165558065226578}, {'rel_rms': 0.001084912034996344, 'max_rel': 0.011036733166650466, 'finite': True, 'ref_rms': 0.8165558065226578})
+E       assert 0.002098585154535109 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.001084912034996344), 0.002)
+E       AssertionError: ({'rel_rms': 0.002069183469565322, 'max_rel': 0.016299501000576942, 'finite': True, 'ref_rms': 0.8162056708522338}, {'rel_rms': 0.0010841117220503184, 'max_rel': 0.01126050278144289, 'finite': True, 'ref_rms': 0.8162056708522338})
+E       assert 0.002069183469565322 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010841117220503184), 0.002)
+E       AssertionError: ({'rel_rms': 0.00308651736686254, 'max_rel': 0.02959667050767377, 'finite': True, 'ref_rms': 0.8165246079069095}, {'rel_rms': 0.001921044582733698, 'max_rel': 0.021890668258953767, 'finite': True, 'ref_rms': 0.8165246079069095})
+E       assert 0.00308651736686254 <= 0.002881566874100547
+E        +  where 0.002881566874100547 = max((1.5 * 0.001921044582733698), 0.002)
+E       AssertionError: ({'rel_rms': 0.002586214280644625, 'max_rel': 0.02959667050767377, 'finite': True, 'ref_rms': 0.8165246079069095}, {'rel_rms': 0.0010849753708408532, 'max_rel': 0.012079283817433768, 'finite': True, 'ref_rms': 0.8165246079069095})
+E       assert 0.002586214280644625 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010849753708408532), 0.002)
+E       AssertionError: ({'rel_rms': 0.0034255378188501524, 'max_rel': 0.036655708441965106, 'finite': True, 'ref_rms': 0.8153285369553214}, {'rel_rms': 0.0019220816804138734, 'max_rel': 0.01972969599426889, 'finite': True, 'ref_rms': 0.8153285369553214})
+E       assert 0.0034255378188501524 <= 0.00288312252062081
+E        +  where 0.00288312252062081 = max((1.5 * 0.0019220816804138734), 0.002)
+E       AssertionError: ({'rel_rms': 0.0029820925131699236, 'max_rel': 0.041446721908250855, 'finite': True, 'ref_rms': 0.8153285369553214}, {'rel_rms': 0.001085469630467726, 'max_rel': 0.010856573823935395, 'finite': True, 'ref_rms': 0.8153285369553214})
+E       assert 0.0029820925131699236 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.001085469630467726), 0.002)
+E       AssertionError: ({'rel_rms': 0.00373725937224845, 'max_rel': 0.0650045675556471, 'finite': True, 'ref_rms': 0.814773514444053}, {'rel_rms': 0.001925872843582603, 'max_rel': 0.03220213292599124, 'finite': True, 'ref_rms': 0.814773514444053})
+E       assert 0.00373725937224845 <= 0.0028888092653739043
+E        +  where 0.0028888092653739043 = max((1.5 * 0.001925872843582603), 0.002)
+E       AssertionError: ({'rel_rms': 0.0033385013182733523, 'max_rel': 0.05062173626295824, 'finite': True, 'ref_rms': 0.814773514444053}, {'rel_rms': 0.0010879184731606866, 'max_rel': 0.01290181838616854, 'finite': True, 'ref_rms': 0.814773514444053})
+E       assert 0.0033385013182733523 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010879184731606866), 0.002)
+E       AssertionError: ({'rel_rms': 0.0020413892077156283, 'max_rel': 0.010925281784630366, 'finite': True, 'ref_rms': 0.4275961143826616}, {'rel_rms': 0.0010378422617394174, 'max_rel': 0.00666135187375098, 'finite': True, 'ref_rms': 0.4275961143826616})
+E       assert 0.0020413892077156283 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010378422617394174), 0.002)
+E       AssertionError: ({'rel_rms': 0.00208889327301924, 'max_rel': 0.010658701598890166, 'finite': True, 'ref_rms': 0.426748330821203}, {'rel_rms': 0.0010371274067204161, 'max_rel': 0.005908963762198313, 'finite': True, 'ref_rms': 0.426748330821203})
+E       assert 0.00208889327301924 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010371274067204161), 0.002)
+E       AssertionError: ({'rel_rms': 0.0021554505085163876, 'max_rel': 0.03174336084814021, 'finite': True, 'ref_rms': 0.7738435553813013}, {'rel_rms': 0.0010517790119105575, 'max_rel': 0.016476252136740567, 'finite': True, 'ref_rms': 0.7738435553813013})
+E       assert 0.0021554505085163876 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.0010517790119105575), 0.002)
+E       AssertionError: ({'rel_rms': 0.0029114486141331355, 'max_rel': 0.04964958326877191, 'finite': True, 'ref_rms': 0.7754208741998798}, {'rel_rms': 0.0019230475179976554, 'max_rel': 0.0463538092059922, 'finite': True, 'ref_rms': 0.7754208741998798})
+E       assert 0.0029114486141331355 <= 0.002884571276996483
+E        +  where 0.002884571276996483 = max((1.5 * 0.0019230475179976554), 0.002)
+E       AssertionError: ({'rel_rms': 0.0023766120088033857, 'max_rel': 0.03631246277513543, 'finite': True, 'ref_rms': 0.7754208741998798}, {'rel_rms': 0.001049889480012977, 'max_rel': 0.018582370200827144, 'finite': True, 'ref_rms': 0.7754208741998798})
+E       assert 0.0023766120088033857 <= 0.002
+E        +  where 0.002 = max((1.5 * 0.001049889480012977), 0.002)
+E       AssertionError: ({'rel_rms': 0.0020672965593793603, 'max_rel': 0.036330353327066606, 'finite': True, 'ref_rms': 0.608435517353913}, {'rel_rms': 0.001921178479070722, 'max_rel': 0.02193402171255327, 'finite': True, 'ref_rms': 0.608435517353913})
+E       assert 0.036330353327066606 <= 0.03290103256882991
+E        +  where 0.03290103256882991 = max((1.5 * 0.02193402171255327), 0.03)
+E       AssertionError: {'rel_rms': 0.002534864663516571, 'max_rel': 0.01826119265681094, 'finite': True, 'ref_rms': 0.42781981148893605}
+E       assert (True and 0.002534864663516571 <= 0.002)
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+E       RuntimeError: marlin_mm, /workspace/csrc/libtorch_stable/quantization/marlin/marlin.cu:292, Turing only support FP16 or INT8 activation.
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-48-fp16model] - A...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-64-fp16model] - A...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-96-fp16model] - A...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-144-bf16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-144-fp16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-192-bf16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-192-fp16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-384-bf16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-down-384-fp16model] - ...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-up-192-fp16model] - As...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-up-384-fp16model] - As...
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-oproj-192-fp16model]
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-oproj-384-bf16model]
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K3-oproj-384-fp16model]
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_vs_fp64[K4-mtp-up-16-bf16model]
+FAILED tests/gpu/test_exl3_mr.py::test_gemm_mr_multi[48] - AssertionError: {'...
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[1] - RuntimeError: marl...
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[4] - RuntimeError: marl...
+FAILED tests/gpu/test_exl3_mr.py::test_draft_head_fp8[8] - RuntimeError: marl...
+19 failed, 232 passed, 39 skipped, 45 deselected, 14 warnings in 15.09s
