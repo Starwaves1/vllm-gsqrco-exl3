@@ -1,0 +1,18 @@
+diff -ru a/vllm/v1/worker/gpu_model_runner.py b/vllm/v1/worker/gpu_model_runner.py
+--- a/vllm/v1/worker/gpu_model_runner.py	2026-10-01 08:56:22.209860355 -0400
++++ b/vllm/v1/worker/gpu_model_runner.py	2026-10-01 08:56:22.220508686 -0400
+@@ -4606,6 +4606,14 @@
+         # Clear ephemeral state.
+         self.execute_model_state = None
+ 
++        # Prompt logprobs read the target's hidden states in _bookkeeping_sync,
++        # after the drafter has run. Under CUDA graphs the target's output lives
++        # in the global graph pool that the drafter's graphs share, so a draft
++        # pass can overwrite it first (NaN / garbage prompt logprobs for prompts
++        # short enough to run in a graph). Keep a copy when one is needed.
++        if self.num_prompt_logprobs and self.speculative_config is not None:
++            hidden_states = hidden_states.clone()
++
+         # Apply structured output bitmasks if present.
+         if grammar_output is not None:
+             apply_grammar_bitmask(

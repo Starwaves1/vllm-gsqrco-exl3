@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import os
 from itertools import groupby
 
 import gguf
@@ -48,6 +49,27 @@ _MMA_K_TYPES = (WeightType.Q4_K, WeightType.IQ4_XS, WeightType.IQ2_S)
 PACKED_VEC_MAX_ROWS = 8
 # Route L ops that quantize X themselves (MMQ's layout): the rest read apply()'s shared x_q8.
 _OWN_QUANTIZE_OPS = ("lcpp_mul_mat_q", "lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed")
+# Route L ops that write X's dtype directly; the others (MMQ, MMVQ, the owned 1..8-row kernels)
+# write an fp32 [n, W rows] dst that the shim then casts.
+_X_DTYPE_OPS = ("lcpp_mul_mat_mma_k", "lcpp_mul_mat_iq3_packed", "lcpp_mul_mat_vec_iq3")
+# Most fp32 dst bytes one Route L call may allocate; above it the product runs in row chunks
+# into one X-dtype output. In practice only a vocab-sized lm_head at prompt-logprobs / echo
+# row counts gets there (prompt logits are not in vLLM's memory profile).
+_FP32_DST_BUDGET = 256 << 20
+
+
+# Diagnosis switches (default on), each excluding one owned path:
+#   VLLM_GGUF_MMA_K=0      9..32-row Q4_K / IQ4_XS / IQ2_S products on vendored MMQ, not mma_k
+#   VLLM_GGUF_IQ3_TILED=0  packed IQ3 above 8 rows on the packed decode kernel in 32-row calls,
+#                          not the tiled kernel
+#   VLLM_GGUF_IQ1M_MMVQ=0  IQ1_M above 8 rows on the stock dequantize + x @ W.T, not chunked MMVQ
+_MMA_K_ON = os.environ.get("VLLM_GGUF_MMA_K", "1") != "0"
+#   VLLM_GGUF_HEADCHECK=FILE  debug: every eager product on a vocab-sized weight (lm_head / draft
+#                          head, > 50,000 rows) at > 8 rows is recomputed with MMVQ in 8-row calls
+#                          and per-row disagreements are logged to FILE (syncs: debug only)
+_HEADCHECK = os.environ.get("VLLM_GGUF_HEADCHECK")
+_IQ3_TILED_ON = os.environ.get("VLLM_GGUF_IQ3_TILED", "1") != "0"
+_IQ1M_MMVQ_ON = os.environ.get("VLLM_GGUF_IQ1M_MMVQ", "1") != "0"
 
 
 def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
@@ -55,7 +77,7 @@ def _mma_k_wins(weight_type: int, n: int, rows: int, k: int) -> bool:
     the noise (cloud/results/opt/k3/route-*.tsv): 9..32 activation rows on W above 2048 rows,
     IQ4_XS at 17..32 rows only on the large W (from 12288 x 5120). From 33 rows it runs 64-column
     tiles and loses, bar 64 rows on large Q4_K W (+3..6 %, not routed)."""
-    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048:
+    if weight_type not in _MMA_K_TYPES or not 9 <= n <= 32 or rows <= 2048 or not _MMA_K_ON:
         return False
     return n <= 16 or weight_type != WeightType.IQ4_XS or rows * k >= 12288 * 5120
 
@@ -69,13 +91,13 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) 
         # IQ3_S / IQ3_XXS in iq3_pack's layout (GGUFLinearMethod._pack_iq3): the owned int8
         # tensor-core kernels, the decode one up to PACKED_VEC_MAX_ROWS (cloud/results/phase3/r1),
         # the tiled one above (r2)
-        if n <= PACKED_VEC_MAX_ROWS:
+        if n <= PACKED_VEC_MAX_ROWS or not _IQ3_TILED_ON:
             return "lcpp_mul_mat_vec_iq3_mma_packed"
         return "lcpp_mul_mat_iq3_packed"
     if weight_type == WeightType.IQ1_M:
         # llama.cpp has no IQ1_M MMQ: MMVQ up to _IQ1_M_MAX_ROWS rows, then the
         # stock dequantize + x @ W.T (cloud/results/opt-p2/runs/micro-iq1m-host.txt)
-        return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS else None
+        return "lcpp_mul_mat_vec_q" if n <= _IQ1_M_MAX_ROWS and (n <= 8 or _IQ1M_MMVQ_ON) else None
     if n <= 8 and weight_type in _IQ3_TYPES:
         # the shim's own IQ3 kernels beat MMVQ and MMQ at 1..8 rows: the dp4a one at
         # 1..5 rows (cloud/results/phase3/item5), the int8 tensor-core one from 6
@@ -92,6 +114,22 @@ def _lcpp_op(n: int, weight_type: int, rows: int, k: int, packed: bool = False) 
     return "lcpp_mul_mat_vec_q" if n < 8 else "lcpp_mul_mat_q"
 
 
+def _fused_mul_mat_gguf_chunked(
+    x: torch.Tensor, weight: torch.Tensor, weight_type: int, packed: bool
+) -> torch.Tensor:
+    """_fused_mul_mat_gguf in activation-row chunks whose fp32 dst fits _FP32_DST_BUDGET
+    (multiples of 128 rows, MMQ's widest tile), written into one X-dtype output. Each
+    chunk is routed for its own row count and quantizes its own X (no shared x_q8)."""
+    n, rows = x.shape[0], weight.shape[0]
+    step = max(1, _FP32_DST_BUDGET // (rows * 4))
+    if step >= 128:
+        step -= step % 128
+    out = torch.empty(n, rows, dtype=x.dtype, device=x.device)
+    for i in range(0, n, step):
+        out[i : i + step] = _fused_mul_mat_gguf(x[i : i + step], weight, weight_type, None, packed)
+    return out
+
+
 def _fused_mul_mat_gguf(
     x: torch.Tensor,
     weight: torch.Tensor,
@@ -101,6 +139,37 @@ def _fused_mul_mat_gguf(
 ) -> torch.Tensor:
     """x @ weight.T. x_q8: x already quantized by _quantize_x_q8_1 for this
     product and others on the same x; used if this product reads q8_1."""
+    y = _fused_mul_mat_gguf_impl(x, weight, weight_type, x_q8, packed)
+    if (_HEADCHECK and weight.shape[0] > 50000 and x.shape[0] > 8
+            and weight_type in ops.LCPP_QUANT_TYPES and not torch.cuda.is_current_stream_capturing()):
+        _headcheck(x, weight, weight_type, y, _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed))
+    return y
+
+
+def _headcheck(x, weight, weight_type, y, name):
+    import json
+
+    alt = torch.cat([torch.ops._C_gguf.lcpp_mul_mat_vec_q(weight, x[i : i + 8], weight_type, weight.shape[0])
+                     for i in range(0, x.shape[0], 8)]).float()
+    yf = y.float()
+    rel = ((yf - alt).abs().amax(-1) / alt.abs().amax(-1).clamp_min(1e-6)).nan_to_num(1e9)
+    am_y, am_alt = yf.argmax(-1), alt.argmax(-1)
+    rec = {"n": x.shape[0], "rows": weight.shape[0], "route": name, "max_rel": float(rel.max()),
+           "bad_rows": (rel > 0.05).nonzero().flatten().tolist(),
+           "argmax_diff_rows": (am_y != am_alt).nonzero().flatten().tolist(),
+           "x_finite": bool(torch.isfinite(x).all()), "y_finite": bool(torch.isfinite(y).all()),
+           "x_absmax": float(x.float().abs().max())}
+    with open(_HEADCHECK, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
+def _fused_mul_mat_gguf_impl(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    weight_type: int,
+    x_q8: torch.Tensor | None = None,
+    packed: bool = False,
+) -> torch.Tensor:
     if weight_type in IMATRIX_QUANT_TYPES:
         mmvq_safe = 8 if weight.shape[0] > 5120 else 16
     else:
@@ -113,9 +182,19 @@ def _fused_mul_mat_gguf(
     if ops.LCPP_ENABLED and weight_type in ops.LCPP_QUANT_TYPES:
         name = _lcpp_op(x.shape[0], weight_type, weight.shape[0], x.shape[1], packed)
     if name is not None:
+        n, rows = x.shape[0], weight.shape[0]
+        if name not in _X_DTYPE_OPS and x.dtype != torch.float32 and n * rows * 4 > _FP32_DST_BUDGET:
+            return _fused_mul_mat_gguf_chunked(x, weight, weight_type, packed)
         op = getattr(torch.ops._C_gguf, name)
         if name in _OWN_QUANTIZE_OPS:
             return op(weight, x, weight_type, weight.shape[0])
+        if name == "lcpp_mul_mat_vec_iq3_mma_packed" and x.shape[0] > 32:  # VLLM_GGUF_IQ3_TILED=0
+            b = x.shape[1] // 32 * 36
+            return torch.cat([
+                op(weight, x[i : i + 32], weight_type, weight.shape[0],
+                   None if x_q8 is None else x_q8[i * b : (i + 32) * b])
+                for i in range(0, x.shape[0], 32)
+            ])
         if name == "lcpp_mul_mat_vec_q" and x.shape[0] > 8:  # IQ1_M: MMVQ takes <= 8 rows per call
             b = x.shape[1] // 32 * 36  # x_q8 bytes per row (block_q8_1: 32 values in 36 bytes)
             return torch.cat([
