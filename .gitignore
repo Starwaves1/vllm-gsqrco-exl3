@@ -7,3 +7,4 @@ __pycache__/
 /runs/
 /dash/data/
 .venv-main
+/kit/.work/

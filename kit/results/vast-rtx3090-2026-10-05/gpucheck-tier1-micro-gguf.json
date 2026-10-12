@@ -1,0 +1,33 @@
+{
+ "name": "NVIDIA GeForce RTX 3090",
+ "uuid": "GPU-1e4f5106-89be-7fdd-1cbb-7c6777a686d1",
+ "pci_bus_id": "00000000:01:00.0",
+ "vbios": "94.02.42.80.27",
+ "power_limit_w": 350.0,
+ "default_power_limit_w": 420.0,
+ "max_power_limit_w": 500.0,
+ "power_draw_w": 117.3,
+ "sm_clock_mhz": 420.0,
+ "mem_clock_mhz": 5001.0,
+ "max_sm_clock_mhz": 2100.0,
+ "max_mem_clock_mhz": 9751.0,
+ "temperature_c": 36.0,
+ "utilization_pct": 0.0,
+ "memory_used_mib": 1.0,
+ "memory_total_mib": 24576.0,
+ "persistence_mode": "Enabled",
+ "clock_event_reasons_active": [
+  "clocks_event_reason_gpu_idle"
+ ],
+ "processes": [],
+ "time": "2026-10-05T06:28:15+0000",
+ "capped": true,
+ "allow_capped": true,
+ "idle": true,
+ "idle_bar": {
+  "mib": 1024.0,
+  "util": 10
+ },
+ "max_memory_used_mib": 1.0,
+ "max_utilization_pct": 0
+}

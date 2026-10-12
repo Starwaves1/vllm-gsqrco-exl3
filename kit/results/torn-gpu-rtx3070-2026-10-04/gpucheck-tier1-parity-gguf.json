@@ -1,0 +1,33 @@
+{
+ "name": "NVIDIA GeForce RTX 3070",
+ "uuid": "GPU-254f3221-c925-2058-644b-69e988f599ca",
+ "pci_bus_id": "00000000:04:00.0",
+ "vbios": "94.04.46.00.E3",
+ "power_limit_w": 220.0,
+ "default_power_limit_w": 220.0,
+ "max_power_limit_w": 250.0,
+ "power_draw_w": 13.14,
+ "sm_clock_mhz": 210.0,
+ "mem_clock_mhz": 405.0,
+ "max_sm_clock_mhz": 2100.0,
+ "max_mem_clock_mhz": 7001.0,
+ "temperature_c": 39.0,
+ "utilization_pct": 4.0,
+ "memory_used_mib": 630.0,
+ "memory_total_mib": 8192.0,
+ "persistence_mode": "Disabled",
+ "clock_event_reasons_active": [
+  "clocks_event_reason_gpu_idle"
+ ],
+ "processes": [],
+ "time": "2026-10-04T08:15:55+0000",
+ "capped": false,
+ "allow_capped": false,
+ "idle": true,
+ "idle_bar": {
+  "mib": 1024.0,
+  "util": 10
+ },
+ "max_memory_used_mib": 630.0,
+ "max_utilization_pct": 4.0
+}
