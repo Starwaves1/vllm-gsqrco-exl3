@@ -23,7 +23,10 @@ from __future__ import annotations
 
 # GDN in_proj_a / in_proj_b (vLLM in_proj_ba): fp16 in the checkpoint; exllamav3 does not
 # quantize them (qmap None; 48 outputs, not a multiple of the 128-wide Hadamard).
-UNQUANTIZED_LINEARS = ("in_proj_ba",)
+UNQUANTIZED_LINEARS = ("in_proj_ba",
+                       # Qwen3.8-27B-MLA (TelperionAI's qwen-mla-vllm plugin): the latent projections
+                       # are bf16 in the graft, and kv_b_proj is built from k_up/v_up at load time.
+                       "kv_a_proj", "k_rope_proj", "kv_b_proj")
 # The overlay's pruned MTP draft head: bf16 rows written by tools/exl3_draft_head.py.
 DRAFT_HEAD = "draft_lm_head"
 DRAFT_HEAD_TENSOR = "mtp.draft_lm_head.weight"
