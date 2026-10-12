@@ -1,4 +1,4 @@
-# Draft comment for vllm-project/vllm#50021 (Garrett posts it; not posted)
+# Draft comment for vllm-project/vllm#50021 (posted by Garrett 2026-10-12)
 
 Goal: get the PR labeled and merged. It is blocked only on `pre-run-check` (needs `ready`/`verified`); amittell
 already pinged @ZJY0516 and @tdoublep. This gives the maintainers independent end-to-end evidence on a second
