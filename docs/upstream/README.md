@@ -112,7 +112,7 @@ in `cloud/results/r3/patches/` (overlay-style, against the installed tree):
   the dynamic-K invariant (main is correct today). Fix: `cloud/results/r3/patches/conv1d-accepted-bound.patch`.
   Neither posted. **Obsolete (2026-10-12):** amittell pushed our fix into #50021 (`f07a68f`, now head `ace8eb7d64`);
   re-verified on CPU against main `03091e28b8` (`prs/conv1d-accepted-bound/EVIDENCE-cpu.md`). Only a closing reply is
-  left, in `prs/conv1d-accepted-bound/COMMENT.md`, posted by Garrett 2026-10-12.
+  left, in `prs/conv1d-accepted-bound/COMMENT.md`, posted by Garrett 2026-10-12. **Done for us** (Garrett, 2026-10-12).
 
 ## HOLD (2026-10-01; reason gone 2026-10-03, HOLD lifted pending Garrett's go)
 

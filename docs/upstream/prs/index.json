@@ -1,0 +1,15 @@
+[
+  {
+    "slug": "conv1d-accepted-bound",
+    "title": "causal_conv1d_update: bound num_accepted by the state row width, not this step's query length",
+    "target_repo": "vllm-project/vllm",
+    "status": "done",
+    "branch": null,
+    "upstream_refs": ["vllm-project/vllm#50021 (amittell; fix pushed as f07a68f, head ace8eb7d64, Starwaves1 co-author)"],
+    "loc": 1,
+    "report_path": "docs/upstream/prs/conv1d-accepted-bound/EVIDENCE-cpu.md",
+    "fable_comment": null,
+    "last_update": "2026-10-12",
+    "note": "No PR of ours. Fix carried by #50021; closing reply posted by Garrett 2026-10-12 (COMMENT.md). Done for us."
+  }
+]
