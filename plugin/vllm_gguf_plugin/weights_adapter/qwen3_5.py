@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import gguf
 import torch
+from vllm.distributed import get_pp_group
 from vllm.logger import init_logger
 from vllm.model_executor.models.utils import WeightsMapper
 from vllm.transformers_utils.configs.qwen3_5 import Qwen3_5Config
@@ -458,6 +459,10 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
             )
         if _draft_vocab_ids(model_config) is not None:
             name_map["output.weight"] = "mtp.draft_lm_head.weight"
+        if get_pp_group().world_size > 1:
+            # Under PP vLLM does not share the target's embed_tokens with the draft
+            # (_maybe_share_embeddings), so the draft loads token_embd itself.
+            name_map["token_embd.weight"] = "mtp.embed_tokens.weight"
         return name_map
 
     def transform_weights(
@@ -469,7 +474,21 @@ class Qwen35MtpGGUFAdapter(BaseGGUFWeightsAdapter):
 
         def transformed() -> Iterable[GGUFWeight]:
             quantized_bases: set[str] = set()
+            embed_type = None
             for name, weight in weights:
+                # The draft's embed_tokens stays unquantized (extra_unquantized_modules):
+                # dequantize token_embd (mapped only under PP) to bf16.
+                if name == "mtp.embed_tokens.weight_type":
+                    embed_type = int(weight)
+                    continue
+                if name == "mtp.embed_tokens.weight" and embed_type is not None:
+                    from .. import ops
+
+                    block, size = gguf.GGML_QUANT_SIZES[embed_type]
+                    rows, cols = weight.shape[0], weight.shape[1] // size * block
+                    weight = ops.ggml_dequantize(
+                        weight.cuda(), embed_type, rows, cols, torch.bfloat16
+                    )
                 # weight_type entries arrive before their packed weight data.
                 if name.endswith(".weight_type"):
                     quantized_bases.add(name.removesuffix(".weight_type"))
