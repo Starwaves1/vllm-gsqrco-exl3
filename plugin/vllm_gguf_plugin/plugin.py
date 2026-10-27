@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 from functools import wraps
 from pathlib import Path
 
 import vllm.engine.arg_utils as arg_utils_module
+import vllm.envs as envs
 import vllm.transformers_utils.config as config_module
 from vllm.config.load import LoadConfig
 from vllm.engine.arg_utils import EngineArgs
@@ -150,6 +152,12 @@ def register() -> None:
         parser = None
     if not isinstance(parser, GGUFConfigParser):
         register_config_parser("gguf")(GGUFConfigParser)
+    # VLLM_GGUF_LCPP changes the traced graph (GGUFLinearMethod.apply) and the weight layout,
+    # so it must key vLLM's torch.compile caches (envs.compile_factors hashes this registry):
+    # otherwise a graph cached under the other setting is reloaded and decodes garbage.
+    envs.environment_variables.setdefault(
+        "VLLM_GGUF_LCPP", lambda: os.environ.get("VLLM_GGUF_LCPP")
+    )
     _patch_engine_args()
     _patch_speculator_probe()
     _patch_diffusers_loader()
