@@ -106,6 +106,7 @@ if _should_build_extension():
     ]
     if not is_rocm:
         # Attention over vLLM's int4_per_token_head KV cache (mma.sync, sm80+).
+        # Build notes for CUDA 13 toolchains: README, "int4 KV cache attention".
         ext_modules.append(
             CUDAExtension(
                 name="vllm_gguf_plugin._C_int4kv",

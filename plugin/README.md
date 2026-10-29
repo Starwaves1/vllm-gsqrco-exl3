@@ -73,6 +73,26 @@ vllm serve unsloth/Qwen3.5-4B-MTP-GGUF:Q4_K_M \
 For a GGUF without a `nextn` block, omit `--speculative-config`; the backbone
 loads normally without MTP.
 
+### int4 KV cache attention
+
+`--kv-cache-dtype int4_per_token_head --attention-backend CUSTOM` runs attention
+over vLLM's int4 KV cache on this plugin's CUDA kernel (sm80+, head size 256,
+at most 24 query rows per KV head per decode step, e.g. GQA 6 with MTP k=3).
+First prefill chunks use FlashAttention on the unquantized K/V. With MTP, name
+the backend for the drafter too, or its layer silently picks another backend:
+
+```bash
+vllm serve <model> --kv-cache-dtype int4_per_token_head --attention-backend CUSTOM \
+  --speculative-config '{"method":"mtp","num_speculative_tokens":3,"attention_backend":"CUSTOM"}'
+```
+
+The kernel is its own extension, `vllm_gguf_plugin._C_int4kv`. Building it
+with a CUDA 13 `nvcc` newer than the CUDA runtime headers PyTorch ships with
+needs `NVCC_APPEND_FLAGS=-DCCCL_DISABLE_CTK_COMPATIBILITY_CHECK`, and
+`CUDA_HOME/lib64/libcudart.so` must be that same runtime (point it at the
+`nvidia-cuda-runtime` wheel's `libcudart.so.13`), or the extension links
+another CUDA runtime than the one vLLM loads.
+
 ## Tested model coverage
 
 The plugin uses vLLM's model implementations and a generic GGUF weight
