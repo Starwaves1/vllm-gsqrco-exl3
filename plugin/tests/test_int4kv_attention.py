@@ -8,6 +8,7 @@ fp32 attention over the dequantized cache is the referee.
 import math
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 import torch
 
@@ -19,7 +20,7 @@ from vllm.v1.attention.ops.int4_per_token_head import (  # noqa: E402
     unified_attention_int4,
 )
 
-import vllm_gguf_plugin.int4kv_attention  # noqa: E402,F401
+from vllm_gguf_plugin.int4kv_attention import MAX_QUERY_ROWS, split_queries  # noqa: E402
 
 HEAD, KV_HEADS, GROUP = 256, 4, 6
 SLOT = 2 * (HEAD // 2 + 4)
@@ -107,6 +108,21 @@ def run_cuda(case, out=None):
     return out
 
 
+def run_cuda_pieces(case):
+    """Prefill mode: queries cut into kernel-sized causal pieces, as the backend's builder does."""
+    qsl = case.qsl.cpu().numpy()
+    req, start, tail = split_queries(qsl, MAX_QUERY_ROWS // GROUP)
+    req = torch.from_numpy(req).cuda()
+    out = torch.empty_like(case.q)
+    torch.ops._C_int4kv.int4kv_attention(
+        out, case.q, case.kv, case.table[req],
+        case.seq_lens[req] - torch.from_numpy(tail).int().cuda(),
+        torch.from_numpy(np.append(start, qsl[-1])).int().cuda(),
+        _get_rht_signs(HEAD, 0, case.q.device), case.scale, MAX_QUERY_ROWS // GROUP,
+    )
+    return out
+
+
 def hadamard(n=HEAD):
     h = torch.ones(1, 1, device="cuda")
     while h.shape[0] < n:
@@ -175,3 +191,12 @@ def test_long_context(ctx, num_seqs, q_len):
 def test_block_size_16_fp16_q_len_3():
     case = build_case(3, 5000, 3, block_size=16, dtype=torch.float16)
     assert rel_err(run_cuda(case), reference(case)) < 4e-3
+
+
+@pytest.mark.parametrize("q_len", [61, 128])
+@pytest.mark.parametrize("num_seqs", [1, 3])
+@pytest.mark.parametrize("ctx", [4096, 32768])
+def test_prefill_chunk_over_cached_prefix(ctx, num_seqs, q_len):
+    case = build_case(num_seqs, ctx, q_len)
+    assert rel_err(run_cuda_pieces(case), reference(case)) < 4e-3
+
