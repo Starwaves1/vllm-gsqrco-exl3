@@ -11,9 +11,9 @@ Model: Qwen3.8-27B hybrid (16 full-attention layers of 64, head_dim 256, 4 KV he
 
 | Rung | Target | Round 1 |
 |---|---|---|
-| R1-A correctness | matches the Triton int4 kernel on the same packed cache (q-len 1/4, batch 1-8, 1k-256k, NHD/HND); logprob parity and KLD vs bf16 KV equal to Triton int4 within noise | see below |
-| R1-B kernel speed | >= 2x the Triton int4 kernel at 32k-128k on both cards | passed |
-| R1-C server | ms/step at c = 1/2/4/8, ~1k/32k/128k, vs Triton int4 and fp8 FlashInfer, with the whole-step floor | see below |
+| R1-A correctness | matches the Triton int4 kernel on the same packed cache (q-len 1/4, batch 1-8, 1k-256k, NHD/HND); logprob parity and KLD vs bf16 KV equal to Triton int4 within noise | kernel: passed (57/57, both cards); server: see R1-A below |
+| R1-B kernel speed | >= 2x the Triton int4 kernel at 32k-128k on both cards | passed: 4.1-62x (3090), 2.06-36x (4070 Ti) |
+| R1-C server | ms/step at c = 1/2/4/8, ~1k/32k/128k, vs Triton int4 and fp8 FlashInfer, with the whole-step floor | measured: 1.1-8.8x faster than Triton int4, 1.07-1.21x faster than fp8; 1.49x floor at c=1 |
 | later | 80% of the attention floor; whole step within 1.3x of its floor at c=4 | |
 
 ## Design (round 1)
@@ -160,12 +160,106 @@ What limits it now:
   pipe, softmax, PV dequant + MMA) are serialized by the barriers with only 8 warps
   per SM, so the tile takes ~7000 clocks. The 4070 Ti has 2x more MMA per byte
   (half-rate fp32-acc ~80 TFLOPS vs 479 GB/s needs 45 TFLOPS) and reaches 93%.
+- Clock check (3090, 128k c=1, kernel looped for 4 s, `nvidia-smi` at 200 ms): q-len 4
+  0.253 ms/call at 1620 MHz and 321 W, q-len 1 0.179 ms at 1639 MHz and 349 W (power
+  cap). At ~1.6 GHz the tensor ceiling is ~100 TFLOPS rather than 117, so the DRAM floor
+  at q-len 4 would need ~83% tensor utilization; the kernel does 12.9 GFLOP in 0.215 ms =
+  60 TFLOPS (~60%). 80% of the DRAM floor needs ~66%: reachable by overlapping phases;
+  much beyond that needs fewer tensor cycles per byte (fp16-accumulate PV or int8 QK),
+  which round 1's design decisions exclude. `ncu` is not usable without root
+  (ERR_NVGPUCTRPERM), so stall reasons are not measured yet.
 
 ### R1-C: server
 
-(pending; see hand-off)
+Base GSQ-RCO IQ3_S-mtp (`ISTA-DASLab-Qwen3.8-27B-GSQ-RCO-GGUF`), `VLLM_GGUF_LCPP=1`,
+MTP k=3, prefix caching (align), async scheduling, `--max-num-batched-tokens 2048`,
+GPU util 0.93, no offload tiers, on :18500 from the int4kv worktree (script:
+`/tmp/int4kv_serve.sh`, argv = the prod int4kv drop-in minus the tiers). The CUSTOM
+runs pass `"attention_backend":"CUSTOM"` in `--speculative-config`: vLLM autoselects the
+drafter's backend otherwise and its attention layer silently stays on Triton.
+
+ms/step = window / (MTP drafts / c) from `/metrics`, a 15 s window starting 3 s after
+all c requests stream (random-token prompts, ignore_eos, nothing prefilling in the
+window), 59-609 steps per cell; one window per cell, not a min over repeats. The whole-
+step floor counts DRAM bytes at 892 GB/s: 14.54 GB of weights per step (64 layers +
+lm_head for the verify pass, MTP block + lm_head for each of the 3 draft passes), 151 MB
+per sequence of GDN state (fp16, read + write), and 19 attention-layer passes (16 + the
+drafter's layer 3x) of 1056 B per token. KV pools at 0.93: int4 424,117 tokens, fp8
+236,630 (so fp8 32k c=8 and anything bigger at 128k do not fit).
+
+| ctx | c | CUDA int4 (CUSTOM) | Triton int4 | fp8 FlashInfer | int4 floor | CUSTOM / floor |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1k | 1 | 24.6 | 28.2 | 26.4 | 16.5 | 1.49x |
+| 1k | 2 | 28.1 | 32.0 | 30.2 | 16.7 | 1.68x |
+| 1k | 4 | 31.4 | 35.3 | 33.9 | 17.1 | 1.84x |
+| 1k | 8 | 41.3 | 45.1 | 43.7 | 17.8 | 2.32x |
+| 32k | 1 | 25.7 | 82.0 | 28.7 | 17.2 | 1.49x |
+| 32k | 2 | 30.3 | 85.7 | 34.7 | 18.1 | 1.67x |
+| 32k | 4 | 35.6 | 91.5 | 42.6 | 19.9 | 1.79x |
+| 32k | 8 | 49.8 | 117.2 | does not fit | 23.6 | 2.12x |
+| 128k | 1 | 29.0 | 254.3 | 35.2 | 19.4 | 1.49x |
+
+CUDA graph modes (from the boot logs): CUSTOM and Triton int4 inherit
+`AttentionCGSupport.ALWAYS` and run FULL_AND_PIECEWISE (FULL decode graphs include
+attention); FlashInfer is downgraded to PIECEWISE with spec decode. CUSTOM in PIECEWISE:
+1k c=1 24.7, 1k c=4 31.9, 32k c=1 26.0, 32k c=4 36.2,
+128k c=1 29.1 ms/step (FULL: 24.6 / 31.4 / 25.7 / 35.6 / 29.0), so the graph mode is worth
+<= 0.6 ms/step to CUSTOM and the gap to fp8 FlashInfer is not a graph-mode artifact.
+
+Reading the table:
+
+- Attention is now a small part of the step. CUSTOM 128k c=1 minus 1k c=1 is 4.4 ms for
+  19 attention passes over 128k tokens; their DRAM floor is 2.95 ms (67%), and the
+  microbench predicts ~4.0 ms (16 x 0.215 ms at q-len 4 + the drafter's 0.215 + 2 x
+  0.173). Triton int4 spends 226 ms there (no split-KV at q-len > 1), fp8 FlashInfer
+  ~9 ms.
+- The rest of the gap to the floor is the same at 1k and 128k (c=1: 1.49x both): GGUF
+  GEMV/GEMM, GDN and launch overhead, outside this kernel. At c=8 it grows (2.3x).
+- Coherence gate (round 0's `/tmp/r0/c3.py`, port/model adapted, run against a CUSTOM
+  server started after the lead patched the venv's runner with
+  `v1-uniform-decode-excludes-prefill.patch`): R=4 probe ok, both background streams
+  coherent, acceptance 2.43-2.84; R=5 control: background coherent, acceptance 2.36-2.66,
+  probe answer missed the `VALUE=` prefix (sampling at T=0.7, no `!!!!`). The CUSTOM ms/step
+  rows above come from a server booted at 02:21, one minute before the patch landed; no
+  measured window had a prefill in it, which is the only case the patch changes.
+
+### R1-A: server-level parity and KLD
+
+Real agentic transcripts (`~/tools/dswe-guard/mla/kld/data/tokens.npz`, first 4 `stock`
+keys), prefixes of 8k and 32k tokens, greedy 96 tokens with top-20 logprobs through the
+decode path (MTP verify rows), `/tmp/kldgen.py`.
+
+Greedy parity (identical generated prefix out of 96; |logprob difference| of the chosen
+token before the first divergence):
+
+| pair | identical prefix, mean (min) | mean abs dlogprob | p99 |
+|---|---|---|---|
+| CUSTOM vs Triton int4 | 38.3 (17) | 0.023 | 0.39 |
+| Triton int4 vs fp8 | 20.0 (0) | 0.025 | 0.24 |
+| CUSTOM vs fp8 | 13.0 (0) | 0.025 | 0.25 |
+
+KLD against bf16 KV: each run's own greedy tokens teacher-forced through a bf16-KV server
+(`prompt_logprobs` top-20, no drafter), KL(ref || run) over the reference's top-20 with
+tokens missing from the run's top-20 set to its 20th logprob:
+
+| KV / kernel | positions | KLD mean | p99 | max | top-1 agreement |
+|---|---:|---:|---:|---:|---:|
+| int4, CUDA (CUSTOM) | 539 | 0.165 | 4.73 | 11.8 | 0.930 |
+| int4, Triton | 551 | 0.224 | 8.35 | 17.2 | 0.924 |
+| fp8, FlashInfer | 436 | 0.036 | 0.56 | 3.8 | 0.970 |
+
+The CUDA kernel is no worse than the Triton int4 path (the difference is within the noise
+of ~550 heavy-tailed positions on unpaired sequences); both are ~5x fp8's KLD, which is
+the int4 format, not the kernel. Gate passed for this round; the format's cost is a
+separate question for whoever decides on int4 in prod.
 
 ## What failed / gotchas
+
+- vLLM autoselects the MTP drafter's attention backend unless the speculative config
+  names one (`llm_base_proposer.py`, "Never inherit the attention backend"); the first
+  CUSTOM boot ran the drafter on Triton int4. Fixed with `"attention_backend":"CUSTOM"`.
+- A bf16 reference server with `prompt_logprobs` OOMs at 0.93 utilization and 2048-token
+  chunks (chunk x 248k vocab fp32); the reference ran at 0.85 with 512-token chunks.
 
 - `TORCH_CUDA_ARCH_LIST` build with the venv's CUDA 13.4 nvcc needs
   `-DCCCL_DISABLE_CTK_COMPATIBILITY_CHECK` (the wheel's runtime headers are 13.0) and a
@@ -175,9 +269,58 @@ What limits it now:
   write-back lands inside the timed call (c=1 32k read 299 GB/s instead of 416). The
   bench evicts with a read.
 
-## Hand-off
+## Hand-off (end of round 1, 2026-10-29 ~04:00)
 
-(round 1 in progress)
+State: branch `int4kv` (worktree `/tmp/gsq-wt-int4kv`; the main checkout `~/gsq-vllm`
+stays on `main` because prod imports the plugin from it). The int4kv extension is built
+in the worktree only (`vllm_gguf_plugin/_C_int4kv.abi3.so`, sm_86 + sm_89); the
+worktree's `_C_gguf.abi3.so` is a copy of each node's own build. Dev build of just this
+extension: `/tmp/int4kv_build.sh` (needs the CUDA 13 shim dir `/tmp/cuda13`, see
+gotchas). Test servers: `/tmp/int4kv_serve.sh CUSTOM|TRITON_ATTN|FP8`, ms/step client
+`/tmp/msstep.py`, parity/KLD client `/tmp/kldgen.py`; raw results in
+`/tmp/int4kv-runs/`. (All of /tmp is scratch; the numbers are copied here and in
+`~/3090-microbenchmark-repository/data/2026-10-29-int4kv-cuda-attention.md`.)
+
+Rungs: R1-A kernel correctness passed (57/57 on both cards); server parity and KLD see
+above. R1-B passed on both cards (min 2.06x, 4070 Ti c=8 64k q-len 1; 4-62x on the 3090).
+R1-C measured; the CUDA backend is 1.49x the whole-step floor at c=1 (1k-128k) and 1.79x
+at c=4 32k, against a later-round target of 1.3x at c=4.
+
+Next steps for round 2, in order:
+
+1. q-len 4 on sm86 (72-79% of floor; compute-bound, see "What limits it now"). Within
+   the fp16/fp32-acc design: K is warp-private in QK, so load it global -> registers one
+   tile ahead and keep only V + scales in shared memory (136 B rows): a 3-stage V ring
+   fits in ~55 KB, the top-of-tile barrier goes away, and QK(i+1) can be issued against
+   PV(i) so the tensor pipe stays fed through the softmax and barrier gaps. Profile with
+   `ncu` first (tensor pipe active %, stall reasons) on `tests/bench_int4kv_attention.py`
+   shapes.
+2. Fixed cost at short context: 8k c=1 is 36% of floor on the 3090 because 80 CTAs get
+   one tile each. Add a minimum split length (~512-1024 tokens) and skip the combine's
+   partial round trip when one split covers a sequence.
+3. Mixed batches: any prefill chunk in the batch (max_query_len > 4) sends the whole
+   batch, decodes included, to the Triton int4 kernel, whose q-len > 1 path has no
+   split-KV. Reorder decodes first and run the decode rows on the CUDA kernel.
+4. Prefill: fresh-prompt chunks should use FlashAttention on the unquantized K/V before
+   the store (the TurboQuant pattern); cached-prefix chunks need a prefill variant of
+   this kernel. Today a 128k prompt takes 322 s on the Triton int4 path vs 119 s on fp8
+   FlashInfer.
+5. Later: fold the output rotation into W_o at load; cache the SM count and the
+   shared-memory attribute instead of querying per call.
+
+Open risks:
+
+- The backend inherits `AttentionCGSupport.ALWAYS`, so with spec decode it runs FULL
+  decode graphs, exposed to the runner bug round 0 found unless the venv carries
+  `v1-uniform-decode-excludes-prefill.patch` (applied on ms4/MS5 tonight by the lead) or
+  the server runs `cudagraph_mode=PIECEWISE` (costs CUSTOM <= 0.6 ms/step, measured).
+- `--speculative-config` must carry `"attention_backend":"CUSTOM"`, or the drafter's
+  layer quietly runs the slow Triton int4 path.
+- P x s_v is rounded to fp16: fine for this model, would overflow if a model's V had
+  per-token ranges above ~1e5 (s_v > ~4000). A range check or bf16 P would close it.
+- Head size 256 and <= 24 query rows per KV head only (else the Triton fallback).
+- Server numbers are one 15 s window per cell, not a min over repeats; cells with
+  hundreds of steps, but no repeat variance measured.
 
 ## Round 0: root cause of the 2026-10-28 int4 PP collapse
 
