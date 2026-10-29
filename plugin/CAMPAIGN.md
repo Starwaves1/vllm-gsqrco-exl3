@@ -168,6 +168,19 @@ What limits it now:
   much beyond that needs fewer tensor cycles per byte (fp16-accumulate PV or int8 QK),
   which round 1's design decisions exclude. `ncu` is not usable without root
   (ERR_NVGPUCTRPERM), so stall reasons are not measured yet.
+- Probes that correct the picture above (3090, 128k, bench method): replacing the QK
+  MMAs (or, separately, the PV MMAs) with an XOR sink of their operands, i.e. half the
+  tensor work gone, makes q-len 4 only 6% faster (c=1 0.215 -> 0.202 ms, c=8 1.517 ->
+  1.434 ms, both probes alike); q-len 1 is unchanged. Moving the next-tile load from
+  the top-of-tile barrier to after the max exchange (one barrier fewer, shorter
+  prefetch) changes nothing (+-1%). Kernel times from `torch.profiler`: the combine is
+  5.5-7 us everywhere (22% of the 8k c=1 call, 3% at 128k), the attention kernel
+  221 us at q-len 4 vs 167 us at q-len 1 (128k c=1). So the q-len 4 cost over q-len 1
+  is mostly not tensor time and not barriers: it is the per-row work that triples with
+  NT (softmax: 8-warp max reads, exp2, P stores, O rescale; Q and P ldmatrix), plus the
+  144-register schedule. Round 2 should cut that first (e.g. one warp-reduced tile max
+  instead of every thread reading 8 warps' maxima, rescale O only when the max moves)
+  before restructuring the pipeline.
 
 ### R1-C: server
 
@@ -293,8 +306,9 @@ Next steps for round 2, in order:
    tile ahead and keep only V + scales in shared memory (136 B rows): a 3-stage V ring
    fits in ~55 KB, the top-of-tile barrier goes away, and QK(i+1) can be issued against
    PV(i) so the tensor pipe stays fed through the softmax and barrier gaps. Profile with
-   `ncu` first (tensor pipe active %, stall reasons) on `tests/bench_int4kv_attention.py`
-   shapes.
+   `ncu` first if root is available (tensor pipe active %, stall reasons); without it,
+   the MMA-removal probes above say the per-row softmax/P/rescale work is the bigger
+   lever than tensor throughput.
 2. Fixed cost at short context: 8k c=1 is 36% of floor on the 3090 because 80 CTAs get
    one tile each. Add a minimum split length (~512-1024 tokens) and skip the combine's
    partial round trip when one split covers a sequence.
