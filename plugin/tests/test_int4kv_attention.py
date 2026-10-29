@@ -26,7 +26,7 @@ HEAD, KV_HEADS, GROUP = 256, 4, 6
 SLOT = 2 * (HEAD // 2 + 4)
 
 
-def build_case(num_seqs, ctx, q_len, layout="NHD", block_size=1616, dtype=torch.bfloat16, seed=0):
+def build_case(num_seqs, ctx, q_len, layout="NHD", block_size=1616, dtype=torch.bfloat16, seed=0, v_mag=1.0):
     """Packed cache with shuffled blocks, seq lens in (7/8 ctx, ctx], and Q."""
     gen = torch.Generator(device="cuda").manual_seed(seed)
     dev = torch.device("cuda")
@@ -57,7 +57,7 @@ def build_case(num_seqs, ctx, q_len, layout="NHD", block_size=1616, dtype=torch.
         for c0 in range(0, n, 65536):
             c1 = min(n, c0 + 65536)
             k = torch.randn(c1 - c0, KV_HEADS, HEAD, generator=gen, device=dev) * head_scale
-            v = torch.randn(c1 - c0, KV_HEADS, HEAD, generator=gen, device=dev) * head_scale
+            v = torch.randn(c1 - c0, KV_HEADS, HEAD, generator=gen, device=dev) * head_scale * v_mag
             needles = torch.randint(0, c1 - c0, (8,), generator=gen, device=dev)
             qs = q[s * q_len].float().view(KV_HEADS, GROUP, HEAD)[:, 0]
             k[needles] = qs * 0.5
@@ -200,3 +200,10 @@ def test_prefill_chunk_over_cached_prefix(ctx, num_seqs, q_len):
     case = build_case(num_seqs, ctx, q_len)
     assert rel_err(run_cuda_pieces(case), reference(case)) < 4e-3
 
+
+def test_huge_v_scale_saturates_instead_of_inf():
+    # V scales past the fp16 range (|V| ~ 1e6) must not turn the output into inf/NaN.
+    case = build_case(2, 4096, 4, v_mag=1e6)
+    v_scale = (case.kv[..., 260:].contiguous().view(torch.int32) & ~0xF).view(torch.float32)
+    assert v_scale.max() > 65504
+    assert torch.isfinite(run_cuda(case)).all()

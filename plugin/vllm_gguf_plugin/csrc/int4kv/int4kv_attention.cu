@@ -361,7 +361,8 @@ __global__ void __launch_bounds__(kThreads, 1) int4kv_attention_kernel(const Par
           const float pr = exp2f(s[n][2 * h + c] - base);
           sum += pr;
           // P with the V scale folded in; masked slots may hold stale bytes.
-          pv[h][c] = tok[h] < limit[n][c] ? pr * scale_of(vs_bits[h]) : 0.f;
+          // An fp16 operand: a V scale past the fp16 range saturates, not inf.
+          pv[h][c] = tok[h] < limit[n][c] ? fminf(pr * scale_of(vs_bits[h]), 65504.f) : 0.f;
         }
         l_run[n][c] = l_run[n][c] * alpha[n][c] + sum;
       }
