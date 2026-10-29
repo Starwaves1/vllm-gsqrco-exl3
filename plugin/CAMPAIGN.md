@@ -178,9 +178,13 @@ What limits it now:
   221 us at q-len 4 vs 167 us at q-len 1 (128k c=1). So the q-len 4 cost over q-len 1
   is mostly not tensor time and not barriers: it is the per-row work that triples with
   NT (softmax: 8-warp max reads, exp2, P stores, O rescale; Q and P ldmatrix), plus the
-  144-register schedule. Round 2 should cut that first (e.g. one warp-reduced tile max
-  instead of every thread reading 8 warps' maxima, rescale O only when the max moves)
-  before restructuring the pipeline.
+  144-register schedule. A third probe dropped the cross-warp max reads and the O
+  rescale (wrong results, timing only): 4% (0.215 -> 0.205, 1.517 -> 1.465). No single
+  piece dominates; the extra time is spread over the longer per-warp instruction stream,
+  with only 2 warps per scheduler to hide its latencies (one 8-warp CTA per SM; 144
+  registers rule out a second CTA). Round 2's lever is latency hiding: more resident
+  warps (registers <= 128 and shared memory <= ~48 KB per CTA, e.g. K straight to
+  registers and V-only stages) or explicit software pipelining across tiles.
 
 ### R1-C: server
 
