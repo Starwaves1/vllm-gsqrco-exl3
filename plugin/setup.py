@@ -92,19 +92,33 @@ if _should_build_extension():
         except ImportError:
             pass
 
-    setup_kwargs.update(
-        ext_modules=[
+    ext_modules = [
+        CUDAExtension(
+            name="vllm_gguf_plugin._C_gguf",
+            sources=sources,
+            include_dirs=include_dirs,
+            py_limited_api=True,
+            extra_compile_args={
+                "cxx": ["-O3", "-std=c++17"],
+                "nvcc": nvcc_args,
+            },
+        )
+    ]
+    if not is_rocm:
+        # Attention over vLLM's int4_per_token_head KV cache (mma.sync, sm80+).
+        ext_modules.append(
             CUDAExtension(
-                name="vllm_gguf_plugin._C_gguf",
-                sources=sources,
-                include_dirs=include_dirs,
+                name="vllm_gguf_plugin._C_int4kv",
+                sources=["vllm_gguf_plugin/csrc/int4kv/int4kv_attention.cu"],
                 py_limited_api=True,
                 extra_compile_args={
                     "cxx": ["-O3", "-std=c++17"],
-                    "nvcc": nvcc_args,
+                    "nvcc": ["-O3", "-std=c++17", "--use_fast_math", "-DUSE_CUDA"],
                 },
             )
-        ],
+        )
+    setup_kwargs.update(
+        ext_modules=ext_modules,
         cmdclass={"build_ext": BuildExtension},
         options={"bdist_wheel": {"py_limited_api": "cp310"}},
     )
