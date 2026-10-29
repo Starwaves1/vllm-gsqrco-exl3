@@ -16,6 +16,7 @@ from vllm.model_executor.model_loader import (
     register_model_loader,
 )
 from vllm.transformers_utils.config import get_config_parser, register_config_parser
+from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_backend
 
 from .config_parser import GGUFConfigParser
 from .gguf_utils import check_gguf_file, is_gguf, is_remote_gguf, split_remote_gguf
@@ -157,6 +158,11 @@ def register() -> None:
     # otherwise a graph cached under the other setting is reloaded and decodes garbage.
     envs.environment_variables.setdefault(
         "VLLM_GGUF_LCPP", lambda: os.environ.get("VLLM_GGUF_LCPP")
+    )
+    # --attention-backend CUSTOM: CUDA decode attention for int4_per_token_head KV.
+    register_backend(
+        AttentionBackendEnum.CUSTOM,
+        "vllm_gguf_plugin.int4kv_attention.Int4KVAttentionBackend",
     )
     _patch_engine_args()
     _patch_speculator_probe()
